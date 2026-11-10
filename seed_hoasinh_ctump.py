@@ -835,6 +835,7 @@ def ensure_hoasinh_ctump_seeded():
     # Bài 3/4 are supplemental banks committed as JSON (cloud has no bundled .db).
     # Insert only missing topic tags; never delete existing user/imported questions.
     for filename, prefix in (
+        ("trac_nghiem_bai2_protid_200_cau.json", "Bài 2"),
         ("trac_nghiem_bai3_glucid_200_cau.json", "Bài 3"),
         ("trac_nghiem_bai4_lipid_nuoc_tieu_200_cau.json", "Bài 4"),
     ):
