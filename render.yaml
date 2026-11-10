@@ -3,16 +3,12 @@ services:
   - type: web
     name: unimaster-ai
     runtime: docker
-    plan: starter            # Gói có ổ đĩa bền vững (giữ dữ liệu). Gói free sẽ mất dữ liệu khi khởi động lại.
+    plan: free
     healthCheckPath: /healthz
     envVars:
       - key: APP_PASSWORD
-        sync: false          # Render sẽ hỏi bạn nhập mật khẩu truy cập khi tạo dịch vụ
+        sync: false
       - key: SESSION_SECRET
         generateValue: true
       - key: DATA_DIR
-        value: /data
-    disk:
-      name: unimaster-data
-      mountPath: /data
-      sizeGB: 1
+        value: /tmp/unimaster-data
