@@ -521,9 +521,21 @@ async def ai_chat_tutor(subject_name: str, user_message: str, persona: str = "pr
         "examiner": "Phong cách Giảng viên Vấn đáp: giải đáp ngắn gọn rồi đặt ngược lại 1 câu hỏi xoáy tình huống để kiểm tra độ hiểu sâu của sinh viên."
     }
     style_desc = persona_map.get(persona, persona_map["professor"])
+    is_english = any(word in f"{subject_name} {user_message}".lower() for word in (
+        "english", "tiếng anh", "vocabulary", "word", "grammar", "idiom", "phrasal"
+    ))
+    english_guidance = """
+Nếu câu hỏi liên quan tiếng Anh/từ vựng, bắt buộc dạy theo hướng từ nguyên học:
+- Tách và giải thích gốc từ (Latin, Greek, French, Germanic hoặc ngôn ngữ phù hợp), tiền tố/hậu tố và nghĩa gốc.
+- Trình bày quá trình biến đổi nghĩa nếu có, từ đồng nguyên (cognates) và các từ cùng họ.
+- Phân biệt rõ dữ kiện chắc chắn với giả thuyết từ nguyên; không bịa nguồn gốc. Nếu không chắc, nói thẳng và khuyên kiểm tra OED, Merriam-Webster hoặc Etymonline.
+- Cho 2 ví dụ tự nhiên, phiên âm IPA khi hữu ích, collocation và một lỗi dùng từ thường gặp.
+Dùng tiêu đề: **Từ nguyên**, **Họ từ**, **Cách dùng**, **Ví dụ**, **Ghi chú độ tin cậy**.
+""" if is_english else ""
 
     system_prompt = f"""Bạn là UniMaster AI — Gia sư ôn thi Đại học xuất sắc cho môn "{subject_name}".
 Chế độ giảng dạy: {style_desc}
+{english_guidance}
 {STEM_FORMAT_GUIDE}"""
 
     # If history is provided, construct multi-turn dialogue
