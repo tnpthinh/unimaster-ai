@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+tools/
+*.log
+.env
+online_password.txt
+online_tunnel.json
+# Dữ liệu cá nhân có chứa API Key — KHÔNG đưa lên GitHub. Cloud dùng seed/unimaster_seed.db (đã gỡ key)
+unimaster.db
+unimaster.db-journal
+
+*.db
+*.db-journal

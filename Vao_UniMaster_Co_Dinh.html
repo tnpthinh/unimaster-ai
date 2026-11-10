@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cổng Truy Cập Cố Định • UniMaster AI Pro</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      min-height: 100vh; display: flex; align-items: center; justify-content: center;
+      padding: 20px; background: #000000; color: #f4f4f5;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background-image: radial-gradient(circle at 20% 20%, rgba(124,58,237,0.28), transparent 45%),
+                        radial-gradient(circle at 80% 80%, rgba(16,185,129,0.22), transparent 45%);
+    }
+    .card {
+      width: 100%; max-width: 440px; background: #0b0b10; border: 1px solid #27272a;
+      border-radius: 24px; padding: 32px 26px; text-align: center;
+      box-shadow: 0 28px 70px rgba(0,0,0,0.65);
+    }
+    .logo {
+      width: 60px; height: 60px; border-radius: 18px; margin: 0 auto 16px;
+      display: flex; align-items: center; justify-content: center; font-size: 28px;
+      background: linear-gradient(135deg, #7c3aed, #ec4899); color: #fff; font-weight: 900;
+    }
+    h1 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+    p { font-size: 13px; color: #a1a1aa; line-height: 1.55; margin-bottom: 20px; }
+    .btn {
+      display: block; width: 100%; padding: 14px; border-radius: 14px;
+      background: linear-gradient(135deg, #7c3aed, #ec4899); color: #fff;
+      font-weight: 800; font-size: 14px; text-decoration: none; margin-bottom: 12px;
+    }
+    .pw-box {
+      padding: 10px 14px; border-radius: 12px; background: #18181b;
+      border: 1px solid #3f3f46; font-size: 12px; color: #d4d4d8;
+    }
+    code { color: #34d399; font-weight: 800; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="logo">U</div>
+    <h1>Đang Kết Nối UniMaster AI Pro...</h1>
+    <p id="status-txt">Đang tự động tìm máy chủ HTTPS đang hoạt động và chuyển hướng tức thì...</p>
+    <a id="direct-link" href="https://engineer-whereas-inspiration-alumni.trycloudflare.com" class="btn">🚀 Bấm Vào Đây Nếu Chưa Tự Chuyển Trang</a>
+    <div class="pw-box">Mật khẩu truy cập: <code>uni-5292</code></div>
+  </div>
+  <script>
+    const FALLBACK_URL = "https://engineer-whereas-inspiration-alumni.trycloudflare.com";
+    const GATEWAY_JSON = "https://ntfy.sh/unimaster_ctump_5292/json?poll=1&since=72h";
+    async function resolveAndRedirect() {
+      try {
+        const resp = await fetch(GATEWAY_JSON, { cache: "no-store" });
+        const text = await resp.text();
+        const lines = text.trim().split("\n").filter(Boolean);
+        for (let i = lines.length - 1; i >= 0; i--) {
+          try {
+            const item = JSON.parse(lines[i]);
+            if (item.Click && item.Click.startsWith("https://")) {
+              document.getElementById("direct-link").href = item.Click;
+              window.location.replace(item.Click);
+              return;
+            }
+            const msg = JSON.parse(item.message || "{}");
+            if (msg.url && msg.url.startsWith("https://")) {
+              document.getElementById("direct-link").href = msg.url;
+              window.location.replace(msg.url);
+              return;
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
+      window.location.replace(FALLBACK_URL);
+    }
+    resolveAndRedirect();
+  </script>
+</body>
+</html>

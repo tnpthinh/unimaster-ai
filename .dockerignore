@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+tools/
+*.log
+.env
+online_password.txt
+online_tunnel.json
+.git/
+unimaster.db
+unimaster.db-journal
