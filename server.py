@@ -18,6 +18,11 @@ import socket
 import hashlib
 import secrets
 import random
+import asyncio
+import sqlite3
+import tempfile
+from datetime import datetime, timezone
+import aiohttp
 from aiohttp import web
 import database as db
 import ai_service as ai
@@ -2071,6 +2076,39 @@ async def api_rubber_duck(request):
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
 
+async def _telegram_backup_once():
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    chat_id = os.environ.get("TELEGRAM_BACKUP_CHAT_ID", "").strip()
+    if not token or not chat_id or not os.path.exists(db.DB_PATH):
+        return False
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp.close()
+    try:
+        source = sqlite3.connect(db.DB_PATH)
+        target = sqlite3.connect(tmp.name)
+        source.backup(target)
+        target.close(); source.close()
+        with open(tmp.name, "rb") as backup:
+            form = aiohttp.FormData()
+            form.add_field("chat_id", chat_id)
+            form.add_field("document", backup, filename=f"unimaster-{stamp}.db", content_type="application/octet-stream")
+            async with aiohttp.ClientSession() as session:
+                async with session.post(f"https://api.telegram.org/bot{token}/sendDocument", data=form, timeout=60) as response:
+                    return response.status == 200
+    finally:
+        try: os.unlink(tmp.name)
+        except OSError: pass
+
+async def _telegram_backup_loop():
+    hours = max(1, int(os.environ.get("TELEGRAM_BACKUP_INTERVAL_HOURS", "24")))
+    while True:
+        try:
+            await _telegram_backup_once()
+        except Exception as exc:
+            print(f"⚠️ Telegram backup failed: {exc}")
+        await asyncio.sleep(hours * 3600)
+
 def create_app():
     db.init_db()
     db.ensure_admin_user(APP_PASSWORD or "uni-5292")
@@ -2205,9 +2243,21 @@ def create_app():
 
     app.router.add_get("/", index_handler)
     app.router.add_static("/static/", STATIC_DIR)
+    if os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_BACKUP_CHAT_ID"):
+        app.on_startup.append(lambda _app: _start_backup_task(_app))
+        app.on_cleanup.append(lambda _app: _stop_backup_task(_app))
 
     return app
 
+
+async def _start_backup_task(app):
+    app["telegram_backup_task"] = asyncio.create_task(_telegram_backup_loop())
+
+async def _stop_backup_task(app):
+    task = app.pop("telegram_backup_task", None)
+    if task:
+        task.cancel()
+        await asyncio.gather(task, return_exceptions=True)
 
 if __name__ == "__main__":
     app = create_app()
