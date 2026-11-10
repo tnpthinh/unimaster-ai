@@ -115,18 +115,6 @@ def init_db():
     )
     """)
 
-    # Tự động nâng cấp bảng cho CSDL hiện có
-    for alter_sql in [
-        "ALTER TABLE questions ADD COLUMN image_url TEXT DEFAULT ''",
-        "ALTER TABLE questions ADD COLUMN topic_tag TEXT DEFAULT ''",
-        "ALTER TABLE flashcards ADD COLUMN image_url TEXT DEFAULT ''",
-        "ALTER TABLE exam_results ADD COLUMN user_id INTEGER DEFAULT 1",
-    ]:
-        try:
-            cursor.execute(alter_sql)
-        except Exception:
-            pass
-
     # Bảng Hỏi đáp & Thảo luận cộng đồng gắn với từng câu hỏi
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS question_discussions (
@@ -190,6 +178,17 @@ def init_db():
     )
     """)
     
+    # Apply safe column migrations after tables exist (fresh and legacy databases).
+    for table, column, definition in (
+        ("questions", "image_url", "TEXT DEFAULT ''"),
+        ("questions", "topic_tag", "TEXT DEFAULT ''"),
+        ("flashcards", "image_url", "TEXT DEFAULT ''"),
+        ("exam_results", "user_id", "INTEGER DEFAULT 1"),
+    ):
+        columns = {row[1] for row in cursor.execute(f'PRAGMA table_info({table})')}
+        if column not in columns:
+            cursor.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+
     conn.commit()
     conn.close()
 
