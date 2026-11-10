@@ -251,7 +251,7 @@ async function sendFloatingTutorMessage() {
     fullPromptForAi = `[NGỮ CẢNH CÂU HỎI THI]:
 Môn: ${subName} | ${pq.shortTitle}
 Đề bài: ${pq.fullTitle}
-${pq.code_snippet ? `Mã nguồn đi kèm:\\n\`\`\`csharp\\n${pq.code_snippet}\\n\`\`\`\\n` : ''}
+${pq.code_snippet ? `Mã nguồn đi kèm:\\n```csharp\\n${pq.code_snippet}\\n```\\n` : ''}
 Các phương án:
 ${opts || 'Tự luận / Trả lời ngắn'}
 Đáp án chuẩn: ${pq.correct_option || 'Chưa công bố'}
