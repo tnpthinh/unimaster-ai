@@ -5665,6 +5665,20 @@ async function checkApiKeyStatus() {
         ? `Đang có ${count} khóa trong dàn luân phiên tự động (Ưu tiên: ${res.masked_key || STATE.apiPool[0]?.masked_key})`
         : 'Hãy thêm ít nhất 1 khóa Gemini API miễn phí bên dưới';
     }
+
+    // Hiển thị banner trạng thái lưu trữ (Server hay Local)
+    const banner = document.getElementById('api-mode-banner');
+    if (banner) {
+      if (STATE.isOfflineStandalone) {
+        banner.className = 'p-3 rounded-xl text-xs leading-relaxed badge-amber';
+        banner.innerHTML = '⚠️ <strong>Chế độ Offline cục bộ:</strong> API Key được lưu trên trình duyệt của máy này. Máy khác truy cập sẽ không tự nhận key.';
+      } else {
+        banner.className = 'p-3 rounded-xl text-xs leading-relaxed badge-emerald';
+        banner.innerHTML = '🌐 <strong>Chế độ Máy chủ đám mây:</strong> API Key được lưu trên CSDL Server. Mọi máy tính, điện thoại truy cập qua liên kết mạng đều <strong>dùng chung dàn Key này</strong>!';
+      }
+      banner.classList.remove('hidden');
+    }
+
     renderApiKeyPoolList();
   } catch (_) {}
 }
