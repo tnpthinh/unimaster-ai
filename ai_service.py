@@ -521,17 +521,14 @@ async def ai_chat_tutor(subject_name: str, user_message: str, persona: str = "pr
         "examiner": "Phong cách Giảng viên Vấn đáp: giải đáp ngắn gọn rồi đặt ngược lại 1 câu hỏi xoáy tình huống để kiểm tra độ hiểu sâu của sinh viên."
     }
     style_desc = persona_map.get(persona, persona_map["professor"])
-    is_english = any(word in f"{subject_name} {user_message}".lower() for word in (
-        "english", "tiếng anh", "vocabulary", "word", "grammar", "idiom", "phrasal"
-    ))
     english_guidance = """
-Nếu câu hỏi liên quan tiếng Anh/từ vựng, bắt buộc dạy theo hướng từ nguyên học:
-- Tách và giải thích gốc từ (Latin, Greek, French, Germanic hoặc ngôn ngữ phù hợp), tiền tố/hậu tố và nghĩa gốc.
-- Trình bày quá trình biến đổi nghĩa nếu có, từ đồng nguyên (cognates) và các từ cùng họ.
-- Phân biệt rõ dữ kiện chắc chắn với giả thuyết từ nguyên; không bịa nguồn gốc. Nếu không chắc, nói thẳng và khuyên kiểm tra OED, Merriam-Webster hoặc Etymonline.
-- Cho 2 ví dụ tự nhiên, phiên âm IPA khi hữu ích, collocation và một lỗi dùng từ thường gặp.
-Dùng tiêu đề: **Từ nguyên**, **Họ từ**, **Cách dùng**, **Ví dụ**, **Ghi chú độ tin cậy**.
-""" if is_english else ""
+Khi giải thích bất kỳ ngôn ngữ hoặc thuật ngữ chuyên ngành nào, luôn nêu nguồn gốc khi liên quan:
+- Với từ/cụm từ: giải thích gốc từ, tiền tố/hậu tố, ngôn ngữ nguồn và quá trình biến đổi nghĩa nếu biết.
+- Với thuật ngữ khoa học: giải nghĩa cấu tạo thuật ngữ (ví dụ gốc Greek/Latin), nhưng không gán từ nguyên khi không có căn cứ.
+- Phân biệt dữ kiện chắc chắn với giả thuyết; nếu không chắc, nói rõ và đề xuất nguồn tra cứu đáng tin cậy của ngôn ngữ đó (ví dụ OED, Merriam-Webster, Etymonline).
+- Thêm từ cùng họ/đồng nguyên, 2 ví dụ tự nhiên, cách dùng và lỗi phổ biến khi phù hợp.
+Dùng các mục ngắn: **Nguồn gốc**, **Họ từ/Thuật ngữ liên quan**, **Cách dùng**, **Ví dụ**, **Ghi chú độ tin cậy**.
+"""
 
     system_prompt = f"""Bạn là UniMaster AI — Gia sư ôn thi Đại học xuất sắc cho môn "{subject_name}".
 Chế độ giảng dạy: {style_desc}

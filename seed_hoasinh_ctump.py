@@ -779,7 +779,8 @@ def ensure_hoasinh_ctump_seeded():
     existing_cnt = c.fetchone()["cnt"]
     conn.close()
 
-    if existing_cnt < len(questions):
+    # Chỉ seed lại khi môn hoàn toàn rỗng; không xóa câu hỏi người dùng/imported.
+    if existing_cnt == 0:
         conn = db.get_connection()
         c = conn.cursor()
         c.execute("DELETE FROM questions WHERE subject_id = ?", (sid,))
@@ -829,6 +830,28 @@ def ensure_hoasinh_ctump_seeded():
                     content="💡 Mẹo thi thực hành: Với câu hỏi nhận diện tiêu bản kính hiển vi hoặc công thức đo quang, các bạn nhớ bấm vào ảnh để phóng to (Zoom Lightbox) quan sát rõ hình thái tinh thể (nắp quan tài = Triple phosphate, lục giác = Cystine, phong bì = Calcium oxalate, thoi vàng nâu = Acid uric) và chú ý pH nước tiểu nhé!",
                     is_verified=1
                 )
+
+
+    # Bài 3/4 are supplemental banks committed as JSON (cloud has no bundled .db).
+    # Insert only missing topic tags; never delete existing user/imported questions.
+    for filename, prefix in (
+        ("trac_nghiem_bai3_glucid_200_cau.json", "Bài 3"),
+        ("trac_nghiem_bai4_lipid_nuoc_tieu_200_cau.json", "Bài 4"),
+    ):
+        path = os.path.join(BASE_DIR, filename)
+        if not os.path.exists(path):
+            continue
+        conn = db.get_connection()
+        exists = conn.execute(
+            "SELECT 1 FROM questions WHERE subject_id = ? AND topic_tag LIKE ? LIMIT 1", (sid, f"{prefix}%")
+        ).fetchone()
+        conn.close()
+        if exists:
+            continue
+        with open(path, encoding="utf-8") as f:
+            for q in json.load(f):
+                db.add_question(sid, q["question_text"], q["option_a"], q["option_b"], q["option_c"], q["option_d"],
+                    q["correct_option"], q.get("explanation", ""), q.get("difficulty", "medium"), "mcq", "", "", q.get("topic_tag", prefix))
 
 
 if __name__ == "__main__":
