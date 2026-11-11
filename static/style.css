@@ -2054,6 +2054,68 @@ html.sepia [class*="border-teal-500"] #countdown-04-12,
   border-color: #94a3b8 !important;
 }
 
+/* 4b. Header chịu được chữ phóng to (root font-size lớn): media query theo px không tự co theo rem,
+   nên ép các cụm co giãn được + cụm phải luôn nằm trong khung, không bị đẩy ra ngoài. */
+header > div {
+  flex-wrap: nowrap !important;
+  min-width: 0 !important;
+}
+header > div > div:first-child {
+  flex: 1 1 0 !important;
+  min-width: 0 !important;
+}
+header > div > div:first-child > button:first-child {
+  flex: 0 0 auto !important;
+}
+header > div > div:last-child {
+  flex: 0 0 auto !important;
+  flex-wrap: nowrap !important;
+}
+header > div > nav {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+  overflow-x: auto !important;
+  scrollbar-width: none;
+}
+header > div > nav::-webkit-scrollbar { display: none; }
+header .nav-tab {
+  white-space: nowrap !important;
+  flex: 0 0 auto !important;
+}
+#header-active-subj-btn {
+  flex: 0 1 auto !important;
+  min-width: 0 !important;
+}
+#header-user-btn { flex: 0 0 auto !important; }
+/* Khi chữ lớn (class .big-text do JS gắn khi root font >= 17.5px):
+   thu gọn header để luôn đủ chỗ cho các nút bên phải. */
+html.big-text #header-user-name,
+html.big-text #header-user-role,
+html.big-text #active-subj-badge,
+html.big-text header > div > div:first-child > button:first-child span {
+  display: none !important;
+}
+html.big-text header > div > nav {
+  max-width: 38vw !important;
+}
+html.big-text #header-active-subj-btn {
+  max-width: min(220px, 34vw) !important;
+}
+html.big-text #header-user-btn {
+  max-width: 2.75rem !important;
+  padding: 0.25rem !important;
+  gap: 0 !important;
+}
+/* Chữ cực lớn (>= 22px): thêm bớt nút phụ */
+html.big-text header { --hdr-gap: 0.35rem; }
+html.big-text header > div { gap: var(--hdr-gap) !important; }
+html.big-text header > div > div:last-child { gap: 0.25rem !important; }
+/* Modal hồ sơ: chữ to không làm vỡ hàng */
+#acc-panel-profile, #acc-panel-switch { min-width: 0; }
+#acc-panel-profile .truncate, #acc-panel-switch .truncate { min-width: 0; }
+#acc-cards-container .acc-card { min-width: 0; flex-wrap: wrap; }
+#acc-cards-container .acc-card > div { min-width: 0; }
+
 /* 5. Ultra Sharp Floating AI Expand Button */
 #btn-ft-expand {
   display: inline-flex !important;

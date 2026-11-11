@@ -1404,6 +1404,7 @@ function applyAllAppearancePrefs() {
     const basePx = (16 * (u.zoomScale / 100)).toFixed(1);
     root.style.setProperty('--base-font-size', `${basePx}px`);
   }
+  if (typeof syncBigTextClass === 'function') syncBigTextClass();
 
   localStorage.setItem('unimaster_ui_prefs', JSON.stringify(u));
   localStorage.setItem('unimaster_theme', u.theme);
@@ -13580,6 +13581,14 @@ function setQuestionTextColor(colorHex) {
   playSound('click');
 }
 
+// Gắn class 'big-text' lên <html> khi cỡ chữ gốc >= 17.5px để CSS thu gọn header,
+// tránh các nút bên phải bị đẩy ra ngoài khi người dùng phóng to chữ.
+function syncBigTextClass() {
+  const root = document.documentElement;
+  const px = parseFloat(getComputedStyle(root).fontSize) || 16;
+  root.classList.toggle('big-text', px >= 17.5);
+}
+
 function setGlobalZoomScale(percent) {
   if (!STATE.ui) STATE.ui = { ...DEFAULT_UI_PREFS };
   STATE.ui.zoomScale = percent;
@@ -13587,6 +13596,7 @@ function setGlobalZoomScale(percent) {
 
   const basePx = (16 * (percent / 100)).toFixed(1);
   root.style.setProperty('--base-font-size', `${basePx}px`);
+  syncBigTextClass();
 
   document.querySelectorAll('.zoom-pill').forEach((el) => {
     el.classList.toggle('active', el.textContent.includes(`${percent}%`));
@@ -13622,6 +13632,7 @@ function resetDeepColorCustomization() {
   root.style.removeProperty('--base-font-size');
 
   applyAllAppearancePrefs();
+  syncBigTextClass();
   playSound('success');
   showToast('Đã khôi phục cài đặt màu sắc & giao diện về mặc định!', 'info');
 }
