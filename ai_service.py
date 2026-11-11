@@ -677,7 +677,7 @@ async def ai_extract_from_multimodal(mime_type: str, raw_bytes: bytes, filename:
 # =========================================================================
 # CORE & ADVANCED EDUCATIONAL AI SERVICES
 # =========================================================================
-async def ai_chat_tutor(subject_name: str, user_message: str, persona: str = "professor", history: list = None) -> str:
+async def ai_chat_tutor(subject_name: str, user_message: str, persona: str = "professor", history: list = None, tutor_style_prompt: str = "") -> str:
     persona_map = {
         "professor": "Phong cách Giáo sư Đại học uyên bác: phân tích cặn kẽ bản chất, công thức chuẩn xác và chỉ rõ bẫy đề thi.",
         "feynman": "Phong cách Richard Feynman siêu dễ hiểu: giải thích bằng hình ảnh đời thường sinh động để sinh viên mất gốc cũng hiểu ngay trong 1 phút.",
@@ -694,8 +694,11 @@ Khi giải thích bất kỳ ngôn ngữ hoặc thuật ngữ chuyên ngành nà
 Dùng các mục ngắn: **Nguồn gốc**, **Họ từ/Thuật ngữ liên quan**, **Cách dùng**, **Ví dụ**, **Ghi chú độ tin cậy**.
 """
 
+    custom_style = str(tutor_style_prompt or '').strip()[:1200]
+    custom_guidance = f"\nYêu cầu phong cách bổ sung của sinh viên: {custom_style}\nHãy tuân thủ nếu không mâu thuẫn với tính chính xác, an toàn và mục tiêu học tập." if custom_style else ''
     system_prompt = f"""Bạn là UniMaster AI — Gia sư ôn thi Đại học xuất sắc cho môn "{subject_name}".
 Chế độ giảng dạy: {style_desc}
+{custom_guidance}
 {english_guidance}
 {STEM_FORMAT_GUIDE}"""
 

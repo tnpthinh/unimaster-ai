@@ -1499,6 +1499,7 @@
           </h2>
           <div class="flex flex-wrap items-center gap-2">
             <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="uni-input px-3 py-1.5 text-xs font-bold"></select>
+            <button onclick="openTutorHistoryModal()" class="btn-soft px-3 py-1.5 text-xs">📜 Lịch sử</button>
             <button onclick="clearTutorChat()" class="btn-soft px-3 py-1.5 text-xs">Xóa chat</button>
           </div>
         </div>
@@ -1515,6 +1516,12 @@
             <button type="button" onclick="startClinicalOrOralCaseSim()" class="ai-chip-btn !py-1 !px-2.5 !text-xs">🩺 Mô phỏng Ca bệnh / Vấn đáp</button>
             <button type="button" onclick="generateSubjectMindmap()" class="ai-chip-btn !py-1 !px-2.5 !text-xs">🗺️ Vẽ Sơ đồ tư duy</button>
           </div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 pt-2">
+          <span class="text-[11px] font-bold txt-muted">Prompt phong cách:</span>
+          <input id="tutor-style-prompt" value="" oninput="tutorCustomStyle=this.value;localStorage.setItem(TUTOR_STYLE_KEY,this.value)" class="uni-input flex-1 min-w-[220px] px-3 py-1.5 text-xs" placeholder="Ví dụ: giải thích như Gen Z, dễ hiểu, có ví dụ đời thường..." />
+          <button type="button" onclick="setTutorCustomStyle('Giải thích thật dễ hiểu như cho người mất gốc, dùng ví dụ đời thường và giọng Gen Z thân thiện.')" class="btn-soft px-2.5 py-1.5 text-xs">✨ Gen Z dễ hiểu</button>
+          <button type="button" onclick="setTutorCustomStyle('')" class="btn-soft px-2.5 py-1.5 text-xs">Xóa prompt</button>
         </div>
       </div>
 

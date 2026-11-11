@@ -1207,8 +1207,9 @@ async def ai_chat(request):
             subject_name = found["name"] if found else "Đại học tổng hợp"
         message = data.get("message", "")
         persona = data.get("persona", "professor")
+        tutor_style_prompt = data.get("tutor_style_prompt", "")
         history = data.get("history", [])
-        reply = await ai.ai_chat_tutor(subject_name or "Đại học tổng hợp", message, persona=persona, history=history)
+        reply = await ai.ai_chat_tutor(subject_name or "Đại học tổng hợp", message, persona=persona, history=history, tutor_style_prompt=tutor_style_prompt)
         return json_resp({"success": True, "reply": reply})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)

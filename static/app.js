@@ -3,9 +3,54 @@
 // =========================================================================
 // FEATURE 3: FLOATING AI TUTOR WIDGET (CONTEXT-AWARE, MULTI-PERSONA, VOICE, 1-TOUCH)
 // =========================================================================
-let floatingTutorChatHistory = [];
+const SHARED_TUTOR_HISTORY_KEY = 'unimaster_shared_tutor_history_v1';
+const TUTOR_STYLE_KEY = 'unimaster_tutor_custom_style';
+let floatingTutorChatHistory = loadSharedTutorHistory();
 let windowTutorSizeExpanded = false;
 let currentTutorPersona = localStorage.getItem('unimaster_tutor_persona') || 'professor';
+let tutorCustomStyle = localStorage.getItem(TUTOR_STYLE_KEY) || '';
+
+function loadSharedTutorHistory() {
+  try {
+    const shared = JSON.parse(localStorage.getItem(SHARED_TUTOR_HISTORY_KEY) || 'null');
+    if (Array.isArray(shared)) return shared;
+    return (typeof getLocalTutorHistory === 'function' ? getLocalTutorHistory() : [])
+      .filter((m) => m && (m.role === 'user' || m.role === 'model'))
+      .map((m) => ({ role: m.role, content: String(m.content || '') }));
+  } catch (_) { return []; }
+}
+
+function saveSharedTutorHistory() {
+  try {
+    localStorage.setItem(SHARED_TUTOR_HISTORY_KEY, JSON.stringify(floatingTutorChatHistory.slice(-100)));
+    window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
+  } catch (_) {}
+}
+
+function getTutorStylePrompt() {
+  return String(document.getElementById('tutor-style-prompt')?.value || tutorCustomStyle || '').trim();
+}
+
+function setTutorCustomStyle(value) {
+  tutorCustomStyle = String(value || '').trim();
+  localStorage.setItem(TUTOR_STYLE_KEY, tutorCustomStyle);
+  const input = document.getElementById('tutor-style-prompt');
+  if (input && input.value !== tutorCustomStyle) input.value = tutorCustomStyle;
+  showToast(tutorCustomStyle ? 'Đã lưu phong cách gia sư tùy chỉnh.' : 'Đã xóa phong cách tùy chỉnh.', 'success');
+}
+
+function renderSharedTutorHistory() {
+  const history = floatingTutorChatHistory.slice(-20);
+  const tabBox = document.getElementById('tutor-chat-box');
+  if (tabBox && history.length) {
+    tabBox.innerHTML = history.map((m) => m.role === 'user'
+      ? `<div class="ml-auto max-w-xl p-3.5 rounded-2xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,var(--brand),var(--brand-2))">${escapeHtml(m.content)}</div>`
+      : `<div class="ai-callout max-w-3xl text-sm markdown-body">${renderMarkdown(m.content)}</div>`).join('');
+    tabBox.scrollTop = tabBox.scrollHeight;
+    renderAllMathOnPage(tabBox);
+  }
+  if (typeof initTutorHistoryFromStorage === 'function') initTutorHistoryFromStorage();
+}
 let pinnedTutorQuestion = null;
 let floatingVoiceRecognition = null;
 let isFloatingVoiceListening = false;
@@ -141,8 +186,10 @@ function syncFloatingTutorSubjectContext() {
 
 function setFloatingPersona(persona) {
   currentTutorPersona = persona;
+  STATE.tutorPersona = persona;
   localStorage.setItem('unimaster_tutor_persona', persona);
   updateTutorPersonaUI();
+  document.querySelectorAll('[data-persona]').forEach((btn) => btn.classList.toggle('active', btn.getAttribute('data-persona') === persona));
   playSound('click');
   const personaNames = {
     professor: 'Giáo Sư Chuẩn Mực',
@@ -309,6 +356,8 @@ function openFloatingTutorWithPrompt(promptText) {
 
 function clearFloatingTutorChat() {
   floatingTutorChatHistory = [];
+  saveSharedTutorHistory();
+  window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
   const box = document.getElementById('floating-chat-messages');
   const currentSub = STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId));
   const subName = currentSub ? currentSub.name : 'này';
@@ -382,6 +431,7 @@ ${userMsg}`;
   }
 
   floatingTutorChatHistory.push({ role: 'user', content: fullPromptForAi });
+  saveSharedTutorHistory();
   saveLocalTutorMessage('user', userMsg, subName);
 
   try {
@@ -392,6 +442,7 @@ ${userMsg}`;
         subject_name: subName,
         message: fullPromptForAi,
         persona: currentTutorPersona,
+        tutor_style_prompt: getTutorStylePrompt(),
         history: floatingTutorChatHistory.slice(-8)
       })
     });
@@ -400,7 +451,9 @@ ${userMsg}`;
 
     const reply = data.reply || 'Không có phản hồi từ AI.';
     floatingTutorChatHistory.push({ role: 'model', content: reply });
+    saveSharedTutorHistory();
     saveLocalTutorMessage('model', reply, subName);
+    renderSharedTutorHistory();
 
     const msgId = 'ft-msg-' + Date.now();
     window._tutorReplies[msgId] = reply;
@@ -2342,6 +2395,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   refreshIcons();
   initTutorGreeting();
   initTutorHistoryFromStorage();
+  renderSharedTutorHistory();
 
   if (!STATE.isOfflineStandalone && 'serviceWorker' in navigator) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});
@@ -5388,6 +5442,9 @@ function onTutorSubjectChange() {
 
 function setTutorPersona(persona) {
   STATE.tutorPersona = persona;
+  currentTutorPersona = persona;
+  localStorage.setItem('unimaster_tutor_persona', persona);
+  updateTutorPersonaUI();
   document.querySelectorAll('[data-persona]').forEach((btn) => {
     btn.classList.toggle('active', btn.getAttribute('data-persona') === persona);
   });
@@ -5402,6 +5459,8 @@ function setTutorPersona(persona) {
 }
 
 function initTutorGreeting() {
+  const styleInput = document.getElementById('tutor-style-prompt');
+  if (styleInput) styleInput.value = tutorCustomStyle;
   const box = document.getElementById('tutor-chat-box');
   if (box) {
     box.innerHTML = `<div class="ai-callout ai-callout-indigo max-w-3xl text-sm markdown-body">${renderMarkdown(
@@ -5418,7 +5477,7 @@ function sendQuickTutorPrompt(text) {
   if (inp) { inp.value = text; sendTutorMessage(); }
 }
 
-window.TUTOR_CHAT_HISTORY = window.TUTOR_CHAT_HISTORY || [];
+window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
 
 async function sendTutorMessage() {
   const inp = document.getElementById('tutor-input');
@@ -5440,7 +5499,9 @@ async function sendTutorMessage() {
   box.appendChild(aDiv);
   box.scrollTop = box.scrollHeight;
 
-  window.TUTOR_CHAT_HISTORY.push({ role: 'user', content: msg });
+  floatingTutorChatHistory.push({ role: 'user', content: msg });
+  saveSharedTutorHistory();
+  saveLocalTutorMessage('user', msg, sub?.name || 'Đại học');
 
   try {
     const res = await apiFetch('/api/ai/chat', {
@@ -5448,19 +5509,23 @@ async function sendTutorMessage() {
       body: JSON.stringify({
         subject_id: sub?.id || 5,
         subject_name: sub?.name || 'Đại học',
-        persona: STATE.tutorPersona || 'professor',
+        persona: STATE.tutorPersona || currentTutorPersona || 'professor',
         message: msg,
-        history: window.TUTOR_CHAT_HISTORY
+        tutor_style_prompt: getTutorStylePrompt(),
+        history: floatingTutorChatHistory.slice(-8)
       })
     });
     const replyText = res.reply || 'Xin lỗi, tôi chưa thể trả lời lúc này.';
-    window.TUTOR_CHAT_HISTORY.push({ role: 'model', content: replyText });
+    floatingTutorChatHistory.push({ role: 'model', content: replyText });
+    saveSharedTutorHistory();
+    saveLocalTutorMessage('model', replyText, sub?.name || 'Đại học');
     aDiv.innerHTML = renderMarkdown(replyText);
     renderAllMathOnPage(aDiv);
   } catch (err) {
     aDiv.innerHTML = `<p class="txt-rose">Lỗi kết nối AI: ${escapeHtml(err.message)}</p>`;
   }
   box.scrollTop = box.scrollHeight;
+  renderSharedTutorHistory();
 }
 
 // Universal Document Drag & Drop / Multi-File Upload (.pdf, .pptx, .docx, .xlsx, images)
