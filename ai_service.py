@@ -325,8 +325,14 @@ def get_openai_settings() -> dict:
     # Cloudflare gateway hoặc yêu cầu AI_GATEWAY_* không liên quan.
     is_local_router = _is_local_url(base_url)
     is_fosta_model = model.lower().startswith("gpt-6.") if model else False
-    if is_local_router and is_fosta_model:
+    is_openai_official = "api.openai.com" in base_url.lower()
+    if is_fosta_model and (is_local_router or is_openai_official):
+        # FOSTA models are OpenAI-compatible, but must never be sent to
+        # api.openai.com or an old local 9Router endpoint. Normalize the
+        # endpoint here so both API calls and the settings UI agree.
         base_url = "https://codex.fosta.app/v1"
+        if db_base_url != base_url:
+            set_setting("openai_base_url", base_url)
 
     is_fosta = "fosta" in base_url.lower()
     default_model = "gpt-6.1-sol" if is_fosta else "gpt-4o"
