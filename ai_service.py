@@ -699,7 +699,27 @@ Chế độ giảng dạy: {style_desc}
 {english_guidance}
 {STEM_FORMAT_GUIDE}"""
 
-    # If history is provided, construct multi-turn dialogue
+    cfg = get_openai_settings()
+    provider_priority = cfg.get("priority", "openai_first")
+
+    # Khi người dùng chọn FOSTA/OpenAI ưu tiên số 1, phải gọi provider này
+    # trước Gemini. Trước đây hàm chỉ gọi Gemini rồi mới in fallback FOSTA,
+    # khiến FOSTA chưa từng được dùng dù API Key và endpoint hoàn toàn đúng.
+    if provider_priority == "openai_first" and cfg.get("key"):
+        openai_prompt = user_message
+        if history and isinstance(history, list):
+            previous = []
+            for turn in history[-8:]:
+                txt = str(turn.get("content") or turn.get("text") or "").strip()
+                if txt:
+                    previous.append(f"{turn.get('role', 'user')}: {txt}")
+            if previous:
+                openai_prompt = "Lịch sử hội thoại gần đây:\n" + "\n".join(previous) + "\n\nCâu hỏi mới của sinh viên:\n" + user_message
+        openai_reply = await _call_openai_chatgpt(openai_prompt, system_instruction=system_prompt, max_tokens=4096)
+        if openai_reply:
+            return openai_reply
+
+    # If history is provided, construct multi-turn dialogue cho Gemini fallback
     if history and isinstance(history, list) and len(history) > 0:
         contents_list = []
         for turn in history[-8:]:
@@ -719,7 +739,6 @@ Chế độ giảng dạy: {style_desc}
     # Không hiển thị thông báo sai rằng người dùng chưa thêm Gemini key khi
     # FOSTA/OpenAI đã được cấu hình nhưng nhà cung cấp đang lỗi, hết quota,
     # sai model hoặc gateway không truy cập được.
-    cfg = get_openai_settings()
     if cfg.get("key"):
         provider = "FOSTA Codex (gpt-6.1-sol)" if "fosta" in cfg.get("base_url", "").lower() else "OpenAI"
         return f"""### 🎓 Gia Sư UniMaster AI — {subject_name}
