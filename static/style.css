@@ -554,6 +554,18 @@ code, pre, kbd, .font-mono {
   font-size: max(0.875rem, 16px);
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
 }
+/* iPad (768px–1024px): Nav lớn hơn, tab cách đều */
+@media (min-width: 768px) and (max-width: 1024px) {
+  header > div > nav {
+    max-width: 100%;
+    padding-inline: 1rem;
+  }
+  header .nav-tab {
+    flex: 1 1 auto !important;
+    padding: 0.75rem 1rem;
+  }
+}
+
 @media (min-width: 768px) {
   .uni-input { font-size: 0.875rem; }
 }
@@ -698,6 +710,7 @@ select.uni-input option {
   -webkit-backdrop-filter: blur(20px);
   border-top: 1px solid var(--border);
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 14px));
+  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
 }
 .mobile-nav-item {
   color: var(--text-muted);
