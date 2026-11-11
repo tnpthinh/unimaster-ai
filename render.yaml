@@ -19,10 +19,12 @@ services:
       # 9Router: http://127.0.0.1:20128/v1 + All hoặc Coding-Pro
       - key: OPENAI_API_KEY
         sync: false
+      # Để trống để cấu hình lưu trong giao diện/SQLite được ưu tiên.
+      # Chỉ điền các biến này trong Render Dashboard nếu muốn ép cấu hình cấp hệ thống.
       - key: OPENAI_BASE_URL
-        value: https://api.openai.com/v1
+        sync: false
       - key: OPENAI_MODEL
-        value: gpt-4o
+        sync: false
       # Dùng khi Render gọi gateway 9Router qua Cloudflare Tunnel discovery.
       - key: AI_GATEWAY_DISCOVERY_URL
         sync: false
@@ -30,7 +32,7 @@ services:
         sync: false
       # openai_first: ưu tiên OpenAI Pro, tự động fallback sang Gemini pool khi lỗi/quota
       - key: AI_PROVIDER_PRIORITY
-        value: openai_first
+        sync: false
 
       # ===== Fallback: Gemini API Keys (không bắt buộc) =====
       - key: GEMINI_API_KEY

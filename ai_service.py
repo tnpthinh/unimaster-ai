@@ -262,22 +262,24 @@ async def resolve_gateway_base_url(base_url: str) -> str:
 
 
 def get_openai_settings() -> dict:
-    # Environment variables take precedence so Render can override any older
-    # provider settings persisted in the database without exposing the key.
-    key = os.environ.get("OPENAI_API_KEY", "").strip() or get_setting("openai_api_key", "").strip()
-    base_url = (
-        os.environ.get("OPENAI_BASE_URL", "").strip()
-        or get_setting("openai_base_url", "").strip()
-        or "https://api.openai.com/v1"
-    ).rstrip("/")
+    """Đọc cấu hình AI, ưu tiên cấu hình người dùng đã lưu trong SQLite.
+
+    Render Blueprint có thể tạo các biến môi trường rỗng hoặc còn sót giá trị
+    cũ. Nếu ENV luôn được ưu tiên, cấu hình FOSTA/9Router nhập trong giao diện
+    sẽ bị che khuất và trông như bị mất. ENV vẫn được dùng làm fallback để hỗ
+    trợ cấu hình deploy mới khi database chưa có giá trị.
+    """
+    db_key = get_setting("openai_api_key", "").strip()
+    db_base_url = get_setting("openai_base_url", "").strip()
+    db_model = get_setting("openai_model", "").strip()
+    db_priority = get_setting("ai_provider_priority", "").strip()
+
+    key = db_key or os.environ.get("OPENAI_API_KEY", "").strip()
+    base_url = (db_base_url or os.environ.get("OPENAI_BASE_URL", "").strip() or "https://api.openai.com/v1").rstrip("/")
     is_fosta = "fosta" in base_url.lower()
     default_model = "gpt-6.1-sol" if is_fosta else "gpt-4o"
-    model = (
-        os.environ.get("OPENAI_MODEL", "").strip()
-        or get_setting("openai_model", default_model).strip()
-        or default_model
-    )
-    priority = os.environ.get("AI_PROVIDER_PRIORITY", "").strip() or get_setting("ai_provider_priority", "openai_first").strip()
+    model = db_model or os.environ.get("OPENAI_MODEL", "").strip() or default_model
+    priority = db_priority or os.environ.get("AI_PROVIDER_PRIORITY", "").strip() or "openai_first"
     return {"key": key, "base_url": base_url, "model": model, "priority": priority}
 
 async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_tokens: int = 4096) -> str:
