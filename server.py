@@ -27,6 +27,7 @@ from aiohttp import web
 import database as db
 import ai_service as ai
 import document_parser as doc_parser
+import catalog_seed
 import stem_seed
 import seed_hoasinh_ctump
 import extensions
@@ -2112,6 +2113,9 @@ async def _telegram_backup_loop():
 
 def create_app():
     db.init_db()
+    # Always repair the catalog first: cloud volumes can start with an empty DB
+    # even though the large question-bank seeders below only add 4 newer subjects.
+    catalog_seed.ensure_core_subject_catalog()
     db.ensure_admin_user(APP_PASSWORD or "uni-5292")
     stem_seed.ensure_stem_and_math_upgraded()
     seed_hoasinh_ctump.ensure_hoasinh_ctump_seeded()
