@@ -1514,6 +1514,58 @@ async def get_stats(request):
 
 
 
+async def handle_ai_gateway_diag(request):
+    """Chẩn đoán đường đi AI: cấu hình hiện tại + khả năng dò Cloudflare Tunnel.
+
+    Dùng để biết chính xác bản deploy đang chạy có tự dò được tunnel hay không,
+    thay vì chỉ thấy lỗi "Cannot connect to host 127.0.0.1".
+    """
+    info = {
+        "code_version": "gateway-diag-v1",
+        "discovery_env_set": bool(os.environ.get("AI_GATEWAY_DISCOVERY_URL", "").strip()),
+        "discovery_url_used": ai.gateway_discovery_url(),
+        "secret_required_by_client": bool(ai.gateway_secret()),
+        "is_local_runtime": ai._is_local_runtime(),
+    }
+    try:
+        cfg = ai.get_openai_settings()
+        info["configured_base_url"] = cfg.get("base_url", "")
+        info["configured_model"] = cfg.get("model", "")
+        info["has_key"] = bool(cfg.get("key"))
+    except Exception as exc:
+        info["settings_error"] = str(exc)
+
+    resolved = ""
+    try:
+        resolved = await ai.resolve_gateway_base_url(info.get("configured_base_url", ""))
+        info["resolved_base_url"] = resolved
+    except Exception as exc:
+        info["resolve_error"] = str(exc)
+
+    if resolved and resolved.startswith("http"):
+        root = resolved[:-3] if resolved.endswith("/v1") else resolved.rstrip("/")
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{root}/healthz",
+                    timeout=aiohttp.ClientTimeout(total=15),
+                ) as resp:
+                    info["gateway_health_status"] = resp.status
+                    info["gateway_reachable"] = resp.status == 200
+        except Exception as exc:
+            info["gateway_reachable"] = False
+            info["gateway_health_error"] = str(exc)
+
+    ok = bool(info.get("gateway_reachable"))
+    info["success"] = ok
+    info["verdict"] = (
+        "Tunnel OK - Render gọi được gateway trên máy bạn."
+        if ok
+        else "Tunnel KHÔNG gọi được. Kiểm tra: start_ai_gateway.bat đang chạy? Máy đang bật? Đã publish URL mới lên ntfy chưa?"
+    )
+    return json_resp(info)
+
+
 async def handle_test_openai_key(request):
     try:
         data = await safe_get_json(request)
@@ -2162,6 +2214,7 @@ def create_app():
     app.router.add_post("/api/ai/test-key", test_key_handler)
     app.router.add_post("/api/ai/test-all-keys", test_all_keys_handler)
     app.router.add_post("/api/ai/test-openai", handle_test_openai_key)
+    app.router.add_get("/api/ai/gateway-diag", handle_ai_gateway_diag)
     app.router.add_post("/api/ai/hint", ai_hint_handler)
     app.router.add_post("/api/ai/concept-recall", ai_concept_recall_handler)
     app.router.add_post("/api/ai/deep-analysis", ai_deep_analysis_handler)

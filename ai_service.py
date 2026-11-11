@@ -247,22 +247,26 @@ def invalidate_gateway_cache() -> None:
     _GATEWAY_CACHE["ts"] = 0.0
 
 
-async def resolve_gateway_base_url(base_url: str) -> str:
+async def resolve_gateway_base_url(base_url: str, force: bool = False) -> str:
     """
     Nếu Base URL trỏ vào máy nội bộ (127.0.0.1/localhost), tự dò địa chỉ tunnel
     công khai mới nhất. Tunnel Quick của Cloudflare đổi URL mỗi lần khởi động
-    nên phải dò lại. Nếu đang chạy ngay trên máy local thì gọi trực tiếp.
+    nên phải dò lại.
+
+    force=True: bỏ qua phán đoán local/cloud và bỏ qua cache. Dùng khi đã gọi
+    trực tiếp 127.0.0.1 thất bại — nghĩa là chắc chắn đang ở môi trường cloud
+    dù biến môi trường nhận diện có sai hay không.
     """
     base_url = (base_url or "").rstrip("/")
     discovery = gateway_discovery_url()
     if not discovery or not _is_local_url(base_url):
         return base_url
     # Chạy trên chính máy đó thì 127.0.0.1 là đúng, không cần vòng qua tunnel.
-    if _is_local_runtime():
+    if not force and _is_local_runtime():
         return base_url
 
     now = time.time()
-    if _GATEWAY_CACHE["url"] and (now - _GATEWAY_CACHE["ts"]) < _GATEWAY_TTL:
+    if not force and _GATEWAY_CACHE["url"] and (now - _GATEWAY_CACHE["ts"]) < _GATEWAY_TTL:
         return _GATEWAY_CACHE["url"]
 
     try:
@@ -332,7 +336,6 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
     # Nếu Base URL là localhost và đang chạy trên cloud thì request đi qua tunnel công khai.
     gateway_route = (
         _is_local_url(cfg["base_url"])
-        and not _is_local_runtime()
         and bool(gateway_discovery_url())
     )
     gateway_retried = False
@@ -395,7 +398,7 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
                 if gateway_route and not gateway_retried:
                     gateway_retried = True
                     invalidate_gateway_cache()
-                    base_url = await resolve_gateway_base_url(cfg["base_url"])
+                    base_url = await resolve_gateway_base_url(cfg["base_url"], force=True)
                     endpoint = f"{base_url}/chat/completions"
                     print(f"[AI Service] Tunnel có thể đã đổi, thử lại qua: {base_url}")
                 continue
@@ -404,11 +407,11 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
 async def test_openai_key(key: str = None, base_url: str = None, model: str = None) -> dict:
     cfg = get_openai_settings()
     target_key = (key or cfg["key"]).strip()
-    target_url = ((base_url or cfg["base_url"]).strip()).rstrip("/")
+    raw_url = ((base_url or cfg["base_url"]).strip()).rstrip("/")
     if not target_key:
         return {"success": False, "message": "Chưa nhập API Key"}
     # Cho phép test với gateway nội bộ bằng cách tự dò tunnel công khai
-    target_url = await resolve_gateway_base_url(target_url)
+    target_url = await resolve_gateway_base_url(raw_url)
     endpoint = f"{target_url}/chat/completions"
     
     is_fosta = "fosta" in target_url.lower()
