@@ -12433,12 +12433,17 @@ function saveLocalTutorMessage(role, content, contextName = '') {
 function initTutorHistoryFromStorage() {
   try {
     const history = getLocalTutorHistory();
+    const staleFallback = /AI chưa nhận được phản hồi từ FOSTA Codex|Hệ thống không còn hiển thị nhầm hướng dẫn/i;
+    const cleanHistory = history.filter((msg) => !(msg.role === 'model' && staleFallback.test(String(msg.content || ''))));
+    if (cleanHistory.length !== history.length) {
+      localStorage.setItem(LOCAL_TUTOR_CHAT_KEY, JSON.stringify(cleanHistory));
+    }
     const box = document.getElementById('floating-chat-messages');
-    if (!box || !history.length) return;
+    if (!box || !cleanHistory.length) return;
     
-    // Clear initial greeting and render last 10 messages from history
+    // Clear initial greeting and render last 10 valid messages from history
     box.innerHTML = '';
-    const recent = history.slice(-10);
+    const recent = cleanHistory.slice(-10);
     recent.forEach((msg) => {
       if (msg.role === 'user') {
         box.innerHTML += `
