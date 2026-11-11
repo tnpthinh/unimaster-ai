@@ -4105,9 +4105,6 @@
   <div id="floating-tutor-backdrop" onclick="closeFloatingTutor()" class="hidden fixed inset-0 z-[9990] bg-black/60 backdrop-blur-sm transition-opacity"></div>
 
   <div id="floating-tutor-container" class="hidden fixed bottom-20 sm:bottom-6 right-3 sm:right-6 z-50 flex flex-col-reverse items-end gap-2.5">
-    <button id="floating-ai-giasu-btn" onclick="switchTab('tutor')" class="btn-primary px-3 py-2 flex items-center gap-1.5">
-      <i data-lucide="user-graduate" class="w-4 h-4"></i> AI Gia Sư
-    </button>
     <!-- Floating Trigger Button (Sleek Gradient Gem with Context Badge) -->
     <button id="floating-tutor-btn" onclick="toggleFloatingTutor()"
       class="group p-2.5 sm:px-4 sm:py-3 rounded-full sm:rounded-2xl shadow-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all relative"
@@ -4143,6 +4140,10 @@
           </div>
         </div>
         <div class="flex items-center gap-1">
+          <button type="button" onclick="transferChatToTutorTab()" id="btn-ft-transfer" class="btn-soft px-2.5 py-1 rounded-xl text-xs font-black shadow-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-white/20 active:scale-95 flex items-center gap-1" title="Chuyển nội dung đang hỏi sang phần AI Gia Sư đầy đủ">
+            <i data-lucide="arrow-right-left" class="w-3.5 h-3.5 shrink-0"></i>
+            <span class="hidden sm:inline">Sang Gia Sư</span>
+          </button>
           <button type="button" onclick="openTutorHistoryModal()" id="btn-ft-history" class="btn-soft p-1.5 text-xs" title="Lịch sử chat AI (Lưu trên máy)">📜</button>
           <button type="button" onclick="toggleFloatingTutorSize()" id="btn-ft-expand" class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-xs font-black shadow-sm transition-all bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white border border-white/20 active:scale-95" title="Phóng to toàn màn hình">
             <svg id="ft-expand-svg" class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">

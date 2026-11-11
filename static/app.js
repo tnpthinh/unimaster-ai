@@ -42,12 +42,16 @@ function setTutorCustomStyle(value) {
 function renderSharedTutorHistory() {
   const history = floatingTutorChatHistory.slice(-20);
   const tabBox = document.getElementById('tutor-chat-box');
-  if (tabBox && history.length) {
-    tabBox.innerHTML = history.map((m) => m.role === 'user'
-      ? `<div class="ml-auto max-w-xl p-3.5 rounded-2xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,var(--brand),var(--brand-2))">${escapeHtml(m.content)}</div>`
-      : `<div class="ai-callout max-w-3xl text-sm markdown-body">${renderMarkdown(m.content)}</div>`).join('');
-    tabBox.scrollTop = tabBox.scrollHeight;
-    renderAllMathOnPage(tabBox);
+  if (tabBox) {
+    if (history.length) {
+      tabBox.innerHTML = history.map((m) => m.role === 'user'
+        ? `<div class="ml-auto max-w-xl p-3.5 rounded-2xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,var(--brand),var(--brand-2))">${escapeHtml(m.content)}</div>`
+        : `<div class="ai-callout max-w-3xl text-sm markdown-body">${renderMarkdown(m.content)}</div>`).join('');
+      tabBox.scrollTop = tabBox.scrollHeight;
+      renderAllMathOnPage(tabBox);
+    } else {
+      tabBox.innerHTML = `<div class="ai-callout max-w-3xl text-sm markdown-body">Chưa có nội dung hội thoại. Hãy hỏi Gia Sư AI bất kỳ điều gì về môn <strong id="tutor-welcome-subject">này</strong>!</div>`;
+    }
   }
   if (typeof initTutorHistoryFromStorage === 'function') initTutorHistoryFromStorage();
 }
@@ -583,6 +587,41 @@ function exportFloatingTutorNotes() {
   URL.revokeObjectURL(url);
   showToast('📄 Đã tải xuống sổ tay ghi chú ôn thi!', 'success');
 }
+
+function transferChatToTutorTab() {
+  saveSharedTutorHistory();
+  closeFloatingTutor();
+  switchTab('tutor');
+
+  const curSubId = STATE.activeSubjectId;
+  if (curSubId) {
+    const sel = document.getElementById('tutor-subject-select');
+    if (sel) {
+      sel.value = String(curSubId);
+      sel.dispatchEvent(new Event('change'));
+    }
+  }
+
+  const floatingInput = document.getElementById('floating-chat-input');
+  const tutorInput = document.getElementById('tutor-input');
+  if (floatingInput && tutorInput && floatingInput.value.trim()) {
+    tutorInput.value = floatingInput.value.trim();
+    floatingInput.value = '';
+    tutorInput.focus();
+  }
+
+  renderSharedTutorHistory();
+
+  const tutorBox = document.getElementById('tutor-chat-box');
+  if (tutorBox) {
+    setTimeout(() => {
+      tutorBox.scrollTop = tutorBox.scrollHeight;
+    }, 150);
+  }
+
+  showToast('Đã chuyển nội dung hội thoại sang AI Gia Sư toàn diện!', 'success');
+}
+window.transferChatToTutorTab = transferChatToTutorTab;
 
 function toggleFloatingVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
