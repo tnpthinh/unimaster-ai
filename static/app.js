@@ -22,7 +22,7 @@ function loadSharedTutorHistory() {
 
 function saveSharedTutorHistory() {
   try {
-    localStorage.setItem(SHARED_TUTOR_HISTORY_KEY, JSON.stringify(floatingTutorChatHistory.slice(-100)));
+    localStorage.setItem(SHARED_TUTOR_HISTORY_KEY, JSON.stringify(floatingTutorChatHistory.slice(-300)));
     window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
   } catch (_) {}
 }
@@ -40,7 +40,7 @@ function setTutorCustomStyle(value) {
 }
 
 function renderSharedTutorHistory() {
-  const history = floatingTutorChatHistory.slice(-20);
+  const history = floatingTutorChatHistory.slice(-60);
   const tabBox = document.getElementById('tutor-chat-box');
   if (tabBox) {
     if (history.length) {
@@ -622,6 +622,37 @@ function transferChatToTutorTab() {
   showToast('Đã chuyển nội dung hội thoại sang AI Gia Sư toàn diện!', 'success');
 }
 window.transferChatToTutorTab = transferChatToTutorTab;
+
+let tutorViewExpanded = false;
+function toggleTutorViewSize(forceState) {
+  const card = document.getElementById('tutor-main-card');
+  if (!card) return;
+  tutorViewExpanded = typeof forceState === 'boolean' ? forceState : !tutorViewExpanded;
+  const iconEl = document.getElementById('tutor-expand-icon');
+  const textEl = document.getElementById('tutor-expand-text');
+  if (tutorViewExpanded) {
+    card.classList.add('fixed', 'inset-2', 'sm:inset-4', 'z-[9995]');
+    card.style.height = 'auto';
+    card.style.boxShadow = '0 25px 60px -10px rgba(0,0,0,0.65)';
+    document.body.style.overflow = 'hidden';
+    if (iconEl) iconEl.textContent = '🗗';
+    if (textEl) textEl.textContent = 'Thu Nhỏ';
+  } else {
+    card.classList.remove('fixed', 'inset-2', 'sm:inset-4', 'z-[9995]');
+    card.style.height = 'max(680px, calc(100vh - 150px))';
+    card.style.boxShadow = '';
+    document.body.style.overflow = '';
+    if (iconEl) iconEl.textContent = '🛏️';
+    if (textEl) textEl.textContent = 'Mở Rộng Khung';
+  }
+  const box = document.getElementById('tutor-chat-box');
+  if (box) setTimeout(() => { box.scrollTop = box.scrollHeight; }, 120);
+}
+window.toggleTutorViewSize = toggleTutorViewSize;
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && tutorViewExpanded) toggleTutorViewSize(false);
+});
 
 function toggleFloatingVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -12738,7 +12769,7 @@ function initTutorHistoryFromStorage() {
     
     // Clear initial greeting and render last 10 valid messages from history
     box.innerHTML = '';
-    const recent = cleanHistory.slice(-10);
+    const recent = cleanHistory.slice(-60);
     recent.forEach((msg) => {
       if (msg.role === 'user') {
         box.innerHTML += `

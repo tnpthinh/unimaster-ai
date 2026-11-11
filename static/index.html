@@ -1566,8 +1566,13 @@
         </div>
       </div>
 
-      <div class="uni-card p-4 sm:p-5 flex flex-col h-[560px]">
-        <div id="tutor-quick-prompts" class="flex gap-2 overflow-x-auto no-scrollbar pb-3 mb-3" style="border-bottom: 1px solid var(--border);"></div>
+      <div id="tutor-main-card" class="uni-card p-4 sm:p-5 flex flex-col transition-all duration-300" style="height: max(680px, calc(100vh - 150px));">
+        <div class="flex items-center justify-between pb-2 mb-2" style="border-bottom: 1px solid var(--border);">
+          <div id="tutor-quick-prompts" class="flex gap-2 overflow-x-auto no-scrollbar flex-1 mr-2"></div>
+          <button type="button" onclick="toggleTutorViewSize()" id="btn-tutor-expand-view" class="btn-soft px-2.5 py-1 text-xs font-bold flex items-center gap-1 shrink-0" title="Phóng to / Thu nhỏ khung Gia Sư AI">
+            <span id="tutor-expand-icon">🛏️</span> <span id="tutor-expand-text">Mở Rộng Khung</span>
+          </button>
+        </div>
 
         <div id="tutor-chat-box" class="flex-1 overflow-y-auto space-y-4 pr-1"></div>
 
