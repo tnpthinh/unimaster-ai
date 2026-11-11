@@ -5,6 +5,11 @@ tools/
 .env
 online_password.txt
 online_tunnel.json
+# Cổng AI 9Router: secret, PID và URL tunnel chỉ lưu trên máy, tuyệt đối không commit
+ai_gateway_secret.txt
+ai_gateway.pid
+ai_gateway_tunnel.json
+ai_gateway_cloudflared.log
 # Dữ liệu cá nhân có chứa API Key — KHÔNG đưa lên GitHub. Cloud dùng seed/unimaster_seed.db (đã gỡ key)
 unimaster.db
 unimaster.db-journal

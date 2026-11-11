@@ -214,6 +214,12 @@ def _is_local_url(url: str) -> bool:
     return "127.0.0.1" in u or "localhost" in u or "0.0.0.0" in u
 
 
+def invalidate_gateway_cache() -> None:
+    """Xóa URL tunnel đã cache để lần gọi sau dò lại (Quick Tunnel đổi URL khi restart)."""
+    _GATEWAY_CACHE["url"] = ""
+    _GATEWAY_CACHE["ts"] = 0.0
+
+
 async def resolve_gateway_base_url(base_url: str) -> str:
     """
     Nếu Base URL trỏ vào máy nội bộ (127.0.0.1/localhost) nhưng có
@@ -292,6 +298,10 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
     base_url = await resolve_gateway_base_url(cfg["base_url"])
     endpoint = f"{base_url}/chat/completions"
     
+    # Nếu Base URL là localhost và có discovery thì request đang đi qua tunnel công khai.
+    gateway_route = bool(AI_GATEWAY_DISCOVERY_URL) and _is_local_url(cfg["base_url"])
+    gateway_retried = False
+
     is_fosta = "fosta" in base_url.lower()
     pref_model = cfg.get("model", "gpt-6.1-sol" if is_fosta else "gpt-4o")
     candidate_models = [pref_model]
@@ -344,6 +354,14 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
                         print(f"[AI Service] Provider returned {resp.status} for model {model}: {err_text[:120]}")
             except Exception as e:
                 print(f"[AI Service] Provider connection error for {model}: {e}")
+                # Tunnel Quick của Cloudflare đổi URL mỗi lần khởi động lại: xóa cache
+                # và dò lại một lần trước khi bỏ cuộc.
+                if gateway_route and not gateway_retried:
+                    gateway_retried = True
+                    invalidate_gateway_cache()
+                    base_url = await resolve_gateway_base_url(cfg["base_url"])
+                    endpoint = f"{base_url}/chat/completions"
+                    print(f"[AI Service] Tunnel có thể đã đổi, thử lại qua: {base_url}")
                 continue
     return None
 

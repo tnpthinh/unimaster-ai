@@ -11860,6 +11860,16 @@ function applyOpenAiDirectPreset() {
 // 9Router là gateway OpenAI-compatible chạy trên máy cá nhân (mặc định cổng 20128).
 // Khi deploy Render, đặt base URL nội bộ và dùng AI_GATEWAY_DISCOVERY_URL để app
 // tự dò địa chỉ Cloudflare Tunnel công khai mới nhất.
+//
+// LƯU Ý: nếu trang đang chạy trên Render, "127.0.0.1" là localhost của máy chủ
+// Render chứ KHÔNG phải máy bạn. Khi đó bắt buộc phải chạy start_ai_gateway.py
+// trên máy bạn (proxy + Cloudflare Tunnel) và khai báo AI_GATEWAY_DISCOVERY_URL,
+// AI_GATEWAY_SECRET trong Render.
+function isRunningOnLocalHost() {
+  const host = (window.location.hostname || '').toLowerCase();
+  return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1';
+}
+
 function applyRouterPreset(model = 'All') {
   const baseInp = document.getElementById('cfg-openai-base');
   const modelSel = document.getElementById('cfg-openai-model');
@@ -11874,8 +11884,20 @@ function applyRouterPreset(model = 'All') {
     }
     modelSel.value = model;
   }
-  showToast(`🔀 Đã chọn 9Router Gateway (${model}). Nhập API key của 9Router rồi Lưu Cài Đặt.`, 'info');
+  if (isRunningOnLocalHost()) {
+    showToast(`🔀 Đã chọn 9Router Gateway (${model}). Nhập API key 9Router (mở 9Router > API Keys) rồi Lưu Cài Đặt.`, 'info');
+  } else {
+    showToast(`⚠ Đang chạy trên máy chủ cloud: 127.0.0.1 là localhost của Render, không phải máy bạn. Cần chạy start_ai_gateway.py trên máy bạn và khai báo AI_GATEWAY_DISCOVERY_URL + AI_GATEWAY_SECRET trong Render.`, 'warning');
+  }
   playSound('click');
+}
+
+function routerGatewaySetupHint() {
+  const isCloud = !isRunningOnLocalHost();
+  if (!isCloud) {
+    return 'Mẹo: 9Router chạy trên máy này, hãy bấm <strong>[🔀 9Router All]</strong> hoặc <strong>[🧑‍💻 9Router Coding-Pro]</strong> để tự điền Base URL <code>http://127.0.0.1:20128/v1</code> và nhập API key trong 9Router > API Keys.';
+  }
+  return 'Mẹo: trang này đang chạy trên Render nên <code>127.0.0.1:20128</code> KHÔNG trỏ tới máy bạn. Trên máy bạn hãy chạy <code>python start_ai_gateway.py</code> (proxy bảo vệ + Cloudflare Tunnel), rồi khai báo <code>AI_GATEWAY_DISCOVERY_URL=https://ntfy.sh/unimaster_ctump_5292/json?poll=1&since=72h</code> và <code>AI_GATEWAY_SECRET</code> (in ra khi chạy script) trong Render Dashboard. Hoặc dùng nút FOSTA Codex nếu chỉ cần chạy ngay.';
 }
 
 async function testOpenAiKeyUI() {
@@ -11906,7 +11928,7 @@ async function testOpenAiKeyUI() {
       playSound('success');
     } else {
       fb.className = 'text-xs p-3 rounded-xl font-bold badge-rose';
-      fb.innerHTML = `✘ ${escapeHtml(res.message || 'Lỗi kết nối')}. <br/><span class="font-normal opacity-90 mt-1 block">Mẹo: Nếu dùng 9Router, bấm <strong>[🔀 9Router All]</strong> hoặc <strong>[🧑‍💻 9Router Coding-Pro]</strong> để tự điền Base URL <code>http://127.0.0.1:20128/v1</code> và model tương ứng.</span>`;
+      fb.innerHTML = `✘ ${escapeHtml(res.message || 'Lỗi kết nối')}. <br/><span class="font-normal opacity-90 mt-1 block">${routerGatewaySetupHint()}</span>`;
       showToast('Kiểm tra LLM: ' + (res.message || 'Lỗi'), 'warning');
       playSound('error');
     }
