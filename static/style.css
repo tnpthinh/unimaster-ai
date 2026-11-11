@@ -1707,7 +1707,6 @@ body.app-fullscreen-mode #header-fullscreen-btn {
 
 .modal-overlay > div.uni-card {
   width: min(920px, calc(100vw - 1rem)) !important;
-  height: min(88dvh, 850px) !important;
   max-height: calc(100dvh - 1rem) !important;
   margin-top: auto !important;
   margin-bottom: auto !important;
@@ -1736,6 +1735,12 @@ body.app-fullscreen-mode #header-fullscreen-btn {
   #modal-settings .px-4.overflow-x-auto::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Tailwind's `hidden` must win over the generic modal flex layout.
+   Otherwise every modal covers the page immediately after load and blocks clicks. */
+.modal-overlay.hidden {
+  display: none !important;
 }
 
 #modal-settings .overflow-y-auto {
