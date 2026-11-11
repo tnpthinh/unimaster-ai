@@ -401,6 +401,7 @@ async def auth_login_api(request):
 
     if user:
         _LOGIN_FAILS.pop(ip, None)
+        db.record_login_event(user["id"], ip, request.headers.get("User-Agent", ""), "login")
         token = _make_session_token(user["id"], user["role"])
         resp = json_resp({"success": True, "user": user, "token": token})
         resp.set_cookie(
@@ -422,6 +423,7 @@ async def auth_register_api(request):
     full_name = str(data.get("full_name", "")).strip() or username
     try:
         user = db.create_user(username, password, full_name, role="student")
+        db.record_login_event(user["id"], _client_ip(request), request.headers.get("User-Agent", ""), "register")
         token = _make_session_token(user["id"], user["role"])
         resp = json_resp({"success": True, "user": user, "token": token})
         resp.set_cookie(
@@ -447,6 +449,13 @@ async def auth_me_api(request):
         return json_resp({"success": False, "error": "Chưa đăng nhập", "auth_required": True}, 401)
     full_user = db.get_user_by_id(user_info["id"])
     return json_resp({"success": True, "user": full_user or user_info})
+
+
+async def auth_login_history_api(request):
+    user_info = request.get("user")
+    if not user_info or user_info.get("role") == "guest":
+        return json_resp({"success": False, "error": "Chưa đăng nhập"}, 401)
+    return json_resp({"success": True, "events": db.get_login_events(user_info["id"])})
 
 
 async def admin_get_users_api(request):
@@ -679,7 +688,8 @@ async def submit_exam(request):
             score=score,
             time_spent_seconds=time_spent,
             detail_json=json.dumps(detail_results, ensure_ascii=False),
-            exam_type=exam_type
+            exam_type=exam_type,
+            user_id=(request.get("user") or {"id": 1}).get("id", 1)
         )
 
         return json_resp({
@@ -2185,6 +2195,7 @@ def create_app():
     app.router.add_post("/api/auth/register", auth_register_api)
     app.router.add_post("/api/auth/logout", auth_logout_api)
     app.router.add_get("/api/auth/me", auth_me_api)
+    app.router.add_get("/api/auth/login-history", auth_login_history_api)
     app.router.add_get("/api/admin/users", admin_get_users_api)
     app.router.add_delete("/api/admin/users/{id}", admin_delete_user_api)
     app.router.add_get("/healthz", healthz)

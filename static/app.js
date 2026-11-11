@@ -2412,6 +2412,49 @@ document.addEventListener('DOMContentLoaded', async () => {
   renderAllMathOnPage();
 });
 
+// =========================================================================
+// LIVE CLOCK + EXAM COUNTDOWN WIDGET (Cập nhật mỗi giây)
+// =========================================================================
+const EXAM_COUNTDOWN_TARGETS = [
+  { date: new Date(2026, 10, 15), name: 'OOP Thực hành C#' },
+  { date: new Date(2026, 10, 16), name: 'Giữa Kỳ Giải Thuật' },
+  { date: new Date(2026, 10, 26), name: 'OOP Trắc nghiệm & TH' },
+  { date: new Date(2026, 10, 27), name: 'Toán Rời Rạc & Giải Thuật' },
+  { date: new Date(2026, 11, 1), name: 'NNLT 1 Python' },
+  { date: new Date(2026, 11, 4), name: 'Anh Văn Cơ Bản 3' }
+];
+
+function pad2(n) { return String(n).padStart(2, '0'); }
+
+function updateLiveClock() {
+  const now = new Date();
+  const timeEl = document.getElementById('live-clock-time');
+  const dateEl = document.getElementById('live-clock-date');
+  if (timeEl) timeEl.textContent = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+  if (dateEl) dateEl.textContent = now.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+
+  const cdEl = document.getElementById('live-exam-countdown');
+  const nameEl = document.getElementById('live-exam-name');
+  let nearest = null;
+  let nearestDiff = Infinity;
+  EXAM_COUNTDOWN_TARGETS.forEach((ex) => {
+    const diff = ex.date.getTime() - now.getTime();
+    if (diff > 0 && diff < nearestDiff) { nearestDiff = diff; nearest = ex; }
+  });
+  if (cdEl && nameEl && nearest) {
+    const totalSec = Math.floor(nearestDiff / 1000);
+    const days = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    cdEl.textContent = days > 0 ? `${days} ngày ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}` : `${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
+    nameEl.textContent = nearest.name;
+  }
+}
+
+setInterval(updateLiveClock, 1000);
+window.updateLiveClock = updateLiveClock;
+
 async function loadSubjectsAndStats() {
   // 1. Instant cache hydration: Screen NEVER displays 0 subjects even on slow initial load!
   try {
@@ -12325,6 +12368,52 @@ function startMistakePractice() {
   setExamMode('practice');
   launchExamWithQuestions(questions, `Ôn Tập Cấp Tốc ${questions.length} Câu Sai`, true);
 }
+
+// =========================================================================
+// LOGIN HISTORY & DEVICE INFO (IP do server ghi nhận, MAC không truy cập được từ web)
+// =========================================================================
+function openLoginHistoryModal() {
+  const modal = document.getElementById('modal-login-history');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  if (window.lucide) window.lucide.createIcons();
+  fetch('/api/auth/login-history', { credentials: 'same-origin' })
+    .then((r) => r.json())
+    .then((data) => {
+      const box = document.getElementById('login-history-list');
+      if (!box) return;
+      if (!data.success) {
+        box.innerHTML = `<div class="p-3 rounded-xl badge-amber font-bold">${escapeHtml(data.error || 'Chưa đăng nhập nên không có lịch sử thiết bị.')}</div>`;
+        return;
+      }
+      const events = data.events || [];
+      if (!events.length) {
+        box.innerHTML = `<div class="text-center py-10 space-y-2"><span class="text-3xl">🔐</span><div class="font-extrabold txt-main">Chưa Có Lịch Sử Đăng Nhập</div><p class="txt-muted">Các lần đăng nhập tiếp theo sẽ được ghi lại trên máy chủ.</p></div>`;
+        return;
+      }
+      const thisUa = navigator.userAgent || '';
+      box.innerHTML = events.map((ev) => {
+        const isCurrent = ev.user_agent && thisUa && ev.user_agent === thisUa;
+        return `
+        <div class="p-3 rounded-xl border space-y-1.5" style="background-color: var(--bg-surface); border-color: var(--border);">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="font-mono font-black txt-main text-sm">🌐 IP: ${escapeHtml(ev.ip_address || 'unknown')}</span>
+            <span class="font-mono txt-muted">${escapeHtml(ev.created_at || '')}</span>
+          </div>
+          <div class="txt-muted break-all leading-relaxed">${escapeHtml(ev.user_agent || 'Không rõ trình duyệt')}</div>
+          <div class="flex items-center gap-1.5">
+            <span class="badge-brand text-[10px] px-2 py-0.5 rounded font-bold">${escapeHtml(ev.event_type === 'register' ? 'Đăng ký' : 'Đăng nhập')}</span>
+            ${isCurrent ? '<span class="badge-cyan text-[10px] px-2 py-0.5 rounded font-bold">Thiết bị này</span>' : ''}
+          </div>
+        </div>`;
+      }).join('') + `<div class="pt-2 text-[11px] txt-muted leading-relaxed">🔎 MAC address (địa chỉ phần cứng) không thể truy cập từ trình duyệt vì lý do quyền riêng tư của thiết bị. Hệ thống định danh thiết bị bằng IP công khai + User-Agent trình duyệt.</div>`;
+    })
+    .catch((err) => {
+      const box = document.getElementById('login-history-list');
+      if (box) box.innerHTML = `<div class="p-3 rounded-xl badge-rose font-bold">Lỗi tải lịch sử: ${escapeHtml(err.message)}</div>`;
+    });
+}
+window.openLoginHistoryModal = openLoginHistoryModal;
 
 function openLocalExamHistoryModal() {
   const modal = document.getElementById('modal-exam-history');

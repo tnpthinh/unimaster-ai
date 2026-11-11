@@ -56,6 +56,20 @@ def init_db():
     )
     ''')
 
+    # Nhật ký đăng nhập: chỉ lưu IP do máy chủ quan sát và User-Agent trình duyệt.
+    # Trình duyệt web không thể và không nên cung cấp MAC address của thiết bị.
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS login_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        ip_address TEXT NOT NULL,
+        user_agent TEXT DEFAULT '',
+        event_type TEXT NOT NULL DEFAULT 'login',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+    """)
+
     # Bảng đồng bộ trạng thái & tiến độ học tập cá nhân (theo từng tài khoản)
     cursor.execute('''
     CREATE TABLE IF NOT EXISTS user_states (
@@ -577,6 +591,30 @@ def verify_user(username: str, password: str):
     }
     conn.close()
     return user_info
+
+def record_login_event(user_id: int, ip_address: str, user_agent: str = '', event_type: str = 'login'):
+    """Lưu nhật ký phiên đăng nhập; IP/User-Agent được giới hạn để tránh lưu dữ liệu thừa."""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute(
+        "INSERT INTO login_events (user_id, ip_address, user_agent, event_type) VALUES (?, ?, ?, ?)",
+        (int(user_id), str(ip_address or 'unknown')[:64], str(user_agent or '')[:512], str(event_type or 'login')[:32])
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_login_events(user_id: int, limit: int = 30):
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT id, ip_address, user_agent, event_type, created_at
+        FROM login_events WHERE user_id = ? ORDER BY id DESC LIMIT ?
+    """, (int(user_id), max(1, min(int(limit), 100))))
+    rows = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return rows
+
 
 def get_user_by_id(user_id: int):
     conn = get_connection()

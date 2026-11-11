@@ -245,6 +245,20 @@
             </p>
           </div>
 
+          <!-- Live Clock + Exam Countdown Widget -->
+          <div class="flex flex-col gap-1.5 shrink-0">
+            <div class="px-3 py-1.5 rounded-xl border border-white/15" style="background: rgba(0,0,0,0.35);">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-300">🕒 Giờ hiện tại</div>
+              <div id="live-clock-time" class="font-mono font-black text-lg leading-tight text-white tabular-nums">--:--:--</div>
+              <div id="live-clock-date" class="text-[10px] txt-muted font-bold">--</div>
+            </div>
+            <div class="px-3 py-1.5 rounded-xl border border-rose-500/40" style="background: rgba(244,63,94,0.10);">
+              <div class="text-[10px] font-bold uppercase tracking-wider text-rose-300">⏳ Kỳ thi gần nhất</div>
+              <div id="live-exam-countdown" class="font-mono font-black text-base leading-tight text-rose-300 tabular-nums">-- ngày --:--:--</div>
+              <div id="live-exam-name" class="text-[10px] txt-muted font-bold truncate max-w-[220px]">Đang tải...</div>
+            </div>
+          </div>
+
           <!-- 2 Clean Action Buttons -->
           <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
             <button id="hero-btn-start-exam" onclick="startExamForActiveSubject()"
@@ -261,6 +275,16 @@
               <span id="hero-fs-icon">⛶</span> <span id="hero-fs-label" class="hidden xs:inline">Toàn Màn Hình</span>
             </button>
           </div>
+        </div>
+
+        <!-- Quick Access: Exam History + Login History -->
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" onclick="openLocalExamHistoryModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+            📜 Lịch Sử Làm Bài
+          </button>
+          <button type="button" onclick="openLoginHistoryModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+            🔐 Lịch Sử Đăng Nhập
+          </button>
         </div>
 
         <!-- Dynamic Contextual Sub-feature Pills Strip -->
@@ -4870,6 +4894,27 @@ public class Student {
             Luyện Phần 5 (78c) →
           </button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       MODAL: LỊCH SỬ ĐĂNG NHẬP THEO THIẾT BỊ (IP + User-Agent)
+       ===================================================================== -->
+  <div id="modal-login-history" class="hidden fixed inset-0 z-50 modal-overlay items-center justify-center p-3 sm:p-5">
+    <div class="uni-card w-full max-w-3xl max-h-[88vh] flex flex-col overflow-hidden animate-fade-in shadow-2xl">
+      <div class="p-4 sm:p-5 flex items-center justify-between border-b shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl shadow-sm text-white" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">🔐</div>
+          <div>
+            <h3 class="text-base font-black txt-main">Lịch Sử Đăng Nhập & Thiết Bị</h3>
+            <p class="text-xs txt-muted">IP và trình duyệt do máy chủ ghi nhận. Trình duyệt web không thể đọc địa chỉ MAC.</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-login-history')" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+      <div id="login-history-list" class="p-4 sm:p-5 overflow-y-auto space-y-2.5 flex-1 text-xs">
+        <div class="text-center py-10 txt-muted font-bold">Đang tải lịch sử đăng nhập...</div>
       </div>
     </div>
   </div>
