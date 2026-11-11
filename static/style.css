@@ -324,8 +324,18 @@ body {
 }
 
 header {
+  position: relative !important;
+  z-index: 90 !important;
   background: color-mix(in srgb, var(--bg-surface) 92%, transparent) !important;
   border-bottom: 1px solid var(--border) !important;
+}
+
+#header-settings-btn {
+  position: relative !important;
+  z-index: 95 !important;
+  flex: 0 0 auto !important;
+  min-width: 2rem !important;
+  min-height: 2rem !important;
 }
 
 button, a, select, input, .option-row, .preset-pill, .part-card {
@@ -1665,6 +1675,11 @@ body.app-fullscreen-mode #header-fullscreen-btn {
 
 /* 1. Modal Overlay & Dialog Geometry (Preventing Any Cut-Off at Bottom) */
 .modal-overlay {
+  position: fixed !important;
+  inset: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   background-color: rgba(0, 0, 0, 0.76) !important;
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
@@ -1692,7 +1707,8 @@ body.app-fullscreen-mode #header-fullscreen-btn {
 
 .modal-overlay > div.uni-card {
   width: min(920px, calc(100vw - 1rem)) !important;
-  max-height: calc(100dvh - 2rem) !important;
+  height: min(88dvh, 850px) !important;
+  max-height: calc(100dvh - 1rem) !important;
   margin-top: auto !important;
   margin-bottom: auto !important;
   box-sizing: border-box !important;
