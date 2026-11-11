@@ -99,7 +99,7 @@
       <!-- Left: Brand + Active Subject Selector (co giãn được, chỉ logo là cố định) -->
       <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         <button onclick="switchTab('dashboard')" class="flex items-center gap-2 shrink-0 group relative z-10" title="Về trang Tổng quan">
-          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-md transition-transform group-hover:scale-105 shrink-0"
+          <div class="logo-orb w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-md transition-transform group-hover:scale-105 shrink-0"
             style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
             U
           </div>
@@ -119,6 +119,8 @@
 
       <!-- Center: Clean Minimalist Navigation Pills with Exam Modules -->
       <nav class="hidden lg:flex items-center gap-1 p-1 rounded-2xl shrink min-w-0 overflow-x-auto no-scrollbar border shadow-inner" style="background-color: var(--bg-subtle); border-color: var(--border);">
+        <!-- Thanh chỉ báo trượt: JS đặt vị trí/kích thước theo tab đang active -->
+        <span id="nav-indicator" class="nav-indicator" aria-hidden="true"></span>
         <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
           <i data-lucide="home" class="w-3.5 h-3.5"></i> Tổng quan
         </button>

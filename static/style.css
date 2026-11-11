@@ -2060,9 +2060,11 @@ header > div {
   flex-wrap: nowrap !important;
   min-width: 0 !important;
 }
+/* Cụm trái chỉ rộng vừa đủ (không còn chiếm hết chỗ trống nữa) */
 header > div > div:first-child {
-  flex: 1 1 0 !important;
+  flex: 0 1 auto !important;
   min-width: 0 !important;
+  max-width: 38% !important;
 }
 header > div > div:first-child > button:first-child {
   flex: 0 0 auto !important;
@@ -2071,16 +2073,22 @@ header > div > div:last-child {
   flex: 0 0 auto !important;
   flex-wrap: nowrap !important;
 }
+/* Nav lấp đầy khoảng giữa (tối đa 820px, canh giữa) → không còn "khúc trống" */
 header > div > nav {
-  flex: 0 1 auto !important;
+  flex: 1 1 auto !important;
+  max-width: 820px !important;
+  margin-inline: auto !important;
   min-width: 0 !important;
+  position: relative !important;
   overflow-x: auto !important;
   scrollbar-width: none;
 }
 header > div > nav::-webkit-scrollbar { display: none; }
+/* Các tab chia đều chiều rộng nav (như segmented control), chữ không xuống dòng */
 header .nav-tab {
   white-space: nowrap !important;
-  flex: 0 0 auto !important;
+  flex: 1 1 auto !important;
+  justify-content: center !important;
 }
 #header-active-subj-btn {
   flex: 0 1 auto !important;
@@ -2115,6 +2123,187 @@ html.big-text header > div > div:last-child { gap: 0.25rem !important; }
 #acc-panel-profile .truncate, #acc-panel-switch .truncate { min-width: 0; }
 #acc-cards-container .acc-card { min-width: 0; flex-wrap: wrap; }
 #acc-cards-container .acc-card > div { min-width: 0; }
+
+/* 4c. NÂNG CẤP THANH HEADER / NAV: chỉ báo trượt, hover glow, ripple, vạch sáng chạy... */
+
+/* Vạch gradient chạy dọc cạnh dưới header (shimmer) */
+header::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; bottom: -1px;
+  height: 2px;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, var(--brand) 25%, var(--brand-2) 50%, var(--brand) 75%, transparent 100%);
+  background-size: 200% 100%;
+  opacity: 0.55;
+  animation: hdr-shimmer 6s linear infinite;
+}
+@keyframes hdr-shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* Logo U: glow nhịp thở + xoay nhẹ khi hover */
+.logo-orb {
+  position: relative;
+  animation: logo-breathe 3.2s ease-in-out infinite;
+}
+@keyframes logo-breathe {
+  0%, 100% { box-shadow: 0 0 0 0 var(--brand-glow); }
+  50%      { box-shadow: 0 0 16px 3px var(--brand-glow); }
+}
+.group:hover .logo-orb { transform: scale(1.1) rotate(-6deg) !important; }
+
+/* NAV: khung chứa + chỉ báo trượt */
+header > div > nav {
+  overflow-y: hidden !important;
+  isolation: isolate;
+}
+.nav-indicator {
+  position: absolute;
+  left: 0; top: 0;
+  width: 0; height: 0;
+  border-radius: 0.8rem;
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  box-shadow: 0 6px 16px -4px var(--brand-glow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  transition:
+    transform 0.5s cubic-bezier(0.34, 1.4, 0.64, 1),
+    width 0.5s cubic-bezier(0.34, 1.4, 0.64, 1),
+    height 0.3s ease,
+    opacity 0.25s ease;
+}
+/* Ánh sáng quét qua chỉ báo */
+.nav-indicator::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
+  background-size: 250% 100%;
+  animation: ind-sheen 3.5s ease-in-out infinite;
+}
+@keyframes ind-sheen {
+  0%   { background-position: 160% 0; }
+  60%, 100% { background-position: -60% 0; }
+}
+/* Khi chỉ báo đã sẵn sàng, tab active bỏ nền riêng (chỉ báo đảm nhiệm) */
+header > div > nav.has-indicator .nav-indicator { opacity: 1; }
+header > div > nav.has-indicator .nav-tab.active-tab {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Nút tab */
+header .nav-tab {
+  position: relative;
+  z-index: 1;
+  overflow: hidden;
+  animation: nav-pop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+header .nav-tab:nth-of-type(1) { animation-delay: 0.03s; }
+header .nav-tab:nth-of-type(2) { animation-delay: 0.07s; }
+header .nav-tab:nth-of-type(3) { animation-delay: 0.11s; }
+header .nav-tab:nth-of-type(4) { animation-delay: 0.15s; }
+header .nav-tab:nth-of-type(5) { animation-delay: 0.19s; }
+header .nav-tab:nth-of-type(6) { animation-delay: 0.23s; }
+header .nav-tab:nth-of-type(7) { animation-delay: 0.27s; }
+header .nav-tab:nth-of-type(8) { animation-delay: 0.31s; }
+@keyframes nav-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.92); }
+  to   { opacity: 1; transform: none; }
+}
+/* Gạch chân gradient mọc từ giữa khi hover (tab chưa active) */
+header .nav-tab::after {
+  content: "";
+  position: absolute;
+  left: 50%; bottom: 3px;
+  width: 0; height: 2px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  transform: translateX(-50%);
+  transition: width 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+}
+header .nav-tab:not(.active-tab):hover::after { width: 55%; }
+header .nav-tab:hover { background-color: transparent; }
+header .nav-tab:not(.active-tab):hover {
+  background-color: color-mix(in srgb, var(--brand) 9%, transparent);
+}
+header .nav-tab:active { transform: scale(0.94); }
+/* Icon: nảy khi hover, lắc nhẹ khi tab vừa được chọn */
+header .nav-tab svg, header .nav-tab i {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+header .nav-tab:hover svg, header .nav-tab:hover i { transform: scale(1.22) rotate(-8deg); }
+header .nav-tab.active-tab svg, header .nav-tab.active-tab i {
+  animation: tab-icon-pop 0.55s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes tab-icon-pop {
+  0%   { transform: scale(0.6) rotate(-25deg); }
+  60%  { transform: scale(1.3) rotate(8deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+/* Ripple khi bấm (JS chèn <span class="nav-ripple">) */
+.nav-ripple {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.45);
+  transform: scale(0);
+  animation: nav-ripple 0.6s ease-out forwards;
+}
+@keyframes nav-ripple { to { transform: scale(4); opacity: 0; } }
+
+/* Nút bên phải: nhấc nhẹ + glow, cog xoay, mặt trời/trăng xoay */
+#quick-theme-btn, #header-fullscreen-btn, #header-settings-btn, #header-user-btn, #header-active-subj-btn {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease, border-color 0.2s ease, background-color 0.2s ease !important;
+}
+#quick-theme-btn:hover, #header-fullscreen-btn:hover, #header-settings-btn:hover,
+#header-user-btn:hover, #header-active-subj-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px -6px var(--brand-glow) !important;
+  border-color: var(--brand) !important;
+}
+#quick-theme-btn:active, #header-fullscreen-btn:active, #header-settings-btn:active,
+#header-user-btn:active, #header-active-subj-btn:active { transform: scale(0.92); }
+#header-settings-btn svg, #header-settings-btn i { transition: transform 0.6s cubic-bezier(0.22, 1, 0.36, 1); }
+#header-settings-btn:hover svg, #header-settings-btn:hover i { transform: rotate(120deg); }
+#quick-theme-btn:hover svg, #quick-theme-btn:hover i { animation: spin-soft 0.7s ease; }
+@keyframes spin-soft { to { transform: rotate(360deg); } }
+#header-user-avatar { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+#header-user-btn:hover #header-user-avatar { transform: rotate(-8deg) scale(1.08); }
+
+/* Thanh tab dưới (mobile): icon nảy khi active, vạch sáng phía trên */
+.mobile-nav-item { position: relative; }
+.mobile-nav-item .m-icon-wrap { transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), background 0.2s ease, box-shadow 0.2s ease; }
+.mobile-nav-item.active-tab .m-icon-wrap { transform: translateY(-3px) scale(1.1); animation: m-bounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.mobile-nav-item:active .m-icon-wrap { transform: scale(0.9); }
+.mobile-nav-item.active-tab::before {
+  content: "";
+  position: absolute;
+  top: -3px; left: 30%; right: 30%;
+  height: 3px; border-radius: 3px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  box-shadow: 0 0 10px var(--brand-glow);
+}
+@keyframes m-bounce {
+  0%   { transform: translateY(6px) scale(0.8); }
+  60%  { transform: translateY(-6px) scale(1.18); }
+  100% { transform: translateY(-3px) scale(1.1); }
+}
+
+/* Header đổ bóng sâu hơn khi trang đã cuộn (class do JS gắn) */
+header { transition: box-shadow 0.3s ease, background-color 0.3s ease; }
+header.hdr-scrolled { box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45); }
+
+/* Tôn trọng người dùng tắt hiệu ứng chuyển động */
+@media (prefers-reduced-motion: reduce) {
+  header::after, .logo-orb, .nav-indicator::after,
+  header .nav-tab, header .nav-tab.active-tab svg, header .nav-tab.active-tab i,
+  .mobile-nav-item.active-tab .m-icon-wrap { animation: none !important; }
+  .nav-indicator { transition: none !important; }
+}
 
 /* 5. Ultra Sharp Floating AI Expand Button */
 #btn-ft-expand {

@@ -2605,6 +2605,64 @@ function populateAllSubjectSelects() {
   });
 }
 
+/* ===== Chỉ báo trượt cho thanh nav trên header =====
+   Đo vị trí (offsetLeft/offsetWidth) của tab đang active rồi dịch #nav-indicator tới đó.
+   CSS transition lo phần trượt mượt, JS chỉ đặt số đo. */
+function updateNavIndicator() {
+  const nav = document.querySelector('header > div > nav');
+  const ind = document.getElementById('nav-indicator');
+  if (!nav || !ind) return;
+  const active = nav.querySelector('.nav-tab.active-tab');
+  // nav bị ẩn (màn hình < lg) hoặc không có tab active → tắt chỉ báo, tab tự dùng nền riêng
+  if (!active || nav.offsetWidth === 0 || active.offsetWidth === 0) {
+    nav.classList.remove('has-indicator');
+    return;
+  }
+  ind.style.width = active.offsetWidth + 'px';
+  ind.style.height = active.offsetHeight + 'px';
+  ind.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
+  nav.classList.add('has-indicator');
+  // Cuộn để tab active luôn nằm trong vùng nhìn thấy khi nav bị tràn
+  const left = active.offsetLeft - 8;
+  const right = active.offsetLeft + active.offsetWidth + 8;
+  if (left < nav.scrollLeft) nav.scrollTo({ left, behavior: 'smooth' });
+  else if (right > nav.scrollLeft + nav.clientWidth) nav.scrollTo({ left: right - nav.clientWidth, behavior: 'smooth' });
+}
+window.updateNavIndicator = updateNavIndicator;
+
+(function initNavFx() {
+  let raf = 0;
+  const schedule = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(updateNavIndicator); };
+  window.addEventListener('resize', schedule);
+  window.addEventListener('load', () => { schedule(); setTimeout(schedule, 400); setTimeout(schedule, 1200); });
+  document.addEventListener('DOMContentLoaded', () => {
+    schedule();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+    const nav = document.querySelector('header > div > nav');
+    // Chữ/ngôn ngữ đổi làm tab đổi kích thước → đo lại
+    if (nav && typeof ResizeObserver !== 'undefined') new ResizeObserver(schedule).observe(nav);
+    // Hiệu ứng ripple: lan tỏa vòng sáng từ điểm bấm
+    nav?.addEventListener('click', (e) => {
+      const tab = e.target.closest('.nav-tab');
+      if (!tab) return;
+      const r = tab.getBoundingClientRect();
+      const size = Math.max(r.width, r.height);
+      const dot = document.createElement('span');
+      dot.className = 'nav-ripple';
+      dot.style.width = dot.style.height = size + 'px';
+      dot.style.left = (e.clientX - r.left - size / 2) + 'px';
+      dot.style.top = (e.clientY - r.top - size / 2) + 'px';
+      tab.appendChild(dot);
+      setTimeout(() => dot.remove(), 650);
+    });
+    // Header đậm bóng hơn khi trang đã cuộn xuống
+    const hdr = document.querySelector('header');
+    const onScroll = () => hdr?.classList.toggle('hdr-scrolled', window.scrollY > 8);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+  });
+})();
+
 function switchTab(tabName) {
   STATE.currentTab = tabName;
   const tabs = ['dashboard', 'exam', 'exercises', 'essay', 'flashcards', 'mistakes', 'search', 'tutor', 'generator', 'arena', 'lab'];
@@ -2613,6 +2671,7 @@ function switchTab(tabName) {
     document.getElementById(`view-${t}`)?.classList.toggle('hidden', t !== tabName);
     document.getElementById(`tab-${t}`)?.classList.toggle('active-tab', t === tabName);
   });
+  updateNavIndicator();
 
   // 1. Hide floating tutor button on Dashboard (trang chủ) and full Tutor view
   const ftContainer = document.getElementById('floating-tutor-container');
@@ -13587,6 +13646,11 @@ function syncBigTextClass() {
   const root = document.documentElement;
   const px = parseFloat(getComputedStyle(root).fontSize) || 16;
   root.classList.toggle('big-text', px >= 17.5);
+  // Đổi cỡ chữ làm kích thước tab đổi theo → đo lại chỉ báo trượt sau khi layout ổn định
+  if (typeof updateNavIndicator === 'function') {
+    requestAnimationFrame(updateNavIndicator);
+    setTimeout(updateNavIndicator, 350);
+  }
 }
 
 function setGlobalZoomScale(percent) {
