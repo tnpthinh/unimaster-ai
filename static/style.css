@@ -343,6 +343,20 @@ header > div {
   min-height: 2rem !important;
 }
 
+@media (max-width: 1199px) {
+  header nav.hidden.lg\:flex {
+    display: none !important;
+  }
+
+  header > div {
+    gap: 0.5rem !important;
+  }
+
+  #header-active-subj-btn {
+    max-width: min(260px, 28vw) !important;
+  }
+}
+
 @media (max-width: 639px) {
   header > div > div:last-child {
     flex: 0 0 auto !important;
