@@ -73,6 +73,7 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
   <link rel="stylesheet" href="/static/style.css?v=25.0" />
+  <link rel="stylesheet" href="/static/minimal.css?v=1.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
@@ -132,6 +133,9 @@
         </button>
         <button onclick="switchTab('flashcards')" id="tab-flashcards" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
           <i data-lucide="layers" class="w-3.5 h-3.5"></i> Thẻ nhớ
+        </button>
+        <button onclick="switchTab('mistakes')" id="tab-mistakes" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
+          <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Sổ tay câu sai
         </button>
         <button onclick="switchTab('lab')" id="tab-lab" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
           <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> Lab
@@ -435,6 +439,37 @@
         </div>
         <div id="weekly-chart-bars" class="pt-2"></div>
       </div>
+
+      <!-- Personal Learning Progress -->
+      <section id="learning-progress-widget" class="uni-card p-4 sm:p-5 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📈</span>
+            <div>
+              <h3 class="text-sm font-extrabold txt-main">Bảng Tiến Độ Học Tập</h3>
+              <p class="text-[11px] txt-muted">Theo dõi kết quả, streak và nội dung cần ôn tiếp theo</p>
+            </div>
+          </div>
+          <span id="learning-progress-status" class="badge-brand px-2.5 py-1 rounded-lg text-xs font-bold">Đang cập nhật</span>
+        </div>
+        <div id="learning-progress-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-extrabold txt-main">Tiến độ theo môn</span>
+              <span class="text-[10px] txt-muted">dựa trên điểm gần nhất</span>
+            </div>
+            <div id="learning-progress-subjects" class="space-y-2"></div>
+          </div>
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-xs font-extrabold txt-main">Gợi ý ôn tập</span>
+              <span class="text-[10px] txt-muted">ưu tiên điểm thấp và câu sai</span>
+            </div>
+            <div id="learning-progress-recommendations" class="space-y-2"></div>
+          </div>
+        </div>
+      </section>
 
       <!-- Subjects Section -->
       <div class="space-y-3.5">
@@ -755,6 +790,19 @@
                 <button type="button" onclick="selectCountPreset(9999)" data-count="9999" class="preset-pill">Tất cả</button>
               </div>
             </div>
+
+            <div class="lg:col-span-6 space-y-1.5">
+              <label class="text-xs font-bold txt-sub">Phạm vi câu hỏi <span class="txt-muted font-normal">(tùy chọn)</span></label>
+              <div class="flex items-center gap-2">
+                <input id="exam-range-from" type="number" min="1" placeholder="Từ câu"
+                  class="uni-input w-24 px-2 py-1.5 text-center font-bold !text-xs" style="background-color: var(--bg-surface);" aria-label="Câu bắt đầu" />
+                <span class="txt-muted text-xs">đến</span>
+                <input id="exam-range-to" type="number" min="1" placeholder="Đến câu"
+                  class="uni-input w-24 px-2 py-1.5 text-center font-bold !text-xs" style="background-color: var(--bg-surface);" aria-label="Câu kết thúc" />
+                <button type="button" onclick="document.getElementById('exam-range-from').value=''; document.getElementById('exam-range-to').value='';" class="txt-muted text-xs hover:underline">Xóa</button>
+              </div>
+              <p class="txt-muted text-[10px]">Ví dụ: nhập 50 và 100 để thi từ câu 50 đến câu 100.</p>
+            </div>
           </div>
 
           <!-- Clean Time Pills -->
@@ -785,7 +833,7 @@
           <div class="flex flex-wrap items-center justify-between gap-4 pt-3" style="border-top: 1px solid var(--border);">
             <div class="flex flex-wrap items-center gap-4 text-xs font-semibold txt-sub">
               <label class="inline-flex items-center gap-2 cursor-pointer select-none">
-                <input id="exam-random-toggle" type="checkbox" checked class="w-4 h-4 accent-purple-600 rounded" />
+                <input id="exam-random-toggle" type="checkbox" class="w-4 h-4 accent-purple-600 rounded" />
                 <span>Trộn câu</span>
               </label>
               <label class="inline-flex items-center gap-2 cursor-pointer select-none">
@@ -1133,6 +1181,9 @@
           <button onclick="submitCodeTestCases()" class="btn-primary px-4 py-2 text-xs flex items-center gap-1.5 font-bold shadow-md">
             <span>🧪</span> Chạy Test Case
           </button>
+          <button onclick="analyzeCurrentCodeComplexity()" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-rose-500 px-4 py-2 text-xs flex items-center gap-1.5 font-bold shadow-md" title="Phân tích độ phức tạp Big-O và phát hiện lỗi OOP">
+            <span>⚡</span> AI Big-O & Kiến Trúc OOP
+          </button>
         </div>
       </div>
 
@@ -1164,6 +1215,32 @@
     <!-- ===================================================================
          VIEW: TRỢ GIẢNG CHẤM TỰ LUẬN (GIẢI THUẬT & TOÁN RỜI RẠC)
          =================================================================== -->
+    <!-- ===================================================================
+         VIEW: SỔ TAY CÂU SAI (MISTAKE NOTEBOOK)
+         =================================================================== -->
+    <section id="view-mistakes" class="hidden space-y-5 animate-fade-in">
+      <div class="uni-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-rose-500 to-orange-600 flex items-center justify-center text-white shadow-md">
+            <i data-lucide="book-open" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h2 class="text-base sm:text-lg font-extrabold txt-main">Sổ Tay Câu Sai</h2>
+            <p class="text-xs txt-muted">Tổng hợp & Luyện tập lại các lỗi đã mắc phải</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <select id="mistake-subject-select" onchange="renderMistakeNotebook()" class="uni-input px-3.5 py-2 text-xs font-bold">
+            <option value="all">Tất cả môn</option>
+          </select>
+          <button onclick="startMistakePractice()" class="btn-primary px-4 py-2 text-xs font-bold shadow-md">
+            <span>🎯</span> Luyện tập ngay
+          </button>
+        </div>
+      </div>
+      <div id="mistake-list" class="space-y-4"></div>
+    </section>
+
     <section id="view-essay" class="hidden space-y-5 animate-fade-in">
       <!-- Top Bar -->
       <div class="uni-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
@@ -3176,6 +3253,12 @@
               <button type="button" onclick="applyOpenAiDirectPreset()" class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-slate-500/15 border border-slate-500/30 txt-muted hover:txt-main transition-colors flex items-center gap-1">
                 <span>🌐</span> OpenAI Gốc (api.openai.com)
               </button>
+              <button type="button" onclick="applyRouterPreset('All')" class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/25 transition-colors flex items-center gap-1 shadow-sm">
+                <span>🔀</span> 9Router All
+              </button>
+              <button type="button" onclick="applyRouterPreset('Coding-Pro')" class="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-violet-500/15 border border-violet-500/40 text-violet-300 hover:bg-violet-500/25 transition-colors flex items-center gap-1 shadow-sm">
+                <span>🧑‍💻</span> 9Router Coding-Pro
+              </button>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
@@ -3188,19 +3271,24 @@
               </div>
               <div class="space-y-1 sm:col-span-1">
                 <label class="text-[11px] font-bold txt-sub">API Base URL (Máy chủ / Proxy):</label>
-                <input id="cfg-openai-base" type="text" placeholder="https://codex.fosta.app/v1" class="uni-input w-full px-3 py-2 text-xs font-mono" />
+                <input id="cfg-openai-base" type="text" placeholder="https://api.openai.com/v1" class="uni-input w-full px-3 py-2 text-xs font-mono" />
               </div>
               <div class="space-y-1 sm:col-span-1">
                 <label class="text-[11px] font-bold txt-sub">Mô hình AI (Model):</label>
                 <select id="cfg-openai-model" class="uni-input w-full px-3 py-2 text-xs font-bold font-mono">
-                  <optgroup label="⚡ FOSTA Codex LLM">
-                    <option value="gpt-6.1-sol" selected>gpt-6.1-sol (Tiêu chuẩn • Việc thường)</option>
-                    <option value="gpt-6-astra">gpt-6-astra (Mạnh nhất • Lý luận sâu)</option>
-                    <option value="gpt-6-luna">gpt-6-luna (Siêu tốc • Tiết kiệm)</option>
+                  <optgroup label="🔀 9Router Gateway">
+                    <option value="All">All (Tự chọn model khả dụng — ổn định nhất)</option>
+                    <option value="Coding-Pro">Coding-Pro (Chuyên lập trình)</option>
                   </optgroup>
                   <optgroup label="🌐 OpenAI Gốc">
-                    <option value="gpt-4o-mini">gpt-4o-mini (Chuẩn OpenAI)</option>
-                    <option value="gpt-4o">gpt-4o (Thông minh cao cấp)</option>
+                    <option value="gpt-4o" selected>gpt-4o (Thông minh cao cấp)</option>
+                    <option value="gpt-4o-mini">gpt-4o-mini (Nhanh, tiết kiệm)</option>
+                    <option value="gpt-3.5-turbo">gpt-3.5-turbo (Siêu tốc)</option>
+                  </optgroup>
+                  <optgroup label="⚡ FOSTA Codex LLM">
+                    <option value="gpt-6.1-sol">gpt-6.1-sol (Tiêu chuẩn • Việc thường)</option>
+                    <option value="gpt-6-astra">gpt-6-astra (Mạnh nhất • Lý luận sâu)</option>
+                    <option value="gpt-6-luna">gpt-6-luna (Siêu tốc • Tiết kiệm)</option>
                   </optgroup>
                 </select>
               </div>
@@ -3378,6 +3466,20 @@
                 <option value="countup">⏱️ Đếm xuôi thời gian đã làm</option>
                 <option value="hidden">🙈 Ẩn đồng hồ (Giảm căng thẳng, tập trung giải đề)</option>
               </select>
+            </div>
+          </div>
+
+          <!-- Performance & Animation Optimization -->
+          <div class="p-4 rounded-2xl space-y-4" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-xs font-extrabold txt-main">⚡ Chế độ hiệu năng cao (Tắt bớt hiệu ứng)</div>
+                <div class="text-[11px] txt-muted">Giúp mượt hơn trên máy yếu hoặc máy tính bảng cũ</div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input id="pref-perf-mode-toggle" type="checkbox" onchange="togglePerfMode(this.checked)" class="sr-only peer" />
+                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+              </label>
             </div>
           </div>
 

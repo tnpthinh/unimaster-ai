@@ -162,6 +162,17 @@ def init_db():
     )
     """)
     
+    # Lịch sử bền vững: bản sao server của lịch sử thi/chat từ trình duyệt.
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS archived_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        history_type TEXT NOT NULL,
+        item_id TEXT NOT NULL,
+        payload_json TEXT NOT NULL,
+        archived_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     # Bảng kết quả thi thử
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS exam_results (
@@ -656,13 +667,14 @@ def save_user_sync_state(user_id: int, incoming_state: dict):
 
 def save_archived_item(history_type: str, item_id: str, payload_json: str):
     conn = get_connection()
-    c = conn.cursor()
-    c.execute("""
-    INSERT INTO archived_history (history_type, item_id, payload_json)
-    VALUES (?, ?, ?)
-    """, (history_type, item_id, payload_json))
-    conn.commit()
-    conn.close()
+    try:
+        conn.execute("""
+            INSERT INTO archived_history (history_type, item_id, payload_json)
+            VALUES (?, ?, ?)
+        """, (history_type, item_id, payload_json))
+        conn.commit()
+    finally:
+        conn.close()
 
 def get_archived_items(history_type: str = None, limit: int = 100):
     conn = get_connection()

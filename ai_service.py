@@ -185,10 +185,14 @@ def _ordered_candidate_keys() -> list[str]:
 
 
 OPENAI_MODELS = [
-    "gpt-4o-mini",
     "gpt-4o",
+    "gpt-4o-mini",
     "gpt-3.5-turbo"
 ]
+
+# Model alias do 9Router cung cấp. `All` tự chọn model khả dụng; `Coding-Pro`
+# ưu tiên model chuyên lập trình. Chúng dùng giao thức OpenAI-compatible.
+ROUTER_MODELS = ["All", "Coding-Pro"]
 
 FOSTA_MODELS = [
     "gpt-6.1-sol",
@@ -196,14 +200,84 @@ FOSTA_MODELS = [
     "gpt-6-luna"
 ]
 
+# ===== AI Gateway động (9Router chạy trên máy cá nhân, mở ra Internet bằng Cloudflare Tunnel) =====
+# Render không truy cập được 127.0.0.1, nên khi Base URL là địa chỉ nội bộ mà có
+# AI_GATEWAY_DISCOVERY_URL, app sẽ tự dò địa chỉ tunnel công khai mới nhất.
+AI_GATEWAY_DISCOVERY_URL = os.environ.get("AI_GATEWAY_DISCOVERY_URL", "").strip()
+AI_GATEWAY_SECRET = os.environ.get("AI_GATEWAY_SECRET", "").strip()
+_GATEWAY_CACHE = {"url": "", "ts": 0.0}
+_GATEWAY_TTL = 90
+
+
+def _is_local_url(url: str) -> bool:
+    u = (url or "").lower()
+    return "127.0.0.1" in u or "localhost" in u or "0.0.0.0" in u
+
+
+async def resolve_gateway_base_url(base_url: str) -> str:
+    """
+    Nếu Base URL trỏ vào máy nội bộ (127.0.0.1/localhost) nhưng có
+    AI_GATEWAY_DISCOVERY_URL, tự dò địa chỉ tunnel công khai mới nhất.
+    Tunnel Quick của Cloudflare đổi URL mỗi lần khởi động nên phải dò lại.
+    """
+    base_url = (base_url or "").rstrip("/")
+    if not AI_GATEWAY_DISCOVERY_URL or not _is_local_url(base_url):
+        return base_url
+
+    now = time.time()
+    if _GATEWAY_CACHE["url"] and (now - _GATEWAY_CACHE["ts"]) < _GATEWAY_TTL:
+        return _GATEWAY_CACHE["url"]
+
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                AI_GATEWAY_DISCOVERY_URL,
+                timeout=aiohttp.ClientTimeout(total=8),
+            ) as resp:
+                if resp.status == 200:
+                    raw = await resp.text()
+                    found = ""
+                    for line in raw.splitlines():
+                        line = line.strip()
+                        if not line:
+                            continue
+                        try:
+                            message = json.loads(line).get("message", "")
+                            payload = json.loads(message) if message else {}
+                        except Exception:
+                            continue
+                        candidate = (payload.get("gateway_url") or "").rstrip("/")
+                        if candidate.startswith("http"):
+                            found = candidate
+                    if found:
+                        _GATEWAY_CACHE["url"] = found
+                        _GATEWAY_CACHE["ts"] = now
+                        print(f"[AI Gateway] Đã dò được tunnel: {found}")
+                        return found
+    except Exception as exc:
+        print(f"[AI Gateway] Không dò được tunnel: {exc}")
+
+    # Fallback: dùng URL cũ trong cache (nếu có), cuối cùng mới trả base_url nội bộ
+    return _GATEWAY_CACHE["url"] or base_url
+
+
 def get_openai_settings() -> dict:
-    key = get_setting("openai_api_key", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()
-    base_url = get_setting("openai_base_url", "").strip() or os.environ.get("OPENAI_BASE_URL", "").strip() or "https://codex.fosta.app/v1"
-    base_url = base_url.rstrip("/")
-    is_fosta = "fosta" in base_url.lower() or "00eab" in key
-    default_model = "gpt-6.1-sol" if is_fosta else "gpt-4o-mini"
-    model = get_setting("openai_model", default_model).strip() or default_model
-    priority = get_setting("ai_provider_priority", "openai_first").strip()
+    # Environment variables take precedence so Render can override any older
+    # provider settings persisted in the database without exposing the key.
+    key = os.environ.get("OPENAI_API_KEY", "").strip() or get_setting("openai_api_key", "").strip()
+    base_url = (
+        os.environ.get("OPENAI_BASE_URL", "").strip()
+        or get_setting("openai_base_url", "").strip()
+        or "https://api.openai.com/v1"
+    ).rstrip("/")
+    is_fosta = "fosta" in base_url.lower()
+    default_model = "gpt-6.1-sol" if is_fosta else "gpt-4o"
+    model = (
+        os.environ.get("OPENAI_MODEL", "").strip()
+        or get_setting("openai_model", default_model).strip()
+        or default_model
+    )
+    priority = os.environ.get("AI_PROVIDER_PRIORITY", "").strip() or get_setting("ai_provider_priority", "openai_first").strip()
     return {"key": key, "base_url": base_url, "model": model, "priority": priority}
 
 async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_tokens: int = 4096) -> str:
@@ -211,17 +285,21 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
     key = cfg["key"]
     if not key:
         return None
-    base_url = cfg["base_url"]
+    # 9Router chạy trên máy cá nhân: nếu Base URL là địa chỉ nội bộ thì tự dò
+    # địa chỉ Cloudflare Tunnel công khai mới nhất để Render gọi được.
+    base_url = await resolve_gateway_base_url(cfg["base_url"])
     endpoint = f"{base_url}/chat/completions"
     
-    is_fosta = "fosta" in base_url.lower() or "00eab" in key
-    pref_model = cfg.get("model", "gpt-6.1-sol" if is_fosta else "gpt-4o-mini")
+    is_fosta = "fosta" in base_url.lower()
+    pref_model = cfg.get("model", "gpt-6.1-sol" if is_fosta else "gpt-4o")
     candidate_models = [pref_model]
     if is_fosta:
         for m in FOSTA_MODELS:
             if m not in candidate_models:
                 candidate_models.append(m)
-    else:
+    elif "api.openai.com" in base_url.lower():
+        # Chỉ API OpenAI chính thức mới có fallback giữa các model OpenAI.
+        # 9Router dùng alias riêng (All/Coding-Pro), không thử tên GPT để tránh 404.
         for m in OPENAI_MODELS:
             if m not in candidate_models:
                 candidate_models.append(m)
@@ -235,17 +313,21 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
     }
+    if AI_GATEWAY_SECRET:
+        # Gateway công khai trên Internet chỉ chấp nhận request có secret này
+        headers["X-Gateway-Secret"] = AI_GATEWAY_SECRET
 
     async with aiohttp.ClientSession() as session:
         for model in candidate_models:
             payload = {
                 "model": model,
                 "messages": messages,
-                "max_tokens": min(max_tokens, 4096),
+                "max_tokens": min(int(max_tokens or 4096), 16384),
                 "temperature": 0.4
             }
             try:
-                async with session.post(endpoint, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=25)) as resp:
+                # Bài phân tích dài (8192+ token) cần thời gian lâu hơn 25s
+                async with session.post(endpoint, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=120)) as resp:
                     if resp.status == 200:
                         data = await resp.json()
                         choices = data.get("choices", [])
@@ -269,19 +351,24 @@ async def test_openai_key(key: str = None, base_url: str = None, model: str = No
     target_url = ((base_url or cfg["base_url"]).strip()).rstrip("/")
     if not target_key:
         return {"success": False, "message": "Chưa nhập API Key"}
+    # Cho phép test với gateway nội bộ bằng cách tự dò tunnel công khai
+    target_url = await resolve_gateway_base_url(target_url)
     endpoint = f"{target_url}/chat/completions"
     
-    is_fosta = "fosta" in target_url.lower() or "00eab" in target_key
-    target_model = model or (cfg.get("model") if cfg.get("model") else ("gpt-6.1-sol" if is_fosta else "gpt-4o-mini"))
+    is_fosta = "fosta" in target_url.lower()
+    is_router = target_model_hint = (model or cfg.get("model") or "").strip() in ROUTER_MODELS
+    target_model = model or (cfg.get("model") if cfg.get("model") else ("gpt-6.1-sol" if is_fosta else "gpt-4o"))
     if is_fosta and target_model in ("gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"):
         target_model = "gpt-6.1-sol"
 
     headers = {"Authorization": f"Bearer {target_key}", "Content-Type": "application/json"}
+    if AI_GATEWAY_SECRET:
+        headers["X-Gateway-Secret"] = AI_GATEWAY_SECRET
     payload = {"model": target_model, "messages": [{"role": "user", "content": "Reply OK"}], "max_tokens": 15}
     try:
         async with aiohttp.ClientSession() as session:
             async with session.post(endpoint, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=12)) as resp:
-                provider_title = "FOSTA Codex AI" if is_fosta else "OpenAI ChatGPT"
+                provider_title = "FOSTA Codex AI" if is_fosta else ("9Router Gateway" if is_router else "OpenAI ChatGPT")
                 if resp.status == 200:
                     data = await resp.json()
                     returned_model = data.get("model", target_model)
@@ -758,20 +845,71 @@ Hãy đóng vai Giảng viên chấm thi công tâm (dùng `$...$` cho Toán/Lý
     }
 
 
-async def ai_evaluate_exam(subject_name: str, total: int, correct: int, wrong_questions: list) -> str:
-    wrong_text = "\n".join([f"- {q}" for q in wrong_questions[:12]]) if wrong_questions else "Không có câu nào sai!"
+async def ai_evaluate_exam(subject_name: str, total: int, correct: int, wrong_questions: list, topic_tags: list = None) -> str:
+    wrong = total - correct
     score = round(correct / total * 10, 1) if total > 0 else 0
-    prompt = f"""Sinh viên vừa hoàn thành đề thi môn "{subject_name}": {score}/10 ({correct}/{total} câu đúng).
-Các câu sai:
+    pct = round(correct / total * 100) if total > 0 else 0
+
+    # Danh sách câu sai (text)
+    wrong_text = "\n".join([f"- {q}" for q in wrong_questions[:12]]) if wrong_questions else "Không có câu nào sai!"
+
+    # Phân tích topic_tags: đếm số lần sai theo từng chủ đề
+    topic_analysis = ""
+    if topic_tags:
+        from collections import Counter
+        tag_counts = Counter(t for t in topic_tags if t)
+        if tag_counts:
+            sorted_tags = tag_counts.most_common()
+            topic_lines = "\n".join([f"  - **{tag}**: {cnt} câu sai" for tag, cnt in sorted_tags])
+            topic_analysis = f"\nPhân bố lỗi theo chủ đề:\n{topic_lines}"
+
+    # Xác định mức độ
+    if score >= 8.5:
+        level_hint = "Xuất sắc — tập trung vào câu vận dụng cao và bẫy đề thi."
+    elif score >= 7.0:
+        level_hint = "Khá — cần củng cố thêm các chủ đề còn sai."
+    elif score >= 5.0:
+        level_hint = "Trung bình — cần ôn lại kiến thức nền tảng."
+    else:
+        level_hint = "Yếu — cần học lại từ đầu theo lộ trình có hệ thống."
+
+    prompt = f"""Đóng vai Giáo sư AI chuyên gia môn "{subject_name}". Sinh viên vừa hoàn thành bài thi:
+- Điểm: **{score}/10** ({correct}/{total} câu đúng, {pct}% chính xác)
+- Mức độ: {level_hint}
+- Số câu sai: {wrong}{topic_analysis}
+
+Nội dung các câu sai:
 {wrong_text}
 
-Viết bản chẩn đoán năng lực súc tích, đầy đủ từ đầu đến cuối:
-1. **📊 Đánh giá phong độ & Mức độ nhận thức hiện tại**
-2. **🎯 Ma trận lỗ hổng kiến thức cần lấp ngay**
-3. **🚀 Chiến thuật 3 bước ôn tập cải thiện điểm số**
+Hãy viết **BẢN PHÂN TÍCH TOÀN DIỆN** súc tích, trọn vẹn, KHÔNG cắt giữa chừng, gồm 4 phần:
+
+## 📊 1. Đánh Giá Tổng Quan
+- Nhận xét ngắn về phong độ và mức độ nhận thức (Nhận biết / Thông hiểu / Vận dụng / Vận dụng cao).
+- Điểm mạnh nổi bật cần phát huy.
+
+## 🎯 2. Bản Đồ Lỗ Hổng Kiến Thức
+- Liệt kê các chủ đề/khái niệm bị sai nhiều nhất (dựa vào câu sai bên trên).
+- Phân loại: lỗi do **hiểu sai khái niệm** hay **tính toán/áp dụng nhầm**.
+
+## 📅 3. Kế Hoạch Ôn Tập 3 Ngày Cá Nhân Hóa
+- **Ngày 1 (Nền tảng):** Ôn lại khái niệm cốt lõi của các chủ đề sai nhiều nhất. Làm lại câu sai trong bài.
+- **Ngày 2 (Luyện tập):** Làm 15–20 câu trắc nghiệm tập trung vào chủ đề yếu. Dùng Flashcard để ghi nhớ công thức.
+- **Ngày 3 (Tổng duyệt):** Thi thử 1 đề đầy đủ có bấm giờ. Rà soát lại toàn bộ câu sai.
+
+## ⚡ 4. Mẹo Chiến Thuật Thi
+- 2–3 mẹo cụ thể giúp tăng ngay 1–2 điểm trong lần thi tới.
 {STEM_FORMAT_GUIDE}"""
-    gemini_reply = await call_gemini(prompt, max_tokens=6144, thinking_budget=384)
-    return gemini_reply or f"### 📊 Đánh Giá Nhanh: {score}/10 ({correct}/{total} câu)\nHãy bấm **Làm lại câu sai** để lấp đầy {total - correct} câu chưa chính xác!"
+
+    gemini_reply = await call_gemini(prompt, max_tokens=8192, thinking_budget=512)
+    return gemini_reply or f"""## 📊 Đánh Giá Nhanh: {score}/10 ({correct}/{total} câu)
+**Mức độ:** {level_hint}
+
+## 📅 Kế Hoạch 3 Ngày
+- **Ngày 1:** Làm lại {wrong} câu sai, ôn lý thuyết nền tảng.
+- **Ngày 2:** Luyện 20 câu trắc nghiệm chủ đề yếu + Flashcard.
+- **Ngày 3:** Thi thử đề đầy đủ có bấm giờ.
+
+> 💡 Bấm **Làm lại câu sai** để bắt đầu ngay!"""
 
 
 async def ai_personalized_roadmap(subject_name: str, stats_summary: dict, mistake_questions: list) -> str:

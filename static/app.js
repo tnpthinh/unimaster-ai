@@ -213,6 +213,9 @@ function renderFloatingActionChips() {
   const container = document.getElementById('ft-action-chips');
   if (!container) return;
 
+  const activeSub = STATE.subjects.find((s) => s.id === STATE.activeSubjectId);
+  const isCodeOrAlgo = activeSub && (/OOP|CSHARP|ALGO|DISCRETE|NNLT/.test(activeSub.code) || /lập trình|thuật toán|toán rời rạc/i.test(activeSub.name));
+
   if (pinnedTutorQuestion) {
     container.innerHTML = `
       <button type="button" onclick="sendFloatingPrompt('Tại sao đáp án này đúng? Hãy giải thích chi tiết bản chất và phương pháp suy luận.')"
@@ -223,17 +226,43 @@ function renderFloatingActionChips() {
         class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
         ⚠️ Bẫy đề & Đáp án sai
       </button>
+      ${isCodeOrAlgo ? `
+      <button type="button" onclick="sendFloatingPrompt('Hãy phân tích độ phức tạp thời gian/bộ nhớ Big-O và chỉ ra cách tối ưu mã nguồn này!')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-amber-300">
+        ⚡ Big-O & Tối ưu Code
+      </button>
+      <button type="button" onclick="sendFloatingPrompt('Giải thích chi tiết 4 tính chất OOP (Đóng gói, Kế thừa, Đa hình, Trừu tượng) liên quan câu này!')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-emerald-300">
+        💻 Phân tích 4 trụ cột OOP
+      </button>` : `
       <button type="button" onclick="sendFloatingPrompt('Cho tôi mẹo nhớ nhanh 5 giây hoặc quy tắc vàng để không bao giờ quên câu này!')"
         class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
         💡 Mẹo nhớ 5s
-      </button>
+      </button>`}
       <button type="button" onclick="sendFloatingPrompt('Hướng dẫn từng bước cách giải chi tiết và dạng bài tương tự có thể ra thi!')"
         class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
         📐 Hướng dẫn từng bước
       </button>
     `;
   } else {
-    container.innerHTML = `
+    container.innerHTML = isCodeOrAlgo ? `
+      <button type="button" onclick="sendFloatingPrompt('Tóm tắt 4 trụ cột OOP C# (Đóng gói, Kế thừa, Đa hình, Trừu tượng) và cho ví dụ code ngắn gọn!')"
+        class="badge-brand px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:scale-105">
+        💻 4 Trụ Cột OOP C#
+      </button>
+      <button type="button" onclick="sendFloatingPrompt('Liệt kê và so sánh độ phức tạp Big-O của QuickSort, MergeSort, Dijkstra kèm lưu ý phòng thi!')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-amber-300">
+        ⚡ Bảng Tra Big-O Thuật Toán
+      </button>
+      <button type="button" onclick="sendFloatingPrompt('Phân biệt rõ virtual vs override, new method hiding và abstract class vs interface trong C#!')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-cyan-300">
+        🔍 virtual/override vs interface
+      </button>
+      <button type="button" onclick="sendFloatingPrompt('Những bẫy thi và lỗi sai kinh điển sinh viên hay gặp ở môn OOP & Giải thuật?')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-rose-300">
+        ⚠️ Bẫy Đề Thi C#/Giải Thuật
+      </button>
+    ` : `
       <button type="button" onclick="sendFloatingPrompt('Tóm tắt 3 ý quan trọng nhất môn này để ôn thi cấp tốc!')"
         class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
         ✨ 3 Ý Cốt Lõi
@@ -1310,6 +1339,10 @@ function applyAllAppearancePrefs() {
   if (autoChk) autoChk.checked = Boolean(u.autoNext);
   const cbChk = document.getElementById('pref-contrast-boost');
   if (cbChk) cbChk.checked = Boolean(u.highContrastText);
+  const perfChk = document.getElementById('pref-perf-mode-toggle');
+  if (perfChk) perfChk.checked = Boolean(u.perfMode);
+  // Áp dụng class perf-mode ngay khi load để tắt animation nếu đã bật
+  document.documentElement.classList.toggle('perf-mode', Boolean(u.perfMode));
 
   renderLiveFontPreview();
 }
@@ -1489,6 +1522,23 @@ function toggleAutoNextPref(checked) {
   STATE.ui.autoNext = Boolean(checked);
   applyAllAppearancePrefs();
   syncUserStateToServer();
+}
+
+// Inject CSS rule cho perf-mode một lần duy nhất khi app khởi động
+(function injectPerfModeCSS() {
+  const s = document.createElement('style');
+  s.id = 'perf-mode-css';
+  // Tắt transition, animation, backdrop-filter khi bật perf-mode
+  s.textContent = `.perf-mode *,.perf-mode *::before,.perf-mode *::after{transition:none!important;animation:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;}`;
+  document.head.appendChild(s);
+})();
+
+function togglePerfMode(checked) {
+  STATE.ui.perfMode = Boolean(checked);
+  // Tắt animation CSS toàn cục khi bật chế độ hiệu năng cao
+  document.documentElement.classList.toggle('perf-mode', STATE.ui.perfMode);
+  syncUserStateToServer();
+  showToast(STATE.ui.perfMode ? '⚡ Chế độ hiệu năng cao đã bật – hiệu ứng được giảm bớt.' : '✨ Đã tắt chế độ hiệu năng cao – hiệu ứng đầy đủ.', 'info');
 }
 
 async function resetDefaultAppearance() {
@@ -2125,6 +2175,20 @@ function normalizeCodeSnippet(rawCode) {
   return code.replace(/^\n+|\n+$/g, '');
 }
 
+// Tự động chọn tiêu đề và ngôn ngữ highlight dựa vào môn học đang active.
+// Môn Y Dược / Hóa Sinh → "Dữ liệu đính kèm" + plaintext; môn lập trình → giữ nguyên.
+function getCodeSnippetMeta() {
+  const sub = (STATE.subjects || []).find(s => String(s.id) === String(STATE.activeSubjectId));
+  const code = (sub && sub.code) ? sub.code.toUpperCase() : '';
+  // Môn lập trình C# / OOP / NNLT
+  if (/OOP|NNLT|CSHARP|CS_|ALGO|DISCRETE/.test(code)) return { title: 'Program.cs', lang: 'csharp' };
+  if (/JAVA/.test(code)) return { title: 'Main.java', lang: 'java' };
+  if (/PYTHON|PY/.test(code)) return { title: 'main.py', lang: 'python' };
+  if (/JS|JAVASCRIPT/.test(code)) return { title: 'script.js', lang: 'javascript' };
+  // Mặc định cho Y Dược / Hóa Sinh / AVCB / STEM và các môn khác
+  return { title: 'Dữ liệu đính kèm', lang: 'plaintext' };
+}
+
 function buildCodeWindowHtml(rawCode, title = 'Program.cs', lang = 'csharp') {
   const clean = normalizeCodeSnippet(rawCode);
   if (!clean) return '';
@@ -2359,7 +2423,7 @@ function populateAllSubjectSelects() {
 
 function switchTab(tabName) {
   STATE.currentTab = tabName;
-  const tabs = ['dashboard', 'exam', 'exercises', 'essay', 'flashcards', 'search', 'tutor', 'generator', 'arena', 'lab'];
+  const tabs = ['dashboard', 'exam', 'exercises', 'essay', 'flashcards', 'mistakes', 'search', 'tutor', 'generator', 'arena', 'lab'];
 
   tabs.forEach((t) => {
     document.getElementById(`view-${t}`)?.classList.toggle('hidden', t !== tabName);
@@ -2398,6 +2462,7 @@ function switchTab(tabName) {
   if (tabName === 'exercises') loadExercisesView();
   if (tabName === 'essay') loadEssayView();
   if (tabName === 'flashcards') loadFlashcardsView();
+  if (tabName === 'mistakes') renderMistakeNotebook();
   if (tabName === 'search') loadBankQuestions();
   if (tabName === 'tutor') renderTutorQuickPrompts();
   if (tabName === 'arena') initArenaView();
@@ -2411,6 +2476,79 @@ function switchTab(tabName) {
 // =========================================================================
 // 8. DASHBOARD & NOTEBOOK
 // =========================================================================
+function renderLearningProgressWidget() {
+  const summary = document.getElementById('learning-progress-summary');
+  const subjectList = document.getElementById('learning-progress-subjects');
+  const recommendations = document.getElementById('learning-progress-recommendations');
+  if (!summary || !subjectList || !recommendations) return;
+
+  const exams = Array.isArray(STATE.stats?.recent_exams) ? STATE.stats.recent_exams : [];
+  // Backend trả tổng số câu toàn lịch sử nhưng chỉ trả chi tiết 15 đề gần nhất.
+  const recentQuestions = exams.reduce((sum, exam) => sum + Number(exam.total_questions || 0), 0);
+  const recentCorrect = exams.reduce((sum, exam) => sum + Number(exam.correct_answers || 0), 0);
+  const totalQuestions = Number(STATE.stats?.total_q_answered || recentQuestions);
+  const totalCorrect = recentQuestions ? Math.round((recentCorrect / recentQuestions) * totalQuestions) : 0;
+  const totalWrong = Math.max(0, totalQuestions - totalCorrect);
+  const accuracy = totalQuestions ? Math.round((totalCorrect / totalQuestions) * 100) : 0;
+  const avgScore = Number(STATE.stats?.avg_score || 0);
+  const mistakes = Array.isArray(STATE.mistakes) ? STATE.mistakes : [];
+  const streak = Number(STATE.streakDays || 0);
+
+  const metrics = [
+    ['🏆', 'Điểm TB', `${avgScore.toFixed(1)}/10`, 'txt-amber'],
+    ['✅', 'Câu đúng (ước tính)', totalCorrect.toLocaleString('vi-VN'), 'txt-emerald'],
+    ['❌', 'Câu sai (ước tính)', totalWrong.toLocaleString('vi-VN'), 'txt-rose'],
+    ['🔥', 'Streak', `${streak} ngày`, 'txt-brand']
+  ];
+  summary.innerHTML = metrics.map(([icon, label, value, color]) => `
+    <div class="rounded-xl p-3 border" style="border-color: var(--border); background: var(--bg-subtle);">
+      <div class="text-lg">${icon}</div>
+      <div class="text-[10px] txt-muted font-bold mt-1">${label}</div>
+      <div class="text-base font-black ${color}">${value}</div>
+    </div>`).join('');
+
+  const subjectStats = {};
+  exams.forEach((exam) => {
+    const id = Number(exam.subject_id);
+    if (!id) return;
+    if (!subjectStats[id]) subjectStats[id] = { scores: [], questions: 0, correct: 0 };
+    subjectStats[id].scores.push(Number(exam.score || 0));
+    subjectStats[id].questions += Number(exam.total_questions || 0);
+    subjectStats[id].correct += Number(exam.correct_answers || 0);
+  });
+  const subjects = (STATE.subjects || []).map((subject) => {
+    const stat = subjectStats[Number(subject.id)];
+    const score = stat ? stat.scores.reduce((a, b) => a + b, 0) / stat.scores.length : 0;
+    const wrong = stat ? Math.max(0, stat.questions - stat.correct) : 0;
+    return { subject, score, wrong, attempts: stat?.scores.length || 0 };
+  }).sort((a, b) => (a.attempts ? a.score : -1) - (b.attempts ? b.score : -1));
+
+  subjectList.innerHTML = subjects.slice(0, 6).map(({ subject, score, wrong, attempts }) => {
+    const percent = Math.max(0, Math.min(100, Math.round(score * 10)));
+    const color = percent >= 80 ? '#10b981' : percent >= 50 ? '#f59e0b' : '#f43f5e';
+    return `<div class="flex items-center gap-2">
+      <span class="text-sm shrink-0">${subject.icon || '📘'}</span>
+      <div class="min-w-0 flex-1">
+        <div class="flex justify-between gap-2 text-[11px] font-bold"><span class="truncate txt-main">${escapeHtml(subject.name)}</span><span class="shrink-0" style="color:${color}">${attempts ? score.toFixed(1) : '—'}/10</span></div>
+        <div class="h-1.5 rounded-full mt-1" style="background: var(--border);"><div class="h-full rounded-full" style="width:${percent}%;background:${color}"></div></div>
+      </div>
+      <span class="text-[10px] txt-muted shrink-0">${wrong ? `${wrong} sai` : attempts ? 'Ổn' : 'Chưa học'}</span>
+    </div>`;
+  }).join('') || '<div class="text-xs txt-muted">Chưa có môn học để thống kê.</div>';
+
+  const weakSubjects = subjects.filter((item) => item.attempts && item.score < 7).slice(0, 3);
+  const fallback = subjects.filter((item) => !item.attempts).slice(0, 3);
+  const items = [...weakSubjects, ...fallback].slice(0, 3);
+  recommendations.innerHTML = items.length ? items.map(({ subject, score, wrong, attempts }) => `
+    <button type="button" onclick="openSubjectExam(${Number(subject.id)})" class="w-full text-left rounded-xl p-3 border hover:border-indigo-400/60 transition-colors" style="border-color: var(--border);background:var(--bg-subtle);">
+      <div class="flex items-center justify-between gap-2"><span class="text-xs font-extrabold txt-main truncate">${subject.icon || '📘'} ${escapeHtml(subject.name)}</span><span class="text-[10px] font-bold ${attempts ? 'txt-rose' : 'txt-cyan'}">${attempts ? `Ôn lại • ${score.toFixed(1)}/10` : 'Bắt đầu học'}</span></div>
+      <div class="text-[10px] txt-muted mt-1">${wrong ? `Có ${wrong} câu sai cần củng cố` : 'Làm một đề ngắn để tạo dữ liệu tiến độ'}</div>
+    </button>`).join('') : `<div class="text-xs txt-muted rounded-xl p-3" style="background:var(--bg-subtle);">Chưa có dữ liệu. Hãy làm một đề để nhận gợi ý cá nhân hóa.</div>`;
+
+  const status = document.getElementById('learning-progress-status');
+  if (status) status.textContent = `${exams.length} đề • ${accuracy}% chính xác`;
+}
+
 function renderDashboard() {
   let subs = (Array.isArray(STATE.subjects) && STATE.subjects.length) ? STATE.subjects : [];
   if (!subs.length) {
@@ -2522,6 +2660,7 @@ function renderDashboard() {
           .join('')
       : `<tr><td colspan="5" class="py-6 text-center txt-muted">Chưa có bài làm nào. Bấm <strong>Luyện Đề Ngay</strong> để khởi động!</td></tr>`;
   }
+  renderLearningProgressWidget();
   renderContextualShortcuts();
   renderWeeklyAnalyticsChart();
   renderBloomCompetencyChart();
@@ -2892,117 +3031,36 @@ async function onExamSubjectChange() {
   const grid = document.getElementById('exam-parts-grid');
   if (grid) {
     let html = '';
-    const isCtump = (STATE.subjects.find((s) => s.id === sid)?.code || '') === 'HOASINH_CTUMP';
-    if (isCtump) {
-      html += `
-        <div class="col-span-full p-3 rounded-2xl border border-indigo-500/40 bg-indigo-500/10 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-1 shadow-sm">
-          <div class="flex items-center gap-2.5">
-            <span class="text-2xl">🏛️</span>
-            <div>
-              <div class="font-black text-xs text-indigo-300 flex items-center gap-1.5">
-                Trọn Bộ 322 Câu Hóa Sinh CTUMP Gốc (Chuẩn Giáo Trình)
-              </div>
-              <div class="text-[11px] txt-muted">Đã chia 5 phần: An toàn PTN, Protein/Biuret, Thận, Enzym/Lipid & Nước tiểu</div>
-            </div>
-          </div>
-          <button type="button" onclick="openCtumpOriginalPartsModal()" class="btn-primary !bg-indigo-600 hover:!bg-indigo-700 px-3.5 py-1.5 text-xs font-black shadow-sm shrink-0">
-            Xem 5 Phần Gốc ↗
-          </button>
-        </div>
-      `;
-    }
-    const bai4Questions = allQs.filter((q) => q.topic_tag && q.topic_tag.startsWith('Bài 4'));
-    if (bai4Questions.length > 0) {
-      html += `
-        <div class="col-span-full p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 flex items-center justify-between gap-2 mb-1">
-          <span class="font-black text-xs text-rose-300 flex items-center gap-1.5">
-            🫀 Bài 4: Chuyển Hóa Lipid & Nước Tiểu 10 Thông Số (${bai4Questions.length} câu)
-          </span>
-          <button type="button" onclick="openBai4PartsModal()" class="btn-primary !bg-rose-600 hover:!bg-rose-700 px-3 py-1 text-[11px] font-bold shadow-sm">
-            Chọn 7 Phần Bài Học ↗
-          </button>
-        </div>
-        <button type="button" onclick="startSpecialDrill('lipid_bai4', ${sid})" class="part-card" style="border-color: rgba(244, 63, 94, 0.5);">
-          <div class="font-extrabold text-xs text-rose-400 flex justify-between">
-            <span>🫀 Luyện Toàn Bộ 200 Câu Lipid</span>
-            <span>→</span>
-          </div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('lipid_bai4_p1', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🫀 B4.1: Cholesterol toàn phần (30c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('lipid_bai4_p2', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🫀 B4.2: Triglycerid huyết thanh (30c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('lipid_bai4_p3', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🫀 B4.3: HDL-C & LDL-C Friedewald (30c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('lipid_bai4_p4', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🫀 B4.4: Thể Ceton nước tiểu (25c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('lipid_bai4_p5', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🫀 B4.5: Que Cybow 3 thông số (25c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('lipid_bai4_p6', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🫀 B4.6: Máy 10 thông số vận hành (30c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('lipid_bai4_p7', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🫀 B4.7: Nguyên lý & Độ nhạy 10 chỉ số (30c)</span><span class="txt-brand">→</span></div>
-        </button>
-      `;
-    }
+    const lessons = [
+      { prefix: 'Bài 2', icon: '🧬', label: 'Bài 2: Protid & Thận' },
+      { prefix: 'Bài 3', icon: '🍬', label: 'Bài 3: Glucid & ĐTĐ' },
+      { prefix: 'Bài 4', icon: '🫀', label: 'Bài 4: Lipid & Nước tiểu' },
+      { prefix: 'Bài 5', icon: '🩸', label: 'Bài 5: Hb & Gan mật' },
+      { prefix: 'Bài 6', icon: '🧪', label: 'Bài 6: Định lượng enzym' }
+    ];
 
-    const bai3Questions = allQs.filter((q) => q.topic_tag && q.topic_tag.startsWith('Bài 3'));
-    if (bai3Questions.length > 0) {
+    lessons.forEach((l) => {
+      const lQs = allQs.filter((q) => String(q.topic_tag || '').startsWith(l.prefix));
+      if (!lQs.length) return;
+      const key = l.prefix.replace(' ', '_');
       html += `
-        <div class="col-span-full p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 flex items-center justify-between gap-2 mb-1">
-          <span class="font-black text-xs text-amber-300 flex items-center gap-1.5">
-            🍬 Bài 3: Hóa học Glucid & Biện luận Đái tháo đường (${bai3Questions.length} câu)
-          </span>
-          <button type="button" onclick="openBai3PartsModal()" class="btn-primary !bg-amber-500 hover:!bg-amber-600 px-3 py-1 text-[11px] font-bold shadow-sm">
-            Chọn 6 Phần Bài Học ↗
-          </button>
+        <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div class="font-bold text-xs txt-main flex items-center gap-1.5 shrink-0">
+            <span>${l.icon}</span>
+            <span>${l.label}</span>
+            <span class="badge-soft px-1.5 py-0.5 rounded text-[10px]">${lQs.length} câu</span>
+          </div>
+          <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+            <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+            <span class="text-xs txt-muted">–</span>
+            <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+            <button type="button" onclick="startCustomLessonRange('${l.prefix}', ${sid})" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
+              Vào thi →
+            </button>
+          </div>
         </div>
-        <button type="button" onclick="startSpecialDrill('glucid_bai3', ${sid})" class="part-card" style="border-color: rgba(245, 158, 11, 0.5);">
-          <div class="font-extrabold text-xs text-amber-400 flex justify-between">
-            <span>🍬 Luyện Toàn Bộ 200 Câu Glucid</span>
-            <span>→</span>
-          </div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('glucid_bai3_p1', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🍬 B3.1: Molish & Khái niệm (25c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('glucid_bai3_p2', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🍬 B3.2: Fehling & Tính khử (35c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('glucid_bai3_p3', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🍬 B3.3: Polysaccharid & Iod (25c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('glucid_bai3_p4', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🍬 B3.4: Glucose GOD-POD (45c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('glucid_bai3_p5', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🍬 B3.5: Đái tháo đường & OGTT (35c)</span><span class="txt-brand">→</span></div>
-        </button>
-        <button type="button" onclick="startSpecialDrill('glucid_bai3_p6', ${sid})" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between"><span>🍬 B3.6: Benedict Nước tiểu (35c)</span><span class="txt-brand">→</span></div>
-        </button>
       `;
-    }
-
-    const chunk = 25;
-    let partIdx = 1;
-    for (let i = 0; i < allQs.length; i += chunk) {
-      const end = Math.min(i + chunk, allQs.length);
-      html += `
-        <button type="button" onclick="startPartExam(${i}, ${end}, 'Phần ${partIdx} (${i + 1}–${end})')" class="part-card">
-          <div class="font-extrabold text-xs txt-main flex justify-between">
-            <span>Phần ${partIdx}: Câu ${i + 1}–${end}</span>
-            <span class="txt-brand">→</span>
-          </div>
-        </button>`;
-      partIdx++;
-    }
+    });
     const bmCount = allQs.filter((q) => STATE.bookmarks.includes(q.id)).length;
     const mistakeIds = STATE.mistakes.map((m) => (typeof m === 'object' ? m.id : m));
     const msCount = allQs.filter((q) => mistakeIds.includes(q.id)).length;
@@ -3027,6 +3085,32 @@ async function onExamSubjectChange() {
   }
 }
 
+function launchLessonRange(prefix, fromNum, toNum, sid) {
+  const pool = STATE.examConfig.subjectAllQuestions || [];
+  const lessonQuestions = pool.filter((q) => String(q.topic_tag || '').startsWith(prefix));
+  if (!lessonQuestions.length) return;
+  const start = Math.max(0, fromNum - 1);
+  const end = Math.min(lessonQuestions.length, toNum);
+  const subset = lessonQuestions.slice(start, end);
+  if (subset.length) {
+    const shuffle = document.getElementById('exam-random-toggle')?.checked ?? false;
+    let questionsToRun = [...subset];
+    if (shuffle) questionsToRun.sort(() => Math.random() - 0.5);
+    launchExamWithQuestions(questionsToRun, `${prefix}: Câu ${start + 1}–${end} (${subset.length} câu)`, !shuffle);
+  }
+}
+
+function startCustomLessonRange(prefix, sid) {
+  const key = prefix.replace(' ', '_');
+  const fromEl = document.getElementById(`range_from_${key}`);
+  const toEl = document.getElementById(`range_to_${key}`);
+  const pool = STATE.examConfig.subjectAllQuestions || [];
+  const lessonQuestions = pool.filter((q) => String(q.topic_tag || '').startsWith(prefix));
+  const fromVal = Math.max(1, parseInt(fromEl?.value || '1', 10));
+  const toVal = Math.max(fromVal, Math.min(lessonQuestions.length, parseInt(toEl?.value || String(lessonQuestions.length), 10)));
+  launchLessonRange(prefix, fromVal, toVal, sid);
+}
+
 function startPartExam(startIdx, endIdx, label) {
   const slice = STATE.examConfig.subjectAllQuestions.slice(startIdx, endIdx);
   if (!slice.length) return;
@@ -3049,7 +3133,10 @@ async function startSpecialDrill(kind, specificSid = null) {
   const mistakeIds = STATE.mistakes.map((m) => (typeof m === 'object' ? m.id : m));
   let filtered = [];
 
-  if (kind === 'lipid_bai4') {
+  if (kind && kind.startsWith('lesson_bai')) {
+    const n = kind.replace('lesson_bai', 'Bài ');
+    filtered = pool.filter((q) => String(q.topic_tag || '').startsWith(n));
+  } else if (kind === 'lipid_bai4') {
     filtered = pool.filter((q) => (q.topic_tag && q.topic_tag.startsWith('Bài 4')) || (q.question_text && (q.question_text.includes('Cholesterol') || q.question_text.includes('Triglycerid') || q.question_text.includes('Friedewald') || q.question_text.includes('nitroprussiat') || q.question_text.includes('ceton') || q.question_text.includes('Cybow'))));
   } else if (kind && kind.startsWith('lipid_bai4_p')) {
     const pNum = kind.replace('lipid_bai4_p', '');
@@ -3108,7 +3195,9 @@ async function startCustomExam() {
   const qType = document.getElementById('exam-type-select')?.value || 'all';
   const bloomDiff = document.getElementById('exam-bloom-filter')?.value || 'all';
   const count = Math.max(1, parseInt(document.getElementById('exam-custom-count')?.value || '20', 10));
-  const randomOrder = document.getElementById('exam-random-toggle')?.checked ?? true;
+  const rangeFrom = parseInt(document.getElementById('exam-range-from')?.value || '0', 10);
+  const rangeTo = parseInt(document.getElementById('exam-range-to')?.value || '0', 10);
+  const randomOrder = document.getElementById('exam-random-toggle')?.checked ?? false;
 
   const res = await apiFetch(`/api/subjects/${sid}/questions?type=${encodeURIComponent(qType)}`);
   let list = res.questions || [];
@@ -3118,6 +3207,14 @@ async function startCustomExam() {
   if (!list.length) {
     showToast('Chưa có câu hỏi thuộc bộ lọc này! Hãy thử đổi cấp độ hoặc dùng AI Soạn Đề.', 'warning');
     return;
+  }
+  // Chỉ cắt theo khoảng khi người dùng nhập đủ hai đầu mút; số câu vẫn là giới hạn tối đa.
+  if (rangeFrom || rangeTo) {
+    if (!Number.isInteger(rangeFrom) || !Number.isInteger(rangeTo) || rangeFrom < 1 || rangeTo < rangeFrom || rangeFrom > list.length) {
+      showToast(`Khoảng câu hỏi không hợp lệ. Hãy nhập từ 1 đến ${list.length}, và câu đầu không lớn hơn câu cuối.`, 'warning');
+      return;
+    }
+    list = list.slice(rangeFrom - 1, Math.min(rangeTo, list.length));
   }
   if (randomOrder || STATE.examConfig.mode === 'blitz') {
     list = [...list].sort(() => Math.random() - 0.5);
@@ -3401,7 +3498,7 @@ function renderCurrentExamQuestion() {
   const codeWrap = document.getElementById('q-code-wrapper');
   if (codeWrap) {
     if (q.code_snippet && q.code_snippet.trim()) {
-      codeWrap.innerHTML = buildCodeWindowHtml(q.code_snippet, 'Program.cs', 'csharp');
+      const _m1 = getCodeSnippetMeta(); codeWrap.innerHTML = buildCodeWindowHtml(q.code_snippet, _m1.title, _m1.lang);
       codeWrap.classList.remove('hidden');
     } else {
       codeWrap.innerHTML = '';
@@ -4413,6 +4510,11 @@ function renderExamResultScreen(res) {
   if (score >= 8 && window.confetti) {
     playSound('complete');
     confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+  } else if (wrongCount > 0) {
+    // Tự động phân tích AI cho bài thi dưới 8 điểm (sau 1.2s để UI render xong)
+    setTimeout(() => {
+      triggerExamEvaluation(true);
+    }, 1200);
   }
   filterResultReview('all');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -4448,6 +4550,7 @@ function filterResultReview(mode) {
             <span class="${d.is_correct ? 'badge-emerald' : 'badge-rose'} text-xs px-2.5 py-0.5 rounded-lg font-extrabold">${d.is_correct ? '✔ Đúng' : '✘ Sai'}</span>
             <div class="flex flex-wrap items-center gap-1.5">
               <button onclick="askAiAboutReviewQuestion(${d.question_id})" class="btn-primary !bg-gradient-to-r !from-indigo-600 !to-purple-600 !py-1 !px-2.5 !text-[11px] font-black flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95 transition-all"><span>🤖</span> Hỏi AI</button>
+              <button onclick="aiExplainAndSimilarReviewItem(${d.question_id})" class="btn-primary !bg-gradient-to-r !from-emerald-600 !to-cyan-600 !py-1 !px-2.5 !text-[11px] font-black flex items-center gap-1 shadow-sm hover:scale-105 active:scale-95 transition-all"><span>🧠</span> AI Giải thích + Câu tương tự</button>
               <button onclick="explainReviewItemMistake(${d.question_id})" class="ai-chip-btn !py-1 !px-2.5 !text-[11px]">
                 ${d.is_correct ? '🛡️ Phân tích bẫy' : '🩺 Sao tôi sai?'}
               </button>
@@ -4467,7 +4570,7 @@ function filterResultReview(mode) {
                  </div>`
               : ''
           }
-          ${d.code_snippet ? buildCodeWindowHtml(d.code_snippet, 'Program.cs', 'csharp') : ''}
+          ${d.code_snippet ? (() => { const _m = getCodeSnippetMeta(); return buildCodeWindowHtml(d.code_snippet, _m.title, _m.lang); })() : ''}
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs ans-font-target">
             <div class="p-2.5 rounded-xl ${d.is_correct ? 'badge-emerald' : 'badge-rose'} font-bold">Bạn chọn: ${escapeHtml(d.user_answer || 'Bỏ trống')}${d.q_type === 'mcq' ? optLabel(d.user_answer) : ''}</div>
             <div class="p-2.5 rounded-xl badge-emerald font-bold">Đáp án: ${escapeHtml(d.correct_option)}${d.q_type === 'mcq' ? optLabel(d.correct_option) : ''}</div>
@@ -4510,6 +4613,67 @@ async function explainReviewItemMistake(qid) {
     })
   });
   box.innerHTML = renderMarkdown(res.diagnosis || '');
+}
+
+async function aiExplainAndSimilarReviewItem(qid) {
+  const d = (STATE.exam.lastResult?.details || []).find((x) => x.question_id === qid);
+  const fullQ = STATE.exam.questions.find((q) => q.id === qid) || d;
+  const box = document.getElementById(`rev-ai-box-${qid}`);
+  if (!fullQ || !box) return;
+
+  box.classList.remove('hidden');
+  box.innerHTML = `<div class="skeleton-shimmer h-24 w-full"></div>`;
+  playSound('click');
+
+  const optLookup = { A: fullQ.option_a, B: fullQ.option_b, C: fullQ.option_c, D: fullQ.option_d };
+  const uAns = d?.user_answer || '';
+  const cAns = d?.correct_option || fullQ._effectiveCorrect || 'A';
+  const wrongDesc = uAns
+    ? `${uAns}${optLookup[uAns.toUpperCase()] ? ' — ' + optLookup[uAns.toUpperCase()] : ''}`
+    : 'Bỏ trống';
+  const corrDesc = `${cAns}${optLookup[cAns.toUpperCase()] ? ' — ' + optLookup[cAns.toUpperCase()] : ''}`;
+
+  try {
+    const [diagnosisRes, similarRes] = await Promise.all([
+      apiFetch('/api/ai/explain-mistake', {
+        method: 'POST',
+        body: JSON.stringify({
+          subject_name: STATE.exam.subjectName || 'Đại học',
+          question_text: fullQ.question_text,
+          user_wrong_answer: wrongDesc,
+          correct_answer: corrDesc,
+          explanation: fullQ.explanation || d?.explanation || '',
+          code_snippet: fullQ.code_snippet || d?.code_snippet || ''
+        })
+      }),
+      apiFetch('/api/ai/similar-question', {
+        method: 'POST',
+        body: JSON.stringify({
+          question_text: fullQ.question_text,
+          code_snippet: fullQ.code_snippet || ''
+        })
+      })
+    ]);
+
+    const diagnosis = diagnosisRes.diagnosis || 'AI chưa trả về phần phân tích.';
+    const similar = similarRes.similar;
+    const similarOptions = Array.isArray(similar?.options)
+      ? similar.options
+      : similar?.options && typeof similar.options === 'object'
+        ? ['A', 'B', 'C', 'D'].map((key) => similar.options[key]).filter(Boolean)
+        : [];
+    const similarHtml = similar
+      ? `<div class="mt-3 pt-3" style="border-top:1px solid var(--border);">
+          <div class="font-black txt-cyan mb-1">🧩 Câu tương tự để luyện ngay</div>
+          <div class="font-bold">${formatRichText(similar.question || similar.question_text || '')}</div>
+          ${similarOptions.length ? `<div class="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-1.5">${similarOptions.slice(0, 4).map((value, index) => `<div class="rounded-lg p-2 border text-[11px]" style="border-color:var(--border);"><strong>${String.fromCharCode(65 + index)}.</strong> ${formatRichText(String(value))}</div>`).join('')}</div>` : ''}
+          <details class="mt-2"><summary class="cursor-pointer font-bold txt-muted">Xem đáp án và giải thích</summary><div class="mt-1">${formatRichText(similar.explanation || similar.answer_explanation || '')}<div class="mt-1 font-bold txt-emerald">Đáp án: ${escapeHtml(String(similar.correct || similar.correct_option || 'Chưa xác định'))}</div></div></details>
+        </div>`
+      : '<div class="mt-3 txt-muted">Chưa tạo được câu tương tự, bạn có thể thử lại.</div>';
+    box.innerHTML = `<div class="font-black txt-emerald mb-1">🩺 Phân tích lỗi & gợi ý</div>${renderMarkdown(diagnosis)}${similarHtml}`;
+  } catch (error) {
+    box.innerHTML = `<div class="txt-rose font-bold">Không thể gọi AI lúc này: ${escapeHtml(error?.message || 'Lỗi kết nối')}</div>`;
+  }
 }
 
 async function mnemonicReviewItem(qid) {
@@ -4592,23 +4756,71 @@ function retryWrongQuestions() {
   launchExamWithQuestions(wrongQs, `Làm Lại ${wrongQs.length} Câu Sai`, true);
 }
 
-async function triggerExamEvaluation() {
+async function triggerExamEvaluation(isAuto = false) {
   const res = STATE.exam.lastResult;
   const box = document.getElementById('res-ai-eval-box');
   if (!res || !box) return;
-  box.classList.remove('hidden');
-  box.innerHTML = `<div class="skeleton-shimmer h-20 w-full"></div>`;
-  playSound('click');
-  const data = await apiFetch('/api/ai/evaluate-exam', {
-    method: 'POST',
-    body: JSON.stringify({
-      subject_name: STATE.exam.subjectName,
-      total: res.total_questions,
-      correct: res.correct_count,
-      wrong_questions: (res.details || []).filter((d) => !d.is_correct).map((d) => d.question_text)
+
+  // Lấy danh sách câu hỏi gốc để trích xuất topic_tag
+  const qLookup = Object.fromEntries((STATE.exam.questions || []).map((q) => [q.id, q]));
+  const wrongDetails = (res.details || []).filter((d) => !d.is_correct);
+  const wrongTexts = wrongDetails.map((d) => d.question_text);
+  const topicTags = wrongDetails
+    .map((d) => {
+      const fullQ = qLookup[d.question_id];
+      return fullQ?.topic_tag || d?.topic_tag || '';
     })
-  });
-  box.innerHTML = renderMarkdown(data.evaluation || '');
+    .filter(Boolean);
+
+  box.classList.remove('hidden');
+  box.innerHTML = `
+    <div class="flex items-center gap-3 py-3">
+      <div class="w-5 h-5 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
+      <span class="text-xs font-semibold txt-muted">
+        ${isAuto ? '🤖 AI đang tự động phân tích bài thi và lập kế hoạch ôn 3 ngày...' : '🤖 AI đang phân tích bài thi...'}
+      </span>
+    </div>
+  `;
+  if (!isAuto) playSound('click');
+
+  try {
+    const data = await apiFetch('/api/ai/evaluate-exam', {
+      method: 'POST',
+      body: JSON.stringify({
+        subject_name: STATE.exam.subjectName || 'Đại học',
+        total: res.total_questions,
+        correct: res.correct_count,
+        wrong_questions: wrongTexts,
+        topic_tags: topicTags
+      })
+    });
+
+    const evalContent = data?.evaluation || 'Không có phản hồi từ AI.';
+    box.innerHTML = `
+      <div class="space-y-3">
+        <div class="flex items-center justify-between border-b border-indigo-500/20 pb-2">
+          <div class="flex items-center gap-2">
+            <span class="text-base">🧠</span>
+            <span class="font-extrabold text-xs sm:text-sm text-indigo-400">AI Chẩn Đoán & Kế Hoạch Ôn 3 Ngày</span>
+          </div>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('ai-eval-content').innerText); showToast('Đã copy kế hoạch ôn tập!');"
+                  class="btn-soft !py-1 !px-2.5 !text-[11px] font-bold flex items-center gap-1">
+            <span>📋</span> Copy Kế Hoạch
+          </button>
+        </div>
+        <div id="ai-eval-content" class="markdown-body text-xs leading-relaxed space-y-2">
+          ${renderMarkdown(evalContent)}
+        </div>
+      </div>
+    `;
+    renderAllMathOnPage();
+  } catch (err) {
+    box.innerHTML = `
+      <div class="p-3 text-xs text-rose-400 bg-rose-500/10 rounded-xl">
+        ❌ Không thể phân tích bài thi lúc này: ${escapeHtml(err.message || 'Lỗi mạng')}
+      </div>
+    `;
+  }
 }
 
 // =========================================================================
@@ -4973,7 +5185,7 @@ function renderBankList(reset = false) {
                    </div>`
                 : ''
             }
-            ${q.code_snippet ? buildCodeWindowHtml(q.code_snippet, 'Program.cs', 'csharp') : ''}
+            ${q.code_snippet ? (() => { const _m = getCodeSnippetMeta(); return buildCodeWindowHtml(q.code_snippet, _m.title, _m.lang); })() : ''}
             ${
               opts.length
                 ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 ans-font-target">
@@ -5631,9 +5843,17 @@ async function checkApiKeyStatus() {
     const prioSel = document.getElementById('cfg-ai-priority');
 
     if (baseInp && !baseInp.value) {
-      baseInp.value = STATE.openaiConfig.base_url || 'https://codex.fosta.app/v1';
+      baseInp.value = STATE.openaiConfig.base_url || 'https://api.openai.com/v1';
     }
     if (modelSel && STATE.openaiConfig.model) {
+      // Model có thể là alias của 9Router (All/Coding-Pro) chưa có trong danh sách
+      // của bản giao diện cũ, nên thêm option động trước khi gán giá trị.
+      if (!Array.from(modelSel.options).some((opt) => opt.value === STATE.openaiConfig.model)) {
+        const opt = document.createElement('option');
+        opt.value = STATE.openaiConfig.model;
+        opt.textContent = STATE.openaiConfig.model;
+        modelSel.appendChild(opt);
+      }
       modelSel.value = STATE.openaiConfig.model;
     }
     if (prioSel) {
@@ -11632,8 +11852,29 @@ function applyOpenAiDirectPreset() {
   const baseInp = document.getElementById('cfg-openai-base');
   const modelSel = document.getElementById('cfg-openai-model');
   if (baseInp) baseInp.value = 'https://api.openai.com/v1';
-  if (modelSel) modelSel.value = 'gpt-4o-mini';
+  if (modelSel) modelSel.value = 'gpt-4o';
   showToast('🌐 Đã chọn máy chủ OpenAI Gốc (api.openai.com)!', 'info');
+  playSound('click');
+}
+
+// 9Router là gateway OpenAI-compatible chạy trên máy cá nhân (mặc định cổng 20128).
+// Khi deploy Render, đặt base URL nội bộ và dùng AI_GATEWAY_DISCOVERY_URL để app
+// tự dò địa chỉ Cloudflare Tunnel công khai mới nhất.
+function applyRouterPreset(model = 'All') {
+  const baseInp = document.getElementById('cfg-openai-base');
+  const modelSel = document.getElementById('cfg-openai-model');
+  if (baseInp) baseInp.value = 'http://127.0.0.1:20128/v1';
+  if (modelSel) {
+    // Nếu option chưa tồn tại (bản cũ), thêm vào để tránh giá trị rỗng.
+    if (!Array.from(modelSel.options).some((opt) => opt.value === model)) {
+      const opt = document.createElement('option');
+      opt.value = model;
+      opt.textContent = model;
+      modelSel.appendChild(opt);
+    }
+    modelSel.value = model;
+  }
+  showToast(`🔀 Đã chọn 9Router Gateway (${model}). Nhập API key của 9Router rồi Lưu Cài Đặt.`, 'info');
   playSound('click');
 }
 
@@ -11665,7 +11906,7 @@ async function testOpenAiKeyUI() {
       playSound('success');
     } else {
       fb.className = 'text-xs p-3 rounded-xl font-bold badge-rose';
-      fb.innerHTML = `✘ ${escapeHtml(res.message || 'Lỗi kết nối')}. <br/><span class="font-normal opacity-90 mt-1 block">Mẹo: Nếu dùng FOSTA Codex, bấm nút <strong>[🔌 FOSTA Codex (gpt-6.1-sol)]</strong> ở trên để tự động điền đúng Base URL!</span>`;
+      fb.innerHTML = `✘ ${escapeHtml(res.message || 'Lỗi kết nối')}. <br/><span class="font-normal opacity-90 mt-1 block">Mẹo: Nếu dùng 9Router, bấm <strong>[🔀 9Router All]</strong> hoặc <strong>[🧑‍💻 9Router Coding-Pro]</strong> để tự điền Base URL <code>http://127.0.0.1:20128/v1</code> và model tương ứng.</span>`;
       showToast('Kiểm tra LLM: ' + (res.message || 'Lỗi'), 'warning');
       playSound('error');
     }
@@ -11900,9 +12141,86 @@ function saveLocalExamAttemptRecord(res) {
     history.unshift(record);
     if (history.length > 50) history.pop();
     localStorage.setItem(LOCAL_EXAM_HISTORY_KEY, JSON.stringify(history));
+    syncHistoryItemToServer('exam', record);
   } catch (err) {
     console.warn('Cannot persist local exam attempt:', err);
   }
+}
+
+function collectMistakeNotebookItems(subjectId = 'all') {
+  const grouped = new Map();
+  getLocalExamHistory().forEach((attempt) => {
+    if (subjectId !== 'all' && String(attempt.subject_id) !== String(subjectId)) return;
+    (attempt.wrong_questions || []).forEach((question) => {
+      const key = String(question.id || question.question_text || '');
+      if (!key) return;
+      const existing = grouped.get(key);
+      if (existing) {
+        existing.wrong_count += 1;
+        existing.last_seen = attempt.displayDate;
+      } else {
+        grouped.set(key, {
+          ...question,
+          subject_id: attempt.subject_id,
+          subject_name: attempt.subject_name,
+          wrong_count: 1,
+          last_seen: attempt.displayDate
+        });
+      }
+    });
+  });
+  return [...grouped.values()].sort((a, b) => b.wrong_count - a.wrong_count);
+}
+
+function renderMistakeNotebook() {
+  const select = document.getElementById('mistake-subject-select');
+  const list = document.getElementById('mistake-list');
+  if (!select || !list) return;
+
+  const selected = select.value || 'all';
+  const subjects = [...new Map(getLocalExamHistory().map((item) => [String(item.subject_id), item.subject_name])).entries()];
+  select.innerHTML = `<option value="all">Tất cả môn</option>` + subjects.map(([id, name]) => `<option value="${escapeHtml(id)}">${escapeHtml(name)}</option>`).join('');
+  select.value = [...select.options].some((option) => option.value === selected) ? selected : 'all';
+
+  const mistakes = collectMistakeNotebookItems(select.value);
+  list.innerHTML = mistakes.length ? mistakes.map((item) => `
+    <article class="uni-card p-4 space-y-2">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <span class="badge-rose text-[11px] px-2 py-0.5 rounded-lg font-extrabold">${item.wrong_count} lần sai</span>
+        <span class="text-[11px] txt-muted">${escapeHtml(item.subject_name || 'Môn học')} • ${escapeHtml(item.last_seen || '')}</span>
+      </div>
+      <div class="text-sm font-bold txt-main">${formatRichText(item.question_text || '')}</div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+        <div class="badge-rose rounded-xl p-2 font-bold">Bạn chọn: ${escapeHtml(item.user_answer || 'Bỏ trống')}</div>
+        <div class="badge-emerald rounded-xl p-2 font-bold">Đáp án: ${escapeHtml(item.correct_option || '—')}</div>
+      </div>
+      ${item.explanation ? `<div class="ai-callout text-xs">${formatRichText(item.explanation)}</div>` : ''}
+    </article>`).join('') : `<div class="uni-card p-6 text-center text-sm txt-muted">Chưa có câu sai nào. Hãy làm một đề để sổ tay tự động ghi nhận.</div>`;
+  refreshIcons();
+  renderAllMathOnPage();
+}
+
+function startMistakePractice() {
+  const subjectId = document.getElementById('mistake-subject-select')?.value || 'all';
+  const mistakes = collectMistakeNotebookItems(subjectId).slice(0, 30);
+  if (!mistakes.length) {
+    showToast('Chưa có câu sai để luyện tập.', 'info');
+    return;
+  }
+  const questions = mistakes.map((item) => ({
+    id: item.id,
+    question_text: item.question_text,
+    correct_option: item.correct_option,
+    explanation: item.explanation || '',
+    topic_tag: item.topic_tag || '',
+    difficulty: item.difficulty || 'medium',
+    q_type: item.q_type || 'mcq',
+    image_url: item.image_url || '',
+    code_snippet: item.code_snippet || ''
+  }));
+  switchTab('exam');
+  setExamMode('practice');
+  launchExamWithQuestions(questions, `Ôn Tập Cấp Tốc ${questions.length} Câu Sai`, true);
 }
 
 function openLocalExamHistoryModal() {
@@ -12084,6 +12402,7 @@ function saveLocalTutorMessage(role, content, contextName = '') {
     });
     if (list.length > 200) list.shift();
     localStorage.setItem(LOCAL_TUTOR_CHAT_KEY, JSON.stringify(list));
+    syncHistoryItemToServer('tutor_chat', list[list.length - 1]);
   } catch (err) {
     console.warn('Cannot save tutor message:', err);
   }
@@ -12320,6 +12639,16 @@ function setupTextSelectionAiListener() {
 
 
 // --- UNIMASTER SAFE ARCHIVE SYSTEM (PERMANENT RETENTION & INSTANT RESTORE) ---
+async function syncHistoryItemToServer(historyType, payload) {
+  if (STATE.isOfflineStandalone || !payload) return;
+  try {
+    await apiFetch('/api/history/archive', {
+      method: 'POST',
+      body: JSON.stringify({ history_type: historyType, item_id: payload.id, payload })
+    });
+  } catch (_) { /* ponytail: offline-first; retry happens on the next new event. */ }
+}
+
 const LOCAL_EXAM_ARCHIVE_KEY = 'unimaster_exam_history_archive_v2';
 const LOCAL_TUTOR_ARCHIVE_KEY = 'unimaster_tutor_history_archive_v2';
 
@@ -12680,7 +13009,7 @@ function promptCreateNewAccount() {
 let currentConfiguringAccountId = null;
 let tempSelectedSubjectIds = new Set();
 
-function openAccountSubjectPickerModal(accountId = null) {
+async function openAccountSubjectPickerModal(accountId = null) {
   const targetId = accountId || getActiveAccountId();
   currentConfiguringAccountId = targetId;
 
@@ -12688,7 +13017,19 @@ function openAccountSubjectPickerModal(accountId = null) {
   const acc = list.find((a) => a.id === targetId) || getActiveAccount();
   if (!acc) return;
 
-  tempSelectedSubjectIds = new Set(acc.enrolled_subjects || []);
+  // Luôn lấy danh sách mới từ server để không bị kẹt ở cache cũ chỉ có 4 môn.
+  try {
+    const response = await apiFetch('/api/subjects');
+    if (response?.success && Array.isArray(response.subjects) && response.subjects.length) {
+      STATE.subjects = response.subjects.map((subject) => ({ ...subject, id: Number(subject.id) }));
+      localStorage.setItem('unimaster_cached_subjects', JSON.stringify(STATE.subjects));
+      populateAllSubjectSelects();
+    }
+  } catch (error) {
+    console.warn('Không thể tải lại danh sách môn học:', error);
+  }
+
+  tempSelectedSubjectIds = new Set((acc.enrolled_subjects || []).map((id) => Number(id)));
   setText('acc-subj-modal-user-name', acc.name);
 
   renderAccountSubjectCheckboxes();
@@ -12732,10 +13073,11 @@ function renderAccountSubjectCheckboxes() {
 }
 
 function toggleSubjectCheckbox(subjectId) {
-  if (tempSelectedSubjectIds.has(subjectId)) {
-    tempSelectedSubjectIds.delete(subjectId);
+  const normalizedId = Number(subjectId);
+  if (tempSelectedSubjectIds.has(normalizedId)) {
+    tempSelectedSubjectIds.delete(normalizedId);
   } else {
-    tempSelectedSubjectIds.add(subjectId);
+    tempSelectedSubjectIds.add(normalizedId);
   }
   renderAccountSubjectCheckboxes();
   playSound('click');
@@ -12759,7 +13101,7 @@ function selectSubjectPreset(presetType) {
 function selectAllSubjects(shouldSelectAll) {
   tempSelectedSubjectIds.clear();
   if (shouldSelectAll) {
-    (STATE.subjects || []).forEach((s) => tempSelectedSubjectIds.add(s.id));
+    (STATE.subjects || []).forEach((s) => tempSelectedSubjectIds.add(Number(s.id)));
   }
   renderAccountSubjectCheckboxes();
   playSound('click');
@@ -12771,7 +13113,7 @@ function saveAccountEnrolledSubjects() {
   const acc = list.find((a) => a.id === currentConfiguringAccountId);
   if (!acc) return;
 
-  const chosen = Array.from(tempSelectedSubjectIds);
+  const chosen = Array.from(tempSelectedSubjectIds).map((id) => Number(id));
   if (!chosen.length) {
     showToast('Vui lòng chọn ít nhất 1 môn học cho tài khoản!', 'warning');
     return;
@@ -13163,6 +13505,37 @@ function askAiAboutSelectedCode() {
   }
 }
 window.askAiAboutSelectedCode = askAiAboutSelectedCode;
+
+function analyzeCurrentCodeComplexity() {
+  let userCode = '';
+  if (window.exerciseMonacoEditor) {
+    userCode = window.exerciseMonacoEditor.getValue();
+  } else {
+    const fallbackTextarea = document.getElementById('exercise-code-editor');
+    if (fallbackTextarea) userCode = fallbackTextarea.value;
+  }
+
+  if (!userCode || !userCode.trim()) {
+    showToast('⚠️ Vui lòng viết code vào trình soạn thảo trước khi phân tích!', 'warning');
+    return;
+  }
+
+  const prompt = `[PHÂN TÍCH ĐỘ PHỨC TẠP VÀ KIẾN TRÚC MÃ NGUỒN]:
+\`\`\`csharp
+${userCode}
+\`\`\`
+Xin hãy đóng vai Giám Khảo & Chuyên Gia Thuật Toán:
+1. Đánh giá độ phức tạp thời gian Big-O Time Complexity (Tốt nhất, Trung bình, Xấu nhất).
+2. Đánh giá độ phức tạp không gian Big-O Space Complexity (RAM / Stack / Heap).
+3. Rà soát chuẩn OOP: Đóng gói (Encapsulation), Kế thừa, Đa hình, tính toàn vẹn của Class và tài nguyên.
+4. Đưa ra gợi ý Refactor để tối ưu hóa hiệu năng phòng thi!`;
+
+  if (typeof openFloatingTutor === 'function') openFloatingTutor();
+  if (typeof sendFloatingTutorCustomMessage === 'function') {
+    sendFloatingTutorCustomMessage(prompt);
+  }
+}
+window.analyzeCurrentCodeComplexity = analyzeCurrentCodeComplexity;
 
 function askAiAboutQuestionCode() {
   const q = (STATE.exam && STATE.exam.questions) ? STATE.exam.questions[STATE.exam.currentIndex] : null;

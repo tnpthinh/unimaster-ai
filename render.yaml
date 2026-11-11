@@ -12,3 +12,26 @@ services:
         generateValue: true
       - key: DATA_DIR
         value: /tmp/unimaster-data
+
+      # ===== AI Provider: OpenAI hoặc 9Router Gateway =====
+      # Nhập API key thật trong Render Dashboard > Environment (sync: false)
+      # OpenAI: https://api.openai.com/v1 + gpt-4o
+      # 9Router: http://127.0.0.1:20128/v1 + All hoặc Coding-Pro
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: OPENAI_BASE_URL
+        value: https://api.openai.com/v1
+      - key: OPENAI_MODEL
+        value: gpt-4o
+      # Dùng khi Render gọi gateway 9Router qua Cloudflare Tunnel discovery.
+      - key: AI_GATEWAY_DISCOVERY_URL
+        sync: false
+      - key: AI_GATEWAY_SECRET
+        sync: false
+      # openai_first: ưu tiên OpenAI Pro, tự động fallback sang Gemini pool khi lỗi/quota
+      - key: AI_PROVIDER_PRIORITY
+        value: openai_first
+
+      # ===== Fallback: Gemini API Keys (không bắt buộc) =====
+      - key: GEMINI_API_KEY
+        sync: false

@@ -1,0 +1,4 @@
+/* Minimalist UI Override */
+.verbose-text, .long-description, .help-tooltip { display: none !important; }
+.card { padding: 8px !important; border-radius: 4px !important; }
+.container { max-width: 900px !important; }

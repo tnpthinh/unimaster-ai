@@ -1177,7 +1177,8 @@ async def ai_evaluate_exam_handler(request):
         total = int(data.get("total", 0))
         correct = int(data.get("correct", 0))
         wrong_qs = data.get("wrong_questions", [])
-        eval_md = await ai.ai_evaluate_exam(subject_name, total, correct, wrong_qs)
+        topic_tags = data.get("topic_tags", [])
+        eval_md = await ai.ai_evaluate_exam(subject_name, total, correct, wrong_qs, topic_tags)
         return json_resp({"success": True, "evaluation": eval_md})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -1539,7 +1540,7 @@ async def get_settings(request):
             "has_key": bool(openai_cfg.get("key")),
             "masked_key": masked_openai,
             "base_url": openai_cfg.get("base_url"),
-            "model": openai_cfg.get("model", "gpt-6.1-sol"),
+            "model": openai_cfg.get("model", "gpt-4o"),
             "priority": openai_cfg.get("priority", "openai_first")
         }
     })
@@ -1604,7 +1605,7 @@ async def save_settings(request):
                 "has_key": bool(openai_cfg.get("key")),
                 "masked_key": masked_openai,
                 "base_url": openai_cfg.get("base_url"),
-                "model": openai_cfg.get("model", "gpt-6.1-sol"),
+                "model": openai_cfg.get("model", "gpt-4o"),
                 "priority": openai_cfg.get("priority", "openai_first")
             },
             "message": f"Đã cập nhật dàn {len(pool_status)} API Key luân phiên và cấu hình AI!"
