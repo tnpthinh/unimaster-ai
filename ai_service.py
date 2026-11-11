@@ -317,9 +317,20 @@ def get_openai_settings() -> dict:
 
     key = db_key or os.environ.get("OPENAI_API_KEY", "").strip()
     base_url = (db_base_url or os.environ.get("OPENAI_BASE_URL", "").strip() or "https://api.openai.com/v1").rstrip("/")
+    model = db_model or os.environ.get("OPENAI_MODEL", "").strip()
+
+    # Một cấu hình 9Router cũ (127.0.0.1:20128) có thể còn trong SQLite
+    # trong khi người dùng đã chọn model FOSTA. Render không thể gọi localhost;
+    # FOSTA là dịch vụ cloud trực tiếp, vì vậy tự sửa endpoint để không đi qua
+    # Cloudflare gateway hoặc yêu cầu AI_GATEWAY_* không liên quan.
+    is_local_router = _is_local_url(base_url)
+    is_fosta_model = model.lower().startswith("gpt-6.") if model else False
+    if is_local_router and is_fosta_model:
+        base_url = "https://codex.fosta.app/v1"
+
     is_fosta = "fosta" in base_url.lower()
     default_model = "gpt-6.1-sol" if is_fosta else "gpt-4o"
-    model = db_model or os.environ.get("OPENAI_MODEL", "").strip() or default_model
+    model = model or default_model
     priority = db_priority or os.environ.get("AI_PROVIDER_PRIORITY", "").strip() or "openai_first"
     return {"key": key, "base_url": base_url, "model": model, "priority": priority}
 
