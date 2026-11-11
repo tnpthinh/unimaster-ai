@@ -25,6 +25,10 @@
         else if (mode === 'contrast') root.classList.add('contrast', 'dark');
         else if (mode === 'sepia') root.classList.add('sepia');
         if (prefs.highContrastText) root.classList.add('high-contrast-text');
+        if (prefs.wideLayout) root.classList.add('wide-layout');
+        if (prefs.navSizeMode && prefs.navSizeMode !== 'standard') {
+          root.classList.add('nav-size-' + prefs.navSizeMode);
+        }
 
         if (prefs.brand) root.style.setProperty('--brand', prefs.brand);
         if (prefs.brand2) root.style.setProperty('--brand-2', prefs.brand2);
@@ -72,7 +76,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=32.0" />
+  <link rel="stylesheet" href="/static/style.css?v=33.0" />
   <link rel="stylesheet" href="/static/minimal.css?v=1.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
@@ -121,34 +125,40 @@
       <nav class="hidden lg:flex items-center gap-1 p-1 rounded-2xl shrink min-w-0 overflow-x-auto no-scrollbar border shadow-inner" style="background-color: var(--bg-subtle); border-color: var(--border);">
         <!-- Thanh chỉ báo trượt: JS đặt vị trí/kích thước theo tab đang active -->
         <span id="nav-indicator" class="nav-indicator" aria-hidden="true"></span>
-        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-          <i data-lucide="home" class="w-3.5 h-3.5"></i> Tổng quan
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Tổng quan (Phím tắt: 1)">
+          <i data-lucide="home" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Tổng quan</span>
         </button>
-        <button onclick="switchTab('exam')" id="tab-exam" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-          <i data-lucide="zap" class="w-3.5 h-3.5"></i> Phòng thi
+        <button onclick="switchTab('exam')" id="tab-exam" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Phòng thi (Phím tắt: 2)">
+          <i data-lucide="zap" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Phòng thi</span>
         </button>
-        <button onclick="switchTab('exercises')" id="tab-exercises" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-          <i data-lucide="code-2" class="w-3.5 h-3.5 text-cyan-400"></i> Code C# &amp; Python
+        <button onclick="switchTab('exercises')" id="tab-exercises" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Luyện Code (Phím tắt: 3)">
+          <i data-lucide="code-2" class="w-3.5 h-3.5 shrink-0 text-cyan-400"></i> <span class="nav-tab-text">Code C# &amp; Python</span>
         </button>
-        <button onclick="switchTab('essay')" id="tab-essay" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-          <i data-lucide="award" class="w-3.5 h-3.5 text-amber-400"></i> Tự luận
+        <button onclick="switchTab('essay')" id="tab-essay" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Luyện Tự luận (Phím tắt: 4)">
+          <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-400"></i> <span class="nav-tab-text">Tự luận</span>
         </button>
-        <button onclick="switchTab('flashcards')" id="tab-flashcards" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-          <i data-lucide="layers" class="w-3.5 h-3.5"></i> Thẻ nhớ
+        <button onclick="switchTab('flashcards')" id="tab-flashcards" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Thẻ nhớ ôn tập (Phím tắt: 5)">
+          <i data-lucide="layers" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Thẻ nhớ</span>
         </button>
-        <button onclick="switchTab('mistakes')" id="tab-mistakes" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-          <i data-lucide="book-open" class="w-3.5 h-3.5"></i> Sổ tay câu sai
+        <button onclick="switchTab('mistakes')" id="tab-mistakes" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Sổ tay câu sai (Phím tắt: 6)">
+          <i data-lucide="book-open" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Sổ tay câu sai</span>
         </button>
-        <button onclick="switchTab('lab')" id="tab-lab" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-          <i data-lucide="flask-conical" class="w-3.5 h-3.5"></i> Lab
+        <button onclick="switchTab('lab')" id="tab-lab" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Phòng Lab ảo (Phím tắt: 7)">
+          <i data-lucide="flask-conical" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Lab</span>
         </button>
-        <button onclick="switchTab('tutor')" id="tab-tutor" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold">
-          <i data-lucide="bot" class="w-3.5 h-3.5"></i> AI Gia sư
+        <button onclick="switchTab('tutor')" id="tab-tutor" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="AI Gia sư (Phím tắt: 8)">
+          <i data-lucide="bot" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">AI Gia sư</span>
         </button>
       </nav>
 
       <!-- Right: User Account Menu & Quick Action Cluster -->
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- Header Quick Zoom Pill: A- / 100% / A+ điều chỉnh tức thời cỡ chữ -->
+        <div class="hidden xl:flex items-center border rounded-xl p-0.5 shadow-sm text-xs" style="background-color: var(--bg-subtle); border-color: var(--border);" title="Phóng to / Thu nhỏ nhanh giao diện (Phím tắt: [ và ])">
+          <button onclick="quickStepZoom(-10)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 font-black text-xs transition-colors" title="Thu nhỏ chữ ([)">A-</button>
+          <button onclick="setGlobalZoomScale(100)" id="header-quick-zoom-label" class="px-1.5 h-7 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 font-bold text-[11px] tabular-nums transition-colors" title="Đặt lại 100% (Phím 0)">100%</button>
+          <button onclick="quickStepZoom(10)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 font-black text-xs transition-colors" title="Phóng to chữ (])">A+</button>
+        </div>
         <!-- 1-Tap Dark/Light Switch (High Contrast Sun & Moon) -->
         <button id="quick-theme-btn" onclick="quickCycleDarkLight()" title="Đổi giao diện Sáng / Đen OLED"
           class="btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs flex items-center justify-center p-0 rounded-xl shadow-sm hover:scale-105 transition-transform"
@@ -3043,16 +3053,70 @@
               </div>
             </div>
 
-            <!-- Global Fast Zoom Presets -->
-            <div class="space-y-1.5 pt-1 border-t" style="border-color: var(--border);">
-              <label class="text-[11px] font-extrabold uppercase tracking-wider txt-sub">Phóng To Toàn Màn Hình & Cỡ Chữ Nhanh</label>
-              <div class="flex flex-wrap items-center gap-2">
-                <button type="button" onclick="setGlobalZoomScale(90)" class="zoom-pill px-3 py-1.5 rounded-xl text-xs font-bold btn-soft">90% Nhỏ gọn</button>
-                <button type="button" onclick="setGlobalZoomScale(100)" class="zoom-pill px-3 py-1.5 rounded-xl text-xs font-bold btn-soft active">100% Chuẩn</button>
-                <button type="button" onclick="setGlobalZoomScale(110)" class="zoom-pill px-3 py-1.5 rounded-xl text-xs font-bold btn-soft">110% Dễ đọc</button>
-                <button type="button" onclick="setGlobalZoomScale(120)" class="zoom-pill px-3 py-1.5 rounded-xl text-xs font-bold btn-soft">120% Cỡ To</button>
-                <button type="button" onclick="setGlobalZoomScale(130)" class="zoom-pill px-3 py-1.5 rounded-xl text-xs font-bold btn-soft">130% Siêu To</button>
+            <!-- Global Fast Zoom & Nav Customization -->
+            <div class="space-y-3 pt-3 border-t" style="border-color: var(--border);">
+              <div class="flex items-center justify-between">
+                <label class="text-[11px] font-extrabold uppercase tracking-wider txt-sub">Phóng To Giao Diện Nhanh (80% - 180%)</label>
+                <span id="lbl-global-zoom" class="txt-brand font-mono font-bold text-xs">100%</span>
               </div>
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" onclick="setGlobalZoomScale(80)" data-zoom-val="80" class="zoom-pill px-2.5 py-1 rounded-xl text-xs font-bold btn-soft">80%</button>
+                <button type="button" onclick="setGlobalZoomScale(90)" data-zoom-val="90" class="zoom-pill px-2.5 py-1 rounded-xl text-xs font-bold btn-soft">90%</button>
+                <button type="button" onclick="setGlobalZoomScale(100)" data-zoom-val="100" class="zoom-pill px-2.5 py-1 rounded-xl text-xs font-bold btn-soft active">100% Chuẩn</button>
+                <button type="button" onclick="setGlobalZoomScale(110)" data-zoom-val="110" class="zoom-pill px-2.5 py-1 rounded-xl text-xs font-bold btn-soft">110%</button>
+                <button type="button" onclick="setGlobalZoomScale(120)" data-zoom-val="120" class="zoom-pill px-2.5 py-1 rounded-xl text-xs font-bold btn-soft">120%</button>
+                <button type="button" onclick="setGlobalZoomScale(130)" data-zoom-val="130" class="zoom-pill px-2.5 py-1 rounded-xl text-xs font-bold btn-soft">130%</button>
+                <button type="button" onclick="setGlobalZoomScale(150)" data-zoom-val="150" class="zoom-pill px-2.5 py-1 rounded-xl text-xs font-bold btn-soft">150% To</button>
+                <button type="button" onclick="setGlobalZoomScale(180)" data-zoom-val="180" class="zoom-pill px-2.5 py-1 rounded-xl text-xs font-bold btn-soft">180% Khổng lồ</button>
+              </div>
+              <div>
+                <input id="slider-global-zoom" type="range" min="80" max="180" step="5" value="100"
+                  oninput="setGlobalZoomScale(Number(this.value))" class="range-slider-modern w-full" />
+              </div>
+            </div>
+
+            <!-- Custom Nav Bar Size & Density -->
+            <div class="space-y-2 pt-2 border-t" style="border-color: var(--border);">
+              <div class="flex items-center justify-between">
+                <div>
+                  <div class="text-xs font-bold txt-main flex items-center gap-1.5"><span>🧭</span> Kích Thước Thanh Menu Điều Hướng</div>
+                  <div class="text-[10px] txt-muted">Chọn kiểu hiển thị thanh tab trên cùng để vừa mắt và không bị chèn ép chữ</div>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                <button type="button" onclick="setNavSizeMode('compact')" id="nav-mode-compact" class="nav-mode-btn p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 text-center transition-all" style="background-color: var(--bg-surface); border-color: var(--border);">
+                  <span class="text-sm">📏</span>
+                  <span>Gọn Gàng</span>
+                  <span class="text-[9px] opacity-70 font-normal">Tiết kiệm diện tích</span>
+                </button>
+                <button type="button" onclick="setNavSizeMode('standard')" id="nav-mode-standard" class="nav-mode-btn p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 text-center transition-all border-indigo-500 bg-indigo-500/10 text-indigo-400" style="border-color: var(--brand-accent);">
+                  <span class="text-sm">✨</span>
+                  <span>Chuẩn Đầy Đủ</span>
+                  <span class="text-[9px] opacity-70 font-normal">Cân đối & rõ ràng</span>
+                </button>
+                <button type="button" onclick="setNavSizeMode('comfortable')" id="nav-mode-comfortable" class="nav-mode-btn p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 text-center transition-all" style="background-color: var(--bg-surface); border-color: var(--border);">
+                  <span class="text-sm">🛋️</span>
+                  <span>Thoải Mái</span>
+                  <span class="text-[9px] opacity-70 font-normal">Chữ to & thoáng</span>
+                </button>
+                <button type="button" onclick="setNavSizeMode('icononly')" id="nav-mode-icononly" class="nav-mode-btn p-2 rounded-xl border text-xs font-bold flex flex-col items-center gap-1 text-center transition-all" style="background-color: var(--bg-surface); border-color: var(--border);">
+                  <span class="text-sm">🔘</span>
+                  <span>Chỉ Icon</span>
+                  <span class="text-[9px] opacity-70 font-normal">Siêu gọn tối giản</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Wide Layout Mode Toggle -->
+            <div class="p-3 rounded-xl flex items-center justify-between border" style="background-color: var(--bg-surface); border-color: var(--border);">
+              <div>
+                <div class="text-xs font-bold txt-main flex items-center gap-1.5"><span>🖥️</span> Chế Độ Khung Rộng Toàn Cảnh (Wide Layout)</div>
+                <div class="text-[10px] txt-muted">Mở rộng chiều ngang toàn trang giúp thanh điều hướng và nội dung không bị giới hạn 1280px</div>
+              </div>
+              <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="pref-toggle-wide-layout" onchange="toggleWideLayout(this.checked)" class="sr-only peer">
+                <div class="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-600"></div>
+              </label>
             </div>
           </div>
         </div>
@@ -3214,7 +3278,7 @@
                 <span class="txt-sub">Cỡ toàn hệ thống</span>
                 <span id="lbl-base-px" class="txt-brand font-mono">16px</span>
               </div>
-              <input id="slider-base-px" type="range" min="13" max="21" step="0.5" value="16"
+              <input id="slider-base-px" type="range" min="12" max="28" step="0.5" value="16"
                 oninput="updateTypographyPrefs()" class="range-slider-modern" />
             </div>
 
@@ -3820,7 +3884,7 @@
     </div>
   </div>
 
-  <script src="/static/app.js?v=32.0"></script>
+  <script src="/static/app.js?v=33.0"></script>
 
   <!-- =====================================================================
        MOBILE EXTENDED ACTION DRAWER (MODAL MORE)

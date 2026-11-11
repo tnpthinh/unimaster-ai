@@ -2086,30 +2086,40 @@ header > div > div:last-child {
   flex: 0 0 auto !important;
   flex-wrap: nowrap !important;
 }
-/* Nav lấp đầy khoảng giữa (tối đa 820px, canh giữa) → không còn "khúc trống" */
+/* Nav lấp đầy khoảng giữa linh hoạt (tối đa 940px, canh giữa) → không còn "khúc trống", không bao giờ bị đè chữ */
 header > div > nav {
   flex: 1 1 auto !important;
-  max-width: 820px !important;
+  max-width: 940px !important;
   margin-inline: auto !important;
   min-width: 0 !important;
   position: relative !important;
   overflow-x: auto !important;
+  overflow-y: hidden !important;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 header > div > nav::-webkit-scrollbar { display: none; }
-/* Các tab chia đều chiều rộng nav (như segmented control), chữ không xuống dòng */
+
+/* Các tab giữ trọn vẹn văn bản (min-width: max-content), không bao giờ bị bóp méo hay đè chữ */
 header .nav-tab {
   white-space: nowrap !important;
-  flex: 1 1 auto !important;
+  flex: 0 0 auto !important;
+  min-width: max-content !important;
   justify-content: center !important;
+  padding: var(--nav-tab-pad-y, 0.45rem) var(--nav-tab-pad-x, 0.75rem) !important;
+  font-size: var(--nav-tab-font-size, 0.8125rem) !important;
+  line-height: 1.25 !important;
 }
+
 #header-active-subj-btn {
   flex: 0 1 auto !important;
   min-width: 0 !important;
 }
 #header-user-btn { flex: 0 0 auto !important; }
+
 /* Khi chữ lớn (class .big-text do JS gắn khi root font >= 17.5px):
-   thu gọn header để luôn đủ chỗ cho các nút bên phải. */
+   Nhường không gian tối đa cho thanh điều hướng, gỡ bỏ giới hạn bó hẹp 38vw. */
 html.big-text #header-user-name,
 html.big-text #header-user-role,
 html.big-text #active-subj-badge,
@@ -2117,20 +2127,72 @@ html.big-text header > div > div:first-child > button:first-child span {
   display: none !important;
 }
 html.big-text header > div > nav {
-  max-width: 38vw !important;
+  flex: 1 1 auto !important;
+  max-width: none !important; /* Không giới hạn cứng 38vw để các tab có trọn không gian */
 }
 html.big-text #header-active-subj-btn {
-  max-width: min(220px, 34vw) !important;
+  max-width: min(180px, 24vw) !important;
 }
 html.big-text #header-user-btn {
   max-width: 2.75rem !important;
   padding: 0.25rem !important;
   gap: 0 !important;
 }
-/* Chữ cực lớn (>= 22px): thêm bớt nút phụ */
+/* Chữ cực lớn: tinh chỉnh khoảng cách nhường không gian cho nav */
 html.big-text header { --hdr-gap: 0.35rem; }
 html.big-text header > div { gap: var(--hdr-gap) !important; }
 html.big-text header > div > div:last-child { gap: 0.25rem !important; }
+
+/* =========================================================================
+   TÙY CHỈNH KÍCH THƯỚC THANH NAV (NAV SIZE CUSTOMIZER)
+   ========================================================================= */
+/* Chế độ Nhỏ gọn (Compact) */
+html.nav-size-compact header .nav-tab {
+  --nav-tab-pad-y: 0.3rem;
+  --nav-tab-pad-x: 0.55rem;
+  --nav-tab-font-size: 0.72rem;
+}
+html.nav-size-compact header .nav-tab svg,
+html.nav-size-compact header .nav-tab i {
+  width: 0.8rem !important;
+  height: 0.8rem !important;
+}
+
+/* Chế độ To Rõ / Thoải mái (Comfortable) */
+html.nav-size-comfortable header .nav-tab {
+  --nav-tab-pad-y: 0.55rem;
+  --nav-tab-pad-x: 0.95rem;
+  --nav-tab-font-size: 0.9rem;
+}
+html.nav-size-comfortable header .nav-tab svg,
+html.nav-size-comfortable header .nav-tab i {
+  width: 1rem !important;
+  height: 1rem !important;
+}
+
+/* Chế độ Tối Giản Icon-Only (Icon Đơn) */
+html.nav-size-icononly header .nav-tab {
+  --nav-tab-pad-y: 0.45rem;
+  --nav-tab-pad-x: 0.65rem;
+}
+html.nav-size-icononly header .nav-tab span.nav-tab-text {
+  display: none !important;
+}
+html.nav-size-icononly header .nav-tab svg,
+html.nav-size-icononly header .nav-tab i {
+  width: 1.15rem !important;
+  height: 1.15rem !important;
+}
+/* Chế độ Khung Rộng Toàn Cảnh (Wide Layout) */
+html.wide-layout header > div.max-w-7xl,
+html.wide-layout main.max-w-7xl,
+html.wide-layout .max-w-7xl {
+  max-width: 96vw !important;
+}
+html.wide-layout header > div > nav {
+  max-width: 1200px !important;
+}
+
 /* Modal hồ sơ: chữ to không làm vỡ hàng */
 #acc-panel-profile, #acc-panel-switch { min-width: 0; }
 #acc-panel-profile .truncate, #acc-panel-switch .truncate { min-width: 0; }

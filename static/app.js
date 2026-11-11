@@ -1017,7 +1017,9 @@ const DEFAULT_UI_PREFS = {
   timerMode: 'countdown',
   antiCheatLevel: 'medium',
   defaultTutorPersona: 'professor',
-  aiVerbosity: 'standard'
+  aiVerbosity: 'standard',
+  navSizeMode: 'standard', // 'standard' | 'compact' | 'comfortable' | 'icononly'
+  wideLayout: false
 };
 
 const BUILT_IN_SUBJECT_CODES = new Set([
@@ -1400,10 +1402,39 @@ function applyAllAppearancePrefs() {
     root.style.setProperty('--rose-border', u.wrongColor);
     root.style.setProperty('--rose-bg', u.wrongColor + '22');
   }
+  const navMode = u.navSizeMode || 'standard';
+  ['compact', 'comfortable', 'icononly'].forEach((m) => {
+    root.classList.toggle('nav-size-' + m, navMode === m);
+  });
+  ['standard', 'compact', 'comfortable', 'icononly'].forEach((m) => {
+    const btn = document.getElementById('nav-mode-' + m);
+    if (btn) {
+      const active = navMode === m;
+      btn.classList.toggle('border-indigo-500', active);
+      btn.classList.toggle('bg-indigo-500/10', active);
+      btn.classList.toggle('text-indigo-400', active);
+    }
+  });
+
+  root.classList.toggle('wide-layout', Boolean(u.wideLayout));
+  const wideToggle = document.getElementById('pref-toggle-wide-layout');
+  if (wideToggle) wideToggle.checked = Boolean(u.wideLayout);
+
+  const zoomVal = Math.min(180, Math.max(80, Number(u.zoomScale || 100)));
   if (u.zoomScale) {
-    const basePx = (16 * (u.zoomScale / 100)).toFixed(1);
+    const basePx = (16 * (zoomVal / 100)).toFixed(1);
     root.style.setProperty('--base-font-size', `${basePx}px`);
   }
+  setText('lbl-global-zoom', `${zoomVal}%`);
+  setText('header-quick-zoom-label', `${zoomVal}%`);
+  const zoomSlider = document.getElementById('slider-global-zoom');
+  if (zoomSlider) zoomSlider.value = zoomVal;
+  document.querySelectorAll('.zoom-pill').forEach((el) => {
+    const v = el.getAttribute('data-zoom-val');
+    if (v) el.classList.toggle('active', Number(v) === zoomVal);
+    else el.classList.toggle('active', el.textContent.includes(`${zoomVal}%`));
+  });
+
   if (typeof syncBigTextClass === 'function') syncBigTextClass();
 
   localStorage.setItem('unimaster_ui_prefs', JSON.stringify(u));
@@ -1634,6 +1665,7 @@ function updateTypographyPrefs() {
   STATE.ui.fontAnswer = fontAnswer;
   STATE.ui.fontCode = fontCode;
   STATE.ui.baseFontPx = baseFontPx;
+  STATE.ui.zoomScale = Math.round((baseFontPx / 16) * 100);
   STATE.ui.qFontRem = qFontRem;
   STATE.ui.optFontRem = optFontRem;
   STATE.ui.cardRadiusPx = cardRadiusPx;
@@ -13655,21 +13687,78 @@ function syncBigTextClass() {
 
 function setGlobalZoomScale(percent) {
   if (!STATE.ui) STATE.ui = { ...DEFAULT_UI_PREFS };
-  STATE.ui.zoomScale = percent;
+  const val = Math.min(180, Math.max(80, Math.round(Number(percent) || 100)));
+  STATE.ui.zoomScale = val;
+  const basePx = (16 * (val / 100)).toFixed(1);
+  STATE.ui.baseFontPx = parseFloat(basePx);
   const root = document.documentElement;
 
-  const basePx = (16 * (percent / 100)).toFixed(1);
   root.style.setProperty('--base-font-size', `${basePx}px`);
   syncBigTextClass();
 
+  setText('lbl-global-zoom', `${val}%`);
+  setText('header-quick-zoom-label', `${val}%`);
+  const zoomSlider = document.getElementById('slider-global-zoom');
+  if (zoomSlider) zoomSlider.value = val;
+
+  const baseSlider = document.getElementById('slider-base-px');
+  if (baseSlider) baseSlider.value = parseFloat(basePx);
+  setText('lbl-base-px', `${basePx}px`);
+
   document.querySelectorAll('.zoom-pill').forEach((el) => {
-    el.classList.toggle('active', el.textContent.includes(`${percent}%`));
+    const v = el.getAttribute('data-zoom-val');
+    if (v) el.classList.toggle('active', Number(v) === val);
+    else el.classList.toggle('active', el.textContent.includes(`${val}%`));
   });
 
   try {
     localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
   } catch (_) {}
   playSound('click');
+}
+
+// Quick Zoom delta (+10% / -10%) trên header và phím tắt
+function quickStepZoom(delta) {
+  if (!STATE.ui) STATE.ui = { ...DEFAULT_UI_PREFS };
+  const current = Number(STATE.ui.zoomScale || 100);
+  const next = Math.min(180, Math.max(80, current + delta));
+  setGlobalZoomScale(next);
+  showToast(`🔍 Cỡ chữ & giao diện: ${next}%`, 'info');
+}
+
+// Thay đổi chế độ kích thước thanh Nav (standard | compact | comfortable | icononly)
+function setNavSizeMode(mode) {
+  if (!STATE.ui) STATE.ui = { ...DEFAULT_UI_PREFS };
+  STATE.ui.navSizeMode = mode;
+  applyAllAppearancePrefs();
+  syncUserStateToServer();
+  if (typeof updateNavIndicator === 'function') {
+    requestAnimationFrame(updateNavIndicator);
+    setTimeout(updateNavIndicator, 250);
+  }
+  const modeLabels = {
+    standard: 'Chuẩn Đầy Đủ',
+    compact: 'Gọn Gàng',
+    comfortable: 'Thoải Mái',
+    icononly: 'Chỉ Icon Tối Giản'
+  };
+  showToast(`🧭 Kiểu menu: ${modeLabels[mode] || mode}`, 'success');
+}
+
+// Bật/tắt chế độ Khung Rộng Toàn Cảnh
+function toggleWideLayout(checked) {
+  if (!STATE.ui) STATE.ui = { ...DEFAULT_UI_PREFS };
+  STATE.ui.wideLayout = Boolean(checked);
+  applyAllAppearancePrefs();
+  syncUserStateToServer();
+  if (typeof updateNavIndicator === 'function') {
+    requestAnimationFrame(updateNavIndicator);
+    setTimeout(updateNavIndicator, 250);
+  }
+  showToast(
+    checked ? '🖥️ Đã bật Chế độ Khung Rộng Toàn Cảnh!' : '🖥️ Đã tắt Chế độ Khung Rộng!',
+    'info'
+  );
 }
 
 function resetDeepColorCustomization() {
@@ -13680,6 +13769,8 @@ function resetDeepColorCustomization() {
   delete STATE.ui.wrongColor;
   delete STATE.ui.customQTextColor;
   delete STATE.ui.zoomScale;
+  delete STATE.ui.navSizeMode;
+  delete STATE.ui.wideLayout;
 
   const root = document.documentElement;
   root.style.removeProperty('--bg-surface');
@@ -13694,6 +13785,8 @@ function resetDeepColorCustomization() {
   root.style.removeProperty('--rose-bg');
   root.style.removeProperty('--custom-q-text-color');
   root.style.removeProperty('--base-font-size');
+
+  root.classList.remove('wide-layout', 'nav-size-compact', 'nav-size-comfortable', 'nav-size-icononly');
 
   applyAllAppearancePrefs();
   syncBigTextClass();
@@ -14027,5 +14120,51 @@ document.addEventListener('keydown', (e) => {
       closeFloatingTutor();
       return;
     }
+  }
+});
+
+// Phím tắt bàn phím tiện lợi:
+// - 1..8: Chuyển nhanh qua 8 tab trên header
+// - [ và ]: Phóng to / Thu nhỏ cỡ chữ (A- / A+)
+// - 0: Đặt lại cỡ chữ chuẩn 100%
+document.addEventListener('keydown', (e) => {
+  const tag = (e.target?.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || e.target?.isContentEditable || e.target?.closest?.('.monaco-editor, #editor-container')) {
+    return;
+  }
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+
+  const tabKeys = {
+    '1': 'dashboard',
+    '2': 'exam',
+    '3': 'exercises',
+    '4': 'essay',
+    '5': 'flashcards',
+    '6': 'mistakes',
+    '7': 'lab',
+    '8': 'tutor'
+  };
+
+  if (tabKeys[e.key]) {
+    e.preventDefault();
+    if (typeof switchTab === 'function') switchTab(tabKeys[e.key]);
+    return;
+  }
+
+  if (e.key === '[') {
+    e.preventDefault();
+    quickStepZoom(-10);
+    return;
+  }
+  if (e.key === ']') {
+    e.preventDefault();
+    quickStepZoom(10);
+    return;
+  }
+  if (e.key === '0') {
+    e.preventDefault();
+    setGlobalZoomScale(100);
+    showToast('🔍 Đã đặt lại cỡ chữ chuẩn 100%', 'info');
+    return;
   }
 });
