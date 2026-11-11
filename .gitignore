@@ -11,3 +11,7 @@ unimaster.db-journal
 
 *.db
 *.db-journal
+
+# Ngoại lệ: bản seed đã làm sạch (không key, không tài khoản) dùng để khởi tạo
+# database trên Render. Bắt buộc phải commit để bản deploy có đủ 12 môn + ngân hàng đề.
+!seed/unimaster_seed.db
