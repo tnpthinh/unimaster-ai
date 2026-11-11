@@ -104,8 +104,24 @@ async function sendFloatingTutorCustomMessage(customText) {
   if (input) {
     input.value = customText;
     await sendFloatingTutorMessage();
+  } else {
+    openFloatingTutor();
+    setTimeout(() => sendFloatingTutorCustomMessage(customText), 0);
   }
 }
+
+// Handler độc lập cho chip "Bấm từ để hỏi AI", không phụ thuộc text-selection bubble.
+window.askAiFromTermChip = function(term) {
+  const cleanTerm = String(term || '').trim();
+  if (!cleanTerm) return;
+  openFloatingTutor();
+  const currentQ = (STATE.exam?.active && STATE.exam?.questions)
+    ? STATE.exam.questions[STATE.exam.currentIndex] : null;
+  const context = currentQ
+    ? `Trong câu hỏi thi: "${(currentQ.question_text || '').replace(/<[^>]+>/g, '').trim().slice(0, 140)}..."`
+    : 'Trong bài học';
+  sendFloatingTutorCustomMessage(`${context}\n\nEm chưa hiểu thuật ngữ: "${cleanTerm}". Hãy giải thích ngắn gọn, dễ hiểu, kèm ví dụ và mẹo ghi nhớ.`);
+};
 
 function syncFloatingTutorSubjectContext() {
   const currentSub = STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId));
@@ -3545,7 +3561,7 @@ function renderCurrentExamQuestion() {
     const found = knownTerms.filter(t => new RegExp(`\\b${t}\\b`, 'i').test(qStr));
     if (found.length) {
       keyRow.innerHTML = `<span class="text-[11px] font-bold txt-muted mr-1">🔍 Bấm từ để hỏi AI:</span>` +
-        found.slice(0, 5).map(t => `<button type="button" onclick="askAiAboutSelectedTerm('${t}')" class="q-concept-chip"><span>✨</span> ${t} <span class="text-[10px] opacity-75">🤖 Hỏi</span></button>`).join(' ');
+        found.slice(0, 5).map(t => `<button type="button" onclick="askAiFromTermChip(${JSON.stringify(t)})" class="q-concept-chip"><span>✨</span> ${t} <span class="text-[10px] opacity-75">🤖 Hỏi</span></button>`).join(' ');
       keyRow.classList.remove('hidden');
     } else {
       keyRow.classList.add('hidden');
