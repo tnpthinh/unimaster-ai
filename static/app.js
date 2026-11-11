@@ -9606,11 +9606,11 @@ function updateHeaderUserPill() {
   }
   if (roleEl) {
     if (user.role === 'admin') {
-      roleEl.textContent = '👑 Quản Trị';
-      roleEl.className = 'badge-rose px-1.5 py-0.5 rounded text-[10px] font-black';
+      roleEl.textContent = '👑 Admin';
+      roleEl.className = 'badge-rose px-1.5 py-0.5 rounded text-[10px] font-black shrink-0';
     } else {
-      roleEl.textContent = '🎓 ' + (user.name ? user.name.split('(')[0].trim() : 'Sinh Viên');
-      roleEl.className = 'badge-brand px-1.5 py-0.5 rounded text-[10px] font-black text-emerald-400';
+      roleEl.textContent = '🎓 SV';
+      roleEl.className = 'badge-brand px-1.5 py-0.5 rounded text-[10px] font-black text-emerald-400 shrink-0';
     }
   }
 }
@@ -9627,7 +9627,7 @@ function openAccountModal() {
 
   setEl('acc-modal-fullname', user.name || user.full_name || user.username);
   setEl('acc-modal-username', `@${user.username}`);
-  setEl('acc-modal-role', user.role === 'admin' ? '👑 Quản Trị Viên Tối Cao' : '🎓 Sinh Viên');
+  setEl('acc-modal-role', user.role === 'admin' ? '👑 Quản trị' : '🎓 Sinh viên');
   setEl('acc-modal-exams-count', `${STATE.stats?.total_exams || 0} bài`);
   setEl('acc-modal-mistakes-count', `${STATE.mistakes?.length || 0} câu`);
   setEl('acc-modal-streak', `${STATE.streak || 1} ngày 🔥`);
@@ -13275,10 +13275,9 @@ function renderAccountsListUI() {
   if (summaryEl && activeAcc) {
     const enrolledIds = activeAcc.enrolled_subjects || [];
     if (!enrolledIds.length || enrolledIds.length === STATE.subjects.length) {
-      summaryEl.textContent = 'Đang học: Toàn bộ 12 môn';
+      summaryEl.textContent = `Đang học: Tất cả (${STATE.subjects.length} môn)`;
     } else {
-      const names = STATE.subjects.filter((s) => enrolledIds.includes(s.id)).map((s) => s.name);
-      summaryEl.textContent = `Đang học ${enrolledIds.length} môn: ${names.slice(0, 2).join(', ')}${names.length > 2 ? '...' : ''}`;
+      summaryEl.textContent = `Đang học: ${enrolledIds.length} môn`;
     }
   }
 
@@ -13298,11 +13297,11 @@ function renderAccountsListUI() {
           <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 shrink-0">
             ${acc.avatar || '🎓'}
           </div>
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-extrabold text-xs sm:text-sm txt-main">${escapeHtml(acc.name)}</span>
-              ${isActive ? '<span class="badge-brand px-2 py-0.5 rounded-full text-[10px] font-bold">✓ Đang dùng</span>' : ''}
-              ${acc.role === 'admin' ? '<span class="badge-rose px-1.5 py-0.2 rounded text-[10px] font-black">Admin</span>' : ''}
+          <div class="min-w-0">
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-extrabold text-xs sm:text-sm txt-main truncate max-w-[140px] sm:max-w-[200px]">${escapeHtml(acc.name)}</span>
+              ${isActive ? '<span class="badge-brand px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0">✓ Đang dùng</span>' : ''}
+              ${acc.role === 'admin' ? '<span class="badge-rose px-1.5 py-0.2 rounded text-[10px] font-black shrink-0">Admin</span>' : ''}
             </div>
             <div class="flex flex-wrap items-center gap-1 mt-1">
               ${subNames || '<span class="text-[10px] txt-muted italic">Chưa chọn môn học</span>'}

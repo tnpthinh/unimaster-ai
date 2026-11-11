@@ -97,13 +97,13 @@
     style="background: rgba(9, 10, 15, 0.92); border-color: rgba(255, 255, 255, 0.08);">
     <div class="max-w-7xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4 overflow-hidden">
       <!-- Left: Brand + Active Subject Selector -->
-      <div class="flex items-center gap-2 sm:gap-3 shrink min-w-0">
-        <button onclick="switchTab('dashboard')" class="flex items-center gap-2 shrink-0 group" title="Về trang Tổng quan">
-          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-md transition-transform group-hover:scale-105"
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0 min-w-0">
+        <button onclick="switchTab('dashboard')" class="flex items-center gap-2 shrink-0 group relative z-10" title="Về trang Tổng quan">
+          <div class="w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-md transition-transform group-hover:scale-105 shrink-0"
             style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
             U
           </div>
-          <span class="font-black text-sm sm:text-base tracking-tight txt-main hidden sm:inline">UniMaster</span>
+          <span class="font-black text-sm sm:text-base tracking-tight txt-main hidden sm:inline shrink-0">UniMaster</span>
         </button>
 
         <!-- Global Active Subject Selector Pill (Never Squashed, Semantic Contrast) -->
@@ -169,10 +169,10 @@
         <button id="header-user-btn" onclick="openAccountModal()" title="Hồ sơ tài khoản & Quản trị"
           class="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 rounded-xl border transition-all text-xs font-bold shrink-0 shadow-sm hover:border-indigo-500"
           style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <div id="header-user-avatar" class="w-6 h-6 rounded-lg bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-sm">
+          <div id="header-user-avatar" class="w-7 h-7 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-md">
             A
           </div>
-          <span id="header-user-name" class="font-extrabold txt-main hidden xl:inline">Admin</span>
+          <span id="header-user-name" class="font-extrabold txt-main hidden md:inline truncate max-w-[110px]">Admin</span>
           <span id="header-user-role" class="badge-rose px-1.5 py-0.2 rounded text-[10px] font-black hidden 2xl:inline-block">Admin</span>
         </button>
 
@@ -3939,13 +3939,13 @@
       <!-- Tabs: Switch Account vs Profile vs Admin -->
       <div class="flex px-5 pt-3 gap-1.5 sm:gap-2 border-b overflow-x-auto no-scrollbar" style="border-color: rgba(255, 255, 255, 0.08);">
         <button type="button" id="acc-tab-switch-btn" onclick="switchAccountTab('switch')" class="tab-btn active px-3 sm:px-4 py-2 text-xs font-extrabold border-b-2 border-indigo-500 text-white whitespace-nowrap">
-          👥 Chuyển Acc & Môn Học
+          👥 Đổi Acc
         </button>
         <button type="button" id="acc-tab-profile-btn" onclick="switchAccountTab('profile')" class="tab-btn px-3 sm:px-4 py-2 text-xs font-extrabold border-b-2 border-transparent text-slate-400 hover:text-white whitespace-nowrap">
-          👤 Thông Tin Chi Tiết
+          👤 Hồ Sơ
         </button>
         <button type="button" id="acc-tab-admin-btn" onclick="switchAccountTab('admin')" class="tab-btn px-3 sm:px-4 py-2 text-xs font-extrabold border-b-2 border-transparent text-slate-400 hover:text-white whitespace-nowrap">
-          👑 Quản Trị Hệ Thống
+          👑 Quản Trị
         </button>
       </div>
 
@@ -3981,12 +3981,12 @@
 
       <!-- Panel 1: Profile & Sync -->
       <div id="acc-panel-profile" class="hidden p-5 space-y-4 overflow-y-auto">
-        <div class="p-4 rounded-2xl flex items-center justify-between" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
-          <div>
-            <div id="acc-modal-fullname" class="text-base font-black text-white">Quản Trị Viên</div>
-            <div id="acc-modal-username" class="text-xs font-mono text-indigo-400 mt-0.5">@admin</div>
+        <div class="p-4 rounded-2xl flex items-center justify-between gap-3 overflow-hidden" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.06);">
+          <div class="overflow-hidden flex-1 min-w-0">
+            <div id="acc-modal-fullname" class="text-sm sm:text-base font-black text-white truncate">Quản Trị Viên</div>
+            <div id="acc-modal-username" class="text-xs font-mono text-indigo-400 mt-0.5 truncate">@admin</div>
           </div>
-          <span id="acc-modal-role" class="badge-rose px-3 py-1 rounded-full text-xs font-black">👑 Quản Trị Viên</span>
+          <span id="acc-modal-role" class="badge-rose px-2.5 py-1 rounded-full text-[11px] font-black shrink-0">👑 Quản Trị Viên</span>
         </div>
 
         <!-- Sync & Stats Grid -->
@@ -4006,13 +4006,13 @@
         </div>
 
         <!-- Cloud Sync Status Banner -->
-        <div class="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-between text-xs">
-          <div class="flex items-center gap-2">
-            <span class="text-emerald-400">🟢</span>
-            <span class="txt-main font-bold">Trạng thái đồng bộ: Đã kết nối máy chủ</span>
+        <div class="p-3.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 flex items-center justify-between gap-2 text-xs">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-emerald-400 shrink-0">🟢</span>
+            <span class="txt-main font-bold truncate">Đồng bộ: Đã kết nối</span>
           </div>
-          <button type="button" onclick="syncUserStateToServer(); showToast('Đã lưu tiến độ lên máy chủ!', 'success')" class="btn-soft px-3 py-1 text-[11px] font-bold">
-            🔄 Đồng bộ ngay
+          <button type="button" onclick="syncUserStateToServer(); showToast('Đã lưu tiến độ lên máy chủ!', 'success')" class="btn-soft px-2.5 py-1 text-[11px] font-bold shrink-0">
+            🔄 Đồng bộ
           </button>
         </div>
 

@@ -390,6 +390,9 @@ header > div {
 
   header > div > div:first-child > button:first-child {
     min-width: 2rem !important;
+    flex-shrink: 0 !important;
+    position: relative !important;
+    z-index: 10 !important;
   }
 
   header > div > div:first-child > button:first-child span {
