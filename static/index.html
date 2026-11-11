@@ -640,6 +640,23 @@
           </div>
         </div>
       </div>
+
+      <div class="uni-card p-5 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-extrabold text-sm txt-main flex items-center gap-2">
+            <i data-lucide="shield-check" class="w-4 h-4 txt-cyan"></i> Lịch Sử Đăng Nhập & Thiết Bị
+          </h3>
+          <button onclick="refreshLoginHistoryInline()" class="btn-soft px-2.5 py-1 text-[11px] font-bold flex items-center gap-1">
+            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Tải lại
+          </button>
+        </div>
+        <div id="login-history-inline" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+          <div class="text-center py-6 txt-muted text-xs font-bold">Đang tải lịch sử đăng nhập…</div>
+        </div>
+        <div class="text-[11px] txt-muted leading-relaxed pt-2" style="border-top: 1px solid var(--border);">
+          🔒 MAC address (địa chỉ phần cứng) <strong>không thể đọc</strong> từ trình duyệt vì lý do bảo mật của thiết bị. Hệ thống định danh thiết bị bằng <strong>IP công khai</strong> + <strong>User-Agent</strong> trình duyệt.
+        </div>
+      </div>
     </section>
 
     <!-- ===================================================================

@@ -2773,6 +2773,7 @@ function renderDashboard() {
           .join('')
       : `<tr><td colspan="5" class="py-6 text-center txt-muted">Chưa có bài làm nào. Bấm <strong>Luyện Đề Ngay</strong> để khởi động!</td></tr>`;
   }
+  refreshLoginHistoryInline();
   renderLearningProgressWidget();
   renderContextualShortcuts();
   renderWeeklyAnalyticsChart();
@@ -12414,6 +12415,91 @@ function openLoginHistoryModal() {
     });
 }
 window.openLoginHistoryModal = openLoginHistoryModal;
+
+const LOGIN_HISTORY_INLINE_CACHE = { items: [], loadedAt: 0 };
+
+function detectDeviceFromUserAgent(ua) {
+  const s = String(ua || '');
+  if (/iPhone|iPad|iPod/i.test(s)) return '📱 iPhone/iPad (iOS)';
+  if (/Android/i.test(s)) return '🤖 Điện thoại Android';
+  if (/Windows/i.test(s)) return '💻 Máy tính Windows';
+  if (/Mac OS X|Macintosh/i.test(s)) return '💻 Máy Mac';
+  if (/Linux/i.test(s)) return '🐧 Máy Linux';
+  return '🖥️ Thiết bị khác';
+}
+
+function detectBrowserFromUserAgent(ua) {
+  const s = String(ua || '');
+  if (/Edg\//i.test(s)) return 'Edge';
+  if (/OPR\/|Opera/i.test(s)) return 'Opera';
+  if (/Chrome\//i.test(s) && !/Chromium/i.test(s)) return 'Chrome';
+  if (/Firefox\//i.test(s)) return 'Firefox';
+  if (/Safari\//i.test(s) && /Version\//i.test(s)) return 'Safari';
+  return 'Trình duyệt khác';
+}
+
+function renderLoginHistoryInline() {
+  const box = document.getElementById('login-history-inline');
+  if (!box) return;
+  const events = LOGIN_HISTORY_INLINE_CACHE.items || [];
+  const thisUa = navigator.userAgent || '';
+  if (!events.length) {
+    box.innerHTML = `<div class="text-center py-6 space-y-1.5">
+      <span class="text-2xl">🔐</span>
+      <div class="text-xs font-extrabold txt-main">Chưa có lịch sử đăng nhập</div>
+      <p class="text-[11px] txt-muted">Các lần đăng nhập trên máy chủ sẽ được ghi nhận tại đây.</p>
+    </div>`;
+    return;
+  }
+  box.innerHTML = events
+    .map((ev) => {
+      const isCurrent = ev.user_agent && thisUa && ev.user_agent === thisUa;
+      const device = detectDeviceFromUserAgent(ev.user_agent);
+      const browser = detectBrowserFromUserAgent(ev.user_agent);
+      const typeLabel = ev.event_type === 'register' ? 'Đăng ký' : 'Đăng nhập';
+      const typeCls = ev.event_type === 'register' ? 'badge-amber' : 'badge-brand';
+      return `
+      <div class="p-3 rounded-2xl space-y-1.5" style="background-color: var(--bg-subtle); border: 1px solid var(--border); ${isCurrent ? 'box-shadow: 0 0 0 1.5px var(--brand);' : ''}">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-xs font-extrabold txt-main flex items-center gap-1.5">🌐 IP: <span class="font-mono">${escapeHtml(ev.ip_address || 'unknown')}</span></span>
+          <span class="text-[11px] font-mono txt-muted">${escapeHtml(ev.created_at || '')}</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
+          <span class="${typeCls} px-2 py-0.5 rounded-lg">${typeLabel}</span>
+          <span class="badge-subtle px-2 py-0.5 rounded-lg">${escapeHtml(device)}</span>
+          <span class="badge-subtle px-2 py-0.5 rounded-lg">${escapeHtml(browser)}</span>
+          ${isCurrent ? '<span class="badge-cyan px-2 py-0.5 rounded-lg">⚡ Thiết bị này</span>' : ''}
+        </div>
+      </div>`;
+    })
+    .join('');
+}
+
+async function refreshLoginHistoryInline(force = false) {
+  const box = document.getElementById('login-history-inline');
+  if (!box) return;
+  const now = Date.now();
+  if (!force && LOGIN_HISTORY_INLINE_CACHE.loadedAt && now - LOGIN_HISTORY_INLINE_CACHE.loadedAt < 30000) {
+    renderLoginHistoryInline();
+    return;
+  }
+  try {
+    const res = await fetch('/api/auth/login-history', { credentials: 'same-origin' });
+    const data = await res.json();
+    if (data.success) {
+      LOGIN_HISTORY_INLINE_CACHE.items = data.events || [];
+      LOGIN_HISTORY_INLINE_CACHE.loadedAt = Date.now();
+    } else {
+      LOGIN_HISTORY_INLINE_CACHE.items = [];
+      LOGIN_HISTORY_INLINE_CACHE.loadedAt = 0;
+    }
+  } catch (err) {
+    LOGIN_HISTORY_INLINE_CACHE.items = [];
+    LOGIN_HISTORY_INLINE_CACHE.loadedAt = 0;
+  }
+  renderLoginHistoryInline();
+}
+window.refreshLoginHistoryInline = refreshLoginHistoryInline;
 
 function openLocalExamHistoryModal() {
   const modal = document.getElementById('modal-exam-history');
