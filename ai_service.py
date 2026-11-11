@@ -699,10 +699,29 @@ Chế độ giảng dạy: {style_desc}
         if gemini_reply:
             return gemini_reply
 
+    # Không hiển thị thông báo sai rằng người dùng chưa thêm Gemini key khi
+    # FOSTA/OpenAI đã được cấu hình nhưng nhà cung cấp đang lỗi, hết quota,
+    # sai model hoặc gateway không truy cập được.
+    cfg = get_openai_settings()
+    if cfg.get("key"):
+        provider = "FOSTA Codex (gpt-6.1-sol)" if "fosta" in cfg.get("base_url", "").lower() else "OpenAI"
+        return f"""### 🎓 Gia Sư UniMaster AI — {subject_name}
+Về câu hỏi: **"{user_message}"**
+
+⚠️ **AI chưa nhận được phản hồi từ {provider}.** API Key đã được lưu, nhưng yêu cầu hiện tại có thể gặp lỗi kết nối, model, gateway hoặc quota. Hãy bấm **🔌 Kiểm tra API Key** trong Cài đặt để xem lỗi thật.
+
+> Hệ thống không còn hiển thị nhầm hướng dẫn “thêm dàn Gemini API Key” khi bạn đang dùng FOSTA/OpenAI."""
+
+    if get_api_keys_pool():
+        return f"""### 🎓 Gia Sư UniMaster AI — {subject_name}
+Về câu hỏi: **"{user_message}"**
+
+⚠️ **Gemini API Key đã có nhưng hiện chưa trả lời được.** Hãy bấm **🔌 Kiểm tra dàn Key** trong Cài đặt để kiểm tra quota/kết nối."""
+
     return f"""### 🎓 Gia Sư UniMaster AI — {subject_name}
 Về câu hỏi: **"{user_message}"**
-- Hãy phân tích bản chất quy tắc/công thức gốc thay vì học vẹt máy móc, đặc biệt chú ý điều kiện biên và đơn vị đo.
-- Mở **⚙️ Cài đặt → 🤖 Gemini AI** để thêm dàn API Key miễn phí giúp Giảng viên AI giải chi tiết mọi bài tập Toán, Lý, Hóa, Sinh, Code!"""
+
+⚠️ Chưa có nhà cung cấp AI khả dụng. Vào **⚙️ Cài đặt → AI: ChatGPT & Gemini** để thêm FOSTA/OpenAI hoặc Gemini API Key."""
 
 
 async def ai_get_hint(question_text: str, options: list, code_snippet: str = "") -> str:
