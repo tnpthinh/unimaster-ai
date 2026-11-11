@@ -1672,7 +1672,8 @@ body.app-fullscreen-mode #header-fullscreen-btn {
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   overscroll-behavior: contain !important;
-  padding: 1rem 0.5rem !important;
+  padding: max(0.75rem, env(safe-area-inset-top)) 0.5rem max(2.5rem, env(safe-area-inset-bottom)) !important;
+  box-sizing: border-box !important;
 }
 
 @media (min-width: 640px) {
@@ -1690,15 +1691,34 @@ body.app-fullscreen-mode #header-fullscreen-btn {
 }
 
 .modal-overlay > div.uni-card {
-  max-height: calc(100vh - 2rem) !important;
+  width: min(920px, calc(100vw - 1rem)) !important;
+  max-height: calc(100dvh - 2rem) !important;
   margin-top: auto !important;
   margin-bottom: auto !important;
+  box-sizing: border-box !important;
 }
 
 @media (max-height: 840px) {
   .modal-overlay > div.uni-card {
+    max-height: calc(100dvh - 1.25rem) !important;
     margin-top: 0.5rem !important;
-    margin-bottom: 2rem !important;
+    margin-bottom: 1.25rem !important;
+  }
+}
+
+@media (max-width: 639px) {
+  #modal-settings .uni-card {
+    width: calc(100vw - 1rem) !important;
+    max-height: calc(100dvh - 1.25rem) !important;
+    border-radius: 1rem !important;
+  }
+
+  #modal-settings .px-4.overflow-x-auto {
+    scrollbar-width: none;
+  }
+
+  #modal-settings .px-4.overflow-x-auto::-webkit-scrollbar {
+    display: none;
   }
 }
 
