@@ -19,6 +19,7 @@ import json
 import os
 import re
 import secrets
+import sqlite3
 import subprocess
 import sys
 import threading
@@ -31,6 +32,8 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 TOOLS_DIR = os.path.join(ROOT, "tools")
 CLOUDFLARED_EXE = os.path.join(TOOLS_DIR, "cloudflared.exe")
 ROUTER_BASE_URL = os.environ.get("ROUTER_BASE_URL", "http://127.0.0.1:20128").rstrip("/")
+ROUTER_KEY_FILE = os.path.join(ROOT, "router_api_key.txt")
+ROUTER_DB = os.path.join(os.environ.get("APPDATA", ""), "9router", "db", "data.sqlite")
 GATEWAY_PORT = int(os.environ.get("AI_GATEWAY_PORT", "20129"))
 SECRET_FILE = os.path.join(ROOT, "ai_gateway_secret.txt")
 STATE_FILE = os.path.join(ROOT, "ai_gateway_tunnel.json")
@@ -69,6 +72,38 @@ def router_is_healthy() -> bool:
     return http_ok(f"{ROUTER_BASE_URL}/v1/models")
 
 
+def load_router_key() -> str:
+    """Tự lấy API key của 9Router để gateway chèn hộ.
+
+    Thứ tự: biến môi trường ROUTER_API_KEY -> file router_api_key.txt ->
+    đọc trực tiếp database 9Router. Nhờ vậy UniMaster trên Render không cần
+    người dùng nhập key 9Router lần nữa.
+    """
+    env_key = os.environ.get("ROUTER_API_KEY", "").strip()
+    if env_key:
+        return env_key
+    if os.path.exists(ROUTER_KEY_FILE):
+        with open(ROUTER_KEY_FILE, encoding="utf-8") as file:
+            saved = file.read().strip()
+        if saved:
+            return saved
+    if not os.path.exists(ROUTER_DB):
+        return ""
+    try:
+        connection = sqlite3.connect(f"file:{ROUTER_DB}?mode=ro", uri=True, timeout=3)
+        row = connection.execute(
+            "SELECT key FROM apiKeys WHERE isActive = 1 ORDER BY createdAt ASC LIMIT 1"
+        ).fetchone()
+        connection.close()
+    except Exception:
+        return ""
+    found = (row[0] or "").strip() if row else ""
+    if found:
+        with open(ROUTER_KEY_FILE, "w", encoding="utf-8") as file:
+            file.write(found + "\n")
+    return found
+
+
 def gateway_is_healthy() -> bool:
     return http_ok(f"http://127.0.0.1:{GATEWAY_PORT}/healthz", 2.0)
 
@@ -96,6 +131,7 @@ def publish_gateway(public_url: str) -> None:
 class GatewayHandler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
     gateway_secret = ""
+    router_key = ""
 
     def log_message(self, fmt, *args):
         print(f"[AI Gateway] {self.client_address[0]} - {fmt % args}")
@@ -109,9 +145,16 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def _forward(self):
-        if self.headers.get("X-Gateway-Secret", "") != self.gateway_secret:
+        # Bảo vệ 2 lớp:
+        #  - Nếu có secret (khai báo AI_GATEWAY_SECRET hoặc bật REQUIRE_SECRET) thì bắt buộc khớp.
+        #  - Nếu không có secret, 9Router vẫn tự kiểm tra "Authorization: Bearer sk-..."
+        #    và trả 401 với key sai, nên URL bị lộ cũng không dùng ké được.
+        if self.gateway_secret and self.headers.get("X-Gateway-Secret", "") != self.gateway_secret:
             self._send_json(403, {"error": "Gateway secret is invalid"})
             return
+        # Không để key 9Router xuất hiện trong cấu hình Render: gateway chèn hộ.
+        if self.router_key:
+            self.headers["Authorization"] = f"Bearer {self.router_key}"
         try:
             content_length = int(self.headers.get("Content-Length", "0") or "0")
             body = self.rfile.read(content_length) if content_length else None
@@ -154,8 +197,12 @@ class GatewayHandler(BaseHTTPRequestHandler):
         self._forward()
 
 
-def start_proxy(secret: str) -> ThreadingHTTPServer:
-    GatewayHandler.gateway_secret = secret
+def start_proxy(secret: str, router_key: str = "") -> ThreadingHTTPServer:
+    # Chỉ bắt buộc secret khi người dùng chủ động bật, để bản deploy mặc định
+    # chạy được ngay mà không cần thêm biến môi trường nào trên Render.
+    require = os.environ.get("AI_GATEWAY_REQUIRE_SECRET", "").strip() == "1"
+    GatewayHandler.gateway_secret = secret if require else ""
+    GatewayHandler.router_key = router_key
     server = ThreadingHTTPServer(("127.0.0.1", GATEWAY_PORT), GatewayHandler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
@@ -208,8 +255,13 @@ def run_child() -> int:
         print(f"❌ 9Router chưa chạy tại {ROUTER_BASE_URL}. Hãy mở 9Router trước.")
         return 1
     secret = ensure_secret()
-    start_proxy(secret)
+    router_key = load_router_key()
+    start_proxy(secret, router_key)
     print(f"🔐 Proxy bảo vệ: http://127.0.0.1:{GATEWAY_PORT}")
+    if router_key:
+        print("🔑 Gateway tự chèn API key 9Router — không cần nhập key trên Render.")
+    else:
+        print("⚠ Không tìm thấy API key 9Router. Hãy tạo key trong 9Router > API Keys.")
     public_url = start_tunnel()
     publish_gateway(public_url)
     with open(STATE_FILE, "w", encoding="utf-8") as file:
@@ -284,16 +336,22 @@ def stop_gateway() -> int:
 
 def print_banner(secret: str, state: dict):
     public_url = state.get("public_url", "")
+    require = os.environ.get("AI_GATEWAY_REQUIRE_SECRET", "").strip() == "1"
     print("\n" + "=" * 74)
     print("🔗 CỔNG AI 9ROUTER ĐÃ SẴN SÀNG CHO RENDER")
     print("=" * 74)
     print(f"🌍 Tunnel công khai:  {public_url}")
-    print(f"🛡  Proxy local:       http://127.0.0.1:{GATEWAY_PORT}  (bắt buộc secret)")
-    print(f"🔐 Secret:            {secret}")
+    print(f"🛡  Proxy local:       http://127.0.0.1:{GATEWAY_PORT}")
+    if require:
+        print(f"🔐 Secret (bắt buộc): {secret}")
+    else:
+        print("🔐 Secret:             không bắt buộc (9Router tự kiểm tra API key)")
     print("-" * 74)
-    print("Dán 2 biến này vào Render Dashboard > Environment:")
-    print(f"   AI_GATEWAY_DISCOVERY_URL = {DISCOVERY_URL}")
-    print(f"   AI_GATEWAY_SECRET        = {secret}")
+    print("✅ KHÔNG cần thêm biến môi trường nào trên Render — app tự dò tunnel qua:")
+    print(f"   {DISCOVERY_URL}")
+    if require:
+        print("   (nếu bật REQUIRE_SECRET thì phải khai báo thêm)")
+        print(f"   AI_GATEWAY_SECRET = {secret}")
     print("-" * 74)
     print("Trong UniMaster > Cài đặt AI, chọn:")
     print("   Base URL = http://127.0.0.1:20128/v1")

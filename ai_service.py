@@ -201,17 +201,44 @@ FOSTA_MODELS = [
 ]
 
 # ===== AI Gateway động (9Router chạy trên máy cá nhân, mở ra Internet bằng Cloudflare Tunnel) =====
-# Render không truy cập được 127.0.0.1, nên khi Base URL là địa chỉ nội bộ mà có
-# AI_GATEWAY_DISCOVERY_URL, app sẽ tự dò địa chỉ tunnel công khai mới nhất.
-AI_GATEWAY_DISCOVERY_URL = os.environ.get("AI_GATEWAY_DISCOVERY_URL", "").strip()
-AI_GATEWAY_SECRET = os.environ.get("AI_GATEWAY_SECRET", "").strip()
+# Render không truy cập được 127.0.0.1, nên khi Base URL là địa chỉ nội bộ thì app
+# tự dò địa chỉ tunnel công khai mới nhất. Có URL mặc định để bản deploy chạy được
+# ngay mà KHÔNG cần khai báo biến môi trường nào; vẫn có thể ghi đè bằng ENV.
+DEFAULT_GATEWAY_DISCOVERY_URL = "https://ntfy.sh/unimaster_ctump_5292/json?poll=1&since=72h"
 _GATEWAY_CACHE = {"url": "", "ts": 0.0}
 _GATEWAY_TTL = 90
+
+
+def gateway_discovery_url() -> str:
+    """Đọc ENV mỗi lần gọi để đổi cấu hình không cần sửa code."""
+    return (
+        os.environ.get("AI_GATEWAY_DISCOVERY_URL", "").strip()
+        or DEFAULT_GATEWAY_DISCOVERY_URL
+    )
+
+
+def gateway_secret() -> str:
+    return os.environ.get("AI_GATEWAY_SECRET", "").strip()
 
 
 def _is_local_url(url: str) -> bool:
     u = (url or "").lower()
     return "127.0.0.1" in u or "localhost" in u or "0.0.0.0" in u
+
+
+def _is_local_runtime() -> bool:
+    """True khi tiến trình này chạy trên chính máy đang chạy 9Router.
+
+    Nhận biết bằng biến môi trường: Render/Docker đặt DATA_DIR hoặc RENDER=true,
+    còn máy cá nhân thì không. Khi chạy local, gọi 127.0.0.1 trực tiếp là đúng.
+    """
+    for key in ("RENDER", "RENDER_SERVICE_ID", "RENDER_EXTERNAL_URL"):
+        if os.environ.get(key):
+            return False
+    if os.environ.get("UNIMASTER_CLOUD") == "1":
+        return False
+    # Docker/Render dùng DATA_DIR=/data hoặc /tmp/unimaster-data; máy cá nhân để trống.
+    return not os.environ.get("DATA_DIR", "").strip()
 
 
 def invalidate_gateway_cache() -> None:
@@ -222,12 +249,16 @@ def invalidate_gateway_cache() -> None:
 
 async def resolve_gateway_base_url(base_url: str) -> str:
     """
-    Nếu Base URL trỏ vào máy nội bộ (127.0.0.1/localhost) nhưng có
-    AI_GATEWAY_DISCOVERY_URL, tự dò địa chỉ tunnel công khai mới nhất.
-    Tunnel Quick của Cloudflare đổi URL mỗi lần khởi động nên phải dò lại.
+    Nếu Base URL trỏ vào máy nội bộ (127.0.0.1/localhost), tự dò địa chỉ tunnel
+    công khai mới nhất. Tunnel Quick của Cloudflare đổi URL mỗi lần khởi động
+    nên phải dò lại. Nếu đang chạy ngay trên máy local thì gọi trực tiếp.
     """
     base_url = (base_url or "").rstrip("/")
-    if not AI_GATEWAY_DISCOVERY_URL or not _is_local_url(base_url):
+    discovery = gateway_discovery_url()
+    if not discovery or not _is_local_url(base_url):
+        return base_url
+    # Chạy trên chính máy đó thì 127.0.0.1 là đúng, không cần vòng qua tunnel.
+    if _is_local_runtime():
         return base_url
 
     now = time.time()
@@ -237,7 +268,7 @@ async def resolve_gateway_base_url(base_url: str) -> str:
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(
-                AI_GATEWAY_DISCOVERY_URL,
+                discovery,
                 timeout=aiohttp.ClientTimeout(total=8),
             ) as resp:
                 if resp.status == 200:
@@ -298,8 +329,12 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
     base_url = await resolve_gateway_base_url(cfg["base_url"])
     endpoint = f"{base_url}/chat/completions"
     
-    # Nếu Base URL là localhost và có discovery thì request đang đi qua tunnel công khai.
-    gateway_route = bool(AI_GATEWAY_DISCOVERY_URL) and _is_local_url(cfg["base_url"])
+    # Nếu Base URL là localhost và đang chạy trên cloud thì request đi qua tunnel công khai.
+    gateway_route = (
+        _is_local_url(cfg["base_url"])
+        and not _is_local_runtime()
+        and bool(gateway_discovery_url())
+    )
     gateway_retried = False
 
     is_fosta = "fosta" in base_url.lower()
@@ -325,9 +360,10 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
     }
-    if AI_GATEWAY_SECRET:
+    secret_value = gateway_secret()
+    if secret_value:
         # Gateway công khai trên Internet chỉ chấp nhận request có secret này
-        headers["X-Gateway-Secret"] = AI_GATEWAY_SECRET
+        headers["X-Gateway-Secret"] = secret_value
 
     async with aiohttp.ClientSession() as session:
         for model in candidate_models:
@@ -382,8 +418,9 @@ async def test_openai_key(key: str = None, base_url: str = None, model: str = No
         target_model = "gpt-6.1-sol"
 
     headers = {"Authorization": f"Bearer {target_key}", "Content-Type": "application/json"}
-    if AI_GATEWAY_SECRET:
-        headers["X-Gateway-Secret"] = AI_GATEWAY_SECRET
+    secret_value = gateway_secret()
+    if secret_value:
+        headers["X-Gateway-Secret"] = secret_value
     payload = {"model": target_model, "messages": [{"role": "user", "content": "Reply OK"}], "max_tokens": 15}
     try:
         async with aiohttp.ClientSession() as session:
