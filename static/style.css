@@ -355,6 +355,13 @@ header > div {
   #header-active-subj-btn {
     max-width: min(260px, 28vw) !important;
   }
+
+  #header-active-subj-btn #active-subj-name {
+    max-width: 10ch !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
 }
 
 @media (max-width: 639px) {
@@ -364,8 +371,32 @@ header > div {
     z-index: 100 !important;
   }
 
+  header > div > div:first-child {
+    min-width: 0 !important;
+    gap: 0.25rem !important;
+  }
+
+  header > div > div:first-child > button:first-child {
+    min-width: 2rem !important;
+  }
+
+  header > div > div:first-child > button:first-child span {
+    display: none !important;
+  }
+
   #header-active-subj-btn {
-    max-width: 118px !important;
+    max-width: 92px !important;
+    padding-left: 0.4rem !important;
+    padding-right: 0.4rem !important;
+    gap: 0.25rem !important;
+  }
+
+  #header-active-subj-btn #active-subj-name {
+    max-width: 7ch !important;
+  }
+
+  #header-active-subj-btn #active-subj-badge {
+    display: none !important;
   }
 
   #header-settings-btn,
