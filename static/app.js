@@ -3405,28 +3405,85 @@ async function onExamSubjectChange() {
         { prefix: 'Bài 6', icon: '🧪', label: 'Bài 6: Định lượng enzym' }
       ];
 
-      lessons.forEach((l) => {
-        const lQs = allQs.filter((q) => String(q.topic_tag || '').startsWith(l.prefix));
-        if (!lQs.length) return;
-        const key = l.prefix.replace(' ', '_');
-        html += `
-          <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-            <div class="font-bold text-xs txt-main flex items-center gap-1.5 shrink-0">
-              <span>${l.icon}</span>
-              <span>${l.label}</span>
-              <span class="badge-soft px-1.5 py-0.5 rounded text-[10px]">${lQs.length} câu</span>
+      const matchedLessons = lessons.filter((l) => allQs.some((q) => String(q.topic_tag || '').startsWith(l.prefix)));
+      if (matchedLessons.length > 0) {
+        matchedLessons.forEach((l) => {
+          const lQs = allQs.filter((q) => String(q.topic_tag || '').startsWith(l.prefix));
+          const key = l.prefix.replace(' ', '_');
+          html += `
+            <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+              <div class="font-bold text-xs txt-main flex items-center gap-1.5 shrink-0">
+                <span>${l.icon}</span>
+                <span>${l.label}</span>
+                <span class="badge-soft px-1.5 py-0.5 rounded text-[10px]">${lQs.length} câu</span>
+              </div>
+              <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+                <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+                <span class="text-xs txt-muted">–</span>
+                <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+                <button type="button" onclick="startCustomLessonRange('${l.prefix}', ${sid})" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
+                  Vào thi →
+                </button>
+              </div>
             </div>
-            <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
-              <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
-              <span class="text-xs txt-muted">–</span>
-              <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
-              <button type="button" onclick="startCustomLessonRange('${l.prefix}', ${sid})" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
-                Vào thi →
-              </button>
+          `;
+        });
+      } else if (topicKeys.length > 0) {
+        const isKST = sub && (sub.code === 'kysinh_trung' || (sub.name || '').includes('Ký Sinh Trùng'));
+        if (isKST) {
+          const exceptCount = allQs.filter((q) => q.question_text && (q.question_text.includes('KHÔNG ĐÚNG') || q.question_text.includes('NGOẠI TRỪ') || q.question_text.includes('SAI'))).length;
+          html += `
+            <div class="col-span-full p-3 rounded-2xl border border-teal-500/30 bg-gradient-to-r from-teal-900/40 via-emerald-900/30 to-slate-900/60 space-y-2.5">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <span class="font-extrabold text-xs text-teal-300 flex items-center gap-1.5">
+                  <span>🪱</span> <span>Ký Sinh Trùng Y Học: 45 Chuyên Đề • 3.137 Câu Hỏi & Lời Giải Chuẩn</span>
+                </span>
+                <span class="badge-brand px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold">${allQs.length} CÂU HỎI</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button type="button" onclick="startSpecialDrill('except_yds', ${sid})" class="p-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all">
+                  <div class="text-[11px] font-black text-amber-300 flex items-center justify-between">
+                    <span>⚡ Luyện Câu Bẫy & Ngoại Trừ</span>
+                    <span class="badge-amber px-1.5 py-0.2 rounded text-[10px]">${exceptCount}</span>
+                  </div>
+                  <div class="text-[10px] txt-muted truncate">Dạng câu hỏi NGOẠI TRỪ / SAI / KHÔNG ĐÚNG phân loại thi</div>
+                </button>
+                <button type="button" onclick="startSpecialDrill('all_yds', ${sid})" class="p-2.5 rounded-xl border border-teal-500/40 bg-teal-500/10 hover:bg-teal-500/20 text-left transition-all">
+                  <div class="text-[11px] font-black text-teal-300 flex items-center justify-between">
+                    <span>🏆 Thi Thử Tổng Hợp 100 Câu</span>
+                    <span class="badge-brand px-1.5 py-0.2 rounded text-[10px]">100c</span>
+                  </div>
+                  <div class="text-[10px] txt-muted truncate">Trộn ngẫu nhiên câu hỏi từ cả 45 chuyên đề ký sinh trùng</div>
+                </button>
+              </div>
             </div>
-          </div>
-        `;
-      });
+          `;
+        }
+
+        topicKeys.forEach((topicName, idx) => {
+          const lQs = topicMap[topicName] || [];
+          if (!lQs.length) return;
+          const key = 'topic_' + idx;
+          const icon = isKST ? '🪱' : '📖';
+          html += `
+            <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 hover:border-teal-500/40 transition-all">
+              <div class="font-bold text-xs txt-main flex items-center gap-1.5 shrink-0 max-w-full sm:max-w-md truncate">
+                <span>${icon}</span>
+                <span class="truncate">${escapeHtml(topicName)}</span>
+                <span class="badge-soft px-1.5 py-0.5 rounded text-[10px] shrink-0">${lQs.length} câu</span>
+              </div>
+              <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end shrink-0">
+                <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+                <span class="text-xs txt-muted">–</span>
+                <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+                <button type="button" onclick="startCustomLessonRange('${escapeHtml(topicName)}', ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
+                  Luyện tập →
+                </button>
+              </div>
+            </div>
+          `;
+        });
+      }
     }
 
     const bmCount = allQs.filter((q) => STATE.bookmarks.includes(q.id)).length;
