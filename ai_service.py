@@ -678,6 +678,36 @@ async def ai_extract_from_multimodal(mime_type: str, raw_bytes: bytes, filename:
 # CORE & ADVANCED EDUCATIONAL AI SERVICES
 # =========================================================================
 async def ai_chat_tutor(subject_name: str, user_message: str, persona: str = "professor", history: list = None, tutor_style_prompt: str = "") -> str:
+    import openai
+
+    persona_map = {
+        "professor": "Phong cách Giáo sư Đại học uyên bác: phân tích cặn kẽ bản chất, công thức chuẩn xác và chỉ rõ bẫy đề thi.",
+        "feynman": "Phong cách Richard Feynman siêu dễ hiểu: giải thích bằng hình ảnh đời thường sinh động để sinh viên mất gốc cũng hiểu ngay trong 1 phút.",
+        "speed": "Phong cách Cao thủ Giải nhanh Trắc nghiệm: đi thẳng vào công thức bấm máy / loại trừ đáp án trong 10 giây.",
+        "examiner": "Phong cách Giảng viên Vấn đáp: giải đáp ngắn gọn rồi đặt ngược lại 1 câu hỏi xoáy tình huống để kiểm tra độ hiểu sâu của sinh viên."
+    }
+    style_desc = persona_map.get(persona, persona_map["professor"])
+
+    # Tích hợp GPT-4
+    prompt = f"""
+    Bạn là một gia sư AI chuyên nghiệp. Chủ đề: {subject_name}.
+    Phong cách: {style_desc}.
+    Lịch sử hội thoại:
+    {history or "(không có lịch sử)"}
+
+    Câu hỏi: {user_message}
+    """
+
+    try:
+        response = openai.ChatCompletion.create(
+            model="gpt-4",
+            messages=[{"role": "system", "content": "Bạn là một gia sư AI."},
+                      {"role": "user", "content": prompt}],
+            max_tokens=500
+        )
+        return response['choices'][0]['message']['content']
+    except Exception as e:
+        return f"Lỗi khi gọi GPT-4: {str(e)}"
     persona_map = {
         "professor": "Phong cách Giáo sư Đại học uyên bác: phân tích cặn kẽ bản chất, công thức chuẩn xác và chỉ rõ bẫy đề thi.",
         "feynman": "Phong cách Richard Feynman siêu dễ hiểu: giải thích bằng hình ảnh đời thường sinh động để sinh viên mất gốc cũng hiểu ngay trong 1 phút.",
