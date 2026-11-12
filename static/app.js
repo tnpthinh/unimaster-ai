@@ -1946,7 +1946,7 @@ async function handleStandaloneOfflineApi(url, options = {}) {
       calls: 0,
       failovers: 0,
       cooldown_remaining: 0,
-      model: 'gemini-3.5-flash'
+      model: 'gemini-2.5-flash'
     }));
     return {
       success: true,
@@ -1980,7 +1980,7 @@ async function handleStandaloneOfflineApi(url, options = {}) {
         calls: 0,
         failovers: 0,
         cooldown_remaining: 0,
-        model: 'gemini-3.5-flash'
+        model: 'gemini-2.5-flash'
       })),
       message: `Đã lưu ${keys.length} API Key trực tiếp trên trình duyệt!`
     };
@@ -7746,7 +7746,7 @@ async function callGeminiRawFromBrowser(promptText, imageBase64 = null, mimeType
   const keys = getBrowserGeminiKeyPool();
   if (!keys.length) return null;
 
-  const models = ['gemini-3.5-flash', 'gemini-3.5-flash-lite', 'gemini-3.8-flash'];
+  const models = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
   for (let kTry = 0; kTry < keys.length; kTry++) {
     const key = keys[(_browserKeyCursor + kTry) % keys.length];
     for (const model of models) {
@@ -12238,23 +12238,39 @@ function togglePasswordVis(inputId) {
   el.type = el.type === 'password' ? 'text' : 'password';
 }
 
-function applyFostaPreset(model = 'gpt-6.1-sol') {
+function applyFostaPreset(model = 'gpt-6-astra') {
   const baseInp = document.getElementById('cfg-openai-base');
   const modelSel = document.getElementById('cfg-openai-model');
   const keyInp = document.getElementById('cfg-openai-key');
   if (baseInp) baseInp.value = 'https://codex.fosta.app/v1';
-  if (modelSel) modelSel.value = model;
+  if (modelSel) {
+    if (!Array.from(modelSel.options).some((opt) => opt.value === model)) {
+      const opt = document.createElement('option');
+      opt.value = model;
+      opt.textContent = model;
+      modelSel.appendChild(opt);
+    }
+    modelSel.value = model;
+  }
   // ponytail: leave input empty to avoid committing or auto-injecting expired secrets; user enters key via Settings
   showToast(`⚡ Đã điền cấu hình FOSTA (${model})! Hãy bấm "Kiểm Tra Kết Nối" hoặc "Lưu Cài Đặt".`, 'info');
   playSound('click');
 }
 
-function applyOpenAiDirectPreset() {
+function applyOpenAiDirectPreset(model = 'o3-mini') {
   const baseInp = document.getElementById('cfg-openai-base');
   const modelSel = document.getElementById('cfg-openai-model');
   if (baseInp) baseInp.value = 'https://api.openai.com/v1';
-  if (modelSel) modelSel.value = 'gpt-4o';
-  showToast('🌐 Đã chọn máy chủ OpenAI Gốc (api.openai.com)!', 'info');
+  if (modelSel) {
+    if (!Array.from(modelSel.options).some((opt) => opt.value === model)) {
+      const opt = document.createElement('option');
+      opt.value = model;
+      opt.textContent = model;
+      modelSel.appendChild(opt);
+    }
+    modelSel.value = model;
+  }
+  showToast(`🌐 Đã chọn OpenAI Gốc (${model})!`, 'info');
   playSound('click');
 }
 

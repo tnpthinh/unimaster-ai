@@ -1920,48 +1920,6 @@ async def export_backup(request):
 
 
 async def import_backup(request):
-    pass
-
-async def admin_upload_backup(request):
-    """Nhận file .db từ Admin để khôi phục dữ liệu."""
-    user_info = request.get("user", {})
-    if user_info.get("role") != "admin":
-        return json_resp({"success": False, "error": "Chỉ Quản trị viên mới có quyền tải lên."}, 403)
-
-    reader = await request.multipart()
-    field = await reader.next()
-    if not field or field.name != 'file':
-        return json_resp({"success": False, "error": "Không tìm thấy file tải lên."}, 400)
-
-    tmp_path = tempfile.mktemp(suffix=".db")
-    with open(tmp_path, 'wb') as f:
-        while True:
-            chunk = await field.read_chunk()
-            if not chunk:
-                break
-            f.write(chunk)
-
-    try:
-        conn = sqlite3.connect(tmp_path)
-        conn.execute("PRAGMA integrity_check;")
-        conn.close()
-        shutil.copyfile(tmp_path, db.DB_PATH)
-        return json_resp({"success": True, "message": "Đã khôi phục dữ liệu thành công."})
-    except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
-    finally:
-        os.unlink(tmp_path)
-
-async def admin_download_backup(request):
-    """Cho phép Admin tải về file .db hiện tại."""
-    user_info = request.get("user", {})
-    if user_info.get("role") != "admin":
-        return json_resp({"success": False, "error": "Chỉ Quản trị viên mới có quyền tải về."}, 403)
-
-    if not os.path.exists(db.DB_PATH):
-        return json_resp({"success": False, "error": "Không tìm thấy file dữ liệu."}, 404)
-
-    return web.FileResponse(path=db.DB_PATH, headers={"Content-Disposition": f"attachment; filename=unimaster-{datetime.now().strftime('%Y%m%d')}.db"})
     try:
         data = await safe_get_json(request)
         if "user_state" in data and isinstance(data["user_state"], dict):
@@ -1986,6 +1944,95 @@ async def admin_download_backup(request):
         return json_resp({"success": True, "imported_questions": imported_q, "message": "Đã khôi phục dữ liệu thành công!"})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def admin_upload_backup(request):
+    """Nhận file .db từ Admin để khôi phục dữ liệu an toàn."""
+    user_info = request.get("user", {})
+    if user_info.get("role") != "admin":
+        return json_resp({"success": False, "error": "Chỉ Quản trị viên mới có quyền tải lên cơ sở dữ liệu."}, 403)
+
+    reader = await request.multipart()
+    field = await reader.next()
+    if not field or field.name != 'file':
+        return json_resp({"success": False, "error": "Không tìm thấy file tải lên."}, 400)
+
+    # Lưu tạm ra file riêng để kiểm tra tính toàn vẹn (integrity check) trước khi ghi đè
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp_path = tmp.name
+    tmp.close()
+    try:
+        with open(tmp_path, 'wb') as f:
+            while True:
+                chunk = await field.read_chunk()
+                if not chunk:
+                    break
+                f.write(chunk)
+
+        conn = sqlite3.connect(tmp_path)
+        cur = conn.cursor()
+        cur.execute("PRAGMA integrity_check;")
+        res = cur.fetchone()
+        conn.close()
+        if not res or res[0] != "ok":
+            return json_resp({"success": False, "error": f"File SQLite không hợp lệ hoặc bị hỏng ({res[0] if res else 'unknown'})."}, 400)
+
+        # Sao lưu an toàn: dùng SQLite online backup để ghi đè DB_PATH không khóa file
+        target_conn = sqlite3.connect(db.DB_PATH)
+        source_conn = sqlite3.connect(tmp_path)
+        source_conn.backup(target_conn)
+        target_conn.close()
+        source_conn.close()
+
+        # Khởi tạo migration nếu file backup cũ thiếu bảng
+        db.init_db()
+
+        return json_resp({"success": True, "message": "Đã khôi phục cơ sở dữ liệu thành công!"})
+    except Exception as e:
+        return json_resp({"success": False, "error": f"Lỗi khi khôi phục: {str(e)}"}, 500)
+    finally:
+        try:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+        except OSError:
+            pass
+
+
+async def admin_download_backup(request):
+    """Cho phép Admin tải về file .db hiện tại với dữ liệu nhất quán."""
+    user_info = request.get("user", {})
+    if user_info.get("role") != "admin":
+        return json_resp({"success": False, "error": "Chỉ Quản trị viên mới có quyền tải về."}, 403)
+
+    if not os.path.exists(db.DB_PATH):
+        return json_resp({"success": False, "error": "Không tìm thấy file dữ liệu."}, 404)
+
+    # Sử dụng snapshot SQLite backup để tải file hoàn chỉnh, không bị lock hoặc dirty read
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+    tmp_path = tmp.name
+    tmp.close()
+    try:
+        src = sqlite3.connect(db.DB_PATH)
+        dst = sqlite3.connect(tmp_path)
+        src.backup(dst)
+        src.close()
+        dst.close()
+
+        with open(tmp_path, "rb") as f:
+            content = f.read()
+
+        return web.Response(
+            body=content,
+            content_type="application/x-sqlite3",
+            headers={"Content-Disposition": f'attachment; filename="unimaster-{stamp}.db"'}
+        )
+    finally:
+        try:
+            if os.path.exists(tmp_path):
+                os.unlink(tmp_path)
+        except OSError:
+            pass
 
 
 def generate_standalone_html_string() -> str:

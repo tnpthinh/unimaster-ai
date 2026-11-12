@@ -16,11 +16,21 @@ import asyncio
 import aiohttp
 from database import get_setting, set_setting
 
+# Danh sách mô hình Google Gemini xịn nhất theo thứ tự ưu tiên:
+# gemini-2.5-pro: Siêu mô hình tư duy, giải toán, STEM & lý luận sâu nhất của Google
+# gemini-2.5-flash: Cực nhanh, tư duy xuất sắc, hỗ trợ thinking budget & multimodal
+# gemini-2.0-flash: Thế hệ mới siêu tốc độ
+# gemini-1.5-pro & gemini-1.5-flash: Dự phòng kinh điển ổn định cao
 GEMINI_MODELS = [
-    "gemini-3.5-flash-lite",  # Blazing fast (0.7s) - Tutor, hint, concept recall
-    "gemini-3.5-flash",       # High quality reasoning (1.5s) - Code, essay, exams
-    "gemini-3.6-flash",       # High performance fallback
-    "gemini-3.7-flash"        # Deep reasoning fallback
+    "gemini-2.5-pro",
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-pro",
+    "gemini-1.5-flash",
+    "gemini-3.5-flash-lite",
+    "gemini-3.5-flash",
+    "gemini-3.6-flash",
+    "gemini-3.7-flash"
 ]
 
 # Fast 0ms response cache for repeated questions
@@ -184,8 +194,16 @@ def _ordered_candidate_keys() -> list[str]:
 
 
 
+# Danh sách mô hình OpenAI & OpenAI-compatible xịn nhất thế giới:
+# o3-mini: Siêu mô hình lý luận toán học, STEM & lập trình mới nhất của OpenAI
+# o1: Mô hình suy luận sâu toàn diện hàng đầu của OpenAI
+# gpt-4.5-preview: Mô hình tri thức khổng lồ & hiểu ngữ cảnh sâu sắc nhất
+# gpt-4o: Mô hình flagship đa nhiệm thông minh cao cấp
 OPENAI_MODELS = [
+    "o3-mini",
     "gpt-4o",
+    "o1",
+    "gpt-4.5-preview",
     "gpt-4o-mini",
     "gpt-3.5-turbo"
 ]
@@ -194,11 +212,45 @@ OPENAI_MODELS = [
 # ưu tiên model chuyên lập trình. Chúng dùng giao thức OpenAI-compatible.
 ROUTER_MODELS = ["All", "Coding-Pro"]
 
+# Dòng mô hình FOSTA Codex AI thế hệ 6:
+# gpt-6-astra: Mô hình mạnh nhất thế hệ 6 • Lý luận & tư duy sâu
+# gpt-6.1-sol: Mô hình tiêu chuẩn toàn năng • Cân bằng tốc độ & độ sâu
+# gpt-6-luna: Mô hình siêu tốc • Tiết kiệm
 FOSTA_MODELS = [
-    "gpt-6.1-sol",
     "gpt-6-astra",
+    "gpt-6.1-sol",
     "gpt-6-luna"
 ]
+
+
+def _is_openai_reasoning_model(model_name: str) -> bool:
+    """Kiểm tra mô hình có phải dòng suy luận (Reasoning) của OpenAI hay không (o1, o3-mini, o3, o4...)"""
+    m = (model_name or "").strip().lower()
+    base = m.split("/")[-1]
+    return base.startswith(("o1", "o3", "o4"))
+
+
+def _supports_gemini_thinking(model_name: str) -> bool:
+    """Kiểm tra mô hình Gemini có hỗ trợ cấu hình thinkingConfig hay không"""
+    m = (model_name or "").lower()
+    if "lite" in m or "1.5" in m:
+        return False
+    return ("2.5" in m) or ("thinking" in m) or ("3.5" in m) or ("3.6" in m) or ("3.7" in m)
+
+
+def _select_gemini_models(quality: str = "deep") -> list[str]:
+    """Chọn thứ tự mô hình Gemini tối ưu theo độ phức tạp tác vụ"""
+    if quality == "fast":
+        return [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-2.5-pro",
+            "gemini-1.5-flash",
+            "gemini-1.5-pro",
+            "gemini-3.5-flash-lite",
+            "gemini-3.5-flash",
+        ]
+    return list(GEMINI_MODELS)
 
 # ===== AI Gateway động (9Router chạy trên máy cá nhân, mở ra Internet bằng Cloudflare Tunnel) =====
 # Render không truy cập được 127.0.0.1, nên khi Base URL là địa chỉ nội bộ thì app
@@ -335,12 +387,17 @@ def get_openai_settings() -> dict:
             set_setting("openai_base_url", base_url)
 
     is_fosta = "fosta" in base_url.lower()
-    default_model = "gpt-6.1-sol" if is_fosta else "gpt-4o"
+    default_model = "gpt-6-astra" if is_fosta else ("All" if _is_local_url(base_url) else "gpt-4o")
     model = model or default_model
     priority = db_priority or os.environ.get("AI_PROVIDER_PRIORITY", "").strip() or "openai_first"
     return {"key": key, "base_url": base_url, "model": model, "priority": priority}
 
-async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_tokens: int = 4096) -> str:
+async def _call_openai_chatgpt(
+    prompt: str,
+    system_instruction: str = "",
+    max_tokens: int = 4096,
+    messages_override: list = None
+) -> str:
     cfg = get_openai_settings()
     key = cfg["key"]
     if not key:
@@ -358,7 +415,7 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
     gateway_retried = False
 
     is_fosta = "fosta" in base_url.lower()
-    pref_model = cfg.get("model", "gpt-6.1-sol" if is_fosta else "gpt-4o")
+    pref_model = cfg.get("model", "gpt-6-astra" if is_fosta else "gpt-4o")
     candidate_models = [pref_model]
     if is_fosta:
         for m in FOSTA_MODELS:
@@ -371,11 +428,6 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
             if m not in candidate_models:
                 candidate_models.append(m)
 
-    messages = []
-    if system_instruction:
-        messages.append({"role": "system", "content": system_instruction})
-    messages.append({"role": "user", "content": prompt})
-
     headers = {
         "Authorization": f"Bearer {key}",
         "Content-Type": "application/json"
@@ -387,14 +439,42 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
 
     async with aiohttp.ClientSession() as session:
         for model in candidate_models:
+            is_reasoning = _is_openai_reasoning_model(model)
+
+            # Xây dựng messages tương thích theo từng dòng mô hình (o1/o3 dùng developer role)
+            if messages_override and isinstance(messages_override, list):
+                model_messages = []
+                for msg in messages_override:
+                    r = msg.get("role", "user")
+                    c = str(msg.get("content") or msg.get("text") or "")
+                    if is_reasoning and r == "system":
+                        r = "developer"
+                    model_messages.append({"role": r, "content": c})
+            else:
+                model_messages = []
+                if system_instruction:
+                    role_name = "developer" if is_reasoning else "system"
+                    model_messages.append({"role": role_name, "content": system_instruction})
+                model_messages.append({"role": "user", "content": prompt})
+
             payload = {
                 "model": model,
-                "messages": messages,
-                "max_tokens": min(int(max_tokens or 4096), 16384),
-                "temperature": 0.4
+                "messages": model_messages
             }
+
+            if is_reasoning:
+                # Chuẩn API cho mô hình lý luận (OpenAI o1 / o3-mini):
+                # 1. BẮT BUỘC dùng 'max_completion_tokens' thay vì 'max_tokens'
+                # 2. KHÔNG gửi 'temperature' để tránh lỗi HTTP 400
+                # 3. Phân bổ đủ token cho cả reasoning nội bộ và câu trả lời
+                eff_tokens = max(int(max_tokens or 4096), 4096)
+                payload["max_completion_tokens"] = min(eff_tokens, 32768)
+            else:
+                payload["max_tokens"] = min(int(max_tokens or 4096), 16384)
+                payload["temperature"] = 0.35
+
             try:
-                # Bài phân tích dài (8192+ token) cần thời gian lâu hơn 25s
+                # Bài phân tích chuyên sâu (8192+ token) cần thời gian đủ lâu
                 async with session.post(endpoint, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=120)) as resp:
                     if resp.status == 200:
                         data = await resp.json()
@@ -402,12 +482,30 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
                         if choices:
                             reply = choices[0].get("message", {}).get("content", "").strip()
                             if reply:
-                                p_name = "FOSTA Codex AI" if is_fosta else "OpenAI"
+                                p_name = "FOSTA Codex AI" if is_fosta else ("9Router" if _is_local_url(base_url) else "OpenAI")
                                 print(f"[AI Service] Generated via {p_name} ({model})!")
                                 return reply
                     elif resp.status in (400, 401, 403, 404, 429, 503):
                         err_text = await resp.text()
-                        print(f"[AI Service] Provider returned {resp.status} for model {model}: {err_text[:120]}")
+                        print(f"[AI Service] Provider returned {resp.status} for model {model}: {err_text[:140]}")
+                        # Tự sửa lỗi tham số nếu proxy/endpoint không tương thích chuẩn reasoning tokens
+                        if resp.status == 400 and any(k in err_text for k in ["max_tokens", "max_completion_tokens", "temperature"]):
+                            retry_payload = {
+                                "model": model,
+                                "messages": [{"role": "user", "content": f"{system_instruction}\n\n{prompt}" if system_instruction else prompt}],
+                                "max_tokens": 4096
+                            }
+                            try:
+                                async with session.post(endpoint, json=retry_payload, headers=headers, timeout=aiohttp.ClientTimeout(total=60)) as r_resp:
+                                    if r_resp.status == 200:
+                                        r_data = await r_resp.json()
+                                        r_choices = r_data.get("choices", [])
+                                        if r_choices:
+                                            r_reply = r_choices[0].get("message", {}).get("content", "").strip()
+                                            if r_reply:
+                                                return r_reply
+                            except Exception:
+                                pass
             except Exception as e:
                 print(f"[AI Service] Provider connection error for {model}: {e}")
                 # Tunnel Quick của Cloudflare đổi URL mỗi lần khởi động lại: xóa cache
@@ -432,19 +530,30 @@ async def test_openai_key(key: str = None, base_url: str = None, model: str = No
     endpoint = f"{target_url}/chat/completions"
     
     is_fosta = "fosta" in target_url.lower()
-    is_router = target_model_hint = (model or cfg.get("model") or "").strip() in ROUTER_MODELS
-    target_model = model or (cfg.get("model") if cfg.get("model") else ("gpt-6.1-sol" if is_fosta else "gpt-4o"))
-    if is_fosta and target_model in ("gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"):
-        target_model = "gpt-6.1-sol"
+    is_router = (model or cfg.get("model") or "").strip() in ROUTER_MODELS
+    target_model = model or (cfg.get("model") if cfg.get("model") else ("gpt-6-astra" if is_fosta else "gpt-4o"))
+    if is_fosta and target_model in ("gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo", "o3-mini", "o1", "gpt-4.5-preview"):
+        target_model = "gpt-6-astra"
 
     headers = {"Authorization": f"Bearer {target_key}", "Content-Type": "application/json"}
     secret_value = gateway_secret()
     if secret_value:
         headers["X-Gateway-Secret"] = secret_value
-    payload = {"model": target_model, "messages": [{"role": "user", "content": "Reply OK"}], "max_tokens": 15}
+
+    is_reasoning = _is_openai_reasoning_model(target_model)
+    payload = {
+        "model": target_model,
+        "messages": [{"role": "user", "content": "Reply OK"}]
+    }
+    if is_reasoning:
+        payload["max_completion_tokens"] = 300
+    else:
+        payload["max_tokens"] = 25
+        payload["temperature"] = 0.3
+
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.post(endpoint, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=12)) as resp:
+            async with session.post(endpoint, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=18)) as resp:
                 provider_title = "FOSTA Codex AI" if is_fosta else ("9Router Gateway" if is_router else "OpenAI ChatGPT")
                 if resp.status == 200:
                     data = await resp.json()
@@ -476,24 +585,30 @@ async def _execute_gemini_payload(
     parts: list = None,
     system_instruction: str = "",
     max_tokens: int = 8192,
-    thinking_budget: int = 384,
-    contents: list = None
+    thinking_budget: int = 512,
+    contents: list = None,
+    quality: str = "deep"
 ) -> str:
     """
-    Thực thi Gemini API với:
-    1. Auto-Failover giữa nhiều API Key khi chạm Quota 429 hoặc lỗi khóa.
-    2. Kiểm soát thinkingBudget + maxOutputTokens=8192 để KHÔNG BAO GIỜ bị cắt cụt chữ giữa chừng!
+    Thực thi AI Engine với:
+    1. Ưu tiên mô hình hàng đầu (OpenAI o3-mini / gpt-4o / FOSTA gpt-6-astra).
+    2. Auto-Failover thông minh sang dàn Google Gemini (gemini-2.5-pro / gemini-2.5-flash).
+    3. Hỗ trợ thinkingConfig chuẩn mực và maxOutputTokens=8192 chống cắt cụt chữ.
     """
-    # Instant 0ms cache for text queries
+    cfg = get_openai_settings()
+    active_model = cfg.get("model", "")
+    priority = cfg.get("priority", "openai_first")
+
+    # Cache thông minh theo nội dung + cấu hình AI đang dùng
     cache_key = None
     if parts and len(parts) == 1 and isinstance(parts[0], dict) and "text" in parts[0] and not parts[0].get("inlineData"):
-        cache_key = hashlib.md5(f"{system_instruction}::{parts[0]['text']}".encode("utf-8")).hexdigest()
+        cache_seed = f"{priority}::{active_model}::{quality}::{system_instruction}::{parts[0]['text']}"
+        cache_key = hashlib.md5(cache_seed.encode("utf-8")).hexdigest()
         if cache_key in AI_CACHE:
             return AI_CACHE[cache_key]
 
-    # PRIORITY 1: ChatGPT / OpenAI API (Top Priority per user instruction)
-    cfg = get_openai_settings()
-    if cfg.get("priority") == "openai_first" and cfg.get("key"):
+    # PRIORITY 1: ChatGPT / OpenAI / FOSTA Codex API
+    if priority == "openai_first" and cfg.get("key"):
         text_prompt = None
         if parts and len(parts) == 1 and isinstance(parts[0], dict) and "text" in parts[0] and not parts[0].get("inlineData"):
             text_prompt = parts[0]["text"]
@@ -507,27 +622,33 @@ async def _execute_gemini_payload(
                 if cache_key:
                     AI_CACHE[cache_key] = openai_res
                 return openai_res
-            print("[AI Service] ChatGPT quota exhausted or unavailable, smoothly falling back to Gemini pool!")
+            print(f"[AI Service] LLM ({active_model}) tạm thời không phản hồi hoặc hết quota, chuyển sang dàn Gemini Pro/Flash!")
 
     candidate_keys = _ordered_candidate_keys()
     if not candidate_keys:
         return None
 
     eff_max_tokens = max(4096, int(max_tokens or 8192))
+    gemini_candidates = _select_gemini_models(quality)
 
     async with aiohttp.ClientSession() as session:
         for api_key in candidate_keys:
             tel = _ensure_telemetry(api_key)
             key_rejected = False
 
-            for model in GEMINI_MODELS:
+            for model in gemini_candidates:
                 url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
                 gen_cfg = {
                     "temperature": 0.35,
                     "maxOutputTokens": eff_max_tokens,
                 }
-                if "lite" not in model:
-                    gen_cfg["thinkingConfig"] = {"thinkingBudget": thinking_budget}
+                
+                # Cấu hình thinkingConfig an toàn cho từng model
+                has_thinking = _supports_gemini_thinking(model)
+                if has_thinking and thinking_budget > 0:
+                    # gemini-2.5-pro yêu cầu budget tối thiểu hoặc tự động
+                    budget = max(256, thinking_budget) if "2.5-pro" in model else thinking_budget
+                    gen_cfg["thinkingConfig"] = {"thinkingBudget": budget}
 
                 payload_contents = contents if contents else [{"role": "user", "parts": parts or [{"text": ""}]}]
                 payload = {
@@ -538,7 +659,7 @@ async def _execute_gemini_payload(
                     payload["systemInstruction"] = {"parts": [{"text": system_instruction}]}
 
                 try:
-                    async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=55)) as resp:
+                    async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=65)) as resp:
                         if resp.status == 200:
                             data = await resp.json()
                             candidates = data.get("candidates", [])
@@ -578,6 +699,27 @@ async def _execute_gemini_payload(
                                 tel["last_error"] = f"Key không hợp lệ ({resp.status})"
                                 key_rejected = True
                                 break
+                            # Nếu lỗi 400 do thinkingConfig không được hỗ trợ trên model này, thử lại ngay không có thinking
+                            if resp.status == 400 and "thinking" in err_body.lower() and "thinkingConfig" in gen_cfg:
+                                fallback_cfg = dict(gen_cfg)
+                                fallback_cfg.pop("thinkingConfig", None)
+                                retry_payload = dict(payload)
+                                retry_payload["generationConfig"] = fallback_cfg
+                                try:
+                                    async with session.post(url, json=retry_payload, timeout=aiohttp.ClientTimeout(total=45)) as r_resp:
+                                        if r_resp.status == 200:
+                                            r_data = await r_resp.json()
+                                            r_candidates = r_data.get("candidates", [])
+                                            if r_candidates:
+                                                r_parts = r_candidates[0].get("content", {}).get("parts", [])
+                                                r_text = "".join([p.get("text", "") for p in r_parts if isinstance(p, dict) and p.get("text")]).strip()
+                                                if r_text:
+                                                    tel["calls"] += 1
+                                                    tel["status"] = "active"
+                                                    tel["model"] = model
+                                                    return r_text
+                                except Exception:
+                                    pass
                             continue
                         else:
                             continue
@@ -591,12 +733,19 @@ async def _execute_gemini_payload(
     return None
 
 
-async def call_gemini(prompt: str, system_instruction: str = "", max_tokens: int = 8192, thinking_budget: int = 384) -> str:
+async def call_gemini(
+    prompt: str,
+    system_instruction: str = "",
+    max_tokens: int = 8192,
+    thinking_budget: int = 512,
+    quality: str = "deep"
+) -> str:
     return await _execute_gemini_payload(
         [{"text": prompt}],
         system_instruction=system_instruction,
         max_tokens=max_tokens,
-        thinking_budget=thinking_budget
+        thinking_budget=thinking_budget,
+        quality=quality
     )
 
 
@@ -606,7 +755,7 @@ async def call_gemini_multimodal(prompt: str, mime_type: str, raw_bytes: bytes, 
         {"inlineData": {"mimeType": mime_type, "data": b64}},
         {"text": prompt}
     ]
-    return await _execute_gemini_payload(parts, max_tokens=max_tokens, thinking_budget=384)
+    return await _execute_gemini_payload(parts, max_tokens=max_tokens, thinking_budget=384, quality="deep")
 
 
 async def test_api_key(api_key: str) -> dict:
@@ -614,11 +763,14 @@ async def test_api_key(api_key: str) -> dict:
         return {"success": False, "message": "Chưa nhập API Key"}
 
     tel = _ensure_telemetry(api_key)
+    # Thử trước với các model kiểm tra nhanh và ổn định nhất
+    fast_check_models = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-2.5-pro"]
     async with aiohttp.ClientSession() as session:
-        for model in GEMINI_MODELS:
+        for model in fast_check_models:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={api_key}"
             gen_cfg = {"maxOutputTokens": 64}
-            if "lite" not in model:
+            # Không gửi thinkingBudget=0 trên gemini-2.5-pro vì nó yêu cầu thinking mode
+            if "2.5-pro" not in model and _supports_gemini_thinking(model):
                 gen_cfg["thinkingConfig"] = {"thinkingBudget": 0}
             payload = {
                 "contents": [{"parts": [{"text": "Reply OK"}]}],
@@ -630,7 +782,7 @@ async def test_api_key(api_key: str) -> dict:
                         tel["status"] = "active"
                         tel["cooldown_until"] = 0.0
                         tel["model"] = model
-                        return {"success": True, "model": model, "masked_key": mask_key(api_key), "message": f"Hoạt động tốt ({model})"}
+                        return {"success": True, "model": model, "masked_key": mask_key(api_key), "message": f"Hoạt động xuất sắc ({model})"}
                     elif resp.status == 429:
                         tel["status"] = "cooldown"
                         tel["cooldown_until"] = time.time() + 75
@@ -677,57 +829,37 @@ async def ai_extract_from_multimodal(mime_type: str, raw_bytes: bytes, filename:
 # =========================================================================
 # CORE & ADVANCED EDUCATIONAL AI SERVICES
 # =========================================================================
-async def ai_chat_tutor(subject_name: str, user_message: str, persona: str = "professor", history: list = None, tutor_style_prompt: str = "") -> str:
-    import openai
-
-    persona_map = {
-        "professor": "Phong cách Giáo sư Đại học uyên bác: phân tích cặn kẽ bản chất, công thức chuẩn xác và chỉ rõ bẫy đề thi.",
-        "feynman": "Phong cách Richard Feynman siêu dễ hiểu: giải thích bằng hình ảnh đời thường sinh động để sinh viên mất gốc cũng hiểu ngay trong 1 phút.",
-        "speed": "Phong cách Cao thủ Giải nhanh Trắc nghiệm: đi thẳng vào công thức bấm máy / loại trừ đáp án trong 10 giây.",
-        "examiner": "Phong cách Giảng viên Vấn đáp: giải đáp ngắn gọn rồi đặt ngược lại 1 câu hỏi xoáy tình huống để kiểm tra độ hiểu sâu của sinh viên."
-    }
-    style_desc = persona_map.get(persona, persona_map["professor"])
-
-    # Tích hợp GPT-4
-    prompt = f"""
-    Bạn là một gia sư AI chuyên nghiệp. Chủ đề: {subject_name}.
-    Phong cách: {style_desc}.
-    Lịch sử hội thoại:
-    {history or "(không có lịch sử)"}
-
-    Câu hỏi: {user_message}
+async def ai_chat_tutor(
+    subject_name: str,
+    user_message: str,
+    persona: str = "professor",
+    history: list = None,
+    tutor_style_prompt: str = ""
+) -> str:
     """
-
-    try:
-        response = openai.ChatCompletion.create(
-            model="gpt-4",
-            messages=[{"role": "system", "content": "Bạn là một gia sư AI."},
-                      {"role": "user", "content": prompt}],
-            max_tokens=500
-        )
-        return response['choices'][0]['message']['content']
-    except Exception as e:
-        return f"Lỗi khi gọi GPT-4: {str(e)}"
+    Gia sư AI cao cấp đa nhân cách (Professor, Feynman, Speed Solver, Examiner),
+    tự động định tuyến tới mô hình lý luận xịn nhất (OpenAI o3-mini / gpt-4o / FOSTA gpt-6-astra / Gemini 2.5 Pro).
+    """
     persona_map = {
-        "professor": "Phong cách Giáo sư Đại học uyên bác: phân tích cặn kẽ bản chất, công thức chuẩn xác và chỉ rõ bẫy đề thi.",
-        "feynman": "Phong cách Richard Feynman siêu dễ hiểu: giải thích bằng hình ảnh đời thường sinh động để sinh viên mất gốc cũng hiểu ngay trong 1 phút.",
-        "speed": "Phong cách Cao thủ Giải nhanh Trắc nghiệm: đi thẳng vào công thức bấm máy / loại trừ đáp án trong 10 giây.",
-        "examiner": "Phong cách Giảng viên Vấn đáp: giải đáp ngắn gọn rồi đặt ngược lại 1 câu hỏi xoáy tình huống để kiểm tra độ hiểu sâu của sinh viên."
+        "professor": "Phong cách Giáo sư Đại học uyên bác: phân tích cặn kẽ bản chất học thuật, biến đổi công thức chuẩn xác, chỉ rõ điều kiện áp dụng và vạch trần bẫy đề thi kinh điển.",
+        "feynman": "Phong cách Richard Feynman siêu trực quan: giải thích bản chất bằng hình ảnh đời thường sinh động, phép so sánh dễ hiểu để người mới học cũng hiểu ngay trong 1 phút.",
+        "speed": "Phong cách Cao thủ Giải nhanh Trắc nghiệm: đi thẳng vào công thức chốt hạ, kỹ thuật bấm máy tính Casio, nhận diện dấu hiệu và phương pháp loại trừ đáp án trong 5-10 giây.",
+        "examiner": "Phong cách Giảng viên Vấn đáp: giải đáp súc tích bản chất cốt lõi, sau đó đặt lại 1 câu hỏi tình huống sắc bén nhằm kích thích tư duy phản biện và kiểm tra độ hiểu sâu của sinh viên."
     }
     style_desc = persona_map.get(persona, persona_map["professor"])
     english_guidance = """
 Khi giải thích bất kỳ ngôn ngữ hoặc thuật ngữ chuyên ngành nào, luôn nêu nguồn gốc khi liên quan:
 - Với từ/cụm từ: giải thích gốc từ, tiền tố/hậu tố, ngôn ngữ nguồn và quá trình biến đổi nghĩa nếu biết.
-- Với thuật ngữ khoa học: giải nghĩa cấu tạo thuật ngữ (ví dụ gốc Greek/Latin), nhưng không gán từ nguyên khi không có căn cứ.
-- Phân biệt dữ kiện chắc chắn với giả thuyết; nếu không chắc, nói rõ và đề xuất nguồn tra cứu đáng tin cậy của ngôn ngữ đó (ví dụ OED, Merriam-Webster, Etymonline).
-- Thêm từ cùng họ/đồng nguyên, 2 ví dụ tự nhiên, cách dùng và lỗi phổ biến khi phù hợp.
-Dùng các mục ngắn: **Nguồn gốc**, **Họ từ/Thuật ngữ liên quan**, **Cách dùng**, **Ví dụ**, **Ghi chú độ tin cậy**.
+- Với thuật ngữ khoa học: giải nghĩa cấu tạo thuật ngữ (ví dụ gốc Hy Lạp/Latin), nhưng không gán từ nguyên khi không có căn cứ.
+- Phân biệt dữ kiện chắc chắn với giả thuyết; nêu rõ tài liệu chuẩn tra cứu.
+- Thêm từ cùng họ/đồng nguyên, ví dụ tự nhiên và lỗi phổ biến khi áp dụng.
+Dùng các mục ngắn gọn: **Nguồn gốc**, **Họ từ/Thuật ngữ liên quan**, **Cách dùng**, **Ví dụ**, **Ghi chú độ tin cậy**.
 """
 
     custom_style = str(tutor_style_prompt or '').strip()[:1200]
-    custom_guidance = f"\nYêu cầu phong cách bổ sung của sinh viên: {custom_style}\nHãy tuân thủ nếu không mâu thuẫn với tính chính xác, an toàn và mục tiêu học tập." if custom_style else ''
-    system_prompt = f"""Bạn là UniMaster AI — Gia sư ôn thi Đại học xuất sắc cho môn "{subject_name}".
-Chế độ giảng dạy: {style_desc}
+    custom_guidance = f"\nYêu cầu phong cách bổ sung của sinh viên: {custom_style}\nHãy tuân thủ nếu không mâu thuẫn với tính chính xác học thuật và mục tiêu học tập." if custom_style else ''
+    system_prompt = f"""Bạn là UniMaster AI — Gia sư ôn thi Đại học & Chuyên gia Học thuật hàng đầu cho học phần "{subject_name}".
+Chế độ giảng dạy đang kích hoạt: {style_desc}
 {custom_guidance}
 {english_guidance}
 {STEM_FORMAT_GUIDE}"""
@@ -735,20 +867,24 @@ Chế độ giảng dạy: {style_desc}
     cfg = get_openai_settings()
     provider_priority = cfg.get("priority", "openai_first")
 
-    # Khi người dùng chọn FOSTA/OpenAI ưu tiên số 1, phải gọi provider này
-    # trước Gemini. Trước đây hàm chỉ gọi Gemini rồi mới in fallback FOSTA,
-    # khiến FOSTA chưa từng được dùng dù API Key và endpoint hoàn toàn đúng.
+    # Khi người dùng chọn FOSTA/OpenAI ưu tiên số 1:
     if provider_priority == "openai_first" and cfg.get("key"):
-        openai_prompt = user_message
+        # Xây dựng danh sách hội thoại đa lượt chuẩn xác
+        chat_messages = []
         if history and isinstance(history, list):
-            previous = []
             for turn in history[-8:]:
+                role = "assistant" if turn.get("role") in ("model", "assistant") else "user"
                 txt = str(turn.get("content") or turn.get("text") or "").strip()
                 if txt:
-                    previous.append(f"{turn.get('role', 'user')}: {txt}")
-            if previous:
-                openai_prompt = "Lịch sử hội thoại gần đây:\n" + "\n".join(previous) + "\n\nCâu hỏi mới của sinh viên:\n" + user_message
-        openai_reply = await _call_openai_chatgpt(openai_prompt, system_instruction=system_prompt, max_tokens=4096)
+                    chat_messages.append({"role": role, "content": txt})
+        chat_messages.append({"role": "user", "content": user_message})
+
+        openai_reply = await _call_openai_chatgpt(
+            prompt=user_message,
+            system_instruction=system_prompt,
+            max_tokens=6144,
+            messages_override=chat_messages
+        )
         if openai_reply:
             return openai_reply
 
