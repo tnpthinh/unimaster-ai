@@ -4108,6 +4108,19 @@
           <div id="admin-login-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center"></div>
           <div id="admin-storage-warning" class="hidden"></div>
           <div id="admin-login-events-list" class="space-y-2 max-h-[40vh] overflow-y-auto pr-1"></div>
+
+          <div class="pt-3 space-y-3" style="border-top: 1px solid var(--border);">
+            <h4 class="text-xs font-black uppercase tracking-wider txt-sub">🗂️ Sao Lưu / Khôi Phục Dữ Liệu</h4>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="downloadCurrentDb()" class="btn-soft px-4 py-2 text-xs flex items-center gap-1.5">
+                📥 Tải về DB hiện tại
+              </button>
+              <input type="file" id="upload-db-input" class="hidden" onchange="uploadNewDb(this)" accept=".db" />
+              <button type="button" onclick="document.getElementById('upload-db-input').click()" class="btn-soft px-4 py-2 text-xs flex items-center gap-1.5">
+                📤 Tải lên DB mới
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

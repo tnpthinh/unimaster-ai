@@ -9748,7 +9748,42 @@ function switchAccountTab(tab) {
   document.getElementById('acc-tab-admin-btn')?.classList.toggle('active', tab === 'admin');
 
   if (tab === 'switch') renderAccountsListUI();
-  if (tab === 'admin') { loadAdminUsersList(); loadAdminLoginEvents(); }
+  if (tab === 'admin') {
+    loadAdminUsersList();
+    loadAdminLoginEvents();
+    window.downloadCurrentDb = async function() {
+      try {
+        const res = await fetch('/api/admin/backup/download');
+        if (!res.ok) throw new Error('Không tải được file DB');
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'unimaster-backup.db';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } catch (err) {
+        showToast('Lỗi: ' + err.message, 'error');
+      }
+    };
+
+    window.uploadNewDb = async function(inputEl) {
+      const file = inputEl?.files?.[0];
+      if (!file) return;
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        const res = await fetch('/api/admin/backup/upload', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error || 'Không thể tải lên file DB');
+        showToast('🎉 Đã tải lên và khôi phục DB thành công!', 'success');
+      } catch (err) {
+        showToast('Lỗi: ' + err.message, 'error');
+      }
+    };
+  }
 }
 
 // --- Nhật ký đăng nhập toàn hệ thống (chỉ admin) ---

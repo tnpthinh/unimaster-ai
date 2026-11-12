@@ -1920,6 +1920,48 @@ async def export_backup(request):
 
 
 async def import_backup(request):
+    pass
+
+async def admin_upload_backup(request):
+    """Nhận file .db từ Admin để khôi phục dữ liệu."""
+    user_info = request.get("user", {})
+    if user_info.get("role") != "admin":
+        return json_resp({"success": False, "error": "Chỉ Quản trị viên mới có quyền tải lên."}, 403)
+
+    reader = await request.multipart()
+    field = await reader.next()
+    if not field or field.name != 'file':
+        return json_resp({"success": False, "error": "Không tìm thấy file tải lên."}, 400)
+
+    tmp_path = tempfile.mktemp(suffix=".db")
+    with open(tmp_path, 'wb') as f:
+        while True:
+            chunk = await field.read_chunk()
+            if not chunk:
+                break
+            f.write(chunk)
+
+    try:
+        conn = sqlite3.connect(tmp_path)
+        conn.execute("PRAGMA integrity_check;")
+        conn.close()
+        shutil.copyfile(tmp_path, db.DB_PATH)
+        return json_resp({"success": True, "message": "Đã khôi phục dữ liệu thành công."})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+    finally:
+        os.unlink(tmp_path)
+
+async def admin_download_backup(request):
+    """Cho phép Admin tải về file .db hiện tại."""
+    user_info = request.get("user", {})
+    if user_info.get("role") != "admin":
+        return json_resp({"success": False, "error": "Chỉ Quản trị viên mới có quyền tải về."}, 403)
+
+    if not os.path.exists(db.DB_PATH):
+        return json_resp({"success": False, "error": "Không tìm thấy file dữ liệu."}, 404)
+
+    return web.FileResponse(path=db.DB_PATH, headers={"Content-Disposition": f"attachment; filename=unimaster-{datetime.now().strftime('%Y%m%d')}.db"})
     try:
         data = await safe_get_json(request)
         if "user_state" in data and isinstance(data["user_state"], dict):
@@ -2343,6 +2385,8 @@ def create_app():
     app.router.add_post("/api/user-state", save_user_state)
     app.router.add_get("/api/offline-snapshot", get_offline_snapshot)
     app.router.add_get("/api/backup/export", export_backup)
+    app.router.add_post("/api/admin/backup/upload", admin_upload_backup)
+    app.router.add_get("/api/admin/backup/download", admin_download_backup)
     app.router.add_post("/api/backup/import", import_backup)
     app.router.add_get("/api/export-standalone", export_standalone_html)
 
