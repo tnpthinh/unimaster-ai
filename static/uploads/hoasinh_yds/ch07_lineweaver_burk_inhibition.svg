@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="100%" height="100%">
+  <rect width="800" height="360" fill="#0f172a" rx="16"/>
+  <text x="400" y="36" fill="#38bdf8" font-size="20" font-weight="bold" text-anchor="middle" font-family="sans-serif">ĐỘNG HỌC ENZYM: ĐỒ THỊ LINEWEAVER-BURK &amp; CÁC DẠNG ỨC CHẾ</text>
+  
+  <g transform="translate(60, 65)">
+    <!-- Axes -->
+    <line x1="80" y1="230" x2="680" y2="230" stroke="#64748b" stroke-width="2"/>
+    <line x1="280" y1="20" x2="280" y2="260" stroke="#64748b" stroke-width="2"/>
+    <text x="680" y="250" fill="#94a3b8" font-size="13" font-family="monospace">1/[S]</text>
+    <text x="270" y="25" fill="#94a3b8" font-size="13" font-family="monospace" text-anchor="end">1/v</text>
+    
+    <!-- Uninhibited curve -->
+    <line x1="140" y1="230" x2="600" y2="50" stroke="#10b981" stroke-width="3.5"/>
+    <text x="610" y="55" fill="#34d399" font-size="13" font-weight="bold">Không ức chế</text>
+    <circle cx="140" cy="230" r="5" fill="#10b981"/>
+    <text x="140" y="250" fill="#34d399" font-size="11" text-anchor="middle">-1/Km</text>
+    <circle cx="280" cy="175" r="5" fill="#10b981"/>
+    <text x="265" y="178" fill="#34d399" font-size="11" text-anchor="end">1/Vmax</text>
+
+    <!-- Competitive inhibition curve (Same Y-intercept, shifted X-intercept) -->
+    <line x1="210" y1="230" x2="600" y2="90" stroke="#f59e0b" stroke-width="3" stroke-dasharray="6,4"/>
+    <text x="610" y="95" fill="#fbbf24" font-size="13" font-weight="bold">Ức chế Cạnh tranh (Km tăng, Vmax không đổi)</text>
+    <circle cx="210" cy="230" r="5" fill="#f59e0b"/>
+    <text x="210" y="250" fill="#fbbf24" font-size="11" text-anchor="middle">-1/Km'</text>
+
+    <!-- Non-competitive inhibition curve (Same X-intercept, shifted Y-intercept) -->
+    <line x1="140" y1="230" x2="520" y2="30" stroke="#ef4444" stroke-width="3" stroke-dasharray="3,3"/>
+    <text x="530" y="30" fill="#f87171" font-size="13" font-weight="bold">Ức chế Phi cạnh tranh (Vmax giảm, Km không đổi)</text>
+    <circle cx="280" cy="140" r="5" fill="#ef4444"/>
+    <text x="265" y="140" fill="#f87171" font-size="11" text-anchor="end">1/Vmax'</text>
+  </g>
+</svg>

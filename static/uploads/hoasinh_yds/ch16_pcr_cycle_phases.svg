@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="100%" height="100%">
+  <rect width="800" height="360" fill="#0f172a" rx="16"/>
+  <text x="400" y="32" fill="#38bdf8" font-size="19" font-weight="bold" text-anchor="middle" font-family="sans-serif">SINH HỌC PHÂN TỬ: 3 GIAI ĐOẠN CỦA 1 CHU KỲ PHẢN ỨNG PCR</text>
+  
+  <g transform="translate(60, 60)">
+    <!-- Phase 1 -->
+    <rect x="0" y="20" width="210" height="240" fill="#1e293b" rx="12" stroke="#ef4444" stroke-width="2"/>
+    <text x="105" y="48" fill="#f87171" font-size="15" font-weight="bold" text-anchor="middle">GIAI ĐOẠN 1</text>
+    <text x="105" y="72" fill="#fca5a5" font-size="18" font-weight="black" text-anchor="middle">94°C – 95°C</text>
+    <text x="105" y="105" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle">BIẾN TÍNH</text>
+    <text x="105" y="125" fill="#94a3b8" font-size="12" text-anchor="middle">(Denaturation)</text>
+    <line x1="30" y1="150" x2="180" y2="150" stroke="#f87171" stroke-width="3"/>
+    <line x1="30" y1="175" x2="180" y2="175" stroke="#f87171" stroke-width="3"/>
+    <text x="105" y="210" fill="#e2e8f0" font-size="11" text-anchor="middle">Phá vỡ liên kết Hydro</text>
+    <text x="105" y="230" fill="#e2e8f0" font-size="11" text-anchor="middle">Tách DNA đôi → 2 sợi đơn</text>
+    
+    <!-- Phase 2 -->
+    <rect x="235" y="20" width="210" height="240" fill="#1e293b" rx="12" stroke="#3b82f6" stroke-width="2"/>
+    <text x="340" y="48" fill="#60a5fa" font-size="15" font-weight="bold" text-anchor="middle">GIAI ĐOẠN 2</text>
+    <text x="340" y="72" fill="#93c5fd" font-size="18" font-weight="black" text-anchor="middle">50°C – 65°C</text>
+    <text x="340" y="105" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle">BẮT CẶP MỒI</text>
+    <text x="340" y="125" fill="#94a3b8" font-size="12" text-anchor="middle">(Annealing)</text>
+    <line x1="265" y1="150" x2="415" y2="150" stroke="#60a5fa" stroke-width="2"/>
+    <line x1="265" y1="150" x2="310" y2="150" stroke="#fbbf24" stroke-width="4"/>
+    <line x1="265" y1="175" x2="415" y2="175" stroke="#60a5fa" stroke-width="2"/>
+    <line x1="370" y1="175" x2="415" y2="175" stroke="#fbbf24" stroke-width="4"/>
+    <text x="340" y="210" fill="#e2e8f0" font-size="11" text-anchor="middle">Mồi Forward &amp; Reverse</text>
+    <text x="340" y="230" fill="#e2e8f0" font-size="11" text-anchor="middle">gắn đặc hiệu theo bổ sung</text>
+
+    <!-- Phase 3 -->
+    <rect x="470" y="20" width="210" height="240" fill="#1e293b" rx="12" stroke="#10b981" stroke-width="2"/>
+    <text x="575" y="48" fill="#34d399" font-size="15" font-weight="bold" text-anchor="middle">GIAI ĐOẠN 3</text>
+    <text x="575" y="72" fill="#6ee7b7" font-size="18" font-weight="black" text-anchor="middle">72°C</text>
+    <text x="575" y="105" fill="#ffffff" font-size="14" font-weight="bold" text-anchor="middle">KÉO DÀI</text>
+    <text x="575" y="125" fill="#94a3b8" font-size="12" text-anchor="middle">(Extension)</text>
+    <line x1="500" y1="150" x2="650" y2="150" stroke="#10b981" stroke-width="4"/>
+    <circle cx="560" cy="150" r="10" fill="#f59e0b"/>
+    <text x="560" y="154" fill="#000" font-size="9" font-weight="bold" text-anchor="middle">Taq</text>
+    <text x="575" y="210" fill="#e2e8f0" font-size="11" text-anchor="middle">Taq Polymerase tổng hợp</text>
+    <text x="575" y="230" fill="#e2e8f0" font-size="11" text-anchor="middle">chiều 5' → 3' từ dNTPs (Mg2+)</text>
+  </g>
+</svg>

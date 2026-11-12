@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="100%" height="100%">
+  <rect width="800" height="360" fill="#0f172a" rx="16"/>
+  <text x="400" y="36" fill="#38bdf8" font-size="20" font-weight="bold" text-anchor="middle" font-family="sans-serif">HÓA HỌC NUCLEOTID &amp; CẤU TRÚC XOẮN KÉP ACID NUCLEIC</text>
+  <g transform="translate(50, 65)">
+    <rect width="330" height="260" fill="#1e293b" rx="12" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="165" y="30" fill="#7dd3fc" font-size="14" font-weight="bold" text-anchor="middle">Thành Phần Đơn Phân (Nucleotid)</text>
+    <rect x="20" y="55" width="290" height="55" fill="#334155" rx="8"/>
+    <text x="165" y="78" fill="#fef08a" font-size="12" font-weight="bold" text-anchor="middle">1. Base Nitơ: Purine &amp; Pyrimidine</text>
+    <text x="165" y="98" fill="#e2e8f0" font-size="11" text-anchor="middle">Purine: Adenin (A), Guanin (G) (2 vòng)</text>
+    <rect x="20" y="120" width="290" height="55" fill="#334155" rx="8"/>
+    <text x="165" y="143" fill="#f472b6" font-size="12" font-weight="bold" text-anchor="middle">2. Đường Pentose (5 Carbon)</text>
+    <text x="165" y="163" fill="#e2e8f0" font-size="11" text-anchor="middle">DNA: 2'-deoxy-D-ribose | RNA: D-ribose</text>
+    <rect x="20" y="185" width="290" height="55" fill="#334155" rx="8"/>
+    <text x="165" y="208" fill="#34d399" font-size="12" font-weight="bold" text-anchor="middle">3. Gốc Phosphat (H3PO4)</text>
+    <text x="165" y="228" fill="#e2e8f0" font-size="11" text-anchor="middle">Liên kết Phosphodiester 3'-5' nối các monome</text>
+  </g>
+  <g transform="translate(410, 65)">
+    <rect width="340" height="260" fill="#1e293b" rx="12" stroke="#8b5cf6" stroke-width="1.5"/>
+    <text x="170" y="30" fill="#c084fc" font-size="14" font-weight="bold" text-anchor="middle">Quy Tắc Chargaff &amp; Watson-Crick</text>
+    <rect x="20" y="55" width="300" height="60" fill="#334155" rx="8"/>
+    <text x="170" y="80" fill="#38bdf8" font-size="13" font-weight="bold" text-anchor="middle">A = T (2 liên kết Hydro)</text>
+    <text x="170" y="102" fill="#f87171" font-size="13" font-weight="bold" text-anchor="middle">G ≡ C (3 liên kết Hydro - Bền hơn)</text>
+    <rect x="20" y="125" width="300" height="115" fill="#334155" rx="8"/>
+    <text x="170" y="148" fill="#fef08a" font-size="12" font-weight="bold" text-anchor="middle">Đặc Điểm Mô Hình B-DNA</text>
+    <text x="170" y="170" fill="#e2e8f0" font-size="11" text-anchor="middle">• 2 chuỗi song song ngược chiều (5'→3' &amp; 3'→5')</text>
+    <text x="170" y="190" fill="#e2e8f0" font-size="11" text-anchor="middle">• Chu kỳ xoắn: 3,4 nm = 10 cặp base (bp)</text>
+    <text x="170" y="210" fill="#e2e8f0" font-size="11" text-anchor="middle">• Đường kính xoắn: 2,0 nm (20 Å)</text>
+    <text x="170" y="230" fill="#6ee7b7" font-size="11" text-anchor="middle">• Rãnh lớn (Major groove) &amp; Rãnh nhỏ</text>
+  </g>
+</svg>

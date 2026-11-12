@@ -283,7 +283,7 @@ def delete_subject(subject_id):
     conn.close()
 
 # Câu hỏi
-def get_questions_by_subject(subject_id, q_type=None, limit=None, random_order=False):
+def get_questions_by_subject(subject_id, q_type=None, limit=None, random_order=False, topic_tag=None):
     conn = get_connection()
     c = conn.cursor()
     query = "SELECT * FROM questions WHERE subject_id = ?"
@@ -292,6 +292,10 @@ def get_questions_by_subject(subject_id, q_type=None, limit=None, random_order=F
     if q_type and q_type != 'all':
         query += " AND q_type = ?"
         params.append(q_type)
+
+    if topic_tag and topic_tag != 'all':
+        query += " AND (topic_tag LIKE ? OR topic_tag = ?)"
+        params.extend([f"%{topic_tag}%", topic_tag])
         
     if random_order:
         query += " ORDER BY RANDOM()"

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="100%" height="100%">
+  <rect width="800" height="360" fill="#0f172a" rx="16"/>
+  <text x="400" y="36" fill="#38bdf8" font-size="20" font-weight="bold" text-anchor="middle" font-family="sans-serif">HÓA HỌC PROTID: ACID AMIN, ĐIỂM ĐẲNG ĐIỆN &amp; LIÊN KẾT PEPTID</text>
+  <g transform="translate(50, 65)">
+    <rect width="210" height="260" fill="#1e293b" rx="12" stroke="#38bdf8" stroke-width="2"/>
+    <text x="105" y="30" fill="#7dd3fc" font-size="14" font-weight="bold" text-anchor="middle" font-family="sans-serif">Dạng Lưỡng Cực (Zwitterion)</text>
+    <text x="105" y="70" fill="#f8fafc" font-size="14" text-anchor="middle" font-family="monospace">+H3N — CH(R) — COO-</text>
+    <rect x="20" y="100" width="170" height="70" fill="#334155" rx="8"/>
+    <text x="105" y="122" fill="#fef08a" font-size="12" font-weight="bold" text-anchor="middle" font-family="sans-serif">pH = pI (Điểm đẳng điện)</text>
+    <text x="105" y="145" fill="#e2e8f0" font-size="11" text-anchor="middle" font-family="sans-serif">Điện tích thực = 0</text>
+    <text x="105" y="160" fill="#fca5a5" font-size="11" text-anchor="middle" font-family="sans-serif">Không di chuyển trong điện di</text>
+    <text x="105" y="205" fill="#93c5fd" font-size="11" text-anchor="middle" font-family="sans-serif">pH &lt; pI: Tích điện (+) (Cation)</text>
+    <text x="105" y="230" fill="#f472b6" font-size="11" text-anchor="middle" font-family="sans-serif">pH &gt; pI: Tích điện (-) (Anion)</text>
+  </g>
+  <g transform="translate(295, 65)">
+    <rect width="210" height="260" fill="#1e293b" rx="12" stroke="#a855f7" stroke-width="2"/>
+    <text x="105" y="30" fill="#c084fc" font-size="14" font-weight="bold" text-anchor="middle" font-family="sans-serif">Cấu Trúc Liên Kết Peptid</text>
+    <text x="105" y="75" fill="#f8fafc" font-size="15" text-anchor="middle" font-family="monospace">— CO — NH —</text>
+    <rect x="20" y="100" width="170" height="140" fill="#334155" rx="8"/>
+    <text x="105" y="125" fill="#6ee7b7" font-size="12" font-weight="bold" text-anchor="middle" font-family="sans-serif">Tính Chất Bền Vững</text>
+    <text x="105" y="150" fill="#e2e8f0" font-size="11" text-anchor="middle" font-family="sans-serif">• Đồng phẳng, lai hóa sp2</text>
+    <text x="105" y="175" fill="#e2e8f0" font-size="11" text-anchor="middle" font-family="sans-serif">• Bản chất liên kết đôi một phần</text>
+    <text x="105" y="200" fill="#fef08a" font-size="11" text-anchor="middle" font-family="sans-serif">• Cấu hình Trans bền hơn Cis</text>
+    <text x="105" y="225" fill="#cbd5e1" font-size="11" text-anchor="middle" font-family="sans-serif">• Bị thủy phân bởi protease</text>
+  </g>
+  <g transform="translate(540, 65)">
+    <rect width="210" height="260" fill="#1e293b" rx="12" stroke="#10b981" stroke-width="2"/>
+    <text x="105" y="30" fill="#34d399" font-size="14" font-weight="bold" text-anchor="middle" font-family="sans-serif">Bậc Cấu Trúc Protein</text>
+    <rect x="15" y="55" width="180" height="40" fill="#064e3b" rx="6"/>
+    <text x="105" y="80" fill="#a7f3d0" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">Bậc 1: Chuỗi polypeptide</text>
+    <rect x="15" y="105" width="180" height="40" fill="#047857" rx="6"/>
+    <text x="105" y="130" fill="#ecfdf5" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">Bậc 2: Xoắn α &amp; Gấp nếp β</text>
+    <rect x="15" y="155" width="180" height="40" fill="#059669" rx="6"/>
+    <text x="105" y="180" fill="#ffffff" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">Bậc 3: Không gian 3D cuộn</text>
+    <rect x="15" y="205" width="180" height="40" fill="#10b981" rx="6"/>
+    <text x="105" y="230" fill="#0f172a" font-size="11" font-weight="bold" text-anchor="middle" font-family="sans-serif">Bậc 4: Nhiều tiểu đơn vị (Hb)</text>
+  </g>
+</svg>

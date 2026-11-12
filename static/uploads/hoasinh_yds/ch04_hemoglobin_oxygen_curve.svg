@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="100%" height="100%">
+  <rect width="800" height="360" fill="#0f172a" rx="16"/>
+  <text x="400" y="36" fill="#f87171" font-size="20" font-weight="bold" text-anchor="middle" font-family="sans-serif">HÓA HỌC HEMOGLOBIN: ĐƯỜNG CONG Phân Ly O2 &amp; HIỆU ỨNG BOHR</text>
+  <g transform="translate(60, 65)">
+    <rect width="380" height="260" fill="#1e293b" rx="12" stroke="#ef4444" stroke-width="1.5"/>
+    <line x1="50" y1="220" x2="340" y2="220" stroke="#94a3b8" stroke-width="2"/>
+    <line x1="50" y1="220" x2="50" y2="40" stroke="#94a3b8" stroke-width="2"/>
+    <text x="345" y="225" fill="#cbd5e1" font-size="11" font-family="sans-serif">pO2 (mmHg)</text>
+    <text x="50" y="30" fill="#cbd5e1" font-size="11" font-family="sans-serif">Độ bão hòa O2 (%)</text>
+    <path d="M 50,220 Q 70,60 330,55" fill="none" stroke="#38bdf8" stroke-width="3" stroke-dasharray="4,4"/>
+    <text x="210" y="75" fill="#38bdf8" font-size="12" font-weight="bold">Myoglobin (Hyperbol)</text>
+    <path d="M 50,220 C 120,215 150,110 330,65" fill="none" stroke="#ef4444" stroke-width="3.5"/>
+    <text x="220" y="130" fill="#f87171" font-size="12" font-weight="bold">Hemoglobin (Sigmoid - Chữ S)</text>
+    <path d="M 50,220 C 150,220 180,140 330,85" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3,3"/>
+    <text x="210" y="180" fill="#f59e0b" font-size="11">Chuyển Phải: Tăng H+, CO2, 2,3-BPG, T°</text>
+  </g>
+  <g transform="translate(460, 65)">
+    <rect width="280" height="260" fill="#1e293b" rx="12" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="140" y="30" fill="#fbbf24" font-size="14" font-weight="bold" text-anchor="middle" font-family="sans-serif">Hiệu Ứng Bohr &amp; Điều Hòa</text>
+    <rect x="15" y="50" width="250" height="55" fill="#334155" rx="8"/>
+    <text x="140" y="72" fill="#ef4444" font-size="12" font-weight="bold" text-anchor="middle">Tại Mô Ngoại Vi (Chuyển Phải)</text>
+    <text x="140" y="92" fill="#fecaca" font-size="11" text-anchor="middle">Tăng pCO2, tăng H+ (giảm pH) =&gt; Nhả O2</text>
+    <rect x="15" y="115" width="250" height="55" fill="#334155" rx="8"/>
+    <text x="140" y="137" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">Tại Phổi (Chuyển Trái)</text>
+    <text x="140" y="157" fill="#bae6fd" font-size="11" text-anchor="middle">Giảm pCO2, kiềm hóa =&gt; Tăng bắt O2</text>
+    <rect x="15" y="180" width="250" height="65" fill="#334155" rx="8"/>
+    <text x="140" y="202" fill="#a855f7" font-size="12" font-weight="bold" text-anchor="middle">HbF so với HbA (Người lớn)</text>
+    <text x="140" y="222" fill="#e9d5ff" font-size="10.5" text-anchor="middle">HbF (α2γ2) ái lực 2,3-BPG yếu hơn</text>
+    <text x="140" y="237" fill="#e9d5ff" font-size="10.5" text-anchor="middle">=&gt; Ái lực O2 CAO HƠN HbA (bắt O2 từ mẹ)</text>
+  </g>
+</svg>

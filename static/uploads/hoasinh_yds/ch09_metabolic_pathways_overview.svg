@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="100%" height="100%">
+  <rect width="800" height="360" fill="#0f172a" rx="16"/>
+  <text x="400" y="36" fill="#38bdf8" font-size="20" font-weight="bold" text-anchor="middle" font-family="sans-serif">KHÁI NIỆM VỀ CHUYỂN HÓA CÁC CHẤT &amp; DÒNG NĂNG LƯỢNG</text>
+  <g transform="translate(50, 65)">
+    <rect width="330" height="260" fill="#1e293b" rx="12" stroke="#38bdf8" stroke-width="1.5"/>
+    <text x="165" y="30" fill="#7dd3fc" font-size="14" font-weight="bold" text-anchor="middle">Dị Hóa (Catabolism - Phân giải)</text>
+    <rect x="20" y="55" width="290" height="45" fill="#334155" rx="6"/>
+    <text x="165" y="78" fill="#f8fafc" font-size="12" text-anchor="middle">Đại phân tử: Glucid, Lipid, Protein</text>
+    <text x="165" y="120" fill="#38bdf8" font-size="20" text-anchor="middle">⬇</text>
+    <rect x="20" y="135" width="290" height="45" fill="#334155" rx="6"/>
+    <text x="165" y="158" fill="#fef08a" font-size="12" font-weight="bold" text-anchor="middle">Acetyl-CoA &amp; Các Sản Phẩm Trung Gian</text>
+    <text x="165" y="200" fill="#38bdf8" font-size="20" text-anchor="middle">⬇</text>
+    <rect x="20" y="215" width="290" height="45" fill="#064e3b" rx="6"/>
+    <text x="165" y="238" fill="#34d399" font-size="12" font-weight="bold" text-anchor="middle">Giải phóng Năng lượng (ATP, NADH, FADH2)</text>
+  </g>
+  <g transform="translate(410, 65)">
+    <rect width="340" height="260" fill="#1e293b" rx="12" stroke="#f59e0b" stroke-width="1.5"/>
+    <text x="170" y="30" fill="#fbbf24" font-size="14" font-weight="bold" text-anchor="middle">Đồng Hóa (Anabolism - Tổng hợp)</text>
+    <rect x="20" y="55" width="300" height="45" fill="#334155" rx="6"/>
+    <text x="170" y="78" fill="#f8fafc" font-size="12" text-anchor="middle">Tiền chất nhỏ: Acid amin, Acid béo, Monosacarid</text>
+    <text x="170" y="120" fill="#f59e0b" font-size="20" text-anchor="middle">⬇ + Tiêu tốn ATP &amp; NADPH</text>
+    <rect x="20" y="135" width="300" height="45" fill="#334155" rx="6"/>
+    <text x="170" y="158" fill="#f472b6" font-size="12" font-weight="bold" text-anchor="middle">Đại Phân Tử Sinh Học (Glycogen, TG, Protein)</text>
+    <rect x="20" y="195" width="300" height="55" fill="#334155" rx="6"/>
+    <text x="170" y="215" fill="#e2e8f0" font-size="11" text-anchor="middle"><tspan fill="#fbbf24" font-weight="bold">Ý nghĩa:</tspan> Xây dựng cấu trúc tế bào, mô,</text>
+    <text x="170" y="235" fill="#e2e8f0" font-size="11" text-anchor="middle">dự trữ năng lượng và các chất hoạt tính sinh học</text>
+  </g>
+</svg>

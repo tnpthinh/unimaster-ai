@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="100%" height="100%">
+  <rect width="800" height="360" fill="#0f172a" rx="16"/>
+  <text x="400" y="36" fill="#34d399" font-size="20" font-weight="bold" text-anchor="middle" font-family="sans-serif">CHUYỂN HÓA PROTID: CHU TRÌNH URE &amp; ĐÀO THẢI AMONIAC</text>
+  <g transform="translate(50, 65)">
+    <rect width="330" height="260" fill="#1e293b" rx="12" stroke="#10b981" stroke-width="1.5"/>
+    <text x="165" y="30" fill="#6ee7b7" font-size="14" font-weight="bold" text-anchor="middle">5 Phản Ứng Chu Trình Ure (Gan)</text>
+    <rect x="15" y="50" width="300" height="55" fill="#064e3b" rx="6"/>
+    <text x="165" y="72" fill="#fef08a" font-size="11" font-weight="bold" text-anchor="middle">1. CPS-I (Trong Ty Thể - Bước Giới Hạn Tốc Độ)</text>
+    <text x="165" y="92" fill="#e2e8f0" font-size="10" text-anchor="middle">NH4+ + HCO3- + 2 ATP =&gt; Carbamoyl phosphat (N-acetylglutamat hoạt hóa)</text>
+    <rect x="15" y="112" width="300" height="45" fill="#064e3b" rx="6"/>
+    <text x="165" y="132" fill="#a7f3d0" font-size="11" font-weight="bold" text-anchor="middle">2. OTC: Ornithin + Carbamoyl-P =&gt; Citrullin (Ra bào tương)</text>
+    <rect x="15" y="164" width="300" height="85" fill="#334155" rx="6"/>
+    <text x="165" y="184" fill="#38bdf8" font-size="11" font-weight="bold" text-anchor="middle">3-5. Phản ứng tại Bào tương</text>
+    <text x="165" y="202" fill="#cbd5e1" font-size="10.5" text-anchor="middle">3. Citrullin + Aspartat =&gt; Argininosuccinat</text>
+    <text x="165" y="220" fill="#cbd5e1" font-size="10.5" text-anchor="middle">4. Phân cắt ra Fumarat (nối vào chu trình Krebs)</text>
+    <text x="165" y="238" fill="#fef08a" font-size="10.5" font-weight="bold" text-anchor="middle">5. Arginase: Arginin =&gt; Ure + Ornithin tái tạo</text>
+  </g>
+  <g transform="translate(410, 65)">
+    <rect width="340" height="260" fill="#1e293b" rx="12" stroke="#ef4444" stroke-width="1.5"/>
+    <text x="170" y="30" fill="#f87171" font-size="14" font-weight="bold" text-anchor="middle">Nguồn Gốc 2 Nguyên Tử Nitơ Của Ure</text>
+    <rect x="20" y="50" width="300" height="70" fill="#334155" rx="8"/>
+    <text x="170" y="75" fill="#38bdf8" font-size="12" font-weight="bold" text-anchor="middle">Nitơ thứ nhất: Đến từ NH4+ tự do</text>
+    <text x="170" y="98" fill="#f472b6" font-size="12" font-weight="bold" text-anchor="middle">Nitơ thứ hai: Đến từ Acid Aspartic (Aspartat)</text>
+    <rect x="20" y="130" width="300" height="115" fill="#334155" rx="8"/>
+    <text x="170" y="152" fill="#fbbf24" font-size="12" font-weight="bold" text-anchor="middle">Tăng Amoniac Máu (Hyperammonemia)</text>
+    <text x="170" y="172" fill="#e2e8f0" font-size="10.5" text-anchor="middle">• Bệnh não gan do xơ gan, suy gan cấp</text>
+    <text x="170" y="190" fill="#e2e8f0" font-size="10.5" text-anchor="middle">• Đột biến enzym OTC (di truyền lặn NST X phổ biến nhất)</text>
+    <text x="170" y="210" fill="#fca5a5" font-size="10.5" text-anchor="middle">• Độc tính thần kinh: NH3 cạn kiệt α-ketoglutarat &amp; Glutamat</text>
+    <text x="170" y="230" fill="#fca5a5" font-size="10.5" text-anchor="middle">=&gt; Ức chế chu trình Krebs &amp; phù não cấp tính</text>
+  </g>
+</svg>

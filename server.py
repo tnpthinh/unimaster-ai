@@ -645,7 +645,8 @@ async def get_questions(request):
         random_order = request.query.get("random") == "1"
         q_type = request.query.get("type", "all")
         difficulty = request.query.get("difficulty", "all")
-        questions = db.get_questions_by_subject(sid, q_type=q_type, limit=limit, random_order=random_order)
+        topic_tag = request.query.get("topic_tag") or request.query.get("chapter")
+        questions = db.get_questions_by_subject(sid, q_type=q_type, limit=limit, random_order=random_order, topic_tag=topic_tag)
         if difficulty and difficulty != "all":
             questions = [q for q in questions if q.get("difficulty") == difficulty]
         return json_resp({"success": True, "questions": questions})
@@ -1905,7 +1906,7 @@ def build_full_snapshot(include_api_key=False, embed_images_base64=False):
 
 async def get_offline_snapshot(request):
     """Trả về gói dữ liệu đầy đủ (kèm ảnh Base64 + dàn API key) để trình duyệt lưu vào IndexedDB chạy khi tắt PC"""
-    snap = build_full_snapshot(include_api_key=True, embed_images_base64=True)
+    snap = build_full_snapshot(include_api_key=False, embed_images_base64=True)
     return json_resp({"success": True, "snapshot": snap})
 
 
@@ -2043,7 +2044,7 @@ def generate_standalone_html_string() -> str:
     with open(os.path.join(STATIC_DIR, "app.js"), encoding="utf-8") as f:
         js = f.read()
 
-    snap = build_full_snapshot(include_api_key=True, embed_images_base64=True)
+    snap = build_full_snapshot(include_api_key=False, embed_images_base64=True)
     snap_json = json.dumps(snap, ensure_ascii=False).replace("</script>", "<\\/script>")
 
     html = re.sub(

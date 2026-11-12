@@ -2835,8 +2835,8 @@ function renderDashboard() {
       }
     } catch (_) {}
   }
-  const subCount = subs.length || 12;
-  const qCount = subs.reduce((a, s) => a + (s.question_count || 0), 0) || 1470;
+  const subCount = subs.length || 13;
+  const qCount = subs.reduce((a, s) => a + (s.question_count || 0), 0) || 3670;
   setText('stat-subjects', subCount);
   setText('stat-questions', qCount.toLocaleString('vi-VN'));
   setText('stat-exams', STATE.stats?.total_exams || 0);
@@ -3307,42 +3307,134 @@ async function onExamSubjectChange() {
   const grid = document.getElementById('exam-parts-grid');
   if (grid) {
     let html = '';
-    const lessons = [
-      { prefix: 'Bài 2', icon: '🧬', label: 'Bài 2: Protid & Thận' },
-      { prefix: 'Bài 3', icon: '🍬', label: 'Bài 3: Glucid & ĐTĐ' },
-      { prefix: 'Bài 4', icon: '🫀', label: 'Bài 4: Lipid & Nước tiểu' },
-      { prefix: 'Bài 5', icon: '🩸', label: 'Bài 5: Hb & Gan mật' },
-      { prefix: 'Bài 6', icon: '🧪', label: 'Bài 6: Định lượng enzym' }
-    ];
+    const sub = (Array.isArray(STATE.subjects) ? STATE.subjects : []).find((s) => Number(s.id) === sid);
+    const isYDS = sub && (sub.code === 'HOASINH_YDS_2024' || (sub.name || '').includes('YDS'));
 
-    lessons.forEach((l) => {
-      const lQs = allQs.filter((q) => String(q.topic_tag || '').startsWith(l.prefix));
-      if (!lQs.length) return;
-      const key = l.prefix.replace(' ', '_');
+    const topicMap = {};
+    allQs.forEach((q) => {
+      const tag = String(q.topic_tag || '').trim();
+      if (tag) {
+        if (!topicMap[tag]) topicMap[tag] = [];
+        topicMap[tag].push(q);
+      }
+    });
+
+    const topicKeys = Object.keys(topicMap);
+    const hasChapters = topicKeys.some((k) => k.startsWith('Chương'));
+
+    if (hasChapters) {
+      topicKeys.sort((a, b) => {
+        const numA = parseInt(a.match(/Chương\s+(\d+)/i)?.[1] || '0', 10);
+        const numB = parseInt(b.match(/Chương\s+(\d+)/i)?.[1] || '0', 10);
+        return numA - numB;
+      });
+
+      const exceptCount = allQs.filter((q) => q.question_text && (q.question_text.includes('KHÔNG ĐÚNG') || q.question_text.includes('NGOẠI TRỪ') || q.question_text.includes('SAI'))).length;
+      const imgCount = allQs.filter((q) => q.image_url && String(q.image_url).trim() !== '').length;
+
       html += `
-        <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-          <div class="font-bold text-xs txt-main flex items-center gap-1.5 shrink-0">
-            <span>${l.icon}</span>
-            <span>${l.label}</span>
-            <span class="badge-soft px-1.5 py-0.5 rounded text-[10px]">${lQs.length} câu</span>
+        <div class="col-span-full p-3 rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-900/40 via-purple-900/30 to-slate-900/60 space-y-2.5">
+          <div class="flex items-center justify-between flex-wrap gap-2">
+            <span class="font-extrabold text-xs text-indigo-300 flex items-center gap-1.5">
+              <span>🧬</span> <span>Hóa Sinh YDS 2024: 18 Chương • 1.800 Câu Chuẩn Bộ Môn</span>
+            </span>
+            <span class="badge-brand px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold">${allQs.length} CÂU HỎI</span>
           </div>
-          <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
-            <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
-            <span class="text-xs txt-muted">–</span>
-            <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
-            <button type="button" onclick="startCustomLessonRange('${l.prefix}', ${sid})" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
-              Vào thi →
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <button type="button" onclick="startSpecialDrill('except_yds', ${sid})" class="p-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all">
+              <div class="text-[11px] font-black text-amber-300 flex items-center justify-between">
+                <span>⚡ Luyện Câu Ngoại Trừ</span>
+                <span class="badge-amber px-1.5 py-0.2 rounded text-[10px]">${exceptCount}</span>
+              </div>
+              <div class="text-[10px] txt-muted truncate">Dạng câu hỏi bẫy & phân loại sinh viên</div>
+            </button>
+            <button type="button" onclick="startSpecialDrill('images', ${sid})" class="p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all">
+              <div class="text-[11px] font-black text-emerald-300 flex items-center justify-between">
+                <span>🖼️ Sơ Đồ & Cấu Trúc SVG</span>
+                <span class="badge-emerald px-1.5 py-0.2 rounded text-[10px]">${imgCount}</span>
+              </div>
+              <div class="text-[10px] txt-muted truncate">Chu trình Krebs, Động học, Bilirubin, PCR...</div>
+            </button>
+            <button type="button" onclick="startSpecialDrill('all_yds', ${sid})" class="p-2.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-left transition-all">
+              <div class="text-[11px] font-black text-indigo-300 flex items-center justify-between">
+                <span>🏆 Đề Thi Tổng Hợp</span>
+                <span class="badge-brand px-1.5 py-0.2 rounded text-[10px]">100c</span>
+              </div>
+              <div class="text-[10px] txt-muted truncate">Trộn ngẫu nhiên câu hỏi cả 18 chương</div>
             </button>
           </div>
         </div>
       `;
-    });
+
+      const chapIcons = {
+        1: '🍬', 2: '🧈', 3: '🥩', 4: '🩸', 5: '🧬', 6: '💊',
+        7: '⚡', 8: '🧪', 9: '🔄', 10: '🔋', 11: '🍞', 12: '🥓',
+        13: '🍗', 14: '🫀', 15: '🔬', 16: '🧪', 17: '🏭', 18: '⚖️'
+      };
+
+      topicKeys.forEach((chap) => {
+        const lQs = topicMap[chap] || [];
+        const num = parseInt(chap.match(/Chương\s+(\d+)/i)?.[1] || '1', 10);
+        const icon = chapIcons[num] || '📖';
+        const key = 'chap_' + num;
+
+        html += `
+          <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 hover:border-indigo-500/40 transition-all">
+            <div class="font-bold text-xs txt-main flex items-center gap-1.5 shrink-0 max-w-full sm:max-w-md truncate">
+              <span>${icon}</span>
+              <span class="truncate">${escapeHtml(chap)}</span>
+              <span class="badge-soft px-1.5 py-0.5 rounded text-[10px] shrink-0">${lQs.length} câu</span>
+            </div>
+            <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end shrink-0">
+              <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+              <span class="text-xs txt-muted">–</span>
+              <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+              <button type="button" onclick="startCustomLessonRange('${escapeHtml(chap)}', ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
+                Luyện tập →
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    } else {
+      const lessons = [
+        { prefix: 'Bài 2', icon: '🧬', label: 'Bài 2: Protid & Thận' },
+        { prefix: 'Bài 3', icon: '🍬', label: 'Bài 3: Glucid & ĐTĐ' },
+        { prefix: 'Bài 4', icon: '🫀', label: 'Bài 4: Lipid & Nước tiểu' },
+        { prefix: 'Bài 5', icon: '🩸', label: 'Bài 5: Hb & Gan mật' },
+        { prefix: 'Bài 6', icon: '🧪', label: 'Bài 6: Định lượng enzym' }
+      ];
+
+      lessons.forEach((l) => {
+        const lQs = allQs.filter((q) => String(q.topic_tag || '').startsWith(l.prefix));
+        if (!lQs.length) return;
+        const key = l.prefix.replace(' ', '_');
+        html += `
+          <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+            <div class="font-bold text-xs txt-main flex items-center gap-1.5 shrink-0">
+              <span>${l.icon}</span>
+              <span>${l.label}</span>
+              <span class="badge-soft px-1.5 py-0.5 rounded text-[10px]">${lQs.length} câu</span>
+            </div>
+            <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end">
+              <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+              <span class="text-xs txt-muted">–</span>
+              <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+              <button type="button" onclick="startCustomLessonRange('${l.prefix}', ${sid})" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
+                Vào thi →
+              </button>
+            </div>
+          </div>
+        `;
+      });
+    }
+
     const bmCount = allQs.filter((q) => STATE.bookmarks.includes(q.id)).length;
     const mistakeIds = STATE.mistakes.map((m) => (typeof m === 'object' ? m.id : m));
     const msCount = allQs.filter((q) => mistakeIds.includes(q.id)).length;
     const imgCount = allQs.filter((q) => q.image_url && String(q.image_url).trim() !== '').length;
 
-    if (imgCount > 0) {
+    if (!hasChapters && imgCount > 0) {
       html += `
         <button type="button" onclick="startSpecialDrill('images', ${sid})" class="part-card" style="border-color: rgba(16, 185, 129, 0.45);">
           <div class="font-extrabold text-xs txt-emerald flex justify-between"><span>🖼️ Câu Hình ảnh / Tiêu bản (${imgCount})</span><span>→</span></div>
@@ -3376,8 +3468,8 @@ function launchLessonRange(prefix, fromNum, toNum, sid) {
   }
 }
 
-function startCustomLessonRange(prefix, sid) {
-  const key = prefix.replace(' ', '_');
+function startCustomLessonRange(prefix, sid, explicitKey = null) {
+  const key = explicitKey || prefix.replace(' ', '_');
   const fromEl = document.getElementById(`range_from_${key}`);
   const toEl = document.getElementById(`range_to_${key}`);
   const pool = STATE.examConfig.subjectAllQuestions || [];
@@ -3424,6 +3516,12 @@ async function startSpecialDrill(kind, specificSid = null) {
     filtered = pool.filter((q) => q.topic_tag && q.topic_tag.includes(`Bài 3 - Phần ${pNum}`));
   } else if (kind === 'protid_bai2') {
     filtered = pool.filter((q) => (q.topic_tag && q.topic_tag.includes('Protid')) || (q.question_text && q.question_text.includes('Biuret')) || (q.question_text && q.question_text.includes('Acid uric')) || (q.question_text && q.question_text.includes('Urê')) || (q.question_text && q.question_text.includes('Creatinin')));
+  } else if (kind === 'except_yds') {
+    filtered = pool.filter((q) => q.question_text && (q.question_text.includes('KHÔNG ĐÚNG') || q.question_text.includes('NGOẠI TRỪ') || q.question_text.includes('SAI')));
+  } else if (kind === 'all_yds') {
+    const copy = [...pool];
+    copy.sort(() => Math.random() - 0.5);
+    filtered = copy.slice(0, 100);
   } else if (kind === 'images') {
     filtered = pool.filter((q) => q.image_url && String(q.image_url).trim() !== '');
   } else if (kind === 'bookmarks') {
@@ -3443,6 +3541,8 @@ async function startSpecialDrill(kind, specificSid = null) {
 
   switchTab('exam');
   const titleMap = {
+    except_yds: `Luyện Câu Ngoại Trừ / Không Đúng (${filtered.length} câu)`,
+    all_yds: `Đề Tổng Hợp 18 Chương YDS 2024 (${filtered.length} câu)`,
     images: `Soi Tiêu Bản & Hình Ảnh (${filtered.length} câu)`,
     bookmarks: `Câu Đã Lưu (${filtered.length})`,
     mistakes: `Ôn Câu Sai (${filtered.length})`,

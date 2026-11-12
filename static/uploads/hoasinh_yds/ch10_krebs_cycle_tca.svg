@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 360" width="100%" height="100%">
+  <rect width="800" height="360" fill="#0f172a" rx="16"/>
+  <text x="400" y="32" fill="#fbbf24" font-size="19" font-weight="bold" text-anchor="middle" font-family="sans-serif">CHUYỂN HÓA NĂNG LƯỢNG: CHU TRÌNH ACID CITRIC (KREBS / TCA)</text>
+  
+  <g transform="translate(100, 50)">
+    <!-- Cycle Circle -->
+    <circle cx="300" cy="150" r="110" fill="none" stroke="#475569" stroke-width="3" stroke-dasharray="8,6"/>
+    
+    <!-- Key Intermediates -->
+    <g transform="translate(300, 25)">
+      <rect x="-65" y="-16" width="130" height="32" fill="#1e293b" rx="8" stroke="#38bdf8" stroke-width="2"/>
+      <text x="0" y="5" fill="#e0f2fe" font-size="13" font-weight="bold" text-anchor="middle">Oxaloacetat (4C)</text>
+    </g>
+
+    <g transform="translate(420, 90)">
+      <rect x="-55" y="-16" width="110" height="32" fill="#1e293b" rx="8" stroke="#34d399" stroke-width="2"/>
+      <text x="0" y="5" fill="#d1fae5" font-size="13" font-weight="bold" text-anchor="middle">Citrat (6C)</text>
+    </g>
+
+    <g transform="translate(420, 210)">
+      <rect x="-70" y="-16" width="140" height="32" fill="#1e293b" rx="8" stroke="#a78bfa" stroke-width="2"/>
+      <text x="0" y="5" fill="#ede9fe" font-size="12" font-weight="bold" text-anchor="middle">α-Ketoglutarat (5C)</text>
+    </g>
+
+    <g transform="translate(300, 275)">
+      <rect x="-65" y="-16" width="130" height="32" fill="#1e293b" rx="8" stroke="#f472b6" stroke-width="2"/>
+      <text x="0" y="5" fill="#fce7f3" font-size="13" font-weight="bold" text-anchor="middle">Succinyl-CoA (4C)</text>
+    </g>
+
+    <g transform="translate(180, 210)">
+      <rect x="-55" y="-16" width="110" height="32" fill="#1e293b" rx="8" stroke="#fbbf24" stroke-width="2"/>
+      <text x="0" y="5" fill="#fef3c7" font-size="13" font-weight="bold" text-anchor="middle">Succinat (4C)</text>
+    </g>
+
+    <g transform="translate(180, 90)">
+      <rect x="-50" y="-16" width="100" height="32" fill="#1e293b" rx="8" stroke="#38bdf8" stroke-width="2"/>
+      <text x="0" y="5" fill="#e0f2fe" font-size="13" font-weight="bold" text-anchor="middle">Malat (4C)</text>
+    </g>
+
+    <!-- Energy Badges Inside Circle -->
+    <text x="300" y="130" fill="#fde047" font-size="15" font-weight="bold" text-anchor="middle">1 Vòng Krebs tạo ra:</text>
+    <text x="300" y="155" fill="#ffffff" font-size="13" font-family="monospace" text-anchor="middle">3 NADH + 1 FADH2</text>
+    <text x="300" y="175" fill="#34d399" font-size="13" font-family="monospace" text-anchor="middle">+ 1 GTP + 2 CO2</text>
+    <text x="300" y="195" fill="#38bdf8" font-size="14" font-weight="bold" text-anchor="middle">≈ 10 ATP / Acetyl-CoA</text>
+  </g>
+</svg>
