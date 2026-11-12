@@ -103,6 +103,41 @@ def _is_https(request):
     return request.secure or request.headers.get("X-Forwarded-Proto", "").lower() == "https"
 
 
+def _storage_is_ephemeral() -> bool:
+    """True nếu dữ liệu (tài khoản + nhật ký đăng nhập) sẽ MẤT khi Render khởi động lại/deploy lại.
+
+    Render free không có ổ đĩa bền vững: mọi thứ ghi ngoài ổ đĩa gắn kèm (vd /tmp) bị xóa
+    mỗi lần container ngủ dậy hoặc deploy -> database quay về bản seed (không có user, không có lịch sử).
+    """
+    path = os.path.abspath(db.DB_PATH).replace("\\", "/")
+    on_cloud = bool(os.environ.get("RENDER") or os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("FLY_APP_NAME"))
+    return on_cloud and (path.startswith("/tmp") or not os.environ.get("DATA_DIR", "").strip())
+
+
+# Chống ghi DB quá dày: mỗi người dùng chỉ được "chạm" tối đa 1 lần / 5 phút (trong RAM)
+_SEEN_THROTTLE = {}
+
+
+def _note_user_activity(request, user_info):
+    """Ghi nhận người dùng quay lại bằng cookie phiên (không cần nhập lại mật khẩu).
+
+    Cookie phiên sống 30 ngày -> phần lớn người dùng không đăng nhập lại, nên nếu chỉ log lúc
+    nhập mật khẩu thì lịch sử trông như 'không ai đăng nhập'.
+    """
+    uid = user_info.get("id") if user_info else None
+    if not uid or user_info.get("role") == "guest":
+        return
+    now = time.time()
+    if now - _SEEN_THROTTLE.get(uid, 0) < 300:
+        return
+    _SEEN_THROTTLE[uid] = now
+    try:
+        if db.touch_user_seen(uid, 0):
+            db.record_login_event(uid, _client_ip(request), request.headers.get("User-Agent", ""), "session")
+    except Exception as exc:  # nhật ký không bao giờ được làm hỏng request chính
+        print(f"⚠️ Không ghi được hoạt động người dùng: {exc}")
+
+
 @web.middleware
 async def auth_middleware(request, handler):
     token = request.cookies.get(SESSION_COOKIE, "")
@@ -112,6 +147,8 @@ async def auth_middleware(request, handler):
     user_info = _parse_session_token(token)
     if user_info:
         request["user"] = user_info
+        if request.path.startswith("/api/"):
+            _note_user_activity(request, user_info)
     else:
         # Default fallback: If APP_PASSWORD is empty, admin access; else guest
         request["user"] = {"id": 1, "role": "admin" if not APP_PASSWORD else "guest"}
@@ -401,7 +438,12 @@ async def auth_login_api(request):
 
     if user:
         _LOGIN_FAILS.pop(ip, None)
-        db.record_login_event(user["id"], ip, request.headers.get("User-Agent", ""), "login")
+        db.record_login_event(user["id"], ip, request.headers.get("User-Agent", ""), "login", username=user.get("username", ""))
+        _SEEN_THROTTLE[user["id"]] = time.time()
+        try:
+            db.touch_user_seen(user["id"], 0)
+        except Exception:
+            pass
         token = _make_session_token(user["id"], user["role"])
         resp = json_resp({"success": True, "user": user, "token": token})
         resp.set_cookie(
@@ -413,6 +455,12 @@ async def auth_login_api(request):
     fails += 1
     lock = now + min(300, 15 * (2 ** (fails - 5))) if fails >= 5 else 0
     _LOGIN_FAILS[ip] = [fails, lock]
+    # Ghi cả lần đăng nhập SAI (không lưu mật khẩu) để admin phát hiện người lạ dò mật khẩu
+    try:
+        db.record_login_event(0, ip, request.headers.get("User-Agent", ""), "login_failed",
+                              username=username or "admin", success=False)
+    except Exception as exc:
+        print(f"⚠️ Không ghi được đăng nhập sai: {exc}")
     return json_resp({"success": False, "error": "Tên đăng nhập hoặc mật khẩu không chính xác."}, 401)
 
 
@@ -423,7 +471,12 @@ async def auth_register_api(request):
     full_name = str(data.get("full_name", "")).strip() or username
     try:
         user = db.create_user(username, password, full_name, role="student")
-        db.record_login_event(user["id"], _client_ip(request), request.headers.get("User-Agent", ""), "register")
+        db.record_login_event(user["id"], _client_ip(request), request.headers.get("User-Agent", ""), "register", username=user.get("username", ""))
+        _SEEN_THROTTLE[user["id"]] = time.time()  # tránh ghi thêm 1 sự kiện 'session' thừa ngay sau khi đăng ký
+        try:
+            db.touch_user_seen(user["id"], 0)
+        except Exception:
+            pass
         token = _make_session_token(user["id"], user["role"])
         resp = json_resp({"success": True, "user": user, "token": token})
         resp.set_cookie(
@@ -438,6 +491,12 @@ async def auth_register_api(request):
 
 
 async def auth_logout_api(request):
+    user_info = request.get("user") or {}
+    if user_info.get("id") and user_info.get("role") != "guest":
+        try:
+            db.record_login_event(user_info["id"], _client_ip(request), request.headers.get("User-Agent", ""), "logout")
+        except Exception:
+            pass
     resp = json_resp({"success": True})
     resp.del_cookie(SESSION_COOKIE, path="/")
     return resp
@@ -448,6 +507,12 @@ async def auth_me_api(request):
     if not user_info or user_info.get("role") == "guest":
         return json_resp({"success": False, "error": "Chưa đăng nhập", "auth_required": True}, 401)
     full_user = db.get_user_by_id(user_info["id"])
+    if not full_user and APP_PASSWORD:
+        # Cookie còn hạn nhưng tài khoản không còn trong DB (vd. Render khởi động lại làm DB về bản seed).
+        # Xóa cookie để người dùng đăng nhập/đăng ký lại thay vì bị "đăng nhập ma".
+        resp = json_resp({"success": False, "error": "Tài khoản không còn tồn tại trên máy chủ. Hãy đăng nhập lại.", "auth_required": True}, 401)
+        resp.del_cookie(SESSION_COOKIE, path="/")
+        return resp
     return json_resp({"success": True, "user": full_user or user_info})
 
 
@@ -456,6 +521,25 @@ async def auth_login_history_api(request):
     if not user_info or user_info.get("role") == "guest":
         return json_resp({"success": False, "error": "Chưa đăng nhập"}, 401)
     return json_resp({"success": True, "events": db.get_login_events(user_info["id"])})
+
+
+async def admin_login_events_api(request):
+    """Nhật ký đăng nhập toàn hệ thống — chỉ admin."""
+    user_info = request.get("user", {})
+    if user_info.get("role") != "admin":
+        return json_resp({"success": False, "error": "Chỉ Quản trị viên mới xem được nhật ký đăng nhập toàn hệ thống."}, 403)
+    try:
+        limit = int(request.query.get("limit", "100"))
+    except ValueError:
+        limit = 100
+    only_failed = request.query.get("failed", "") in ("1", "true", "yes")
+    return json_resp({
+        "success": True,
+        "events": db.get_all_login_events(limit, only_failed),
+        "summary": db.get_login_summary(),
+        "ephemeral_storage": _storage_is_ephemeral(),
+        "db_path": os.path.basename(os.path.dirname(os.path.abspath(db.DB_PATH))) or "",
+    })
 
 
 async def admin_get_users_api(request):
@@ -2197,6 +2281,7 @@ def create_app():
     app.router.add_get("/api/auth/me", auth_me_api)
     app.router.add_get("/api/auth/login-history", auth_login_history_api)
     app.router.add_get("/api/admin/users", admin_get_users_api)
+    app.router.add_get("/api/admin/login-events", admin_login_events_api)
     app.router.add_delete("/api/admin/users/{id}", admin_delete_user_api)
     app.router.add_get("/healthz", healthz)
 

@@ -209,10 +209,18 @@ def init_db():
         ("questions", "topic_tag", "TEXT DEFAULT ''"),
         ("flashcards", "image_url", "TEXT DEFAULT ''"),
         ("exam_results", "user_id", "INTEGER DEFAULT 1"),
+        # Nhật ký đăng nhập v2: lưu cả tên đăng nhập đã gõ (kể cả khi sai) và kết quả thành công/thất bại
+        ("login_events", "username", "TEXT DEFAULT ''"),
+        ("login_events", "success", "INTEGER DEFAULT 1"),
+        # Lần cuối thấy người dùng hoạt động (cookie phiên sống 30 ngày nên không phải lúc nào cũng đăng nhập lại)
+        ("users", "last_seen", "TIMESTAMP"),
     ):
         columns = {row[1] for row in cursor.execute(f'PRAGMA table_info({table})')}
         if column not in columns:
             cursor.execute(f'ALTER TABLE {table} ADD COLUMN {column} {definition}')
+
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_login_events_user ON login_events(user_id, id DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_login_events_time ON login_events(id DESC)")
 
     conn.commit()
     conn.close()
@@ -592,28 +600,102 @@ def verify_user(username: str, password: str):
     conn.close()
     return user_info
 
-def record_login_event(user_id: int, ip_address: str, user_agent: str = '', event_type: str = 'login'):
-    """Lưu nhật ký phiên đăng nhập; IP/User-Agent được giới hạn để tránh lưu dữ liệu thừa."""
+def record_login_event(user_id: int, ip_address: str, user_agent: str = '', event_type: str = 'login',
+                       username: str = '', success: bool = True):
+    """Lưu nhật ký xác thực.
+
+    event_type: 'login' | 'register' | 'logout' | 'login_failed' | 'session'
+    - Đăng nhập sai vẫn được ghi (user_id = 0 nếu không khớp tài khoản nào) để admin phát hiện dò mật khẩu.
+    - IP/User-Agent được cắt ngắn để tránh lưu dữ liệu thừa.
+    """
     conn = get_connection()
     c = conn.cursor()
     c.execute(
-        "INSERT INTO login_events (user_id, ip_address, user_agent, event_type) VALUES (?, ?, ?, ?)",
-        (int(user_id), str(ip_address or 'unknown')[:64], str(user_agent or '')[:512], str(event_type or 'login')[:32])
+        "INSERT INTO login_events (user_id, ip_address, user_agent, event_type, username, success) "
+        "VALUES (?, ?, ?, ?, ?, ?)",
+        (int(user_id or 0), str(ip_address or 'unknown')[:64], str(user_agent or '')[:512],
+         str(event_type or 'login')[:32], str(username or '')[:64], 1 if success else 0)
     )
+    # Giữ bảng gọn: chỉ giữ 5000 sự kiện gần nhất
+    c.execute("DELETE FROM login_events WHERE id <= (SELECT MAX(id) FROM login_events) - 5000")
     conn.commit()
     conn.close()
+
+
+def touch_user_seen(user_id: int, min_interval_seconds: int = 300):
+    """Cập nhật 'lần cuối hoạt động'. Trả về True nếu đây là lần quay lại mới (đã lâu chưa thấy).
+
+    Cookie phiên sống 30 ngày nên người dùng quay lại không cần đăng nhập lại ->
+    nếu chỉ ghi lúc nhập mật khẩu thì sẽ trông như 'không ai đăng nhập'.
+    """
+    if not user_id:
+        return False
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute(
+        "SELECT CAST(strftime('%s','now') AS INTEGER) - CAST(strftime('%s', COALESCE(last_seen,'1970-01-01')) AS INTEGER) "
+        "FROM users WHERE id = ?", (int(user_id),)
+    )
+    row = c.fetchone()
+    is_new_visit = False
+    if row is not None and (row[0] is None or row[0] >= int(min_interval_seconds)):
+        c.execute("UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE id = ?", (int(user_id),))
+        conn.commit()
+        is_new_visit = row[0] is None or row[0] >= 1800  # >30 phút mới tính là lượt truy cập mới
+    conn.close()
+    return is_new_visit
 
 
 def get_login_events(user_id: int, limit: int = 30):
     conn = get_connection()
     c = conn.cursor()
     c.execute("""
-        SELECT id, ip_address, user_agent, event_type, created_at
+        SELECT id, ip_address, user_agent, event_type, success, created_at
         FROM login_events WHERE user_id = ? ORDER BY id DESC LIMIT ?
     """, (int(user_id), max(1, min(int(limit), 100))))
     rows = [dict(row) for row in c.fetchall()]
     conn.close()
     return rows
+
+
+def get_all_login_events(limit: int = 100, only_failed: bool = False):
+    """Nhật ký toàn hệ thống (dành cho admin), kèm tên tài khoản."""
+    conn = get_connection()
+    c = conn.cursor()
+    where = "WHERE e.success = 0" if only_failed else ""
+    c.execute(f"""
+        SELECT e.id, e.user_id, COALESCE(NULLIF(u.username,''), e.username, '') AS username,
+               COALESCE(u.full_name, '') AS full_name, e.ip_address, e.user_agent,
+               e.event_type, e.success, e.created_at
+        FROM login_events e LEFT JOIN users u ON u.id = e.user_id
+        {where}
+        ORDER BY e.id DESC LIMIT ?
+    """, (max(1, min(int(limit), 500)),))
+    rows = [dict(row) for row in c.fetchall()]
+    conn.close()
+    return rows
+
+
+def get_login_summary():
+    """Số liệu tổng quan để admin biết hệ thống có đang được dùng không."""
+    conn = get_connection()
+    c = conn.cursor()
+    c.execute("""
+        SELECT
+          COUNT(*) AS total,
+          SUM(CASE WHEN event_type='login' AND success=1 THEN 1 ELSE 0 END) AS logins,
+          SUM(CASE WHEN success=0 THEN 1 ELSE 0 END) AS failed,
+          SUM(CASE WHEN created_at >= datetime('now','-1 day') THEN 1 ELSE 0 END) AS last_24h,
+          COUNT(DISTINCT CASE WHEN created_at >= datetime('now','-7 day') AND user_id>0 THEN user_id END) AS active_users_7d
+        FROM login_events
+    """)
+    row = dict(c.fetchone())
+    c.execute("SELECT COUNT(*) FROM users")
+    row["total_users"] = c.fetchone()[0]
+    c.execute("SELECT MIN(created_at) FROM login_events")
+    row["tracking_since"] = c.fetchone()[0]
+    conn.close()
+    return {k: (v or 0) if k not in ("tracking_since",) else v for k, v in row.items()}
 
 
 def get_user_by_id(user_id: int):
@@ -628,7 +710,8 @@ def get_all_users():
     conn = get_connection()
     c = conn.cursor()
     c.execute('''
-        SELECT u.id, u.username, u.full_name, u.role, u.created_at, u.last_login,
+        SELECT u.id, u.username, u.full_name, u.role, u.created_at, u.last_login, u.last_seen,
+               (SELECT COUNT(*) FROM login_events le WHERE le.user_id = u.id AND le.event_type = 'login' AND le.success = 1) AS login_count,
                COUNT(e.id) as exam_count,
                AVG(e.score) as avg_score
         FROM users u

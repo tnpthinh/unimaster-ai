@@ -9674,6 +9674,7 @@ async function fetchCurrentUserProfile() {
     const res = await apiFetch('/api/auth/me');
     if (res && res.success && res.user) {
       STATE.currentUser = res.user;
+      STATE.serverUser = res.user; // tài khoản THẬT trên máy chủ (khác với "tài khoản demo" lưu trong localStorage)
       updateHeaderUserPill();
       // If user has preferred subject in state, load it
       await hydrateUserStateFromServer();
@@ -9726,7 +9727,9 @@ function openAccountModal() {
 
   const adminTabBtn = document.getElementById('acc-tab-admin-btn');
   if (adminTabBtn) {
-    adminTabBtn.classList.toggle('hidden', user.role !== 'admin');
+    // Quyền admin phải theo tài khoản THẬT trên máy chủ, không theo tài khoản demo trong localStorage
+    const isServerAdmin = STATE.serverUser ? STATE.serverUser.role === 'admin' : user.role === 'admin';
+    adminTabBtn.classList.toggle('hidden', !isServerAdmin);
   }
 
   switchAccountTab('switch');
@@ -9745,7 +9748,83 @@ function switchAccountTab(tab) {
   document.getElementById('acc-tab-admin-btn')?.classList.toggle('active', tab === 'admin');
 
   if (tab === 'switch') renderAccountsListUI();
-  if (tab === 'admin') loadAdminUsersList();
+  if (tab === 'admin') { loadAdminUsersList(); loadAdminLoginEvents(); }
+}
+
+// --- Nhật ký đăng nhập toàn hệ thống (chỉ admin) ---
+const LOGIN_EVENT_META = {
+  login:        { label: 'Đăng nhập',        cls: 'badge-brand' },
+  register:     { label: 'Đăng ký mới',      cls: 'badge-amber' },
+  logout:       { label: 'Đăng xuất',        cls: 'badge-subtle' },
+  session:      { label: 'Quay lại (cookie)', cls: 'badge-cyan' },
+  login_failed: { label: 'Đăng nhập SAI',    cls: 'badge-rose' }
+};
+
+async function loadAdminLoginEvents() {
+  const listEl = document.getElementById('admin-login-events-list');
+  if (!listEl) return;
+  const sumEl = document.getElementById('admin-login-summary');
+  const warnEl = document.getElementById('admin-storage-warning');
+  const onlyFailed = !!document.getElementById('admin-events-only-failed')?.checked;
+  listEl.innerHTML = '<div class="py-6 text-center txt-muted text-xs">Đang tải nhật ký…</div>';
+  try {
+    const res = await apiFetch('/api/admin/login-events?limit=150' + (onlyFailed ? '&failed=1' : ''));
+    if (!res || !res.success) {
+      listEl.innerHTML = `<div class="py-4 text-center text-rose-400 text-xs">${escapeHtml(res?.error || 'Không tải được nhật ký')}</div>`;
+      return;
+    }
+    const s = res.summary || {};
+    const stat = (v, l) => `<div class="p-2 rounded-xl" style="background-color: var(--bg-subtle); border: 1px solid var(--border);"><div class="text-base font-black txt-main">${v ?? 0}</div><div class="text-[10px] txt-muted font-bold">${l}</div></div>`;
+    if (sumEl) {
+      sumEl.innerHTML = stat(s.logins, 'Lượt đăng nhập') + stat(s.active_users_7d, 'Người dùng 7 ngày') + stat(s.last_24h, 'Sự kiện 24h') + stat(s.failed, 'Lần sai');
+    }
+    if (warnEl) {
+      if (res.ephemeral_storage) {
+        warnEl.className = 'p-3 rounded-xl text-[11px] leading-relaxed font-bold';
+        warnEl.style.cssText = 'background: rgba(245,158,11,.12); border: 1px solid rgba(245,158,11,.5); color: #f59e0b;';
+        warnEl.innerHTML = '⚠️ Máy chủ đang lưu dữ liệu ở bộ nhớ TẠM (Render free). Mỗi lần server ngủ dậy / deploy lại, <u>toàn bộ tài khoản và nhật ký này sẽ bị xóa</u>. Hãy gắn Persistent Disk (đặt <code>DATA_DIR</code> trỏ vào ổ đó) hoặc bật backup Telegram để giữ lịch sử.' +
+          (s.tracking_since ? `<br>Đang ghi nhận từ: ${escapeHtml(s.tracking_since)} (UTC)` : '');
+      } else {
+        warnEl.className = 'hidden';
+      }
+    }
+    const events = res.events || [];
+    if (!events.length) {
+      listEl.innerHTML = `<div class="text-center py-8 space-y-1"><span class="text-2xl">🔐</span><div class="text-xs font-extrabold txt-main">${onlyFailed ? 'Chưa có lần đăng nhập sai nào' : 'Chưa có sự kiện nào được ghi'}</div></div>`;
+      return;
+    }
+    listEl.innerHTML = events.map((ev) => {
+      const meta = LOGIN_EVENT_META[ev.event_type] || { label: ev.event_type, cls: 'badge-subtle' };
+      const who = ev.username ? '@' + ev.username : '(không rõ)';
+      const name = ev.full_name && ev.full_name !== ev.username ? ` · ${ev.full_name}` : '';
+      const device = detectDeviceFromUserAgent(ev.user_agent);
+      const browser = detectBrowserFromUserAgent(ev.user_agent);
+      return `
+      <div class="p-2.5 rounded-xl space-y-1" style="background-color: var(--bg-subtle); border: 1px solid ${ev.success ? 'var(--border)' : 'rgba(244,63,94,.5)'};">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <span class="text-xs font-extrabold txt-main">${escapeHtml(who)}<span class="txt-muted font-bold">${escapeHtml(name)}</span></span>
+          <span class="text-[11px] font-mono txt-muted">${escapeHtml(formatServerTimeVN(ev.created_at))}</span>
+        </div>
+        <div class="flex flex-wrap items-center gap-1.5 text-[11px] font-bold">
+          <span class="${meta.cls} px-2 py-0.5 rounded-lg">${escapeHtml(meta.label)}</span>
+          <span class="badge-subtle px-2 py-0.5 rounded-lg font-mono">🌐 ${escapeHtml(ev.ip_address || 'unknown')}</span>
+          <span class="badge-subtle px-2 py-0.5 rounded-lg">${escapeHtml(device)}</span>
+          <span class="badge-subtle px-2 py-0.5 rounded-lg">${escapeHtml(browser)}</span>
+        </div>
+      </div>`;
+    }).join('');
+  } catch (err) {
+    listEl.innerHTML = `<div class="py-4 text-center text-rose-400 text-xs">Lỗi: ${escapeHtml(err.message)}</div>`;
+  }
+}
+window.loadAdminLoginEvents = loadAdminLoginEvents;
+
+// SQLite CURRENT_TIMESTAMP là UTC dạng "YYYY-MM-DD HH:MM:SS" -> đổi sang giờ Việt Nam cho dễ đọc
+function formatServerTimeVN(ts) {
+  if (!ts) return '';
+  const d = new Date(String(ts).replace(' ', 'T') + 'Z');
+  if (isNaN(d.getTime())) return String(ts);
+  return d.toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour12: false });
 }
 
 async function loadAdminUsersList() {
@@ -12618,8 +12697,9 @@ function renderLoginHistoryInline() {
       const isCurrent = ev.user_agent && thisUa && ev.user_agent === thisUa;
       const device = detectDeviceFromUserAgent(ev.user_agent);
       const browser = detectBrowserFromUserAgent(ev.user_agent);
-      const typeLabel = ev.event_type === 'register' ? 'Đăng ký' : 'Đăng nhập';
-      const typeCls = ev.event_type === 'register' ? 'badge-amber' : 'badge-brand';
+      const typeMeta = (typeof LOGIN_EVENT_META !== 'undefined' && LOGIN_EVENT_META[ev.event_type]) || { label: 'Đăng nhập', cls: 'badge-brand' };
+      const typeLabel = typeMeta.label;
+      const typeCls = typeMeta.cls;
       return `
       <div class="p-3 rounded-2xl space-y-1.5" style="background-color: var(--bg-subtle); border: 1px solid var(--border); ${isCurrent ? 'box-shadow: 0 0 0 1.5px var(--brand);' : ''}">
         <div class="flex flex-wrap items-center justify-between gap-2">
