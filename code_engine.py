@@ -1102,49 +1102,140 @@ import random
 # 6. C# OOP STRUCTURE VALIDATOR (Reflection / Roslyn Heuristic AST)
 # =========================================================================
 def validate_csharp_oop_structure(code: str, requirements: dict = None) -> dict:
+    """
+    Kiểm tra cấu trúc OOP C# chi tiết:
+    - Class, Interface, Abstract class
+    - Encapsulation (private field + property get/set)
+    - Inheritance (: BaseClass, : IInterface)
+    - Polymorphism (virtual, override, abstract, sealed)
+    - Access modifiers (public, private, protected, internal)
+    - Constructor, static members
+    Trả về dict có score (0-100), checks chi tiết, summary, passed_rules, missing_rules.
+    """
     req = requirements or {}
     checks = []
-    score = 10.0
-    feedback = []
+    score = 100.0
+    passed_rules = []
+    missing_rules = []
 
-    # 1. Kiểm tra có khai báo Class không
-    has_class = bool(re.search(r'\bclass\s+[A-Za-z0-9_]+', code))
-    if not has_class:
-        checks.append({"item": "Khai báo Class", "passed": False, "msg": "Chưa khai báo Class nào! OOP bắt buộc phải tổ chức theo Class."})
-        score -= 4.0
+    # ---------- Helper ----------
+    def _add(item, passed, msg, deduct=0):
+        checks.append({"item": item, "passed": passed, "msg": msg})
+        if passed:
+            passed_rules.append(item)
+        else:
+            missing_rules.append(item)
+            score_nonlocal[0] -= deduct
+
+    score_nonlocal = [score]
+
+    # ---------- 1. Class / Interface / Abstract ----------
+    has_class = bool(re.search(r'\b(?:public\s+)?(?:abstract\s+)?(?:sealed\s+)?class\s+[A-Za-z0-9_]+', code))
+    has_interface = bool(re.search(r'\binterface\s+[A-Za-z0-9_]+', code))
+    has_abstract_class = bool(re.search(r'\babstract\s+class\s+[A-Za-z0-9_]+', code))
+
+    if not has_class and not has_interface:
+        _add("Khai báo Class/Interface", False, "Chưa khai báo Class hoặc Interface nào! OOP bắt buộc phải tổ chức theo Class/Interface.", 25)
     else:
-        checks.append({"item": "Khai báo Class", "passed": True, "msg": "Đã tạo Class hợp lệ."})
+        parts = []
+        if has_class:
+            parts.append("Class")
+        if has_interface:
+            parts.append("Interface")
+        if has_abstract_class:
+            parts.append("Abstract Class")
+        _add("Khai báo Class/Interface", True, f"Đã khai báo {', '.join(parts)} hợp lệ.", 0)
 
-    # 2. Kiểm tra tính đóng gói (Encapsulation: private set hoặc private field)
-    has_encapsulation = bool(re.search(r'\{\s*(?:get;\s*private\s+set|private\s+set;\s*get)\s*;?\s*\}', code)) or bool(re.search(r'\bprivate\s+[A-Za-z0-9_<>\[\]]+\s+[A-Za-z0-9_]+', code))
+    # ---------- 2. Access Modifiers ----------
+    has_public = bool(re.search(r'\bpublic\s+(?:class|interface|void|int|string|bool|double|var|static)', code))
+    has_private = bool(re.search(r'\bprivate\s+', code))
+    has_protected = bool(re.search(r'\bprotected\s+', code))
+    has_internal = bool(re.search(r'\binternal\s+', code))
+
+    mod_count = sum([has_public, has_private, has_protected, has_internal])
+    if mod_count == 0:
+        _add("Modifier truy cập (Access Modifiers)", False, "Không tìm thấy modifier truy cập (public/private/protected/internal). Nên khai báo rõ ràng quyền truy cập.", 15)
+    else:
+        mod_names = []
+        if has_public: mod_names.append("public")
+        if has_private: mod_names.append("private")
+        if has_protected: mod_names.append("protected")
+        if has_internal: mod_names.append("internal")
+        _add("Modifier truy cập (Access Modifiers)", True, f"Sử dụng modifier: {', '.join(mod_names)}.", 0)
+
+    # ---------- 3. Encapsulation ----------
+    # Property auto: public int X { get; set; } / { get; private set; }
+    has_property = bool(re.search(r'\{\s*(?:get\s*;\s*(?:private\s+)?set\s*;?|(?:private\s+)?get\s*;?\s*set\s*;?)\s*\}', code))
+    has_private_field = bool(re.search(r'\bprivate\s+(?:static\s+)?(?:readonly\s+)?[A-Za-z0-9_<>\[\]]+\s+[A-Za-z0-9_]+\s*(?:=|;)', code))
+    has_encapsulation = has_property or has_private_field
+
     if req.get("require_encapsulation", True) and not has_encapsulation:
-        checks.append({"item": "Tính Đóng Gói (Encapsulation)", "passed": False, "msg": "Lỗi Đóng Gói: Chưa sử dụng Property đóng gói `{ get; private set; }` hoặc trường private!"})
-        score -= 2.5
+        _add("Tính Đóng Gói (Encapsulation)", False, "Chưa sử dụng Property `{ get; set; }` hoặc trường `private` để đóng gói dữ liệu!", 20)
     else:
-        checks.append({"item": "Tính Đóng Gói (Encapsulation)", "passed": True, "msg": "Đóng gói dữ liệu đạt chuẩn."})
+        _add("Tính Đóng Gói (Encapsulation)", True, "Đóng gói dữ liệu đạt chuẩn (Property + trường private).", 0)
 
-    # 3. Kiểm tra tính kế thừa (Inheritance: class Con : Cha)
-    has_inheritance = bool(re.search(r'\bclass\s+[A-Za-z0-9_]+\s*:\s*[A-Za-z0-9_]+', code))
+    # ---------- 4. Inheritance ----------
+    has_class_inheritance = bool(re.search(r'\bclass\s+[A-Za-z0-9_]+\s*:\s*[A-Za-z0-9_]+', code))
+    has_interface_impl = bool(re.search(r'\bclass\s+[A-Za-z0-9_]+\s*:\s*[A-Za-z0-9_]+(?:,\s*[A-Za-z0-9_]+)*', code) and has_interface)
+    has_inheritance = has_class_inheritance or has_interface_impl
+
     if req.get("require_inheritance", False) and not has_inheritance:
-        checks.append({"item": "Tính Kế Thừa (Inheritance)", "passed": False, "msg": "Chưa kế thừa lớp cha bằng cú pháp `: BaseClass`!"})
-        score -= 2.5
+        _add("Tính Kế Thừa (Inheritance)", False, "Chưa kế thừa lớp cha hoặc triển khai Interface bằng cú pháp `: BaseClass` / `: IInterface`!", 20)
     else:
-        checks.append({"item": "Tính Kế Thừa (Inheritance)", "passed": True, "msg": "Quan hệ kế thừa hợp lệ."})
+        _add("Tính Kế Thừa (Inheritance)", True, "Quan hệ kế thừa / triển khai Interface hợp lệ." if has_inheritance else "Không yêu cầu bắt buộc kế thừa (bỏ qua).", 0)
 
-    # 4. Kiểm tra đa hình / override (Polymorphism: override keyword)
+    # ---------- 5. Polymorphism ----------
+    has_virtual = bool(re.search(r'\bvirtual\b', code))
     has_override = bool(re.search(r'\boverride\b', code))
-    if req.get("require_override", False) and not has_override:
-        checks.append({"item": "Tính Đa Hình (Override)", "passed": False, "msg": "Chưa sử dụng từ khóa `override` để ghi đè phương thức!"})
-        score -= 2.0
-    else:
-        checks.append({"item": "Tính Đa Hình (Override)", "passed": True, "msg": "Phương thức override hợp lệ."})
+    has_abstract_method = bool(re.search(r'\babstract\s+', code))
+    has_sealed = bool(re.search(r'\bsealed\s+(?:override|class|method)', code))
+    has_polymorphism = has_virtual or has_override or has_abstract_method or has_sealed
 
-    is_passed = score >= 5.0
+    if req.get("require_override", False) and not has_override:
+        _add("Tính Đa Hình (Polymorphism)", False, "Chưa sử dụng `virtual`/`override`/`abstract`/`sealed` để thực hiện đa hình!", 15)
+    else:
+        poly_parts = []
+        if has_virtual: poly_parts.append("virtual")
+        if has_override: poly_parts.append("override")
+        if has_abstract_method: poly_parts.append("abstract")
+        if has_sealed: poly_parts.append("sealed")
+        _add("Tính Đa Hình (Polymorphism)", True, f"Sử dụng đa hình: {', '.join(poly_parts)}." if poly_parts else "Không yêu cầu bắt buộc đa hình (bỏ qua).", 0)
+
+    # ---------- 6. Constructor ----------
+    has_constructor = bool(re.search(r'\b(?:public\s+)?[A-Za-z0-9_]+\s*\([^)]*\)\s*(?:\:\s*[^{]*)?\{', code)) and has_class
+    # Heuristic: constructor có tên trùng class
+    ctor_hint = bool(re.search(r'\b(?:public\s+)[A-Za-z0-9_]+\s*\([^;{]*\)\s*\{', code))
+    if req.get("require_constructor", False) and not ctor_hint:
+        _add("Hàm Khởi Tạo (Constructor)", False, "Chưa khai báo Constructor (`public ClassName(...)`) để khởi tạo đối tượng!", 10)
+    else:
+        _add("Hàm Khởi Tạo (Constructor)", True, "Đã khai báo Constructor hợp lệ." if ctor_hint else "Không yêu cầu bắt buộc Constructor (bỏ qua).", 0)
+
+    # ---------- 7. Static members ----------
+    has_static = bool(re.search(r'\bstatic\s+', code))
+    if has_static:
+        _add("Thành viên tĩnh (static)", True, "Sử dụng thành viên tĩnh (static) phù hợp.", 0)
+    else:
+        _add("Thành viên tĩnh (static)", True, "Không bắt buộc phải có static (bỏ qua).", 0)
+
+    # ---------- Tính điểm cuối ----------
+    final_score = max(0.0, min(100.0, score_nonlocal[0]))
+    is_passed = final_score >= 80.0
+
+    # ---------- Summary ----------
+    if is_passed:
+        summary = "Mã nguồn tuân thủ tốt kiến trúc OOP C# (đóng gói, kế thừa, đa hình, modifier)."
+    elif final_score >= 50:
+        summary = "Mã nguồn có cấu trúc OOP cơ bản nhưng cần hoàn thiện thêm các nguyên lý OOP."
+    else:
+        summary = "Mã nguồn vi phạm nhiều quy tắc thiết kế OOP C# cơ bản! Cần viết lại theo hướng OOP."
+
     return {
         "valid": is_passed,
-        "score": max(0.0, score),
+        "score": round(final_score, 1),
         "checks": checks,
-        "summary": "Mã nguồn tuân thủ tốt kiến trúc OOP C#" if is_passed else "Mã nguồn vi phạm các quy tắc thiết kế OOP C# cơ bản!"
+        "passed_rules": passed_rules,
+        "missing_rules": missing_rules,
+        "summary": summary,
     }
 
 

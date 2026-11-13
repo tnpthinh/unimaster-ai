@@ -11390,6 +11390,11 @@ function renderExerciseDetail() {
                 <span>🛠️</span> Sửa & Nâng Cấp Code
               </button>
 
+              <!-- C# OOP Template / Snippet -->
+              <button type="button" onclick="openCSharpOOPTemplateModal()" class="px-2.5 py-1 rounded text-xs font-bold bg-[#5b21b6] hover:bg-[#6d28d9] text-white border border-purple-500/30 flex items-center gap-1.5 transition-all" title="Chèn mẫu code C# OOP (Class, Interface, Inheritance, Polymorphism, Encapsulation)">
+                <span>📐</span> Mẫu Code C# OOP
+              </button>
+
               <!-- Ask Tutor AI -->
               <button type="button" onclick="askAiAboutSelectedCode()" class="px-2 py-1 rounded text-xs font-medium text-amber-300 hover:bg-[#333333] flex items-center gap-1 transition-all" title="Hỏi gia sư AI về đoạn code đang chọn">
                 <span>💬</span> Hỏi AI
@@ -11882,6 +11887,17 @@ async function runCodeCustomInput() {
         stdoutEl.className = 'p-2.5 rounded-xl border font-mono text-xs text-emerald-400 h-28 overflow-y-auto';
       }
     }
+
+    // MO CUA SO MOI (MODAL) HIEN THI KET QUA CHAY CODE
+    openOutputModal(
+      '💻 Kết Quả Chạy Code - ' + escapeHtml(ex.title),
+      res.stdout || '(Không có output)',
+      res.compile_error || res.stderr || '',
+      res.executor || 'unknown',
+      res.runtime_ms || 0,
+      res.success !== false
+    );
+
     showToast(`Chạy xong trong ${res.runtime_ms || 15}ms`, 'success');
   } catch (err) {
     if (stdoutEl) {
@@ -11890,6 +11906,113 @@ async function runCodeCustomInput() {
     }
     showToast('Lỗi chạy code', 'error');
   }
+}
+
+/**
+ * Mo cua so moi (modal/popup) hien thi ket qua chay code C# OOP va cac ngon ngu khac.
+ * @param {string} title - Tieu dau cua cua so
+ * @param {string} output - Noi dung stdout
+ * @param {string} error - Noi dung loi (compile/stderr)
+ * @param {string} executor - Ten executor (native-csharp, judge0, ai-simulated...)
+ * @param {number} runtimeMs - Thoi gian chay (ms)
+ * @param {boolean} isSuccess - Co chay thanh thanh khong
+ */
+function openOutputModal(title, output, error, executor, runtimeMs, isSuccess) {
+  // Xoa modal cu neu co
+  const existing = document.getElementById('code-output-modal');
+  if (existing) existing.remove();
+
+  const isError = Boolean(error) || !isSuccess;
+  const borderColor = isError ? 'border-rose-500/50' : 'border-emerald-500/50';
+  const bgColor = isError ? 'bg-rose-500/5' : 'bg-emerald-500/5';
+  const icon = isError ? '❌' : '✅';
+  const statusText = isError ? 'CÓ LỖI' : 'THÀNH CÔNG';
+  const statusColor = isError ? 'text-rose-400' : 'text-emerald-400';
+
+  const modal = document.createElement('div');
+  modal.id = 'code-output-modal';
+  modal.className = 'fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn';
+  modal.innerHTML = `
+    <div class="w-full max-w-2xl md:max-w-3xl mx-4 bg-[#1e1e1e] rounded-2xl border ${borderColor} shadow-2xl flex flex-col overflow-hidden">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-3.5 bg-[#252526] border-b border-[#333333]">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-[#007acc] flex items-center justify-center text-white font-bold text-xs">${icon}</div>
+          <div>
+            <h3 class="text-sm font-bold text-white">${title}</h3>
+            <p class="text-[10px] text-slate-400 font-mono">Executor: ${escapeHtml(executor)} • Thời gian: ${runtimeMs}ms</p>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('code-output-modal')?.remove()" class="text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-[#333333] transition-colors">✕</button>
+      </div>
+
+      <!-- Body: Output + Error tabs -->
+      <div class="flex-1 overflow-hidden flex flex-col min-h-[300px]">
+        <!-- Tab bar -->
+        <div class="flex border-b border-[#333333]">
+          <button type="button" onclick="switchOutputTab('output')" id="outtab-output" class="flex-1 py-2.5 text-xs font-mono border-b-2 ${!isError ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200'} transition-colors">📤 OUTPUT (STDOUT)</button>
+          <button type="button" onclick="switchOutputTab('error')" id="outtab-error" class="flex-1 py-2.5 text-xs font-mono border-b-2 ${isError ? 'border-rose-400 text-rose-400' : 'border-transparent text-slate-400 hover:text-slate-200'} transition-colors">⚠️ LỖI (STDERR / Compile)</button>
+        </div>
+
+        <!-- Output content -->
+        <div id="outpane-output" class="flex-1 overflow-y-auto p-4 font-mono text-xs bg-[#0d0d0d] ${!isError ? '' : 'hidden'}">
+          <div class="${bgColor} p-3 rounded-xl border border-[#333333] mb-3 ${statusColor}">
+            <span class="font-bold">${icon} ${statusText}</span>
+          </div>
+          <pre class="whitespace-pre-wrap break-words text-[#4ec9b0]">${escapeHtml(output || '(Không có output)')}</pre>
+        </div>
+
+        <!-- Error content -->
+        <div id="outpane-error" class="flex-1 overflow-y-auto p-4 font-mono text-xs bg-[#0d0d0d] ${isError ? '' : 'hidden'}">
+          <div class="bg-rose-500/5 p-3 rounded-xl border border-[#333333] mb-3 text-rose-400">
+            <span class="font-bold">⚠️ CÓ LỖI XẢY RA</span>
+          </div>
+          <pre class="whitespace-pre-wrap break-words text-[#f87171]">${escapeHtml(error || '(Không có thông báo lỗi)')}</pre>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div class="px-5 py-3 border-t border-[#333333] bg-[#252526] flex items-center justify-between">
+        <div class="text-[10px] text-slate-500 font-mono">UniMaster Code Output Window • Nhấn ESC hoặc click nút X để đóng</div>
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="document.getElementById('code-output-modal')?.remove(); switchConsoleTab('console');" class="px-3 py-1.5 rounded bg-[#007acc] hover:bg-[#1177bb] text-white text-xs font-bold transition-colors">Đóng & Quay Lại</button>
+          <button type="button" onclick="copyOutputToClipboard()" class="px-3 py-1.5 rounded bg-[#333333] hover:bg-[#444444] text-slate-200 text-xs font-bold transition-colors" title="Sao chép output">📋 Copy</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Luu output vao window de copy sau
+  window.__LAST_CODE_OUTPUT = output || '';
+  window.__LAST_CODE_ERROR = error || '';
+
+  document.body.appendChild(modal);
+
+  // Dong modal khi nhan ESC
+  const onEsc = (e) => { if (e.key === 'Escape') { modal.remove(); window.removeEventListener('keydown', onEsc); } };
+  window.addEventListener('keydown', onEsc);
+}
+
+/**
+ * Chuyen tab trong output modal
+ */
+function switchOutputTab(tab) {
+  document.getElementById('outtab-output').className = 'flex-1 py-2.5 text-xs font-mono border-b-2 ' + (tab === 'output' ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200') + ' transition-colors';
+  document.getElementById('outtab-error').className = 'flex-1 py-2.5 text-xs font-mono border-b-2 ' + (tab === 'error' ? 'border-rose-400 text-rose-400' : 'border-transparent text-slate-400 hover:text-slate-200') + ' transition-colors';
+  document.getElementById('outpane-output').classList.toggle('hidden', tab !== 'output');
+  document.getElementById('outpane-error').classList.toggle('hidden', tab !== 'error');
+}
+
+/**
+ * Sao chep output vao clipboard
+ */
+function copyOutputToClipboard() {
+  const text = (window.__LAST_CODE_OUTPUT || '') + (window.__LAST_CODE_ERROR ? '\n\n--- LỖI ---\n' + window.__LAST_CODE_ERROR : '');
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('Đã sao chép output vào clipboard!', 'success');
+  }).catch(() => {
+    showToast('Không sao chép được output.', 'error');
+  });
 }
 
 async function submitCodeTestCases() {
@@ -19305,4 +19428,441 @@ function toggleTutorAdvancedSettings() {
   const drawer = document.getElementById('tutor-advanced-settings');
   if (!drawer) return;
   drawer.classList.toggle('hidden');
+}
+
+// =========================================================================
+// C# OOP CODE TEMPLATES / SNIPPETS (Hỗ trợ viết code OOP C# nhanh)
+// =========================================================================
+
+const CSHARP_OOP_TEMPLATES = [
+  {
+    id: 'oop-class',
+    name: 'Class cơ bản (Encapsulation)',
+    desc: 'Khai báo Class với trường private + Property get/set, Constructor.',
+    code: `using System;
+
+public class SinhVien
+{
+    // Trường private (đóng gói dữ liệu)
+    private string _ten;
+    private double _diem;
+
+    // Property công khai với get/set
+    public string Ten
+    {
+        get { return _ten; }
+        set { _ten = value ?? "Chưa có tên"; }
+    }
+
+    public double Diem
+    {
+        get { return _diem; }
+        set { _diem = value < 0 ? 0 : value; }
+    }
+
+    // Constructor
+    public SinhVien(string ten, double diem)
+    {
+        _ten = ten;
+        _diem = diem;
+    }
+
+    // Phương thức
+    public string XuatThongTin()
+    {
+        return $"Tên: {_ten}, Điểm: {_diem}";
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        SinhVien sv = new SinhVien("Nguyen Van A", 8.5);
+        Console.WriteLine(sv.XuatThongTin());
+    }
+}`
+  },
+  {
+    id: 'oop-inheritance',
+    name: 'Kế thừa (Inheritance)',
+    desc: 'Lớp con kế thừa từ lớp cha, sử dụng base() và override.',
+    code: `using System;
+
+public class NhanVien
+{
+    public string Ten { get; set; }
+    public int LuongCoBan { get; set; }
+
+    public NhanVien(string ten, int luong)
+    {
+        Ten = ten;
+        LuongCoBan = luong;
+    }
+
+    public virtual int TinhLuong()
+    {
+        return LuongCoBan;
+    }
+
+    public virtual string ChucVu()
+    {
+        return "Nhan vien";
+    }
+}
+
+public class TruongPhong : NhanVien
+{
+    public TruongPhong(string ten, int luong) : base(ten, luong) { }
+
+    public override int TinhLuong()
+    {
+        return LuongCoBan + LuongCoBan * 20 / 100;
+    }
+
+    public override string ChucVu()
+    {
+        return "Truong phong";
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        NhanVien nv = new TruongPhong("Tran Van B", 1000);
+        // Da hinh: goi qua kieu cha chay override cua lop con
+        Console.WriteLine($"{nv.ChucVu()} - Luong: {nv.TinhLuong()}");
+    }
+}`
+  },
+  {
+    id: 'oop-interface',
+    name: 'Triển khai Interface',
+    desc: 'Khai báo Interface và Class triển khai nó (abstraction).',
+    code: `using System;
+using System.Collections.Generic;
+
+public interface IRepository<T>
+{
+    void Add(T item);
+    List<T> GetAll();
+    int Count { get; }
+}
+
+public class ListRepository<T> : IRepository<T>
+{
+    private List<T> _items = new List<T>();
+
+    public void Add(T item)
+    {
+        _items.Add(item);
+    }
+
+    public List<T> GetAll()
+    {
+        return _items;
+    }
+
+    public int Count
+    {
+        get { return _items.Count; }
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        IRepository<int> repo = new ListRepository<int>();
+        repo.Add(10);
+        repo.Add(20);
+        repo.Add(30);
+
+        Console.WriteLine("Count: " + repo.Count);
+        int sum = 0;
+        foreach (int v in repo.GetAll()) sum += v;
+        Console.WriteLine("Sum: " + sum);
+    }
+}`
+  },
+  {
+    id: 'oop-polymorphism',
+    name: 'Đa hình (Polymorphism)',
+    desc: 'Sử dụng abstract, virtual, override để thực hiện đa hình.',
+    code: `using System;
+using System.Collections.Generic;
+
+public abstract class HinhHoc
+{
+    public string Ten { get; set; }
+
+    protected HinhHoc(string ten)
+    {
+        Ten = ten;
+    }
+
+    // Phuong thuc abstract - lop bat buoc phai override
+    public abstract double TinhDienTich();
+
+    public abstract double TinhChuVi();
+
+    public void XuatThongTin()
+    {
+        Console.WriteLine($"{Ten}: Dien tich = {TinhDienTich():F2}, Chu vi = {TinhChuVi():F2}");
+    }
+}
+
+public class HinhTron : HinhHoc
+{
+    public double BanKinh { get; set; }
+
+    public HinhTron(string ten, double banKinh) : base(ten)
+    {
+        BanKinh = banKinh;
+    }
+
+    public override double TinhDienTich()
+    {
+        return Math.PI * BanKinh * BanKinh;
+    }
+
+    public override double TinhChuVi()
+    {
+        return 2 * Math.PI * BanKinh;
+    }
+}
+
+public class HinhChuNhat : HinhHoc
+{
+    public double Dai { get; set; }
+    public double Rong { get; set; }
+
+    public HinhChuNhat(string ten, double dai, double rong) : base(ten)
+    {
+        Dai = dai;
+        Rong = rong;
+    }
+
+    public override double TinhDienTich()
+    {
+        return Dai * Rong;
+    }
+
+    public override double TinhChuVi()
+    {
+        return 2 * (Dai + Rong);
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        List<HinhHoc> dsHinh = new List<HinhHoc>
+        {
+            new HinhTron("Hinh tron", 5),
+            new HinhChuNhat("Hinh chu nhat", 4, 6)
+        };
+
+        // Da hinh: danh sach chua cac lop con, goi phuong thuc abstract
+        foreach (var hinh in dsHinh)
+        {
+            hinh.XuatThongTin();
+        }
+    }
+}`
+  },
+  {
+    id: 'oop-exception',
+    name: 'Xử lý ngoại lệ (Exception)',
+    desc: 'Tạo Exception tùy chỉnh và sử dụng try-catch-finally.',
+    code: `using System;
+
+public class SoDuKhongDuException : Exception
+{
+    public SoDuKhongDuException(string msg) : base(msg) { }
+}
+
+public class TaiKhoanNganHang
+{
+    public string SoTaiKhoan { get; private set; }
+    private int _soDu;
+
+    public TaiKhoanNganHang(string soTaiKhoan, int soDu)
+    {
+        SoTaiKhoan = soTaiKhoan;
+        _soDu = soDu;
+    }
+
+    public void RutTien(int soTien)
+    {
+        if (soTien <= 0)
+            throw new ArgumentException("So tien phai lon hon 0");
+
+        if (soTien > _soDu)
+            throw new SoDuKhongDuException("So du khong du de rut");
+
+        _soDu -= soTien;
+        Console.WriteLine($"Rut thanh cong {soTien}. Con lai: {_soDu}");
+    }
+
+    public int XemSoDu()
+    {
+        return _soDu;
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        TaiKhoanNganHang tk = new TaiKhoanNganHang("123456", 500);
+
+        try
+        {
+            tk.RutTien(700);
+        }
+        catch (SoDuKhongDuException ex)
+        {
+            Console.WriteLine("LOI: " + ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("LOI he thong: " + ex.Message);
+        }
+    }
+}`
+  },
+  {
+    id: 'oop-delegate',
+    name: 'Delegate & Event',
+    desc: 'Sử dụng delegate và event để xử lý thông báo (pub/sub).',
+    code: `using System;
+
+public delegate void NhietDoCaoHandler(int nhietDo);
+
+public class MayChu
+{
+    public event NhietDoCaoHandler OnNhietDoCao;
+
+    public void CapNhatNhietDo(int nhietDo)
+    {
+        if (nhietDo > 80)
+        {
+            OnNhietDoCao?.Invoke(nhietDo);
+        }
+        else
+        {
+            Console.WriteLine($"Binh thuong - {nhietDo} do C");
+        }
+    }
+}
+
+public class Program
+{
+    public static void Main()
+    {
+        MayChu mc = new MayChu();
+
+        // Dang ky su kien
+        mc.OnNhietDoCao += delegate(int nhietDo)
+        {
+            Console.WriteLine($"CANH BAO: Nhiet do cao - {nhietDo} do C");
+        };
+
+        mc.CapNhatNhietDo(75);
+        mc.CapNhatNhietDo(90);
+    }
+}`
+  }
+];
+
+/**
+ * Mo modal chon va chen mau code C# OOP vao editor
+ */
+function openCSharpOOPTemplateModal() {
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  if (!ex) return;
+
+  const existing = document.getElementById('csharp-oop-template-modal');
+  if (existing) existing.remove();
+
+  const modal = document.createElement('div');
+  modal.id = 'csharp-oop-template-modal';
+  modal.className = 'fixed inset-0 z-[60] flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fadeIn';
+
+  const itemsHtml = CSHARP_OOP_TEMPLATES.map((t, idx) => `
+    <div class="p-3 rounded-xl border border-[#333333] bg-[#252526] hover:border-[#007acc]/50 transition-colors cursor-pointer group" onclick="insertCSharpTemplate(${idx})">
+      <div class="flex items-center justify-between mb-1">
+        <span class="text-sm font-bold text-white">${t.name}</span>
+        <span class="text-[10px] text-cyan-400 font-mono bg-[#007acc]/20 px-1.5 py-0.5 rounded">OOP</span>
+      </div>
+      <p class="text-[11px] text-slate-400 mb-2">${t.desc}</p>
+      <div class="flex items-center gap-2 text-[10px] font-mono text-emerald-400">
+        <span>▶</span> <span>Chèn mẫu này vào Editor</span>
+      </div>
+    </div>
+  `).join('');
+
+  modal.innerHTML = `
+    <div class="w-full max-w-3xl md:max-w-4xl mx-4 bg-[#1e1e1e] rounded-2xl border border-[#333333] shadow-2xl flex flex-col overflow-hidden max-h-[85vh] flex-col">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-5 py-3.5 bg-[#252526] border-b border-[#333333]">
+        <div class="flex items-center gap-3">
+          <div class="w-8 h-8 rounded-lg bg-[#5b21b6] flex items-center justify-center text-white font-bold text-xs">📐</div>
+          <div>
+            <h3 class="text-sm font-bold text-white">Mẫu Code C# OOP</h3>
+            <p class="text-[10px] text-slate-400 font-mono">Chọn mẫu để chèn vào trình soạn thảo</p>
+          </div>
+        </div>
+        <button type="button" onclick="document.getElementById('csharp-oop-template-modal')?.remove()" class="text-slate-400 hover:text-white px-2 py-1 rounded hover:bg-[#333333] transition-colors">✕</button>
+      </div>
+
+      <!-- Body: Danh sách mẫu -->
+      <div class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar">
+        ${itemsHtml}
+      </div>
+
+      <!-- Footer -->
+      <div class="px-5 py-3 border-t border-[#333333] bg-[#252526] flex items-center justify-between">
+        <div class="text-[10px] text-slate-500 font-mono">
+          ${CSHARP_OOP_TEMPLATES.length} mẫu code OOP C# • Class, Interface, Inheritance, Polymorphism, Exception, Delegate
+        </div>
+        <button type="button" onclick="document.getElementById('csharp-oop-template-modal')?.remove()" class="px-3 py-1.5 rounded bg-[#007acc] hover:bg-[#1177bb] text-white text-xs font-bold transition-colors">Đóng</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+
+  const onEsc = (e) => { if (e.key === 'Escape') { modal.remove(); window.removeEventListener('keydown', onEsc); } };
+  window.addEventListener('keydown', onEsc);
+}
+
+/**
+ * Chen mau code C# OOP vao editor
+ * @param {number} index - Chi so template trong CSHARP_OOP_TEMPLATES
+ */
+function insertCSharpTemplate(index) {
+  const t = CSHARP_OOP_TEMPLATES[index];
+  if (!t) return;
+
+  const editor = document.getElementById('code-editor-textarea');
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  if (!editor || !ex) return;
+
+  editor.value = t.code;
+  editor.focus();
+
+  // Dong bo vao state + luu localStorage ngay
+  STATE.exercises.userCode[ex.id] = t.code;
+  if (typeof persistUserCodeToStorage === 'function') persistUserCodeToStorage();
+  updateVscodeLineNumbers();
+  updateVscodeCursorPosition();
+
+  // Dong modal
+  document.getElementById('csharp-oop-template-modal')?.remove();
+
+  showToast(`Đã chèn mẫu "${t.name}" vào Editor!`, 'success');
 }
