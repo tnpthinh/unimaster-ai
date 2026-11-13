@@ -299,37 +299,160 @@ function renderTutorAcademicHtml(rawText) {
 
 function formatTutorProviderBadge(msg) {
   const label = msg.provider_label || (
-    msg.provider_used === '9router' ? '9Router' :
+    msg.provider_used === '9router' ? '9Router Gateway' :
     msg.provider_used === 'fosta' ? 'FOSTA Codex' :
     msg.provider_used === 'openai' ? 'OpenAI Gateway' :
-    msg.provider_used === 'gemini' ? 'Gemini' :
+    msg.provider_used === 'gemini' ? 'Gemini AI' :
     msg.provider_used === 'fallback' ? 'Gia sư Dự phòng' :
     ''
   );
-  if (!label && msg.latency_ms == null && !msg.model_used) return '';
-  const bits = [];
-  if (label) bits.push(escapeHtml(label));
+  const modelText = (msg.model_used || '').trim();
+  if (!label && msg.latency_ms == null && !modelText) return '';
+
+  let latText = '';
   if (msg.latency_ms != null) {
     const ms = Number(msg.latency_ms);
-    bits.push(ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`);
+    latText = ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
   }
-  const titleAttr = msg.model_used ? ` title="${escapeHtml(msg.model_used + (msg.masked_key ? ' • ' + msg.masked_key : ''))}"` : '';
-  return `<span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-extrabold font-mono shrink-0"${titleAttr}>${bits.join(' • ')}</span>`;
+
+  const fullTooltip = [
+    label,
+    modelText ? `Model: ${modelText}` : '',
+    msg.masked_key ? `Key: ${msg.masked_key}` : '',
+    latText ? `Độ trễ: ${latText}` : ''
+  ].filter(Boolean).join(' • ');
+
+  const provBits = [];
+  if (label) provBits.push(escapeHtml(label));
+  if (latText) provBits.push(escapeHtml(latText));
+  const provHtml = provBits.length
+    ? `<span class="badge-brand text-[10px] px-2.5 py-0.5 rounded-full font-extrabold font-mono shrink-0" title="${escapeHtml(fullTooltip)}">${provBits.join(' • ')}</span>`
+    : '';
+
+  const modelHtml = modelText
+    ? `<span class="tutor-model-badge text-[10px] px-2.5 py-0.5 rounded-full font-extrabold font-mono shrink-0 flex items-center gap-1 shadow-xs" title="Model AI cụ thể đã xử lý câu hỏi này: ${escapeHtml(modelText)}"><span class="tutor-model-dot"></span><span>⚡ ${escapeHtml(modelText)}</span></span>`
+    : '';
+
+  return `${provHtml}${modelHtml}`;
+}
+
+
+function fillAndSendTutorPrompt(promptText) {
+  const inp = document.getElementById('tutor-input');
+  if (!inp) return;
+  inp.value = promptText;
+  if (typeof sendTutorMessage === 'function') {
+    sendTutorMessage();
+  }
+}
+window.fillAndSendTutorPrompt = fillAndSendTutorPrompt;
+
+function autoGrowGeminiInput(el) {
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 180) + 'px';
+}
+window.autoGrowGeminiInput = autoGrowGeminiInput;
+
+function handleGeminiInputKey(event) {
+  if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+    event.preventDefault();
+    sendTutorMessage();
+    const inp = document.getElementById('tutor-input');
+    if (inp) inp.style.height = 'auto';
+  }
+}
+window.handleGeminiInputKey = handleGeminiInputKey;
+
+function buildTutorGreetingMarkup(compact = false) {
+  const curSub = (typeof STATE !== 'undefined' && Array.isArray(STATE.subjects))
+    ? (STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId)) || STATE.subjects[0])
+    : null;
+  const subName = curSub?.name || 'Môn học hiện tại';
+
+  if (compact) {
+    return `
+      <div class="gemini-message-row gemini-model-row animate-fade-in">
+        <div class="gemini-sparkle-icon gemini-sparkle-sm mt-0.5"></div>
+        <div class="gemini-model-bubble space-y-2">
+          <div class="text-xs font-bold text-slate-200">
+            Xin chào! Tôi là <span class="gemini-gradient-text">Gemini AI</span> phụ trách <span class="txt-brand">${escapeHtml(subName)}</span>.
+          </div>
+          <div class="text-xs text-slate-400">
+            Bấm chọn câu hỏi nhanh bên trên, bôi đen từ khóa hoặc nhập câu hỏi bất kỳ để tôi giải thích chi tiết nhé!
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="gemini-welcome-container animate-fade-in">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="gemini-sparkle-icon" style="width: 38px; height: 38px;"></div>
+        <span class="text-xs font-extrabold tracking-wider uppercase px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
+          Gemini 1.5 Pro • Trợ Lý Học Tập Đa Năng
+        </span>
+      </div>
+
+      <h1 class="gemini-hero-greeting">
+        <span class="gemini-gradient-text">Xin chào bạn,</span><br/>
+        Hôm nay bạn muốn cùng tôi học gì?
+      </h1>
+      <p class="gemini-hero-sub">
+        Tôi đồng hành cùng bạn ôn luyện <strong class="text-white">${escapeHtml(subName)}</strong>, giải thích bản chất y sinh, sửa lỗi lập trình hoặc tối ưu hóa phương pháp thi trắc nghiệm.
+      </p>
+
+      <div class="gemini-prompts-grid">
+        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Hãy phân tích chi tiết cơ chế chuyển hóa Glucid, chu trình Krebs và các điểm thắt nút năng lượng quan trọng nhất trong đề thi!')">
+          <div>
+            <div class="gemini-prompt-card-text">🧬 Phân tích chuyển hóa Glucid & Krebs</div>
+            <div class="gemini-prompt-card-sub">Bản chất hóa sinh & các câu bẫy thi thường gặp</div>
+          </div>
+          <div class="gemini-prompt-card-icon">💡</div>
+        </div>
+
+        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Hãy hướng dẫn tôi cách debug lỗi rò rỉ bộ nhớ, con trỏ và tư duy lập trình hướng đối tượng OOP trong C++ và C#.')">
+          <div>
+            <div class="gemini-prompt-card-text">💻 Debug OOP & Rò rỉ bộ nhớ C++ / C#</div>
+            <div class="gemini-prompt-card-sub">Soi rò rỉ bộ nhớ, virtual table & tối ưu thuật toán</div>
+          </div>
+          <div class="gemini-prompt-card-icon">⚡</div>
+        </div>
+
+        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Cho tôi bài tập biện luận lâm sàng ca bệnh Đái tháo đường qua chỉ số nghiệm pháp OGTT và nồng độ thể Ceton trong nước tiểu.')">
+          <div>
+            <div class="gemini-prompt-card-text">🩺 Biện luận lâm sàng ca bệnh OGTT & Ceton</div>
+            <div class="gemini-prompt-card-sub">Chẩn đoán và phân tích 10 thông số nước tiểu</div>
+          </div>
+          <div class="gemini-prompt-card-icon">🔬</div>
+        </div>
+
+        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Hãy chỉ cho tôi phương pháp loại trừ 3 đáp án sai khi gặp câu hỏi trắc nghiệm phủ định dạng NGOẠI TRỪ.')">
+          <div>
+            <div class="gemini-prompt-card-text">🎯 Kỹ thuật loại trừ phương án bẫy trắc nghiệm</div>
+            <div class="gemini-prompt-card-sub">Mẹo tư duy tốc độ 10 giây cho kỳ thi trắc nghiệm</div>
+          </div>
+          <div class="gemini-prompt-card-icon">🚀</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 function buildTutorMessageHtml(msg, compact = false) {
   if (!msg) return '';
+
   if (msg.role === 'user') {
     const ctxPill = msg.context
-      ? `<div class="text-[10px] opacity-85 font-bold mb-1 flex items-center gap-1"><span>📌</span><span>${escapeHtml(msg.context)}</span></div>`
+      ? `<div class="text-[10px] text-cyan-300 font-bold mb-1.5 flex items-center gap-1.5 opacity-90"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span><span>📌 ${escapeHtml(msg.context)}</span></div>`
       : '';
     return `
-      <div class="flex items-start justify-end gap-2 animate-fade-in">
-        <div class="tutor-user-bubble ${compact ? 'p-2.5 text-xs max-w-[88%]' : 'p-3.5 text-sm max-w-xl'} rounded-2xl font-semibold shadow-sm whitespace-pre-wrap">
+      <div class="gemini-message-row gemini-user-row animate-fade-in">
+        <div class="gemini-user-bubble">
           ${ctxPill}
-          <div>${escapeHtml(msg.content)}</div>
+          <div class="whitespace-pre-wrap">${escapeHtml(msg.content)}</div>
         </div>
-        <div class="${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-lg flex items-center justify-center bg-violet-600 text-white shrink-0">👤</div>
       </div>
     `;
   }
@@ -339,53 +462,45 @@ function buildTutorMessageHtml(msg, compact = false) {
   window._tutorMsgMeta[msgId] = msg;
   const modeMeta = msg.mode && TUTOR_MODES_META[msg.mode] ? TUTOR_MODES_META[msg.mode] : null;
   const provBadge = formatTutorProviderBadge(msg);
-  const subLabel = msg.context || 'Gia Sư AI UniMaster';
+  const subLabel = msg.context || 'Gemini 1.5 Pro';
   const renderedBody = renderTutorAcademicHtml(msg.content);
 
   return `
-    <div class="flex items-start gap-2 animate-fade-in" id="${escapeHtml(msgId)}">
-      <div class="${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-lg flex items-center justify-center bg-indigo-500/20 txt-brand shrink-0 mt-0.5">🤖</div>
-      <div class="tutor-ai-bubble ${compact ? 'p-3 max-w-[92%]' : 'p-4 max-w-3xl'} rounded-2xl border space-y-2.5 flex-1 min-w-0 shadow-sm">
-        <div class="flex items-center justify-between gap-2 flex-wrap border-b pb-1.5" style="border-color: var(--border);">
-          <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-            <span class="txt-brand text-[11px] font-extrabold flex items-center gap-1 truncate">
-              <span>🎓</span><span>${escapeHtml(subLabel)}</span>
+    <div class="gemini-message-row gemini-model-row animate-fade-in" id="${escapeHtml(msgId)}">
+      <div class="gemini-sparkle-icon ${compact ? 'gemini-sparkle-sm' : ''} mt-1"></div>
+      <div class="gemini-model-bubble space-y-2">
+        <div class="flex items-center justify-between gap-2 flex-wrap pb-1 border-b border-white/5">
+          <div class="flex items-center gap-2 flex-wrap min-w-0">
+            <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <span class="gemini-gradient-text">${escapeHtml(subLabel)}</span>
             </span>
-            ${modeMeta ? `<span class="badge-soft text-[10px] px-1.5 py-0.5 rounded font-bold">${modeMeta.icon} ${escapeHtml(modeMeta.label)}</span>` : ''}
+            ${modeMeta ? `<span class="badge-soft text-[10px] px-2 py-0.5 rounded-full font-bold">${modeMeta.icon} ${escapeHtml(modeMeta.label)}</span>` : ''}
             ${provBadge}
           </div>
-          <span class="text-[10px] font-mono txt-muted shrink-0">${escapeHtml(msg.displayTime || '')}</span>
+          <span class="text-[10px] font-mono text-slate-500">${escapeHtml(msg.displayTime || '')}</span>
         </div>
 
         <div class="leading-relaxed ai-tutor-content markdown-body ${compact ? 'text-xs sm:text-sm' : 'text-sm'}">
           ${renderedBody}
         </div>
 
-        <div class="flex items-center gap-1.5 flex-wrap pt-2 border-t" style="border-color: var(--border);">
-          <button type="button" onclick="copyAiReply('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold">📋 Copy</button>
-          <button type="button" onclick="saveAiReplyToNotebook('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold txt-emerald">📌 Lưu vào Sổ tay</button>
-          <button type="button" onclick="speakAiReply('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold">🔊 Đọc</button>
-          <button type="button" onclick="askFollowUpOnAiReply('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold txt-brand">👍 Hỏi đào sâu thêm</button>
-          <button type="button" onclick="saveAiReplyAsFlashcard('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold txt-amber">🃏 Đúc Thẻ</button>
+        <div class="gemini-action-bar">
+          <button type="button" onclick="copyAiReply('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Sao chép câu trả lời">
+            <span>📋</span><span>Sao chép</span>
+          </button>
+          <button type="button" onclick="speakAiReply('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Đọc bài giảng bằng giọng nói AI">
+            <span>🔊</span><span>Đọc giải thích</span>
+          </button>
+          <button type="button" onclick="saveAiReplyToNotebook('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Lưu vào Sổ tay câu hỏi trọng tâm">
+            <span>📌</span><span>Lưu sổ tay</span>
+          </button>
+          <button type="button" onclick="saveAiReplyAsFlashcard('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Tự động tạo Flashcard thông minh">
+            <span>🃏</span><span>Đúc thẻ ôn</span>
+          </button>
+          <button type="button" onclick="askFollowUpOnAiReply('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Yêu cầu AI phân tích sâu hơn nữa">
+            <span>💡</span><span>Hỏi đào sâu</span>
+          </button>
         </div>
-      </div>
-    </div>
-  `;
-}
-
-function buildTutorGreetingMarkup(compact = false) {
-  const curSub = (typeof STATE !== 'undefined' && Array.isArray(STATE.subjects))
-    ? (STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId)) || STATE.subjects[0])
-    : null;
-  const subName = curSub?.name || 'này';
-  const body = renderTutorAcademicHtml(
-    `Chào bạn! Tôi là **Gia sư AI UniMaster** phụ trách môn **${subName}**.\n\n- Chọn **Chế độ sư phạm** phía trên (*Giải sâu & Mẹo nhớ*, *Loại trừ A/B/C/D*, *Socratic*, *Biện luận lâm sàng*, *Debug Code*).\n- Bấm **"Hỏi AI Câu Này"** trong đề thi hoặc bôi đen bất kỳ thuật ngữ / dòng code nào để gắn ngữ cảnh trực tiếp!`
-  );
-  return `
-    <div class="flex items-start gap-2">
-      <div class="${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-lg flex items-center justify-center bg-indigo-500/20 txt-brand shrink-0">🤖</div>
-      <div class="tutor-ai-bubble ${compact ? 'p-2.5 text-xs max-w-[90%]' : 'p-4 text-sm max-w-3xl'} rounded-2xl border markdown-body ai-tutor-content">
-        ${body}
       </div>
     </div>
   `;
@@ -408,6 +523,7 @@ function onTutorBoxScroll(boxId, btnId) {
   btn.classList.toggle('hidden', distFromBottom < 80);
 }
 window.onTutorBoxScroll = onTutorBoxScroll;
+
 
 function renderActiveTutorMessages() {
   const history = Array.isArray(floatingTutorChatHistory) ? floatingTutorChatHistory.slice(-80) : [];
@@ -987,8 +1103,19 @@ async function sendTutorChatUnified(userMsg, opts = {}) {
     const b = document.getElementById(boxId);
     if (!b) return;
     const sp = document.createElement('div');
-    sp.className = 'tutor-thinking-spinner flex items-center gap-2 text-xs txt-muted py-1.5';
-    sp.innerHTML = `<div class="spinner-sm"></div><span>Gia Sư AI (${escapeHtml((TUTOR_MODES_META[modeToUse] || {}).label || 'Giải sâu')}) đang phân tích...</span>`;
+    sp.className = 'tutor-thinking-spinner gemini-thinking-bar animate-fade-in my-3';
+    sp.innerHTML = `
+      <div class="gemini-sparkle-icon gemini-sparkle-sm"></div>
+      <div class="flex items-center gap-1.5 min-w-[150px]">
+        <span class="text-xs font-bold gemini-gradient-text">Gemini đang suy nghĩ</span>
+        <div class="flex gap-1">
+          <span class="gemini-thinking-dot"></span>
+          <span class="gemini-thinking-dot"></span>
+          <span class="gemini-thinking-dot"></span>
+        </div>
+      </div>
+      <div class="gemini-thinking-shimmer"></div>
+    `;
     b.appendChild(sp);
     b.scrollTop = b.scrollHeight;
   });
@@ -3324,6 +3451,11 @@ window.updateNavIndicator = updateNavIndicator;
 
 function switchTab(tabName) {
   STATE.currentTab = tabName;
+  if (tabName === 'tutor') {
+    document.body.classList.add('tutor-tab-active');
+  } else {
+    document.body.classList.remove('tutor-tab-active');
+  }
   const tabs = ['dashboard', 'exam', 'exercises', 'essay', 'flashcards', 'mistakes', 'search', 'tutor', 'generator', 'arena', 'lab'];
 
   tabs.forEach((t) => {
@@ -10812,6 +10944,7 @@ if (!STATE.exercises.userCode) STATE.exercises.userCode = {};
 if (!STATE.exercises.testResults) STATE.exercises.testResults = {};
 if (!STATE.exercises.aiReviews) STATE.exercises.aiReviews = {};
 if (!STATE.exercises.currentConsoleTab) STATE.exercises.currentConsoleTab = 'testcases';
+if (!STATE.exercises.aiUpgrades) STATE.exercises.aiUpgrades = {};
 
 async function loadExercisesView() {
   const sel = document.getElementById('exercise-subject-select');
@@ -10935,157 +11068,329 @@ function renderExerciseDetail() {
   const aiRev = STATE.exercises.aiReviews[ex.id];
   const activeTab = STATE.exercises.currentConsoleTab || 'testcases';
 
-  pane.innerHTML = `
-    <!-- Exercise Header -->
-    <div class="space-y-3 pb-4 border-b" style="border-color: var(--border);">
-      <div class="flex items-center justify-between flex-wrap gap-2">
-        <div class="flex items-center gap-2">
-          <span class="badge-brand text-xs px-2.5 py-0.5 rounded-md font-bold">Bài #${STATE.exercises.selectedIndex + 1}</span>
-          <span class="badge-subtle text-xs px-2 py-0.5 rounded font-mono uppercase">${ex.language || 'cpp'}</span>
-          ${testRes && testRes.all_passed ? '<span class="badge-emerald text-xs px-2.5 py-0.5 rounded font-bold">Passed (100%) ✅</span>' : ''}
-        </div>
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="resetExerciseCode()" class="btn-soft px-3 py-1.5 text-xs font-bold text-amber-400 hover:bg-amber-500/10" title="Khôi phục lại code khởi tạo ban đầu">
-            ↺ Reset Code Mẫu
-          </button>
-          <button type="button" onclick="toggleSampleCode()" class="btn-soft px-3 py-1.5 text-xs font-bold">
-            ${STATE.exercises.showCode ? '🙈 Ẩn Code Mẫu' : '👁️ Hiện Code Mẫu'}
-          </button>
-        </div>
-      </div>
-      <h3 class="text-xl font-extrabold txt-main">${escapeHtml(ex.title)}</h3>
-      <div class="text-sm txt-sub leading-relaxed p-3.5 rounded-xl border" style="background: rgba(255,255,255,0.02); border-color: var(--border);">
-        ${formatRichText(ex.problem)}
-      </div>
-      ${
-        specs.length
-          ? `<div class="space-y-1.5 pt-1">
-              <span class="text-[11px] font-bold txt-muted uppercase tracking-wider">Yêu cầu kỹ thuật & Ràng buộc:</span>
-              <ul class="space-y-1 text-xs txt-sub">${specs.map((s) => `<li class="flex items-start gap-2"><span class="txt-brand font-bold">▸</span><span>${formatRichText(s)}</span></li>`).join('')}</ul>
-            </div>`
-          : ''
-      }
-    </div>
+  const langExtMap = { cpp: 'cpp', c: 'c', python: 'py', csharp: 'cs', java: 'java' };
+  const langNameMap = { cpp: 'C++', c: 'C', python: 'Python', csharp: 'C#', java: 'Java' };
+  const currentLang = ex.language || 'cpp';
+  const fileExt = langExtMap[currentLang] || 'cpp';
+  const displayLang = langNameMap[currentLang] || currentLang.toUpperCase();
+  const fileName = `solution.${fileExt}`;
 
-    <!-- Solution Code Callout if toggled -->
-    ${
-      STATE.exercises.showCode && ex.solution_code
-        ? `<div class="p-4 rounded-xl border border-emerald-500/30 bg-emerald-500/5 space-y-2 animate-fade-in">
-            <div class="flex items-center justify-between text-xs font-bold text-emerald-400">
-              <span>💡 Lời giải mẫu chuẩn (100% Passed):</span>
-              <button onclick="copySolutionToEditor()" class="btn-soft !py-1 !px-2.5 text-[11px] font-bold text-emerald-400">
-                📋 Dán Vào Editor
+  pane.className = "p-0 overflow-hidden rounded-xl border border-slate-700/80 shadow-2xl bg-[#1e1e1e]";
+
+  pane.innerHTML = `
+    <!-- Visual Studio / VS Code IDE Container -->
+    <div id="vscode-ide-root" class="vscode-ide-container w-full flex flex-col font-sans select-none" style="min-height: 850px; background: #1e1e1e; color: #cccccc;">
+      
+      <!-- 1. VS Code Title Bar -->
+      <div class="vscode-titlebar flex items-center justify-between px-3 py-1.5 bg-[#323233] border-b border-[#252526] text-xs text-[#cccccc]">
+        <div class="flex items-center gap-2">
+          <!-- macOS / VS Code window dots -->
+          <div class="flex items-center gap-1.5 mr-2">
+            <span class="w-3 h-3 rounded-full bg-[#ff5f56] inline-block shadow-sm cursor-pointer" title="Close" onclick="resetExerciseCode()"></span>
+            <span class="w-3 h-3 rounded-full bg-[#ffbd2e] inline-block shadow-sm cursor-pointer" title="Minimize" onclick="toggleVscodeSidebar()"></span>
+            <span class="w-3 h-3 rounded-full bg-[#27c93f] inline-block shadow-sm cursor-pointer" title="Toggle Fullscreen" onclick="toggleVscodeFullscreen()"></span>
+          </div>
+          <span class="text-slate-400 font-mono text-[11px] hidden sm:inline flex items-center gap-1.5">
+            <span class="text-blue-400 font-bold">UniMaster Studio</span>
+            <span class="text-slate-500">─</span>
+            <span class="text-slate-200">${fileName}</span>
+            <span class="text-slate-500">•</span>
+            <span class="text-slate-400">Bài #${STATE.exercises.selectedIndex + 1}: ${escapeHtml(ex.title)}</span>
+          </span>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" onclick="resetExerciseCode()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-amber-300 hover:bg-[#484849] flex items-center gap-1 transition-colors" title="Khôi phục lại code khởi tạo ban đầu">
+            <span>↺</span> <span class="hidden sm:inline">Reset Code</span>
+          </button>
+          <button type="button" onclick="toggleSampleCode()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-emerald-300 hover:bg-[#484849] flex items-center gap-1 transition-colors" title="Xem lời giải mẫu">
+            <span>${STATE.exercises.showCode ? '🙈' : '👁️'}</span> <span class="hidden sm:inline">${STATE.exercises.showCode ? 'Ẩn Lời Giải' : 'Code Mẫu'}</span>
+          </button>
+          <button type="button" onclick="toggleVscodeFullscreen()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-cyan-300 hover:bg-[#484849] flex items-center gap-1 transition-colors" title="Phóng to / Thu nhỏ IDE">
+            <span>⛶</span> <span class="hidden sm:inline">Toàn Màn Hình</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Main IDE Layout: Activity Bar + Sidebar + Editor Stage -->
+      <div class="flex flex-1 overflow-hidden" style="min-height: 750px;">
+        
+        <!-- Activity Bar (Far Left 48px) -->
+        <div class="w-12 bg-[#333333] flex flex-col items-center py-2 border-r border-[#252526] flex-shrink-0 text-[#858585] justify-between">
+          <div class="flex flex-col items-center gap-3 w-full">
+            <button type="button" onclick="toggleVscodeSidebar()" class="w-full py-2.5 flex items-center justify-center hover:text-white transition-colors border-l-2 border-[#007acc] text-white" title="Explorer (Đề bài & Ràng buộc)">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
+            </button>
+            <button type="button" onclick="switchConsoleTab('console')" class="w-full py-2.5 flex items-center justify-center hover:text-white transition-colors border-l-2 border-transparent" title="Run & Terminal">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </button>
+            <button type="button" onclick="switchConsoleTab('aireview')" class="w-full py-2.5 flex items-center justify-center hover:text-white transition-colors border-l-2 border-transparent" title="AI Review & Rò rỉ">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
+            </button>
+          </div>
+          <div class="flex flex-col items-center gap-2 w-full pb-2">
+            <button type="button" onclick="askAiAboutSelectedCode()" class="w-full py-2 flex items-center justify-center hover:text-amber-400 text-amber-300 transition-colors" title="Gia sư AI 1-1">
+              <span>💡</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Primary Sidebar (Explorer: Problem Spec) -->
+        <div id="vscode-sidebar-pane" class="w-72 sm:w-80 bg-[#252526] border-r border-[#1e1e1e] flex flex-col flex-shrink-0 transition-all duration-200">
+          <!-- Sidebar Header -->
+          <div class="px-3 py-2 bg-[#252526] border-b border-[#1e1e1e] flex items-center justify-between text-[11px] font-bold text-[#bbbbbb] tracking-wider uppercase">
+            <span class="flex items-center gap-1.5">
+              <span>EXPLORER: UNIMASTER</span>
+            </span>
+            <button type="button" onclick="toggleVscodeSidebar()" class="hover:text-white text-[#858585] text-xs" title="Thu gọn Sidebar">
+              ◀
+            </button>
+          </div>
+
+          <!-- Problem Spec Section -->
+          <div class="flex-1 overflow-y-auto p-3.5 space-y-3.5 text-xs text-[#cccccc] leading-relaxed custom-scrollbar">
+            <div>
+              <div class="flex items-center gap-2 mb-1.5">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#007acc] text-white">Bài #${STATE.exercises.selectedIndex + 1}</span>
+                <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#3c3c3d] text-cyan-300">${displayLang}</span>
+                ${testRes && testRes.all_passed ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white">Passed ✅</span>' : ''}
+              </div>
+              <h4 class="text-sm font-bold text-white mb-2">${escapeHtml(ex.title)}</h4>
+              <div class="p-2.5 rounded bg-[#1e1e1e] border border-[#333333] text-[12px] leading-relaxed text-[#d4d4d4]">
+                ${formatRichText(ex.problem)}
+              </div>
+            </div>
+
+            <!-- Specs & Constraints -->
+            ${
+              specs.length
+                ? `<div class="space-y-1.5 pt-1 border-t border-[#333333]">
+                    <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wide">Yêu cầu & Ràng buộc:</div>
+                    <ul class="space-y-1 text-[11px] text-[#b0b0b0]">
+                      ${specs.map((s) => `<li class="flex items-start gap-1.5"><span class="text-[#007acc]">▸</span><span>${formatRichText(s)}</span></li>`).join('')}
+                    </ul>
+                  </div>`
+                : ''
+            }
+
+            <!-- Sample Code Accordion if open -->
+            ${
+              STATE.exercises.showCode && ex.solution_code
+                ? `<div class="p-3 rounded bg-[#1e1e1e] border border-emerald-500/40 space-y-2">
+                    <div class="flex items-center justify-between text-[11px] font-bold text-emerald-400">
+                      <span>💡 Lời giải mẫu chuẩn:</span>
+                      <button onclick="copySolutionToEditor()" class="px-2 py-0.5 rounded bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/50 text-[10px] font-bold">
+                        📋 Dán Vào Editor
+                      </button>
+                    </div>
+                    <pre class="p-2 rounded bg-[#0e0e0e] text-[11px] font-mono text-emerald-300 overflow-x-auto max-h-48 border border-emerald-950"><code>${escapeHtml(ex.solution_code)}</code></pre>
+                  </div>`
+                : ''
+            }
+          </div>
+        </div>
+
+        <!-- 3. Editor Stage (Tabs + Breadcrumbs + Toolbar + Viewport + Bottom Panel) -->
+        <div class="flex-1 flex flex-col min-w-0 bg-[#1e1e1e] overflow-hidden">
+          
+          <!-- VS Code Tabs Bar -->
+          <div class="vscode-tabs-bar flex items-center justify-between bg-[#252526] border-b border-[#1e1e1e] px-0 h-9">
+            <div class="flex items-center h-full overflow-x-auto">
+              <!-- Active Solution File Tab -->
+              <div class="vscode-tab active flex items-center gap-2 px-3 h-full bg-[#1e1e1e] border-t-2 border-[#007acc] text-white text-xs font-mono cursor-pointer border-r border-[#252526]">
+                <span class="text-cyan-400 font-bold">📄</span>
+                <span>${fileName}</span>
+                <span class="text-[10px] text-slate-400 hover:text-white ml-1">✕</span>
+              </div>
+              <!-- Problem Markdown Tab -->
+              <div onclick="toggleVscodeSidebar()" class="vscode-tab flex items-center gap-1.5 px-3 h-full bg-[#2d2d2d] hover:bg-[#1e1e1e] text-[#969696] hover:text-white text-xs font-mono cursor-pointer border-r border-[#252526] transition-colors">
+                <span>📋</span>
+                <span>problem.md</span>
+              </div>
+            </div>
+
+            <!-- Language Selector on Tabs Bar -->
+            <div class="flex items-center gap-2 pr-2">
+              <label class="text-[11px] text-[#858585] font-mono hidden md:inline">Language:</label>
+              <select id="code-lang-select" class="bg-[#3c3c3c] text-white text-[11px] font-mono px-2 py-1 rounded border border-[#555555] outline-none cursor-pointer">
+                <option value="cpp" ${currentLang === 'cpp' ? 'selected' : ''}>C++ (GCC C++17)</option>
+                <option value="c" ${currentLang === 'c' ? 'selected' : ''}>C (GCC C11)</option>
+                <option value="python" ${currentLang === 'python' ? 'selected' : ''}>Python 3</option>
+                <option value="csharp" ${currentLang === 'csharp' ? 'selected' : ''}>C# (.NET)</option>
+                <option value="java" ${currentLang === 'java' ? 'selected' : ''}>Java (OpenJDK)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Breadcrumbs Bar -->
+          <div class="vscode-breadcrumbs flex items-center gap-1.5 px-3 py-1 bg-[#1e1e1e] text-[11px] font-mono text-[#858585] border-b border-[#252526]">
+            <span>unimaster-workspace</span>
+            <span>›</span>
+            <span>exercises</span>
+            <span>›</span>
+            <span>problem_${STATE.exercises.selectedIndex + 1}</span>
+            <span>›</span>
+            <span class="text-[#cccccc]">${fileName}</span>
+          </div>
+
+          <!-- Run & Test Toolbar (Visual Studio Top Action Bar) -->
+          <div class="vscode-run-toolbar flex items-center justify-between flex-wrap gap-2 px-3 py-1.5 bg-[#252526] border-b border-[#1e1e1e]">
+            <div class="flex items-center gap-2 flex-wrap">
+              <!-- Run Button (Green) -->
+              <button type="button" onclick="runCodeCustomInput()" class="px-3 py-1 rounded text-xs font-bold bg-[#0e639c] hover:bg-[#1177bb] text-white flex items-center gap-1.5 shadow-sm transition-all" title="Biên dịch & chạy thử với STDIN tùy chọn">
+                <span class="text-emerald-300">▶</span> Chạy Thử (Run)
+              </button>
+
+              <!-- Submit Button (Green / Blue) -->
+              <button type="button" onclick="submitCodeTestCases()" class="px-3.5 py-1 rounded text-xs font-bold bg-[#388a34] hover:bg-[#43a047] text-white flex items-center gap-1.5 shadow-sm transition-all" title="Chấm toàn bộ test case">
+                <span>🧪</span> Chấm Test Case
+              </button>
+
+              <!-- AI Review Button -->
+              <button type="button" onclick="aiReviewCurrentCode()" class="px-2.5 py-1 rounded text-xs font-bold bg-[#5b21b6] hover:bg-[#6d28d9] text-white flex items-center gap-1.5 shadow-sm transition-all" title="AI Tech Lead soi rò rỉ bộ nhớ & tối ưu kiến trúc">
+                <span>🤖</span> AI Review
+              </button>
+
+              <!-- AI Fix & Upgrade -->
+              <button type="button" onclick="fixAndUpgradeCurrentCode()" class="px-2.5 py-1 rounded text-xs font-bold bg-[#1e3a5f] hover:bg-[#254b7a] text-cyan-200 border border-cyan-500/30 flex items-center gap-1.5 transition-all" title="Tự động bắt lỗi, giải thích bài học chi tiết và nâng cấp code C# / Python lên chuẩn Senior">
+                <span>🛠️</span> Sửa & Nâng Cấp Code
+              </button>
+
+              <!-- Ask Tutor AI -->
+              <button type="button" onclick="askAiAboutSelectedCode()" class="px-2 py-1 rounded text-xs font-medium text-amber-300 hover:bg-[#333333] flex items-center gap-1 transition-all" title="Hỏi gia sư AI về đoạn code đang chọn">
+                <span>💬</span> Hỏi AI
               </button>
             </div>
-            <pre class="p-3 rounded-lg bg-slate-950 text-xs font-mono text-emerald-300 overflow-x-auto max-h-56"><code>${escapeHtml(ex.solution_code)}</code></pre>
-          </div>`
-        : ''
-    }
 
-    <!-- Interactive Code Editor Area -->
-    <div class="space-y-2">
-      <!-- Editor Toolbar -->
-      <div class="flex items-center justify-between flex-wrap gap-2 px-1">
-        <div class="flex items-center gap-2">
-          <label class="text-xs font-bold txt-muted">Ngôn ngữ:</label>
-          <select id="code-lang-select" class="uni-input px-2.5 py-1 text-xs font-bold font-mono">
-            <option value="cpp" ${ex.language === 'cpp' ? 'selected' : ''}>C++ (C++17 / GCC)</option>
-            <option value="c" ${ex.language === 'c' ? 'selected' : ''}>C (C11 / GCC)</option>
-            <option value="python" ${ex.language === 'python' ? 'selected' : ''}>Python 3 (Native)</option>
-            <option value="csharp" ${ex.language === 'csharp' ? 'selected' : ''}>C# (.NET)</option>
-            <option value="java" ${ex.language === 'java' ? 'selected' : ''}>Java (OpenJDK)</option>
-          </select>
-        </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <button type="button" onclick="runCodeCustomInput()" class="btn-soft px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5">
-            <span>⚡</span> Chạy Thử
-          </button>
-          <button type="button" onclick="submitCodeTestCases()" class="btn-primary px-4 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-md">
-            <span>🧪</span> Chấm Test Case (Submit)
-          </button>
-          <button type="button" onclick="askAiAboutSelectedCode()" class="btn-soft px-3 py-1.5 text-xs font-bold txt-brand flex items-center gap-1.5">
-            <span>💬</span> Hỏi Gia Sư AI
-          </button>
-          <button type="button" onclick="aiReviewCurrentCode()" class="ai-chip-btn !py-1.5 !px-3 text-xs flex items-center gap-1.5 font-bold">
-            <span>🤖</span> AI Soi Rò Rỉ &amp; Review
-          </button>
-        </div>
-      </div>
-
-      <!-- Editor Container -->
-      <div class="rounded-xl border overflow-hidden shadow-inner" style="border-color: rgba(255,255,255,0.1); background: #0b0f19;">
-        <div class="px-3.5 py-2 border-b flex items-center justify-between text-xs txt-muted font-mono" style="border-color: rgba(255,255,255,0.06); background: rgba(0,0,0,0.3);">
-          <span>editor.${ex.language || 'cpp'}</span>
-          <span>Phím Tab = 4 khoảng trắng • Tự động lưu</span>
-        </div>
-        <textarea id="code-editor-textarea" spellcheck="false"
-          onkeydown="handleCodeEditorKey(event)"
-          oninput="saveCurrentCodeDebounced()"
-          class="w-full h-80 p-4 font-mono text-xs sm:text-sm text-cyan-200 resize-y leading-relaxed outline-none border-none"
-          style="background: transparent; tab-size: 4;">${escapeHtml(currentCode)}</textarea>
-      </div>
-    </div>
-
-    <!-- Output & Test Runner Console Tabs -->
-    <div class="uni-card p-4 space-y-3" style="background: rgba(0,0,0,0.25);">
-      <!-- Console Tab Buttons -->
-      <div class="flex items-center justify-between border-b pb-2 flex-wrap gap-2" style="border-color: var(--border);">
-        <div class="flex items-center gap-1">
-          <button type="button" onclick="switchConsoleTab('testcases')"
-            class="px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'testcases' ? 'bg-violet-600 text-white shadow-sm' : 'txt-muted hover:text-white'
-            }">
-            🧪 Kết Quả Test Case ${testRes ? `(${testRes.passed_tests}/${testRes.total_tests})` : ''}
-          </button>
-          <button type="button" onclick="switchConsoleTab('console')"
-            class="px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'console' ? 'bg-violet-600 text-white shadow-sm' : 'txt-muted hover:text-white'
-            }">
-            💻 Console & Custom Input
-          </button>
-          <button type="button" onclick="switchConsoleTab('aireview')"
-            class="px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'aireview' ? 'bg-violet-600 text-white shadow-sm' : 'txt-muted hover:text-white'
-            }">
-            🤖 AI Review & Rò Rỉ Bộ Nhớ
-          </button>
-        </div>
-        <div id="console-status-indicator" class="text-xs font-bold txt-muted">
-          ${testRes ? (testRes.all_passed ? '<span class="text-emerald-400">✅ 100% Test Case Pass</span>' : '<span class="text-amber-400">⚠️ Chưa hoàn thành</span>') : 'Sẵn sàng'}
-        </div>
-      </div>
-
-      <!-- Tab 1: Test Cases Results -->
-      <div id="console-pane-testcases" class="${activeTab === 'testcases' ? '' : 'hidden'} space-y-3">
-        ${renderTestCasesPane(ex, testRes)}
-      </div>
-
-      <!-- Tab 2: Custom Stdin Console -->
-      <div id="console-pane-console" class="${activeTab === 'console' ? '' : 'hidden'} space-y-3">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <div class="space-y-1">
-            <label class="text-[11px] font-bold txt-muted uppercase tracking-wider">Đầu vào (Custom STDIN):</label>
-            <textarea id="custom-stdin-input" placeholder="Nhập dữ liệu stdin thử nghiệm tại đây..."
-              class="uni-input w-full h-28 p-2.5 font-mono text-xs"></textarea>
+            <div class="text-[11px] text-[#858585] font-mono hidden lg:flex items-center gap-2">
+              <span>Phím Tab = 4 spaces</span>
+              <span>•</span>
+              <span class="text-emerald-400">● Tự động lưu</span>
+            </div>
           </div>
-          <div class="space-y-1">
-            <label class="text-[11px] font-bold txt-muted uppercase tracking-wider">Đầu ra (STDOUT / STDERR):</label>
-            <pre id="custom-stdout-output" class="p-2.5 rounded-xl border font-mono text-xs text-emerald-400 h-28 overflow-y-auto"
-              style="background: #07090e; border-color: var(--border);">Chưa có dữ liệu chạy.</pre>
-          </div>
-        </div>
-      </div>
 
-      <!-- Tab 3: AI Senior Review Pane -->
-      <div id="console-pane-aireview" class="${activeTab === 'aireview' ? '' : 'hidden'} space-y-3">
-        ${renderAiReviewPane(aiRev)}
+          <!-- Code Editor Viewport (Line Numbers Gutter + Textarea) -->
+          <div class="flex-1 relative flex overflow-hidden bg-[#1e1e1e]" style="min-height: 320px;">
+            <!-- Line Numbers Gutter -->
+            <div id="vscode-gutter-lines" class="vscode-gutter w-12 bg-[#1e1e1e] text-[#858585] font-mono text-xs py-3 pr-2 text-right select-none border-r border-[#252526] overflow-hidden flex-shrink-0 leading-relaxed" style="font-family: 'Cascadia Code', Consolas, 'Courier New', monospace; line-height: 1.5rem;">
+              <!-- Generated dynamically -->
+            </div>
+
+            <!-- Code Textarea -->
+            <textarea id="code-editor-textarea" spellcheck="false"
+              onkeydown="handleCodeEditorKey(event)"
+              oninput="handleVscodeCodeInput()"
+              onscroll="syncVscodeGutterScroll()"
+              onclick="updateVscodeCursorPosition()"
+              onkeyup="updateVscodeCursorPosition()"
+              class="w-full flex-1 p-3 font-mono text-xs sm:text-sm text-[#9cdcfe] bg-[#1e1e1e] leading-relaxed outline-none border-none resize-none custom-scrollbar"
+              style="font-family: 'Cascadia Code', Consolas, 'Fira Code', monospace; tab-size: 4; line-height: 1.5rem;"
+              placeholder="// Viết code giải thuật của bạn tại đây...">${escapeHtml(currentCode)}</textarea>
+          </div>
+
+          <!-- Bottom Panel (Terminal / Test Runner / AI Output Tabs) -->
+          <div class="border-t border-[#252526] bg-[#181818] flex flex-col" style="min-height: 250px; max-height: 380px;">
+            <!-- Panel Header Tabs -->
+            <div class="flex items-center justify-between px-3 bg-[#252526] border-b border-[#181818] text-xs h-8">
+              <div class="flex items-center h-full gap-3 font-mono text-[11px] font-bold">
+                <button type="button" id="vstab-testcases" onclick="switchConsoleTab('testcases')"
+                  class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'testcases' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
+                  <span>🧪 TEST CASES</span> ${testRes ? `<span class="px-1.5 py-0.2 rounded text-[10px] bg-[#007acc] text-white">${testRes.passed_tests}/${testRes.total_tests}</span>` : ''}
+                </button>
+                <button type="button" id="vstab-console" onclick="switchConsoleTab('console')"
+                  class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'console' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
+                  <span>💻 TERMINAL & STDIN</span>
+                </button>
+                <button type="button" id="vstab-aireview" onclick="switchConsoleTab('aireview')"
+                  class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'aireview' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
+                  <span>🤖 AI REVIEW</span>
+                </button>
+                <button type="button" id="vstab-aifix" onclick="switchConsoleTab('aifix')"
+                  class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'aifix' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
+                  <span>🛠️ SỬA LỖI & NÂNG CẤP</span> ${STATE.exercises.aiUpgrades && STATE.exercises.aiUpgrades[ex.id] ? '<span class="text-amber-400">✨</span>' : ''}
+                </button>
+              </div>
+
+              <!-- Console Status Indicator -->
+              <div id="console-status-indicator" class="text-[11px] font-bold text-[#858585] font-mono">
+                ${testRes ? (testRes.all_passed ? '<span class="text-emerald-400">● 100% Passed</span>' : '<span class="text-amber-400">▲ Có lỗi test case</span>') : '● Ready'}
+              </div>
+            </div>
+
+            <!-- Panel Body Content -->
+            <div class="flex-1 overflow-y-auto p-3 text-xs custom-scrollbar bg-[#181818]">
+              <!-- Tab 1: Test Cases Results -->
+              <div id="console-pane-testcases" class="${activeTab === 'testcases' ? '' : 'hidden'} space-y-3">
+                ${renderTestCasesPane(ex, testRes)}
+              </div>
+
+              <!-- Tab 2: Custom Stdin Console (Visual Studio Terminal View) -->
+              <div id="console-pane-console" class="${activeTab === 'console' ? '' : 'hidden'} space-y-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div class="space-y-1">
+                    <label class="text-[11px] font-mono font-bold text-[#858585] uppercase tracking-wider flex items-center justify-between">
+                      <span>INPUT (STDIN)</span>
+                      <span class="text-[10px] text-slate-500">Nhập tham số đầu vào test</span>
+                    </label>
+                    <textarea id="custom-stdin-input" placeholder="Ví dụ: 5
+1 2 3 4 5"
+                      class="w-full h-28 p-2.5 font-mono text-xs bg-[#1e1e1e] border border-[#333333] text-[#ce9178] rounded outline-none focus:border-[#007acc]"></textarea>
+                  </div>
+                  <div class="space-y-1">
+                    <label class="text-[11px] font-mono font-bold text-[#858585] uppercase tracking-wider flex items-center justify-between">
+                      <span>OUTPUT (STDOUT / STDERR)</span>
+                      <button type="button" onclick="document.getElementById('custom-stdout-output').textContent = ''" class="text-[10px] text-slate-400 hover:text-white">Clear</button>
+                    </label>
+                    <pre id="custom-stdout-output" class="p-2.5 rounded border border-[#333333] font-mono text-xs text-[#4ec9b0] h-28 overflow-y-auto bg-[#0d0d0d]">Sẵn sàng chạy code.</pre>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tab 3: AI Senior Review Pane -->
+              <div id="console-pane-aireview" class="${activeTab === 'aireview' ? '' : 'hidden'} space-y-3">
+                ${renderAiReviewPane(aiRev)}
+              </div>
+
+              <!-- Tab 4: AI Fix & Upgrade Code Pane -->
+              <div id="console-pane-aifix" class="${activeTab === 'aifix' ? '' : 'hidden'} space-y-3">
+                ${renderAiFixPane(STATE.exercises.aiUpgrades ? STATE.exercises.aiUpgrades[ex.id] : null, ex)}
+              </div>
+            </div>
+          </div>
+
+          <!-- 4. VS Code Status Bar (Bottom 24px - Xanh #007acc) -->
+          <div class="vscode-statusbar flex items-center justify-between px-3 text-[11px] font-mono text-white select-none flex-shrink-0" style="height: 24px; background: #007acc;">
+            <div class="flex items-center gap-3">
+              <span class="flex items-center gap-1 cursor-pointer hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors" title="Git branch">
+                <span>⑂</span> main*
+              </span>
+              <span class="flex items-center gap-1 cursor-pointer hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors" title="Problems">
+                <span>⨂</span> 0  <span>⚠</span> 0
+              </span>
+              <span class="hidden sm:inline-block text-white/80">
+                ${testRes && testRes.all_passed ? 'Passed (100%)' : (testRes ? 'Tests: Incomplete' : 'Ready')}
+              </span>
+            </div>
+
+            <div class="flex items-center gap-3">
+              <span id="vscode-cursor-pos" class="hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors">Ln 1, Col 1</span>
+              <span class="hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors hidden sm:inline">Spaces: 4</span>
+              <span class="hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors hidden sm:inline">UTF-8</span>
+              <span class="hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors uppercase font-bold">${displayLang}</span>
+            </div>
+          </div>
+
+        </div>
       </div>
     </div>
   `;
 
   renderAllMathOnPage(pane);
   refreshIcons();
+  updateVscodeLineNumbers();
+  updateVscodeCursorPosition();
 }
+
 
 function renderTestCasesPane(ex, testRes) {
   if (!testRes) {
@@ -11217,10 +11522,17 @@ function renderAiReviewPane(aiRev) {
 
 function switchConsoleTab(tab) {
   STATE.exercises.currentConsoleTab = tab;
-  ['testcases', 'console', 'aireview'].forEach((t) => {
+  ['testcases', 'console', 'aireview', 'aifix'].forEach((t) => {
     document.getElementById(`console-pane-${t}`)?.classList.toggle('hidden', t !== tab);
+    const tabBtn = document.getElementById(`vstab-${t}`);
+    if (tabBtn) {
+      if (t === tab) {
+        tabBtn.className = 'h-full flex items-center gap-1.5 transition-colors border-b-2 text-white border-[#007acc]';
+      } else {
+        tabBtn.className = 'h-full flex items-center gap-1.5 transition-colors border-b-2 text-[#858585] border-transparent hover:text-white';
+      }
+    }
   });
-  renderExerciseDetail();
 }
 
 function handleCodeEditorKey(e) {
@@ -11296,7 +11608,7 @@ async function runCodeCustomInput() {
 
     if (stdoutEl) {
       if (res.compile_error) {
-        stdoutEl.textContent = `❌ LỖI BIÊN DỊCH (Compile Error):\n${res.compile_error}`;
+        stdoutEl.textContent = '❌ LỖI BIÊN DỊCH (Compile Error):\n' + (res.compile_error || '');
         stdoutEl.className = 'p-2.5 rounded-xl border font-mono text-xs text-rose-400 h-28 overflow-y-auto';
         if (typeof triggerRubberDuckOnFailure === 'function') {
           triggerRubberDuckOnFailure(code, lang, res.compile_error);
@@ -17840,3 +18152,214 @@ document.addEventListener('keydown', (e) => {
     syncProgressDraftsFromServer();
   });
 })();
+
+
+function renderAiFixPane(upgradeData, ex) {
+  if (!upgradeData) {
+    return `
+      <div class="text-xs txt-muted p-5 text-center border rounded-xl space-y-2" style="border-color: var(--border); background: rgba(255,255,255,0.01);">
+        <p class="font-bold text-sm txt-main">🛠️ Chẩn Đoán Lỗi, Học Từ Lỗi Sai & Nâng Cấp Code Chuẩn Senior</p>
+        <p class="txt-sub max-w-xl mx-auto">Bấm nút <strong>🛠️ Sửa Lỗi & Nâng Cấp Code</strong> ở thanh công cụ phía trên. AI Architect sẽ tự động kiểm tra cú pháp, cấu trúc OOP (C#) / PEP 8 (Python), giải thích bài học sâu sắc và tái cấu trúc mã nguồn tối ưu.</p>
+        <div class="pt-2 flex justify-center">
+          <button type="button" onclick="fixAndUpgradeCurrentCode()" class="btn-primary !py-2 !px-4 text-xs font-bold flex items-center gap-2">
+            <span>🚀</span> Bắt Đầu Chẩn Đoán & Nâng Cấp Ngay
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  const improvements = Array.isArray(upgradeData.improvements) ? upgradeData.improvements : [];
+  const hasErr = upgradeData.has_error;
+
+  return `
+    <div class="space-y-4 animate-fade-in text-xs leading-relaxed">
+      <!-- Status Card -->
+      <div class="p-3.5 rounded-xl border flex items-center justify-between flex-wrap gap-2 ${
+        hasErr ? 'border-amber-500/40 bg-amber-500/10' : 'border-emerald-500/40 bg-emerald-500/10'
+      }">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">${hasErr ? '⚠️' : '✨'}</span>
+          <div>
+            <h4 class="font-black text-sm ${hasErr ? 'text-amber-400' : 'text-emerald-400'}">
+              ${escapeHtml(upgradeData.bug_title || (hasErr ? 'Phát Hiện Điểm Cần Cải Thiện' : 'Mã Nguồn Hợp Lệ - Đã Nâng Cấp Tối Ưu'))}
+            </h4>
+            <span class="text-[11px] txt-muted">Độ phức tạp: Trước: <code class="text-rose-300 font-mono">${escapeHtml(upgradeData.complexity_before || 'Chưa tối ưu')}</code> ➔ Sau: <code class="text-emerald-300 font-mono">${escapeHtml(upgradeData.complexity_after || 'O(N)')}</code></span>
+          </div>
+        </div>
+        <button type="button" onclick="applyUpgradedCodeToEditor(${ex ? ex.id : ''})" class="btn-primary !py-2 !px-4 text-xs font-bold flex items-center gap-1.5 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white">
+          <span>📋</span> Dán Code Nâng Cấp Vào Editor
+        </button>
+      </div>
+
+      <!-- Root cause -->
+      ${upgradeData.root_cause ? `
+        <div class="p-3.5 rounded-xl border space-y-1.5" style="border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.05);">
+          <div class="flex items-center gap-1.5 font-bold text-rose-400">
+            <span>🔍</span> <span>Bản Chất Lỗi / Điểm Thắt Cổ Chai (Root Cause):</span>
+          </div>
+          <p class="txt-main text-xs leading-relaxed">${escapeHtml(upgradeData.root_cause)}</p>
+        </div>
+      ` : ''}
+
+      <!-- Learning lesson card (Key pedagogical feature!) -->
+      ${upgradeData.learning_lesson ? `
+        <div class="p-3.5 rounded-xl border space-y-1.5" style="border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06);">
+          <div class="flex items-center gap-1.5 font-bold text-blue-400">
+            <span>🎓</span> <span>Bài Học Kinh Nghiệm & Quy Tắc Vàng (Học Từ Lỗi Sai):</span>
+          </div>
+          <p class="txt-main text-xs leading-relaxed font-medium">${escapeHtml(upgradeData.learning_lesson)}</p>
+        </div>
+      ` : ''}
+
+      <!-- Key Improvements List -->
+      ${improvements.length ? `
+        <div class="p-3.5 rounded-xl border space-y-2" style="border-color: var(--border); background: rgba(255,255,255,0.02);">
+          <span class="font-bold text-indigo-400 flex items-center gap-1.5">
+            <span>🚀</span> <span>Các Điểm Đã Tái Cấu Trúc & Nâng Cấp:</span>
+          </span>
+          <ul class="space-y-1.5 text-xs txt-sub">
+            ${improvements.map(imp => `<li class="flex items-start gap-2"><span class="text-emerald-400 font-bold">✔</span><span>${escapeHtml(imp)}</span></li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      <!-- Upgraded Code Preview -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold txt-muted flex items-center gap-1.5">
+            <span>💻</span> Code Sau Khi Tối Ưu & Sửa Lỗi Hoàn Chỉnh:
+          </span>
+          <button type="button" onclick="applyUpgradedCodeToEditor(${ex ? ex.id : ''})" class="text-xs font-bold text-emerald-400 hover:underline">
+            Dán vào Editor ➔
+          </button>
+        </div>
+        <pre class="p-4 rounded-xl bg-slate-950 border text-xs font-mono text-cyan-200 overflow-x-auto max-h-72 leading-relaxed" style="border-color: rgba(16,185,129,0.3);"><code>${escapeHtml(upgradeData.upgraded_code || '')}</code></pre>
+      </div>
+    </div>
+  `;
+}
+
+async function fixAndUpgradeCurrentCode() {
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  const editor = document.getElementById('code-editor-textarea');
+  const langSel = document.getElementById('code-lang-select');
+  if (!ex || !editor) return;
+
+  const code = editor.value;
+  const lang = langSel ? langSel.value : (ex.language || 'csharp');
+
+  switchConsoleTab('aifix');
+  showToast('AI Senior Architect đang chẩn đoán & nâng cấp code...', 'info');
+
+  let currentError = '';
+  const recentTest = STATE.exercises.testResults[ex.id];
+  if (recentTest && !recentTest.all_passed) {
+    currentError = recentTest.feedback || '';
+    if (recentTest.results) {
+      const failed = recentTest.results.filter(r => !r.passed);
+      if (failed.length) {
+        currentError += '\n' + failed.map(f => `Test: Input=${f.input} | Expected=${f.expected} | Actual=${f.actual || f.error}`).join('\n');
+      }
+    }
+  }
+
+  try {
+    const res = await apiFetch('/api/code/fix-and-upgrade', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: code,
+        language: lang,
+        problem_title: ex.title,
+        current_error: currentError
+      })
+    });
+
+    if (res) {
+      const upgradeData = (res.data !== undefined) ? res.data : res;
+      if (!STATE.exercises.aiUpgrades) STATE.exercises.aiUpgrades = {};
+      STATE.exercises.aiUpgrades[ex.id] = upgradeData;
+      renderExerciseDetail();
+      showToast('Đã phân tích & nâng cấp code thành công! ✨', 'success');
+    }
+  } catch (err) {
+    showToast('Lỗi khi nâng cấp code: ' + err.message, 'error');
+  }
+}
+
+function applyUpgradedCodeToEditor(exId) {
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  const targetId = exId || (ex ? ex.id : null);
+  if (!targetId || !STATE.exercises.aiUpgrades || !STATE.exercises.aiUpgrades[targetId]) return;
+
+  const upgraded = STATE.exercises.aiUpgrades[targetId].upgraded_code;
+  if (!upgraded) return;
+
+  const editor = document.getElementById('code-editor-textarea');
+  if (editor) {
+    editor.value = upgraded;
+  }
+  STATE.exercises.userCode[targetId] = upgraded;
+  saveCurrentCodeDebounced();
+  showToast('Đã dán mã nguồn nâng cấp chuẩn vào Editor! 🚀', 'success');
+}
+
+// ==========================================
+// VISUAL STUDIO / VS CODE IDE CONTROLLERS
+// ==========================================
+function updateVscodeLineNumbers() {
+  const textarea = document.getElementById('code-editor-textarea');
+  const gutter = document.getElementById('vscode-gutter-lines');
+  if (!textarea || !gutter) return;
+
+  const lines = (textarea.value || '').split('\n').length;
+  let html = '';
+  for (let i = 1; i <= Math.max(lines, 1); i++) {
+    html += `<div>${i}</div>`;
+  }
+  gutter.innerHTML = html;
+}
+
+function syncVscodeGutterScroll() {
+  const textarea = document.getElementById('code-editor-textarea');
+  const gutter = document.getElementById('vscode-gutter-lines');
+  if (textarea && gutter) {
+    gutter.scrollTop = textarea.scrollTop;
+  }
+}
+
+function updateVscodeCursorPosition() {
+  const textarea = document.getElementById('code-editor-textarea');
+  const posEl = document.getElementById('vscode-cursor-pos');
+  if (!textarea || !posEl) return;
+
+  const selStart = textarea.selectionStart || 0;
+  const textBefore = textarea.value.substring(0, selStart);
+  const lines = textBefore.split('\n');
+  const lineNum = lines.length;
+  const colNum = lines[lines.length - 1].length + 1;
+  posEl.textContent = `Ln ${lineNum}, Col ${colNum}`;
+}
+
+function handleVscodeCodeInput() {
+  saveCurrentCodeDebounced();
+  updateVscodeLineNumbers();
+  updateVscodeCursorPosition();
+}
+
+function toggleVscodeSidebar() {
+  const sidebar = document.getElementById('vscode-sidebar-pane');
+  if (!sidebar) return;
+  sidebar.classList.toggle('hidden');
+}
+
+function toggleVscodeFullscreen() {
+  const ide = document.getElementById('vscode-ide-root');
+  if (!ide) return;
+  if (!document.fullscreenElement) {
+    if (ide.requestFullscreen) ide.requestFullscreen();
+    else if (ide.webkitRequestFullscreen) ide.webkitRequestFullscreen();
+  } else {
+    if (document.exitFullscreen) document.exitFullscreen();
+  }
+}

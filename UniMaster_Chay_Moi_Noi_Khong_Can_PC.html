@@ -2896,6 +2896,75 @@ html[data-theme="contrast"] .tutor-session-item {
   border-color: rgba(255, 255, 255, 0.35);
 }
 
+
+/* ===================================================================
+   AI TUTOR MAX-WIDTH EXTENSION & EXPLICIT MODEL BADGE
+   =================================================================== */
+.tutor-ai-bubble {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#tutor-chat-box {
+  width: 100% !important;
+}
+
+#tutor-chat-box > div {
+  width: 100% !important;
+}
+
+.tutor-model-badge {
+  background: color-mix(in srgb, #10b981 14%, var(--bg-surface));
+  color: #059669;
+  border: 1px solid color-mix(in srgb, #10b981 35%, var(--border));
+}
+
+html.dark .tutor-model-badge,
+html[data-theme="dark"] .tutor-model-badge,
+html[data-theme="contrast"] .tutor-model-badge {
+  background: rgba(16, 185, 129, 0.2);
+  color: #34d399;
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.tutor-model-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 9999px;
+  background-color: #10b981;
+  display: inline-block;
+  box-shadow: 0 0 6px #10b981;
+}
+
+/* Nới rộng toàn diện chiều ngang khi mở Tab Gia Sư AI */
+body.tutor-tab-active main,
+main:has(#view-tutor:not(.hidden)) {
+  max-width: 98% !important;
+  width: 98% !important;
+  padding-left: 0.75rem !important;
+  padding-right: 0.75rem !important;
+}
+
+#view-tutor {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+#view-tutor #tutor-main-card {
+  width: 100% !important;
+  max-width: 100% !important;
+}
+
+.ai-tutor-content {
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.ai-tutor-content pre {
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
 </style>
   <link rel="stylesheet" href="/static/minimal.css?v=1.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
@@ -7138,22 +7207,41 @@ function renderTutorAcademicHtml(rawText) {
 
 function formatTutorProviderBadge(msg) {
   const label = msg.provider_label || (
-    msg.provider_used === '9router' ? '9Router' :
+    msg.provider_used === '9router' ? '9Router Gateway' :
     msg.provider_used === 'fosta' ? 'FOSTA Codex' :
     msg.provider_used === 'openai' ? 'OpenAI Gateway' :
-    msg.provider_used === 'gemini' ? 'Gemini' :
+    msg.provider_used === 'gemini' ? 'Gemini AI' :
     msg.provider_used === 'fallback' ? 'Gia sư Dự phòng' :
     ''
   );
-  if (!label && msg.latency_ms == null && !msg.model_used) return '';
-  const bits = [];
-  if (label) bits.push(escapeHtml(label));
+  const modelText = (msg.model_used || '').trim();
+  if (!label && msg.latency_ms == null && !modelText) return '';
+
+  let latText = '';
   if (msg.latency_ms != null) {
     const ms = Number(msg.latency_ms);
-    bits.push(ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`);
+    latText = ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
   }
-  const titleAttr = msg.model_used ? ` title="${escapeHtml(msg.model_used + (msg.masked_key ? ' • ' + msg.masked_key : ''))}"` : '';
-  return `<span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-extrabold font-mono shrink-0"${titleAttr}>${bits.join(' • ')}</span>`;
+
+  const fullTooltip = [
+    label,
+    modelText ? `Model: ${modelText}` : '',
+    msg.masked_key ? `Key: ${msg.masked_key}` : '',
+    latText ? `Độ trễ: ${latText}` : ''
+  ].filter(Boolean).join(' • ');
+
+  const provBits = [];
+  if (label) provBits.push(escapeHtml(label));
+  if (latText) provBits.push(escapeHtml(latText));
+  const provHtml = provBits.length
+    ? `<span class="badge-brand text-[10px] px-2.5 py-0.5 rounded-full font-extrabold font-mono shrink-0" title="${escapeHtml(fullTooltip)}">${provBits.join(' • ')}</span>`
+    : '';
+
+  const modelHtml = modelText
+    ? `<span class="tutor-model-badge text-[10px] px-2.5 py-0.5 rounded-full font-extrabold font-mono shrink-0 flex items-center gap-1 shadow-xs" title="Model AI cụ thể đã xử lý câu hỏi này: ${escapeHtml(modelText)}"><span class="tutor-model-dot"></span><span>⚡ ${escapeHtml(modelText)}</span></span>`
+    : '';
+
+  return `${provHtml}${modelHtml}`;
 }
 
 function buildTutorMessageHtml(msg, compact = false) {
@@ -7163,8 +7251,8 @@ function buildTutorMessageHtml(msg, compact = false) {
       ? `<div class="text-[10px] opacity-85 font-bold mb-1 flex items-center gap-1"><span>📌</span><span>${escapeHtml(msg.context)}</span></div>`
       : '';
     return `
-      <div class="flex items-start justify-end gap-2 animate-fade-in">
-        <div class="tutor-user-bubble ${compact ? 'p-2.5 text-xs max-w-[88%]' : 'p-3.5 text-sm max-w-xl'} rounded-2xl font-semibold shadow-sm whitespace-pre-wrap">
+      <div class="flex items-start justify-end gap-2 animate-fade-in w-full">
+        <div class="tutor-user-bubble ${compact ? 'p-2.5 text-xs max-w-[90%]' : 'p-3.5 text-sm max-w-4xl sm:max-w-5xl'} rounded-2xl font-semibold shadow-sm whitespace-pre-wrap">
           ${ctxPill}
           <div>${escapeHtml(msg.content)}</div>
         </div>
@@ -7182,9 +7270,9 @@ function buildTutorMessageHtml(msg, compact = false) {
   const renderedBody = renderTutorAcademicHtml(msg.content);
 
   return `
-    <div class="flex items-start gap-2 animate-fade-in" id="${escapeHtml(msgId)}">
+    <div class="flex items-start gap-2.5 animate-fade-in w-full" id="${escapeHtml(msgId)}">
       <div class="${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-lg flex items-center justify-center bg-indigo-500/20 txt-brand shrink-0 mt-0.5">🤖</div>
-      <div class="tutor-ai-bubble ${compact ? 'p-3 max-w-[92%]' : 'p-4 max-w-3xl'} rounded-2xl border space-y-2.5 flex-1 min-w-0 shadow-sm">
+      <div class="tutor-ai-bubble ${compact ? 'p-3 max-w-full' : 'p-4 sm:p-5 max-w-full'} rounded-2xl border space-y-2.5 flex-1 min-w-0 shadow-sm w-full">
         <div class="flex items-center justify-between gap-2 flex-wrap border-b pb-1.5" style="border-color: var(--border);">
           <div class="flex items-center gap-1.5 flex-wrap min-w-0">
             <span class="txt-brand text-[11px] font-extrabold flex items-center gap-1 truncate">
@@ -7221,9 +7309,9 @@ function buildTutorGreetingMarkup(compact = false) {
     `Chào bạn! Tôi là **Gia sư AI UniMaster** phụ trách môn **${subName}**.\n\n- Chọn **Chế độ sư phạm** phía trên (*Giải sâu & Mẹo nhớ*, *Loại trừ A/B/C/D*, *Socratic*, *Biện luận lâm sàng*, *Debug Code*).\n- Bấm **"Hỏi AI Câu Này"** trong đề thi hoặc bôi đen bất kỳ thuật ngữ / dòng code nào để gắn ngữ cảnh trực tiếp!`
   );
   return `
-    <div class="flex items-start gap-2">
+    <div class="flex items-start gap-2.5 w-full">
       <div class="${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-lg flex items-center justify-center bg-indigo-500/20 txt-brand shrink-0">🤖</div>
-      <div class="tutor-ai-bubble ${compact ? 'p-2.5 text-xs max-w-[90%]' : 'p-4 text-sm max-w-3xl'} rounded-2xl border markdown-body ai-tutor-content">
+      <div class="tutor-ai-bubble ${compact ? 'p-2.5 text-xs max-w-full' : 'p-4 sm:p-5 text-sm max-w-full'} rounded-2xl border markdown-body ai-tutor-content w-full">
         ${body}
       </div>
     </div>
@@ -10163,6 +10251,11 @@ window.updateNavIndicator = updateNavIndicator;
 
 function switchTab(tabName) {
   STATE.currentTab = tabName;
+  if (tabName === 'tutor') {
+    document.body.classList.add('tutor-tab-active');
+  } else {
+    document.body.classList.remove('tutor-tab-active');
+  }
   const tabs = ['dashboard', 'exam', 'exercises', 'essay', 'flashcards', 'mistakes', 'search', 'tutor', 'generator', 'arena', 'lab'];
 
   tabs.forEach((t) => {
@@ -17651,6 +17744,7 @@ if (!STATE.exercises.userCode) STATE.exercises.userCode = {};
 if (!STATE.exercises.testResults) STATE.exercises.testResults = {};
 if (!STATE.exercises.aiReviews) STATE.exercises.aiReviews = {};
 if (!STATE.exercises.currentConsoleTab) STATE.exercises.currentConsoleTab = 'testcases';
+if (!STATE.exercises.aiUpgrades) STATE.exercises.aiUpgrades = {};
 
 async function loadExercisesView() {
   const sel = document.getElementById('exercise-subject-select');
@@ -17848,6 +17942,9 @@ function renderExerciseDetail() {
           <button type="button" onclick="aiReviewCurrentCode()" class="ai-chip-btn !py-1.5 !px-3 text-xs flex items-center gap-1.5 font-bold">
             <span>🤖</span> AI Soi Rò Rỉ &amp; Review
           </button>
+          <button type="button" onclick="fixAndUpgradeCurrentCode()" class="btn-soft px-3.5 py-1.5 text-xs font-bold text-emerald-400 hover:bg-emerald-500/10 flex items-center gap-1.5 border border-emerald-500/40 shadow-sm" title="Tự động bắt lỗi, giải thích bài học chi tiết và nâng cấp code C# / Python lên chuẩn Senior">
+            <span>🛠️</span> Sửa Lỗi & Nâng Cấp Code
+          </button>
         </div>
       </div>
 
@@ -17888,6 +17985,12 @@ function renderExerciseDetail() {
             }">
             🤖 AI Review & Rò Rỉ Bộ Nhớ
           </button>
+          <button type="button" onclick="switchConsoleTab('aifix')"
+            class="px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+              activeTab === 'aifix' ? 'bg-violet-600 text-white shadow-sm' : 'txt-muted hover:text-white'
+            }">
+            🛠️ Sửa Lỗi & Nâng Cấp ${STATE.exercises.aiUpgrades && STATE.exercises.aiUpgrades[ex.id] ? '✨' : ''}
+          </button>
         </div>
         <div id="console-status-indicator" class="text-xs font-bold txt-muted">
           ${testRes ? (testRes.all_passed ? '<span class="text-emerald-400">✅ 100% Test Case Pass</span>' : '<span class="text-amber-400">⚠️ Chưa hoàn thành</span>') : 'Sẵn sàng'}
@@ -17918,6 +18021,11 @@ function renderExerciseDetail() {
       <!-- Tab 3: AI Senior Review Pane -->
       <div id="console-pane-aireview" class="${activeTab === 'aireview' ? '' : 'hidden'} space-y-3">
         ${renderAiReviewPane(aiRev)}
+      </div>
+
+      <!-- Tab 4: AI Fix & Upgrade Code Pane -->
+      <div id="console-pane-aifix" class="${activeTab === 'aifix' ? '' : 'hidden'} space-y-3">
+        ${renderAiFixPane(STATE.exercises.aiUpgrades ? STATE.exercises.aiUpgrades[ex.id] : null, ex)}
       </div>
     </div>
   `;
@@ -18056,7 +18164,7 @@ function renderAiReviewPane(aiRev) {
 
 function switchConsoleTab(tab) {
   STATE.exercises.currentConsoleTab = tab;
-  ['testcases', 'console', 'aireview'].forEach((t) => {
+  ['testcases', 'console', 'aireview', 'aifix'].forEach((t) => {
     document.getElementById(`console-pane-${t}`)?.classList.toggle('hidden', t !== tab);
   });
   renderExerciseDetail();
@@ -24679,6 +24787,157 @@ document.addEventListener('keydown', (e) => {
     syncProgressDraftsFromServer();
   });
 })();
+
+
+function renderAiFixPane(upgradeData, ex) {
+  if (!upgradeData) {
+    return `
+      <div class="text-xs txt-muted p-5 text-center border rounded-xl space-y-2" style="border-color: var(--border); background: rgba(255,255,255,0.01);">
+        <p class="font-bold text-sm txt-main">🛠️ Chẩn Đoán Lỗi, Học Từ Lỗi Sai & Nâng Cấp Code Chuẩn Senior</p>
+        <p class="txt-sub max-w-xl mx-auto">Bấm nút <strong>🛠️ Sửa Lỗi & Nâng Cấp Code</strong> ở thanh công cụ phía trên. AI Architect sẽ tự động kiểm tra cú pháp, cấu trúc OOP (C#) / PEP 8 (Python), giải thích bài học sâu sắc và tái cấu trúc mã nguồn tối ưu.</p>
+        <div class="pt-2 flex justify-center">
+          <button type="button" onclick="fixAndUpgradeCurrentCode()" class="btn-primary !py-2 !px-4 text-xs font-bold flex items-center gap-2">
+            <span>🚀</span> Bắt Đầu Chẩn Đoán & Nâng Cấp Ngay
+          </button>
+        </div>
+      </div>
+    `;
+  }
+
+  const improvements = Array.isArray(upgradeData.improvements) ? upgradeData.improvements : [];
+  const hasErr = upgradeData.has_error;
+
+  return `
+    <div class="space-y-4 animate-fade-in text-xs leading-relaxed">
+      <!-- Status Card -->
+      <div class="p-3.5 rounded-xl border flex items-center justify-between flex-wrap gap-2 ${
+        hasErr ? 'border-amber-500/40 bg-amber-500/10' : 'border-emerald-500/40 bg-emerald-500/10'
+      }">
+        <div class="flex items-center gap-2.5">
+          <span class="text-xl">${hasErr ? '⚠️' : '✨'}</span>
+          <div>
+            <h4 class="font-black text-sm ${hasErr ? 'text-amber-400' : 'text-emerald-400'}">
+              ${escapeHtml(upgradeData.bug_title || (hasErr ? 'Phát Hiện Điểm Cần Cải Thiện' : 'Mã Nguồn Hợp Lệ - Đã Nâng Cấp Tối Ưu'))}
+            </h4>
+            <span class="text-[11px] txt-muted">Độ phức tạp: Trước: <code class="text-rose-300 font-mono">${escapeHtml(upgradeData.complexity_before || 'Chưa tối ưu')}</code> ➔ Sau: <code class="text-emerald-300 font-mono">${escapeHtml(upgradeData.complexity_after || 'O(N)')}</code></span>
+          </div>
+        </div>
+        <button type="button" onclick="applyUpgradedCodeToEditor(${ex ? ex.id : ''})" class="btn-primary !py-2 !px-4 text-xs font-bold flex items-center gap-1.5 shadow-lg bg-emerald-600 hover:bg-emerald-500 text-white">
+          <span>📋</span> Dán Code Nâng Cấp Vào Editor
+        </button>
+      </div>
+
+      <!-- Root cause -->
+      ${upgradeData.root_cause ? `
+        <div class="p-3.5 rounded-xl border space-y-1.5" style="border-color: rgba(239,68,68,0.25); background: rgba(239,68,68,0.05);">
+          <div class="flex items-center gap-1.5 font-bold text-rose-400">
+            <span>🔍</span> <span>Bản Chất Lỗi / Điểm Thắt Cổ Chai (Root Cause):</span>
+          </div>
+          <p class="txt-main text-xs leading-relaxed">${escapeHtml(upgradeData.root_cause)}</p>
+        </div>
+      ` : ''}
+
+      <!-- Learning lesson card (Key pedagogical feature!) -->
+      ${upgradeData.learning_lesson ? `
+        <div class="p-3.5 rounded-xl border space-y-1.5" style="border-color: rgba(59,130,246,0.3); background: rgba(59,130,246,0.06);">
+          <div class="flex items-center gap-1.5 font-bold text-blue-400">
+            <span>🎓</span> <span>Bài Học Kinh Nghiệm & Quy Tắc Vàng (Học Từ Lỗi Sai):</span>
+          </div>
+          <p class="txt-main text-xs leading-relaxed font-medium">${escapeHtml(upgradeData.learning_lesson)}</p>
+        </div>
+      ` : ''}
+
+      <!-- Key Improvements List -->
+      ${improvements.length ? `
+        <div class="p-3.5 rounded-xl border space-y-2" style="border-color: var(--border); background: rgba(255,255,255,0.02);">
+          <span class="font-bold text-indigo-400 flex items-center gap-1.5">
+            <span>🚀</span> <span>Các Điểm Đã Tái Cấu Trúc & Nâng Cấp:</span>
+          </span>
+          <ul class="space-y-1.5 text-xs txt-sub">
+            ${improvements.map(imp => `<li class="flex items-start gap-2"><span class="text-emerald-400 font-bold">✔</span><span>${escapeHtml(imp)}</span></li>`).join('')}
+          </ul>
+        </div>
+      ` : ''}
+
+      <!-- Upgraded Code Preview -->
+      <div class="space-y-1.5">
+        <div class="flex items-center justify-between text-xs">
+          <span class="font-bold txt-muted flex items-center gap-1.5">
+            <span>💻</span> Code Sau Khi Tối Ưu & Sửa Lỗi Hoàn Chỉnh:
+          </span>
+          <button type="button" onclick="applyUpgradedCodeToEditor(${ex ? ex.id : ''})" class="text-xs font-bold text-emerald-400 hover:underline">
+            Dán vào Editor ➔
+          </button>
+        </div>
+        <pre class="p-4 rounded-xl bg-slate-950 border text-xs font-mono text-cyan-200 overflow-x-auto max-h-72 leading-relaxed" style="border-color: rgba(16,185,129,0.3);"><code>${escapeHtml(upgradeData.upgraded_code || '')}</code></pre>
+      </div>
+    </div>
+  `;
+}
+
+async function fixAndUpgradeCurrentCode() {
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  const editor = document.getElementById('code-editor-textarea');
+  const langSel = document.getElementById('code-lang-select');
+  if (!ex || !editor) return;
+
+  const code = editor.value;
+  const lang = langSel ? langSel.value : (ex.language || 'csharp');
+
+  switchConsoleTab('aifix');
+  showToast('AI Senior Architect đang chẩn đoán & nâng cấp code...', 'info');
+
+  let currentError = '';
+  const recentTest = STATE.exercises.testResults[ex.id];
+  if (recentTest && !recentTest.all_passed) {
+    currentError = recentTest.feedback || '';
+    if (recentTest.results) {
+      const failed = recentTest.results.filter(r => !r.passed);
+      if (failed.length) {
+        currentError += '\n' + failed.map(f => `Test: Input=${f.input} | Expected=${f.expected} | Actual=${f.actual || f.error}`).join('\n');
+      }
+    }
+  }
+
+  try {
+    const res = await apiFetch('/api/code/fix-and-upgrade', {
+      method: 'POST',
+      body: JSON.stringify({
+        code: code,
+        language: lang,
+        problem_title: ex.title,
+        current_error: currentError
+      })
+    });
+
+    if (res) {
+      const upgradeData = (res.data !== undefined) ? res.data : res;
+      if (!STATE.exercises.aiUpgrades) STATE.exercises.aiUpgrades = {};
+      STATE.exercises.aiUpgrades[ex.id] = upgradeData;
+      renderExerciseDetail();
+      showToast('Đã phân tích & nâng cấp code thành công! ✨', 'success');
+    }
+  } catch (err) {
+    showToast('Lỗi khi nâng cấp code: ' + err.message, 'error');
+  }
+}
+
+function applyUpgradedCodeToEditor(exId) {
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  const targetId = exId || (ex ? ex.id : null);
+  if (!targetId || !STATE.exercises.aiUpgrades || !STATE.exercises.aiUpgrades[targetId]) return;
+
+  const upgraded = STATE.exercises.aiUpgrades[targetId].upgraded_code;
+  if (!upgraded) return;
+
+  const editor = document.getElementById('code-editor-textarea');
+  if (editor) {
+    editor.value = upgraded;
+  }
+  STATE.exercises.userCode[targetId] = upgraded;
+  saveCurrentCodeDebounced();
+  showToast('Đã dán mã nguồn nâng cấp chuẩn vào Editor! 🚀', 'success');
+}
 
 </script>
 

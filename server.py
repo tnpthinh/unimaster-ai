@@ -981,10 +981,68 @@ async def get_exam_detail(request):
         return json_resp({"success": False, "error": str(e)}, status=500)
 
 
+def _inject_playground_exercise(exercises, sid):
+    has_play = any(e.get("id") == 9999 or "[TỰ DO]" in str(e.get("title", "")) for e in exercises)
+    if not has_play:
+        lang = "csharp" if sid == 5 else "python"
+        sample = (
+"""using System;
+using System.Collections.Generic;
+using System.Linq;
+
+// 🚀 PLAYGROUND C# (.NET) - TỰ DO SÁNG TẠO & THỰC THI CODE
+public class Program {
+    public static void Main(string[] args) {
+        Console.WriteLine("=== UniMaster C# Sandbox ===");
+        string input = Console.ReadLine();
+        string user = string.IsNullOrWhiteSpace(input) ? "Kỹ Sư Phần Mềm C#" : input.Trim();
+        Console.WriteLine($"Xin chào, {user}! Môi trường C# .NET đang thực thi hoàn hảo.");
+    }
+}"""
+            if sid == 5
+            else
+"""# 🚀 PLAYGROUND PYTHON 3 - TỰ DO SÁNG TẠO & XỬ LÝ DỮ LIỆU
+import sys
+import math
+from collections import Counter
+
+def main():
+    print("=== UniMaster Python Sandbox ===")
+    line = sys.stdin.readline().strip()
+    user = line if line else "Python Developer"
+    print(f"Xin chào, {user}! Môi trường Python 3 sẵn sàng thực thi.")
+
+if __name__ == '__main__':
+    main()
+"""
+        )
+        play_ex = {
+            "id": 9999,
+            "subject_id": sid,
+            "title": "🚀 [TỰ DO] Playground Lập Trình C# & Python (Code Tùy Thích)",
+            "difficulty": "easy",
+            "language": lang,
+            "problem": "Không gian thực hành tự do không giới hạn: Bạn có thể viết bất kỳ thuật toán, bài toán thực tế, cấu trúc dữ liệu hoặc class OOP nào bằng C# (.NET) hoặc Python 3. Bạn có thể tự do nhập STDIN, bấm Chạy Thử, xem kết quả console, hoặc dùng AI để tự động sửa lỗi và nâng cấp code theo chuẩn kiến trúc.",
+            "specs": [
+                "Tự do chọn ngôn ngữ: C# (.NET) hoặc Python 3 (Native).",
+                "Tự do nhập dữ liệu đầu vào (STDIN) bất kỳ trong tab Console.",
+                "Sử dụng nút 'AI Sửa Lỗi & Nâng Cấp' để AI chẩn đoán lỗi, giải thích bài học và refactor tối ưu."
+            ],
+            "sample_code": sample,
+            "solution_code": sample,
+            "test_cases": [
+                {"input": "UniMaster", "expected_output": f"=== UniMaster {'C# Sandbox' if sid == 5 else 'Python Sandbox'} ===\nXin chào, UniMaster! {'Môi trường C# .NET đang thực thi hoàn hảo.' if sid == 5 else 'Môi trường Python 3 sẵn sàng thực thi.'}", "is_hidden": False}
+            ]
+        }
+        return [play_ex] + list(exercises)
+    return exercises
+
+
 async def get_exercises(request):
     try:
         sid = int(request.match_info["id"])
         exercises = db.get_exercises_by_subject(sid)
+        exercises = _inject_playground_exercise(exercises, sid)
         return json_resp({"success": True, "exercises": exercises})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -995,6 +1053,7 @@ async def get_exercises_by_query(request):
     try:
         sid = int(request.rel_url.query.get("subject_id", 0))
         exercises = db.get_exercises_by_subject(sid)
+        exercises = _inject_playground_exercise(exercises, sid)
         return json_resp({"success": True, "exercises": exercises})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -2927,6 +2986,19 @@ async def api_code_ai_review(request):
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
 
+async def api_code_fix_and_upgrade(request):
+    try:
+        data = await safe_get_json(request)
+        code = data.get("code", "")
+        lang = data.get("language", "csharp")
+        title = data.get("title", "")
+        error = data.get("error", "")
+        res = await code_engine.fix_and_upgrade_code(code, lang, problem_title=title, current_error=error)
+        return json_resp(res)
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
 async def api_get_essay_prompts(request):
     try:
         sid = request.query.get("subject_id")
@@ -3240,6 +3312,7 @@ def create_app():
     app.router.add_post("/api/code/run", api_code_run)
     app.router.add_post("/api/code/test", api_code_test)
     app.router.add_post("/api/code/ai-review", api_code_ai_review)
+    app.router.add_post("/api/code/fix-and-upgrade", api_code_fix_and_upgrade)
     app.router.add_get("/api/essay-prompts", api_get_essay_prompts)
     app.router.add_post("/api/ai/grade-essay-advanced", api_grade_essay_advanced)
     app.router.add_get("/api/timed-exam/start", api_timed_exam_start)
