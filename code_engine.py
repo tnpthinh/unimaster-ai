@@ -959,3 +959,172 @@ TRẢ VỀ DUY NHẤT MỘT ĐỐI TƯỢNG JSON (KHÔNG BỌC TEXT THỪA NGOÀ
             "sample_output": ""
         }
     }
+
+
+async def ai_suggest_next_code(code: str, language: str, line_number: int = 1, column: int = 1, problem_title: str = "") -> dict:
+    """Intelligent Copilot: suggest the next line or short block of code based on cursor position."""
+    lang = (language or "csharp").strip().lower()
+    lines = (code or "").split("\n")
+    cur_idx = max(0, min(line_number - 1, len(lines) - 1)) if lines else 0
+    current_line = lines[cur_idx] if lines else ""
+    code_before = "\n".join(lines[:cur_idx + 1])
+    code_after = "\n".join(lines[cur_idx + 1:cur_idx + 15])
+
+    prompt = f"""Bạn là AI Code Completion Engine siêu tốc (tương tự GitHub Copilot).
+Hãy dự đoán và sinh ra 1 dòng (hoặc tối đa 2 dòng ngắn) code tiếp theo chuẩn xác cho lập trình viên.
+
+NGÔN NGỮ: {lang.upper()}
+BÀI TOÁN: {problem_title or 'Lập trình ứng dụng'}
+DÒNG HIỆN TẠI ĐANG GÕ (Dòng {line_number}):
+`{current_line}`
+
+NGỮ CẢNH PHÍA TRƯỚC:
+```{lang}
+{code_before}
+```
+
+NGỮ CẢNH PHÍA SAU (NẾU CÓ):
+```{lang}
+{code_after}
+```
+
+YÊU CẦU:
+1. Dự đoán dòng tiếp theo hợp lý nhất, chuẩn cú pháp {lang.upper()}, giữ đúng mức thụt lề (indentation).
+2. KHÔNG lặp lại code đã có. KHÔNG viết text râu ria ngoài JSON.
+3. Trả về DUY NHẤT một JSON:
+{{
+  "suggestion": "dòng code gợi ý tiếp theo",
+  "explanation": "giải thích ngắn gọn 1 câu về mục đích dòng này",
+  "insert_mode": "newline"
+}}
+"""
+    try:
+        reply = await ai.call_gemini(prompt, max_tokens=1024, thinking_budget=128)
+        if reply:
+            cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", reply.strip())
+            s = cleaned.find("{")
+            e = cleaned.rfind("}")
+            if s != -1 and e != -1:
+                data = json.loads(cleaned[s:e+1])
+                return {"success": True, "data": data}
+    except Exception as exc:
+        print("AI ai_suggest_next_code error:", exc)
+
+    # Fallback suggestion
+    fallback_suggest = "// Tiếp tục phát triển logic..."
+    if lang in ("python", "py"):
+        if current_line.strip().startswith("def "):
+            fallback_suggest = "    # TODO: Thực hiện logic hàm\n    pass"
+        elif current_line.strip().startswith("if "):
+            fallback_suggest = "    print('Điều kiện thỏa mãn')"
+        else:
+            fallback_suggest = "print(result)"
+    elif lang in ("csharp", "cs"):
+        if "Console.Write" in current_line:
+            fallback_suggest = "Console.ReadLine();"
+        elif "class " in current_line:
+            fallback_suggest = "    public void Chay() {\n    }"
+        else:
+            fallback_suggest = "Console.WriteLine($\"Ket qua: {result}\");"
+    else:
+        fallback_suggest = "std::cout << result << std::endl;"
+
+    return {
+        "success": True,
+        "data": {
+            "suggestion": fallback_suggest,
+            "explanation": "Gợi ý dòng code cơ bản theo ngữ cảnh hiện tại",
+            "insert_mode": "newline"
+        }
+    }
+
+
+async def ai_inspect_line(code: str, language: str, line_number: int, action: str = "ask", problem_title: str = "", current_error: str = "") -> dict:
+    """Explain a specific code line or fix bugs targeting that line with comprehensive educational depth."""
+    lang = (language or "csharp").strip().lower()
+    lines = (code or "").split("\n")
+    total_lines = len(lines)
+    target_idx = max(0, min(line_number - 1, total_lines - 1)) if lines else 0
+    target_line = lines[target_idx] if lines else ""
+
+    start_ctx = max(0, target_idx - 5)
+    end_ctx = min(total_lines, target_idx + 6)
+    context_lines = []
+    for idx in range(start_ctx, end_ctx):
+        prefix = "-> [TARGET] " if idx == target_idx else f"   [Dòng {idx+1:2d}] "
+        context_lines.append(f"{prefix}{lines[idx]}")
+    context_code = "\n".join(context_lines)
+
+    mode_instruction = (
+        "GIẢI THÍCH CHI TIẾT SƯ PHẠM DÒNG NÀY (Ý nghĩa từ khóa, tác động bộ nhớ, biến, thuật toán)"
+        if action == "ask"
+        else "CHẨN ĐOÁN LỖI TẠI DÒNG NÀY VÀ CUNG CẤP DÒNG ĐÃ SỬA CHUẨN XÁC KÈM TOÀN BỘ CODE HOÀN CHỈNH"
+    )
+
+    prompt = f"""Bạn là Giáo sư Lập trình Cao cấp (Senior Software Architect & Tech Lead).
+Nhiệm vụ: {mode_instruction}.
+
+BÀI TOÁN: {problem_title or 'Thực hành lập trình'}
+NGÔN NGỮ: {lang.upper()}
+DÒNG CODE CẦN KIỂM TRA (Dòng {line_number}):
+`{target_line}`
+
+NGỮ CẢNH XUNG QUANH:
+```
+{context_code}
+```
+
+LỖI HIỆN TẠI (NẾU CÓ):
+```
+{current_error or 'Không có thông báo lỗi runtime'}
+```
+
+YÊU CẦU: Trả về DUY NHẤT một JSON hợp lệ:
+{{
+  "line_number": {line_number},
+  "target_code": "{target_line.replace('"', '\\"')}",
+  "action": "{action}",
+  "title": "Tiêu đề ngắn gọn về dòng code",
+  "detailed_explanation": "Giải thích chi tiết cặn kẽ để sinh viên hiểu bản chất dòng này",
+  "has_error_on_line": { "true" if action == "fix" or current_error else "false" },
+  "error_diagnostic": "Chẩn đoán lỗi nếu có (cú pháp, logic, null pointer, tràn mảng...)",
+  "fixed_line": "Dòng code sau khi sửa (nếu có)",
+  "full_fixed_code": "Toàn bộ mã nguồn hoàn chỉnh đã sửa dòng này",
+  "learning_points": [
+    "Điểm quan trọng 1 sinh viên cần nhớ",
+    "Điểm quan trọng 2 về chuẩn lập trình / tối ưu"
+  ],
+  "quick_tip": "Mẹo ghi nhớ nhanh trong 5 giây"
+}}
+"""
+    try:
+        reply = await ai.call_gemini(prompt, max_tokens=4096, thinking_budget=256)
+        if reply:
+            cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", reply.strip())
+            s = cleaned.find("{")
+            e = cleaned.rfind("}")
+            if s != -1 and e != -1:
+                data = json.loads(cleaned[s:e+1])
+                return {"success": True, "data": data}
+    except Exception as exc:
+        print("AI ai_inspect_line error:", exc)
+
+    return {
+        "success": True,
+        "data": {
+            "line_number": line_number,
+            "target_code": target_line,
+            "action": action,
+            "title": f"Phân tích dòng {line_number}",
+            "detailed_explanation": f"Dòng code `{target_line}` thực thi trong luồng logic của chương trình.",
+            "has_error_on_line": bool(current_error),
+            "error_diagnostic": current_error or "Kiểm tra kiểu dữ liệu và phạm vi biến.",
+            "fixed_line": target_line,
+            "full_fixed_code": code,
+            "learning_points": [
+                "Luôn kiểm tra điều kiện an toàn trước khi thao tác",
+                "Đảm bảo cú pháp và các khối ngoặc ăn khớp"
+            ],
+            "quick_tip": "Quan sát kỹ dòng này trong luồng thực thi tổng thể."
+        }
+    }

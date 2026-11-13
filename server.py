@@ -2999,6 +2999,54 @@ async def api_code_fix_and_upgrade(request):
         return json_resp({"success": False, "error": str(e)}, 500)
 
 
+async def api_code_suggest(request):
+    try:
+        data = await safe_get_json(request)
+        code = data.get("code", "")
+        lang = data.get("language", "csharp")
+        line = int(data.get("line", data.get("line_number", 1)))
+        col = int(data.get("column", 1))
+        title = data.get("problem_title", data.get("title", ""))
+        res = await code_engine.ai_suggest_next_code(code, lang, line_number=line, column=col, problem_title=title)
+        inner = res.get("data", {}) if isinstance(res, dict) else {}
+        sug_text = inner.get("suggestion", "")
+        expl_text = inner.get("explanation", "")
+        return json_resp({
+            "ok": True,
+            "success": True,
+            "suggestion": sug_text,
+            "explanation": expl_text,
+            "data": inner
+        })
+    except Exception as e:
+        return json_resp({"ok": False, "success": False, "error": str(e)}, 500)
+
+async def api_code_inspect_line(request):
+    try:
+        data = await safe_get_json(request)
+        code = data.get("code", "")
+        lang = data.get("language", "csharp")
+        line = int(data.get("line", data.get("line_number", 1)))
+        action = data.get("action", "explain")
+        title = data.get("problem_title", data.get("title", ""))
+        error = data.get("current_error", data.get("error", ""))
+        res = await code_engine.ai_inspect_line(code, lang, line_number=line, action=action, problem_title=title, current_error=error)
+        inner = res.get("data", {}) if isinstance(res, dict) else {}
+        return json_resp({
+            "ok": True,
+            "success": True,
+            "line_number": line,
+            "target_line_text": inner.get("target_code", inner.get("target_line_text", "")),
+            "explanation": inner.get("detailed_explanation", inner.get("explanation", "")),
+            "patched_line": inner.get("fixed_line", inner.get("patched_line", "")),
+            "patched_code": inner.get("full_fixed_code", inner.get("patched_code", "")),
+            "learning_points": inner.get("learning_points", []),
+            "quick_tip": inner.get("quick_tip", ""),
+            "data": inner
+        })
+    except Exception as e:
+        return json_resp({"ok": False, "success": False, "error": str(e)}, 500)
+
 async def api_get_essay_prompts(request):
     try:
         sid = request.query.get("subject_id")
@@ -3313,6 +3361,8 @@ def create_app():
     app.router.add_post("/api/code/test", api_code_test)
     app.router.add_post("/api/code/ai-review", api_code_ai_review)
     app.router.add_post("/api/code/fix-and-upgrade", api_code_fix_and_upgrade)
+    app.router.add_post("/api/code/suggest", api_code_suggest)
+    app.router.add_post("/api/code/inspect-line", api_code_inspect_line)
     app.router.add_get("/api/essay-prompts", api_get_essay_prompts)
     app.router.add_post("/api/ai/grade-essay-advanced", api_grade_essay_advanced)
     app.router.add_get("/api/timed-exam/start", api_timed_exam_start)
