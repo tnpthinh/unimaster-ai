@@ -8,42 +8,15 @@ services:
     envVars:
       - key: APP_PASSWORD
         sync: false
+      - key: GEMINI_API_KEYS
+        sync: false
       - key: REQUIRE_AUTH
         value: "1"
       - key: SESSION_SECRET
         generateValue: true
       - key: DATA_DIR
         value: /tmp/unimaster-data
-
-      # ===== Dàn API Key Gemini (khuyên dùng, ngăn cách bởi dấu phẩy) =====
-      - key: GEMINI_API_KEYS
-        sync: false
-      - key: GEMINI_API_KEY
-        sync: false
-
-      # ===== AI Gateway: 9Router / FOSTA Codex / OpenAI =====
-      # Nhập API key thật trong Render Dashboard > Environment (sync: false)
-      - key: ROUTER_BASE_URL
-        sync: false
-      - key: ROUTER_API_KEY
-        sync: false
-      - key: ROUTER_MODEL
-        sync: false
-      - key: OPENAI_API_KEY
-        sync: false
-      - key: OPENAI_BASE_URL
-        sync: false
-      - key: OPENAI_MODEL
-        sync: false
-      - key: AI_GATEWAY_DISCOVERY_URL
-        sync: false
-      - key: AI_GATEWAY_SECRET
-        sync: false
       - key: AI_PROVIDER_PRIORITY
         value: gemini_first
-
-      # ===== Optional: Auto backup SQLite lên Telegram =====
-      - key: TELEGRAM_BOT_TOKEN
-        sync: false
-      - key: TELEGRAM_BACKUP_CHAT_ID
-        sync: false
+      # (Tùy chọn sau khi deploy) Có thể thêm ROUTER_BASE_URL, ROUTER_API_KEY, ROUTER_MODEL,
+      # hoặc TELEGRAM_BOT_TOKEN + TELEGRAM_BACKUP_CHAT_ID trong Render Dashboard > Environment
