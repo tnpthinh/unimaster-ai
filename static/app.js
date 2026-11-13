@@ -19409,13 +19409,15 @@ function toggleExerciseSidebarList(force) {
   if (shouldHide) {
     // Collapse sidebar - full width IDE
     sidebarCol.classList.add('hidden');
-    mainCol.classList.replace('lg:col-span-9', 'lg:col-span-12');
+    mainCol.classList.remove('lg:col-span-9');
+    mainCol.classList.add('lg:col-span-12');
     if (btn) btn.innerHTML = '<span>📂</span> <span id="ide-expand-btn-text">Mở Lại Danh Sách</span>';
     if (banner) banner.classList.remove('hidden');
   } else {
     // Show sidebar
     sidebarCol.classList.remove('hidden');
-    mainCol.classList.replace('lg:col-span-12', 'lg:col-span-9');
+    mainCol.classList.remove('lg:col-span-12');
+    mainCol.classList.add('lg:col-span-9');
     if (btn) btn.innerHTML = '<span id="ide-expand-btn-icon">🖥️</span> <span id="ide-expand-btn-text">Mở Rộng Toàn Khung IDE</span>';
     if (banner) banner.classList.add('hidden');
   }
