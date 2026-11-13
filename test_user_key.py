@@ -1,6 +1,8 @@
-import asyncio, aiohttp, json
+import asyncio, aiohttp, json, os
 
-key = "sk-00eab046c62fd5b2-1xm2wbqqkfylmmti-083b2119"
+key = os.environ.get("OPENAI_API_KEY", "").strip()
+if not key:
+    raise SystemExit("Set OPENAI_API_KEY environment variable before running this script.")
 
 async def test_direct():
     headers = {

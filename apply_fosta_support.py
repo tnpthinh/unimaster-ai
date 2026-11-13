@@ -8,7 +8,7 @@ target = '''OPENAI_MODELS = [
 ]
 
 def get_openai_settings() -> dict:
-    key = get_setting("openai_api_key", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip() or "sk-00eab046c62fd5b2-1xm2wbqqkfylmmti-083b2119"
+    key = get_setting("openai_api_key", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()
     base_url = get_setting("openai_base_url", "").strip() or os.environ.get("OPENAI_BASE_URL", "").strip() or "https://api.openai.com/v1"
     base_url = base_url.rstrip("/")
     priority = get_setting("ai_provider_priority", "openai_first").strip()
@@ -74,7 +74,7 @@ async def test_openai_key(key: str = None, base_url: str = None) -> dict:
                     return {"success": True, "model": "gpt-4o-mini", "masked_key": mask_key(target_key), "message": "Hoạt động tốt (OpenAI ChatGPT)"}
                 elif resp.status == 401:
                     txt = await resp.text()
-                    is_relay_format = ("-" in target_key and not target_key.startswith("sk-proj-")) or "00eab" in target_key
+                    is_relay_format = ("-" in target_key and not target_key.startswith("sk-proj-"))
                     if is_relay_format and target_url == "https://api.openai.com/v1":
                         return {
                             "success": False,
@@ -101,10 +101,10 @@ FOSTA_MODELS = [
 ]
 
 def get_openai_settings() -> dict:
-    key = get_setting("openai_api_key", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip() or "sk-00eab046c62fd5b2-1xm2wbqqkfylmmti-083b2119"
+    key = get_setting("openai_api_key", "").strip() or os.environ.get("OPENAI_API_KEY", "").strip()
     base_url = get_setting("openai_base_url", "").strip() or os.environ.get("OPENAI_BASE_URL", "").strip() or "https://codex.fosta.app/v1"
     base_url = base_url.rstrip("/")
-    is_fosta = "fosta" in base_url.lower() or "00eab" in key
+    is_fosta = "fosta" in base_url.lower()
     default_model = "gpt-6.1-sol" if is_fosta else "gpt-4o-mini"
     model = get_setting("openai_model", default_model).strip() or default_model
     priority = get_setting("ai_provider_priority", "openai_first").strip()
@@ -118,7 +118,7 @@ async def _call_openai_chatgpt(prompt: str, system_instruction: str = "", max_to
     base_url = cfg["base_url"]
     endpoint = f"{base_url}/chat/completions"
     
-    is_fosta = "fosta" in base_url.lower() or "00eab" in key
+    is_fosta = "fosta" in base_url.lower()
     pref_model = cfg.get("model", "gpt-6.1-sol" if is_fosta else "gpt-4o-mini")
     candidate_models = [pref_model]
     if is_fosta:
@@ -175,7 +175,7 @@ async def test_openai_key(key: str = None, base_url: str = None, model: str = No
         return {"success": False, "message": "Chưa nhập API Key"}
     endpoint = f"{target_url}/chat/completions"
     
-    is_fosta = "fosta" in target_url.lower() or "00eab" in target_key
+    is_fosta = "fosta" in target_url.lower()
     target_model = model or (cfg.get("model") if cfg.get("model") else ("gpt-6.1-sol" if is_fosta else "gpt-4o-mini"))
     if is_fosta and target_model in ("gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"):
         target_model = "gpt-6.1-sol"

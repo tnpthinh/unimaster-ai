@@ -5,6 +5,7 @@ Updated with multi-format questions (MCQ, True/False, Short Answer, Essay/Coding
 import sqlite3
 import json
 import os
+import re
 from datetime import datetime, date, timedelta
 
 _BUNDLED_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "unimaster.db")
@@ -25,13 +26,57 @@ if _DATA_DIR:
 else:
     DB_PATH = _BUNDLED_DB
 
+def load_env_file(env_path=None):
+    """Load simple KEY=VALUE pairs from .env without requiring python-dotenv."""
+    if env_path is None:
+        env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    if not os.path.isfile(env_path):
+        return False
+    try:
+        with open(env_path, "r", encoding="utf-8") as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line or line.startswith("#"):
+                    continue
+                if line.startswith("export "):
+                    line = line[7:].strip()
+                if "=" not in line:
+                    continue
+                key, val = line.split("=", 1)
+                key = key.strip()
+                val = val.strip()
+                if not key:
+                    continue
+                if len(val) >= 2 and ((val[0] == '"' and val[-1] == '"') or (val[0] == "'" and val[-1] == "'")):
+                    val = val[1:-1]
+                if key not in os.environ or os.environ.get(key, "") == "":
+                    os.environ[key] = val
+        return True
+    except Exception:
+        return False
+
+
+load_env_file()
+
+
 def get_connection():
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DB_PATH, timeout=15.0)
     conn.row_factory = sqlite3.Row
+    try:
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA busy_timeout=10000")
+        conn.execute("PRAGMA temp_store=MEMORY")
+        conn.execute("PRAGMA cache_size=-16000")
+    except Exception:
+        pass
     return conn
 
 def init_db():
     conn = get_connection()
+    try:
+        conn.execute("PRAGMA journal_mode=WAL")
+    except Exception:
+        pass
     cursor = conn.cursor()
     
     # Bảng cấu hình
@@ -222,8 +267,300 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_login_events_user ON login_events(user_id, id DESC)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_login_events_time ON login_events(id DESC)")
 
+    # Tiến trình học dở (Save & Resume drafts per account/browser profile)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS study_progress (
+        account_id TEXT NOT NULL,
+        draft_key TEXT NOT NULL,
+        progress_type TEXT NOT NULL DEFAULT 'exam',
+        subject_id INTEGER,
+        chapter_tag TEXT DEFAULT '',
+        title TEXT DEFAULT '',
+        payload_json TEXT NOT NULL DEFAULT '{}',
+        current_index INTEGER DEFAULT 0,
+        total_items INTEGER DEFAULT 0,
+        answered_count INTEGER DEFAULT 0,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (account_id, draft_key)
+    )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_study_progress_acc_updated ON study_progress(account_id, updated_at DESC)")
+
+    # Core query performance indices (6,800+ questions, flashcards, exams, discussions)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_questions_subject_type ON questions(subject_id, q_type)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_questions_subject_topic ON questions(subject_id, topic_tag)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_flashcards_subject ON flashcards(subject_id, interval_days)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_exercises_subject ON exercises(subject_id)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_exam_results_subject_time ON exam_results(subject_id, created_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_exam_results_user ON exam_results(user_id, created_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_discussions_question ON question_discussions(question_id, is_verified DESC, upvotes DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_archived_history_type_time ON archived_history(history_type, archived_at DESC)")
+
+    # Bảng quản lý API Keys an toàn (gitignored DB, không đưa lên cloud seed)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ai_api_keys (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        provider TEXT NOT NULL DEFAULT 'gemini',
+        label TEXT NOT NULL DEFAULT '',
+        api_key TEXT NOT NULL UNIQUE,
+        masked_key TEXT NOT NULL DEFAULT '',
+        key_type TEXT NOT NULL DEFAULT 'gemini',
+        is_enabled INTEGER NOT NULL DEFAULT 1,
+        status TEXT NOT NULL DEFAULT 'ready',
+        model TEXT DEFAULT '',
+        latency_ms INTEGER,
+        calls INTEGER NOT NULL DEFAULT 0,
+        failovers INTEGER NOT NULL DEFAULT 0,
+        last_error TEXT DEFAULT '',
+        last_checked_at TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_api_keys_provider ON ai_api_keys(provider, id ASC)")
+
+    # Bảng phiên & lịch sử hội thoại Gia Sư AI (hỗ trợ soft-archive & khôi phục theo tài khoản)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS ai_chat_sessions (
+        session_id TEXT PRIMARY KEY,
+        account_id TEXT NOT NULL DEFAULT 'acc_default',
+        title TEXT NOT NULL DEFAULT 'Phiên hỏi đáp AI',
+        subject_id INTEGER,
+        subject_name TEXT DEFAULT '',
+        mode TEXT DEFAULT 'explain',
+        persona TEXT DEFAULT 'professor',
+        is_archived INTEGER NOT NULL DEFAULT 0,
+        message_count INTEGER NOT NULL DEFAULT 0,
+        last_message_preview TEXT DEFAULT '',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL
+    )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_chat_sessions_acc_arch ON ai_chat_sessions(account_id, is_archived, updated_at DESC)")
+
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tutor_chats (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        session_id TEXT NOT NULL,
+        account_id TEXT NOT NULL DEFAULT 'acc_default',
+        role TEXT NOT NULL DEFAULT 'user',
+        content TEXT NOT NULL,
+        mode TEXT DEFAULT 'explain',
+        context_json TEXT DEFAULT '{}',
+        provider_used TEXT DEFAULT '',
+        model_used TEXT DEFAULT '',
+        masked_key TEXT DEFAULT '',
+        latency_ms INTEGER,
+        created_at TEXT NOT NULL
+    )
+    """)
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tutor_chats_session ON tutor_chats(session_id, id ASC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_tutor_chats_account ON tutor_chats(account_id, id DESC)")
+
     conn.commit()
     conn.close()
+
+
+def _utc_iso_now():
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    iso = now.strftime("%Y-%m-%dT%H:%M:%S.") + f"{now.microsecond // 1000:03d}Z"
+    return iso, int(now.timestamp() * 1000)
+
+
+def _iso_to_ms(iso_str: str) -> int:
+    from datetime import datetime, timezone
+    if not iso_str:
+        return 0
+    s = str(iso_str).strip()
+    try:
+        if s.endswith("Z"):
+            s = s[:-1] + "+00:00"
+        dt = datetime.fromisoformat(s)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return int(dt.timestamp() * 1000)
+    except Exception:
+        return 0
+
+
+def _sanitize_account_id(account_id: str) -> str:
+    acc = (account_id or "").strip()
+    if not acc:
+        return "acc_default"
+    return acc[:128]
+
+
+def _sanitize_draft_key(draft_key: str) -> str:
+    key = (draft_key or "").strip()
+    return key[:128]
+
+
+def _serialize_progress_row(row) -> dict:
+    d = dict(row)
+    raw_payload = d.get("payload_json") or "{}"
+    try:
+        parsed = json.loads(raw_payload)
+        if not isinstance(parsed, (dict, list)):
+            parsed = {}
+    except Exception:
+        parsed = {}
+    d["payload"] = parsed
+    d["payload_json"] = raw_payload if isinstance(raw_payload, str) else json.dumps(parsed, ensure_ascii=False)
+    d["current_index"] = int(d.get("current_index") or 0)
+    d["total_items"] = int(d.get("total_items") or 0)
+    d["answered_count"] = int(d.get("answered_count") or 0)
+    d["updated_at_ms"] = _iso_to_ms(d.get("updated_at") or "")
+    return d
+
+
+def list_study_progress(account_id="acc_default", progress_type=None, subject_id=None, limit=50):
+    acc = _sanitize_account_id(account_id)
+    lim = max(1, min(200, int(limit or 50)))
+    conn = get_connection()
+    try:
+        query = "SELECT * FROM study_progress WHERE account_id = ?"
+        params = [acc]
+        if progress_type:
+            query += " AND progress_type = ?"
+            params.append(str(progress_type).strip()[:64])
+        if subject_id is not None and str(subject_id).strip() != "":
+            try:
+                query += " AND subject_id = ?"
+                params.append(int(subject_id))
+            except (TypeError, ValueError):
+                pass
+        query += " ORDER BY updated_at DESC LIMIT ?"
+        params.append(lim)
+        rows = conn.execute(query, tuple(params)).fetchall()
+        return [_serialize_progress_row(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def get_study_progress(account_id, draft_key):
+    acc = _sanitize_account_id(account_id)
+    dkey = _sanitize_draft_key(draft_key)
+    if not dkey:
+        return None
+    conn = get_connection()
+    try:
+        row = conn.execute(
+            "SELECT * FROM study_progress WHERE account_id = ? AND draft_key = ?",
+            (acc, dkey),
+        ).fetchone()
+        return _serialize_progress_row(row) if row else None
+    finally:
+        conn.close()
+
+
+def upsert_study_progress(
+    account_id,
+    draft_key,
+    progress_type="exam",
+    subject_id=None,
+    chapter_tag="",
+    title="",
+    payload=None,
+    payload_json=None,
+    current_index=0,
+    total_items=0,
+    answered_count=0,
+):
+    acc = _sanitize_account_id(account_id)
+    dkey = _sanitize_draft_key(draft_key)
+    if not dkey:
+        raise ValueError("draft_key is required")
+
+    ptype = (str(progress_type or "exam").strip() or "exam")[:64]
+    subj_val = None
+    if subject_id is not None and str(subject_id).strip() != "":
+        try:
+            subj_val = int(subject_id)
+        except (TypeError, ValueError):
+            subj_val = None
+
+    chap = str(chapter_tag or "").strip()[:256]
+    ttl = str(title or "").strip()[:256]
+
+    if payload_json is not None and isinstance(payload_json, str) and payload_json.strip():
+        p_str = payload_json.strip()
+        try:
+            json.loads(p_str)
+        except Exception:
+            p_str = json.dumps({"raw": p_str}, ensure_ascii=False)
+    elif payload is not None:
+        if isinstance(payload, str):
+            p_str = payload.strip() or "{}"
+        else:
+            p_str = json.dumps(payload, ensure_ascii=False)
+    else:
+        p_str = "{}"
+
+    if len(p_str.encode("utf-8")) > 2 * 1024 * 1024:
+        raise ValueError("payload exceeds 2MB limit")
+
+    try:
+        cur_idx = max(0, int(current_index or 0))
+    except (TypeError, ValueError):
+        cur_idx = 0
+    try:
+        tot_items = max(0, int(total_items or 0))
+    except (TypeError, ValueError):
+        tot_items = 0
+    try:
+        ans_cnt = max(0, int(answered_count or 0))
+    except (TypeError, ValueError):
+        ans_cnt = 0
+
+    iso_now, _ = _utc_iso_now()
+    conn = get_connection()
+    try:
+        conn.execute(
+            """
+            INSERT INTO study_progress (
+                account_id, draft_key, progress_type, subject_id, chapter_tag,
+                title, payload_json, current_index, total_items, answered_count, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(account_id, draft_key) DO UPDATE SET
+                progress_type = excluded.progress_type,
+                subject_id = excluded.subject_id,
+                chapter_tag = excluded.chapter_tag,
+                title = excluded.title,
+                payload_json = excluded.payload_json,
+                current_index = excluded.current_index,
+                total_items = excluded.total_items,
+                answered_count = excluded.answered_count,
+                updated_at = excluded.updated_at
+            """,
+            (acc, dkey, ptype, subj_val, chap, ttl, p_str, cur_idx, tot_items, ans_cnt, iso_now),
+        )
+        conn.commit()
+        row = conn.execute(
+            "SELECT * FROM study_progress WHERE account_id = ? AND draft_key = ?",
+            (acc, dkey),
+        ).fetchone()
+        return _serialize_progress_row(row) if row else None
+    finally:
+        conn.close()
+
+
+def delete_study_progress(account_id, draft_key) -> bool:
+    acc = _sanitize_account_id(account_id)
+    dkey = _sanitize_draft_key(draft_key)
+    if not dkey:
+        return False
+    conn = get_connection()
+    try:
+        cur = conn.execute(
+            "DELETE FROM study_progress WHERE account_id = ? AND draft_key = ?",
+            (acc, dkey),
+        )
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
 
 # Cài đặt
 def get_setting(key, default=""):
@@ -827,3 +1164,505 @@ def delete_archived_item(archive_id: int):
     c.execute("DELETE FROM archived_history WHERE id = ?", (archive_id,))
     conn.commit()
     conn.close()
+
+
+# ==========================================
+# AI API KEYS POOL & PERSISTENT TUTOR CHATS
+# ==========================================
+def list_ai_api_keys(provider: str = "gemini") -> list[dict]:
+    conn = get_connection()
+    try:
+        rows = conn.execute(
+            "SELECT * FROM ai_api_keys WHERE provider = ? ORDER BY id ASC",
+            (str(provider or "gemini").strip(),),
+        ).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def upsert_ai_api_key(
+    api_key: str,
+    provider: str = "gemini",
+    label: str = "",
+    masked_key: str = "",
+    key_type: str = "gemini",
+    is_enabled: bool = True,
+    status: str = "ready",
+    model: str = "",
+    latency_ms=None,
+    last_error: str = "",
+    last_checked_at: str = "",
+) -> dict:
+    raw_k = str(api_key or "").strip()
+    if not raw_k:
+        raise ValueError("api_key is required")
+    iso_now, _ = _utc_iso_now()
+    prov = str(provider or "gemini").strip()[:32]
+    lbl = str(label or "").strip()[:80]
+    mk = str(masked_key or "").strip()[:64]
+    kt = str(key_type or "gemini").strip()[:32]
+    conn = get_connection()
+    try:
+        existing = conn.execute("SELECT * FROM ai_api_keys WHERE api_key = ?", (raw_k,)).fetchone()
+        if existing:
+            conn.execute(
+                """
+                UPDATE ai_api_keys
+                SET provider = ?,
+                    label = COALESCE(NULLIF(?, ''), label),
+                    masked_key = COALESCE(NULLIF(?, ''), masked_key),
+                    key_type = COALESCE(NULLIF(?, ''), key_type),
+                    updated_at = ?
+                WHERE id = ?
+                """,
+                (prov, lbl, mk, kt, iso_now, existing["id"]),
+            )
+            conn.commit()
+            row = conn.execute("SELECT * FROM ai_api_keys WHERE id = ?", (existing["id"],)).fetchone()
+            return dict(row)
+        cnt = conn.execute("SELECT COUNT(*) FROM ai_api_keys WHERE provider = ?", (prov,)).fetchone()[0]
+        if not lbl:
+            lbl = f"Key #{cnt + 1}"
+        conn.execute(
+            """
+            INSERT INTO ai_api_keys (
+                provider, label, api_key, masked_key, key_type, is_enabled,
+                status, model, latency_ms, calls, failovers, last_error,
+                last_checked_at, created_at, updated_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?)
+            """,
+            (
+                prov, lbl, raw_k, mk, kt, 1 if is_enabled else 0,
+                str(status or "ready")[:32], str(model or "")[:80],
+                int(latency_ms) if latency_ms is not None else None,
+                str(last_error or "")[:300], str(last_checked_at or "")[:64],
+                iso_now, iso_now,
+            ),
+        )
+        conn.commit()
+        row = conn.execute("SELECT * FROM ai_api_keys WHERE api_key = ?", (raw_k,)).fetchone()
+        return dict(row)
+    finally:
+        conn.close()
+
+
+def sync_ai_api_keys_pool(entries: list[dict], provider: str = "gemini") -> list[dict]:
+    """Synchronize ai_api_keys table with the ordered pool while keeping telemetry."""
+    prov = str(provider or "gemini").strip()[:32]
+    iso_now, _ = _utc_iso_now()
+    conn = get_connection()
+    try:
+        existing_rows = {
+            r["api_key"]: dict(r)
+            for r in conn.execute("SELECT * FROM ai_api_keys WHERE provider = ?", (prov,)).fetchall()
+        }
+        desired_keys = []
+        for idx, item in enumerate(entries or []):
+            k = str(item.get("key") or item.get("api_key") or "").strip()
+            if not k:
+                continue
+            desired_keys.append(k)
+            lbl = str(item.get("label") or f"Key #{idx + 1}").strip()[:80]
+            mk = str(item.get("masked_key") or "").strip()[:64]
+            kt = str(item.get("key_type") or "gemini").strip()[:32]
+            if k in existing_rows:
+                conn.execute(
+                    "UPDATE ai_api_keys SET label = ?, masked_key = COALESCE(NULLIF(?, ''), masked_key), key_type = COALESCE(NULLIF(?, ''), key_type), updated_at = ? WHERE api_key = ?",
+                    (lbl, mk, kt, iso_now, k),
+                )
+            else:
+                conn.execute(
+                    """
+                    INSERT INTO ai_api_keys (
+                        provider, label, api_key, masked_key, key_type, is_enabled,
+                        status, model, latency_ms, calls, failovers, last_error,
+                        last_checked_at, created_at, updated_at
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, '', NULL, 0, 0, '', '', ?, ?)
+                    """,
+                    (prov, lbl, k, mk, kt, 1 if item.get("is_enabled", True) else 0, str(item.get("status") or "ready")[:32], iso_now, iso_now),
+                )
+        for old_k in list(existing_rows.keys()):
+            if old_k not in desired_keys:
+                conn.execute("DELETE FROM ai_api_keys WHERE provider = ? AND api_key = ?", (prov, old_k))
+        conn.commit()
+        rows = conn.execute("SELECT * FROM ai_api_keys WHERE provider = ? ORDER BY id ASC", (prov,)).fetchall()
+        return [dict(r) for r in rows]
+    finally:
+        conn.close()
+
+
+def toggle_ai_api_key(key_id: int = None, api_key: str = None, enabled: bool = None) -> dict | None:
+    conn = get_connection()
+    try:
+        if key_id is not None:
+            row = conn.execute("SELECT * FROM ai_api_keys WHERE id = ?", (int(key_id),)).fetchone()
+        elif api_key:
+            row = conn.execute("SELECT * FROM ai_api_keys WHERE api_key = ?", (str(api_key).strip(),)).fetchone()
+        else:
+            return None
+        if not row:
+            return None
+        new_val = (1 if enabled else 0) if enabled is not None else (0 if row["is_enabled"] else 1)
+        iso_now, _ = _utc_iso_now()
+        new_status = row["status"] if new_val else "disabled"
+        if new_val and row["status"] == "disabled":
+            new_status = "ready"
+        conn.execute(
+            "UPDATE ai_api_keys SET is_enabled = ?, status = ?, updated_at = ? WHERE id = ?",
+            (new_val, new_status, iso_now, row["id"]),
+        )
+        conn.commit()
+        updated = conn.execute("SELECT * FROM ai_api_keys WHERE id = ?", (row["id"],)).fetchone()
+        return dict(updated) if updated else None
+    finally:
+        conn.close()
+
+
+def update_ai_api_key_telemetry(
+    api_key: str,
+    status: str = None,
+    model: str = None,
+    latency_ms=None,
+    calls_inc: int = 0,
+    failovers_inc: int = 0,
+    last_error: str = None,
+    last_checked_at: str = None,
+) -> None:
+    raw_k = str(api_key or "").strip()
+    if not raw_k:
+        return
+    iso_now, _ = _utc_iso_now()
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM ai_api_keys WHERE api_key = ?", (raw_k,)).fetchone()
+        if not row:
+            return
+        new_status = str(status if status is not None else row["status"])[:32]
+        if not row["is_enabled"]:
+            new_status = "disabled"
+        new_model = str(model if model is not None else (row["model"] or ""))[:80]
+        new_lat = int(latency_ms) if latency_ms is not None else row["latency_ms"]
+        new_calls = int(row["calls"] or 0) + int(calls_inc or 0)
+        new_failovers = int(row["failovers"] or 0) + int(failovers_inc or 0)
+        new_err = str(last_error if last_error is not None else (row["last_error"] or ""))[:300]
+        new_chk = str(last_checked_at if last_checked_at is not None else (row["last_checked_at"] or ""))[:64]
+        conn.execute(
+            """
+            UPDATE ai_api_keys
+            SET status = ?, model = ?, latency_ms = ?, calls = ?, failovers = ?,
+                last_error = ?, last_checked_at = ?, updated_at = ?
+            WHERE id = ?
+            """,
+            (new_status, new_model, new_lat, new_calls, new_failovers, new_err, new_chk, iso_now, row["id"]),
+        )
+        conn.commit()
+    finally:
+        conn.close()
+
+
+def _serialize_chat_message(row) -> dict:
+    d = dict(row)
+    raw_ctx = d.pop("context_json", "{}") or "{}"
+    try:
+        ctx = json.loads(raw_ctx)
+        if not isinstance(ctx, dict):
+            ctx = {}
+    except Exception:
+        ctx = {}
+    d["context"] = ctx
+    return d
+
+
+def _serialize_chat_session(row, messages=None) -> dict:
+    d = dict(row)
+    d["is_archived"] = bool(d.get("is_archived"))
+    d["message_count"] = int(d.get("message_count") or 0)
+    if messages is not None:
+        d["messages"] = messages
+    return d
+
+
+def save_tutor_chat_turn(
+    account_id: str = "acc_default",
+    session_id: str = None,
+    title: str = "",
+    subject_id=None,
+    subject_name: str = "",
+    mode: str = "explain",
+    persona: str = "professor",
+    role: str = "user",
+    content: str = "",
+    context=None,
+    provider_used: str = "",
+    model_used: str = "",
+    masked_key: str = "",
+    latency_ms=None,
+    messages: list = None,
+    replace: bool = False,
+) -> dict:
+    import secrets as _secrets
+    acc = _sanitize_account_id(account_id)
+    sid_str = str(session_id or "").strip()[:128] or f"sess_{int(datetime.now().timestamp())}_{_secrets.token_hex(4)}"
+    iso_now, _ = _utc_iso_now()
+
+    subj_val = None
+    if subject_id is not None and str(subject_id).strip() != "":
+        try:
+            subj_val = int(subject_id)
+        except (TypeError, ValueError):
+            subj_val = None
+
+    sname = str(subject_name or "").strip()[:160]
+    m_val = str(mode or "explain").strip()[:32]
+    p_val = str(persona or "professor").strip()[:32]
+    ttl = str(title or "").strip()[:200]
+
+    msg_items = []
+    if isinstance(messages, list) and messages:
+        for m in messages:
+            if not isinstance(m, dict):
+                continue
+            mc = str(m.get("content") or m.get("text") or "").strip()
+            if not mc:
+                continue
+            mr = "model" if str(m.get("role") or "user").strip() in ("model", "assistant") else "user"
+            mctx = m.get("context") if isinstance(m.get("context"), dict) else (context if isinstance(context, dict) else {})
+            msg_items.append({
+                "role": mr,
+                "content": mc,
+                "mode": str(m.get("mode") or m_val)[:32],
+                "context_json": json.dumps(mctx, ensure_ascii=False),
+                "provider_used": str(m.get("provider_used") or provider_used or "")[:64],
+                "model_used": str(m.get("model_used") or model_used or "")[:80],
+                "masked_key": str(m.get("masked_key") or masked_key or "")[:64],
+                "latency_ms": int(m["latency_ms"]) if m.get("latency_ms") is not None else (int(latency_ms) if latency_ms is not None else None),
+            })
+    elif str(content or "").strip():
+        mr = "model" if str(role or "user").strip() in ("model", "assistant") else "user"
+        ctx_dict = context if isinstance(context, dict) else {}
+        msg_items.append({
+            "role": mr,
+            "content": str(content).strip(),
+            "mode": m_val,
+            "context_json": json.dumps(ctx_dict, ensure_ascii=False),
+            "provider_used": str(provider_used or "")[:64],
+            "model_used": str(model_used or "")[:80],
+            "masked_key": str(masked_key or "")[:64],
+            "latency_ms": int(latency_ms) if latency_ms is not None else None,
+        })
+
+    if not ttl and msg_items:
+        first_txt = re.sub(r"\s+", " ", msg_items[0]["content"]).strip()
+        prefix = f"{sname} — " if sname else ""
+        ttl = (prefix + first_txt)[:120]
+    if not ttl:
+        ttl = f"Hội thoại {sname or 'Gia sư AI'}"
+
+    conn = get_connection()
+    try:
+        existing = conn.execute(
+            "SELECT * FROM ai_chat_sessions WHERE session_id = ? AND account_id = ?",
+            (sid_str, acc),
+        ).fetchone()
+        if not existing:
+            conn.execute(
+                """
+                INSERT INTO ai_chat_sessions (
+                    session_id, account_id, title, subject_id, subject_name,
+                    mode, persona, is_archived, message_count, last_message_preview,
+                    created_at, updated_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, 0, 0, '', ?, ?)
+                """,
+                (sid_str, acc, ttl, subj_val, sname, m_val, p_val, iso_now, iso_now),
+            )
+        else:
+            conn.execute(
+                """
+                UPDATE ai_chat_sessions
+                SET subject_id = COALESCE(?, subject_id),
+                    subject_name = COALESCE(NULLIF(?, ''), subject_name),
+                    mode = COALESCE(NULLIF(?, ''), mode),
+                    persona = COALESCE(NULLIF(?, ''), persona),
+                    is_archived = 0,
+                    updated_at = ?
+                WHERE session_id = ? AND account_id = ?
+                """,
+                (subj_val, sname, m_val, p_val, iso_now, sid_str, acc),
+            )
+
+        if replace and isinstance(messages, list) and messages:
+            conn.execute("DELETE FROM tutor_chats WHERE session_id = ? AND account_id = ?", (sid_str, acc))
+
+        for item in msg_items:
+            conn.execute(
+                """
+                INSERT INTO tutor_chats (
+                    session_id, account_id, role, content, mode, context_json,
+                    provider_used, model_used, masked_key, latency_ms, created_at
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    sid_str, acc, item["role"], item["content"], item["mode"], item["context_json"],
+                    item["provider_used"], item["model_used"], item["masked_key"], item["latency_ms"], iso_now,
+                ),
+            )
+
+        cnt = conn.execute(
+            "SELECT COUNT(*) FROM tutor_chats WHERE session_id = ? AND account_id = ?",
+            (sid_str, acc),
+        ).fetchone()[0]
+        last_row = conn.execute(
+            "SELECT content FROM tutor_chats WHERE session_id = ? AND account_id = ? ORDER BY id DESC LIMIT 1",
+            (sid_str, acc),
+        ).fetchone()
+        preview = re.sub(r"\s+", " ", (last_row["content"] if last_row else ""))[:180]
+        conn.execute(
+            "UPDATE ai_chat_sessions SET message_count = ?, last_message_preview = ?, updated_at = ? WHERE session_id = ? AND account_id = ?",
+            (cnt, preview, iso_now, sid_str, acc),
+        )
+        conn.commit()
+
+        srow = conn.execute(
+            "SELECT * FROM ai_chat_sessions WHERE session_id = ? AND account_id = ?",
+            (sid_str, acc),
+        ).fetchone()
+        mrows = conn.execute(
+            "SELECT * FROM tutor_chats WHERE session_id = ? AND account_id = ? ORDER BY id ASC",
+            (sid_str, acc),
+        ).fetchall()
+        return _serialize_chat_session(srow, [_serialize_chat_message(r) for r in mrows])
+    finally:
+        conn.close()
+
+
+def list_tutor_chat_sessions(
+    account_id: str = "acc_default",
+    archived: str = "all",
+    query: str = "",
+    session_id: str = None,
+    limit: int = 50,
+) -> dict:
+    acc = _sanitize_account_id(account_id)
+    lim = max(1, min(200, int(limit or 50)))
+    arch_filter = str(archived or "all").strip().lower()
+    q_str = str(query or "").strip().lower()
+
+    conn = get_connection()
+    try:
+        active_cnt = conn.execute(
+            "SELECT COUNT(*) FROM ai_chat_sessions WHERE account_id = ? AND is_archived = 0",
+            (acc,),
+        ).fetchone()[0]
+        arch_cnt = conn.execute(
+            "SELECT COUNT(*) FROM ai_chat_sessions WHERE account_id = ? AND is_archived = 1",
+            (acc,),
+        ).fetchone()[0]
+
+        sql = "SELECT * FROM ai_chat_sessions WHERE account_id = ?"
+        params = [acc]
+        if session_id:
+            sql += " AND session_id = ?"
+            params.append(str(session_id).strip()[:128])
+        elif arch_filter in ("0", "false", "active"):
+            sql += " AND is_archived = 0"
+        elif arch_filter in ("1", "true", "archived", "archive"):
+            sql += " AND is_archived = 1"
+
+        if q_str:
+            like = f"%{q_str}%"
+            sql += (
+                " AND (LOWER(title) LIKE ? OR LOWER(subject_name) LIKE ? "
+                "OR LOWER(last_message_preview) LIKE ? "
+                "OR EXISTS (SELECT 1 FROM tutor_chats tc WHERE tc.session_id = ai_chat_sessions.session_id "
+                "AND tc.account_id = ai_chat_sessions.account_id "
+                "AND (LOWER(tc.content) LIKE ? OR LOWER(tc.context_json) LIKE ?)))"
+            )
+            params.extend([like, like, like, like, like])
+
+        sql += " ORDER BY updated_at DESC LIMIT ?"
+        params.append(lim)
+        srows = conn.execute(sql, tuple(params)).fetchall()
+
+        sessions = []
+        sids = [r["session_id"] for r in srows]
+        msg_map = {sid: [] for sid in sids}
+        if sids:
+            placeholders = ",".join("?" * len(sids))
+            mrows = conn.execute(
+                f"SELECT * FROM tutor_chats WHERE account_id = ? AND session_id IN ({placeholders}) ORDER BY id ASC",
+                tuple([acc] + sids),
+            ).fetchall()
+            for mr in mrows:
+                msg_map[mr["session_id"]].append(_serialize_chat_message(mr))
+
+        for sr in srows:
+            sessions.append(_serialize_chat_session(sr, msg_map.get(sr["session_id"], [])))
+
+        return {
+            "account_id": acc,
+            "sessions": sessions,
+            "active_count": active_cnt,
+            "archived_count": arch_cnt,
+            "total_count": active_cnt + arch_cnt,
+        }
+    finally:
+        conn.close()
+
+
+def archive_tutor_chat_sessions(
+    account_id: str = "acc_default",
+    session_id: str = None,
+    session_ids: list = None,
+    archive_all_active: bool = False,
+    restore: bool = False,
+) -> int:
+    acc = _sanitize_account_id(account_id)
+    target_val = 0 if restore else 1
+    iso_now, _ = _utc_iso_now()
+    conn = get_connection()
+    try:
+        if archive_all_active:
+            cur = conn.execute(
+                "UPDATE ai_chat_sessions SET is_archived = ?, updated_at = ? WHERE account_id = ? AND is_archived = ?",
+                (target_val, iso_now, acc, 1 if restore else 0),
+            )
+        else:
+            ids = []
+            if session_id:
+                ids.append(str(session_id).strip()[:128])
+            if isinstance(session_ids, list):
+                for s in session_ids:
+                    sv = str(s or "").strip()[:128]
+                    if sv and sv not in ids:
+                        ids.append(sv)
+            if not ids:
+                return 0
+            placeholders = ",".join("?" * len(ids))
+            cur = conn.execute(
+                f"UPDATE ai_chat_sessions SET is_archived = ?, updated_at = ? WHERE account_id = ? AND session_id IN ({placeholders})",
+                tuple([target_val, iso_now, acc] + ids),
+            )
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
+
+def delete_tutor_chat_session(account_id: str = "acc_default", session_id: str = "") -> bool:
+    acc = _sanitize_account_id(account_id)
+    sid = str(session_id or "").strip()[:128]
+    if not sid:
+        return False
+    conn = get_connection()
+    try:
+        conn.execute("DELETE FROM tutor_chats WHERE account_id = ? AND session_id = ?", (acc, sid))
+        cur = conn.execute("DELETE FROM ai_chat_sessions WHERE account_id = ? AND session_id = ?", (acc, sid))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()

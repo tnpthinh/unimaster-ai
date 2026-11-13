@@ -1,29 +1,258 @@
 
 // =========================================================================
 // =========================================================================
-// FEATURE 3: FLOATING AI TUTOR WIDGET (CONTEXT-AWARE, MULTI-PERSONA, VOICE, 1-TOUCH)
+// FEATURE 3: UNIFIED AI TUTOR ENGINE, MODES, CONTEXT BAR & ARCHIVABLE SESSIONS
 // =========================================================================
 const SHARED_TUTOR_HISTORY_KEY = 'unimaster_shared_tutor_history_v1';
 const TUTOR_STYLE_KEY = 'unimaster_tutor_custom_style';
-let floatingTutorChatHistory = loadSharedTutorHistory();
+const TUTOR_MODE_KEY = 'unimaster_tutor_mode';
+const PINNED_CTX_STORAGE_KEY = 'unimaster_pinned_tutor_ctx_v1';
+const TUTOR_SESSIONS_STORAGE_PREFIX = 'unimaster_ai_sessions_v1_';
+const AI_NOTEBOOK_STORAGE_PREFIX = 'unimaster_ai_notebook_v1_';
+
+const TUTOR_MODES_META = {
+  explain: { label: 'Giải sâu & Mẹo nhớ', icon: '🧠' },
+  eliminate: { label: 'Loại trừ A/B/C/D', icon: '🔍' },
+  socratic: { label: 'Gợi mở Socratic', icon: '💡' },
+  clinical: { label: 'Biện luận lâm sàng', icon: '🩺' },
+  debug: { label: 'Debug Code', icon: '💻' },
+  mnemonic: { label: 'Tạo mẹo nhớ', icon: '🧠' }
+};
+
 let windowTutorSizeExpanded = false;
 let currentTutorPersona = localStorage.getItem('unimaster_tutor_persona') || 'professor';
+let currentTutorMode = localStorage.getItem(TUTOR_MODE_KEY) || 'explain';
 let tutorCustomStyle = localStorage.getItem(TUTOR_STYLE_KEY) || '';
+let tutorSessionsCache = [];
+let currentTutorSessionId = '';
+let tutorSessionsDrawerOpen = false;
+let tutorDrawerFilter = 'all'; // 'all' | 'active' | 'archived'
+let tutorSessionSearchQuery = '';
+let tutorSendingLock = false;
+let floatingVoiceRecognition = null;
+let isFloatingVoiceListening = false;
+window._tutorReplies = window._tutorReplies || {};
+window._tutorMsgMeta = window._tutorMsgMeta || {};
 
-function loadSharedTutorHistory() {
+function getTutorAccountIdSafe() {
+  try {
+    if (typeof getActiveAccountId === 'function') return getActiveAccountId() || 'acc_default';
+    return localStorage.getItem('unimaster_active_account_id_v2') || 'acc_default';
+  } catch (_) {
+    return 'acc_default';
+  }
+}
+
+function getSessionsStorageKey(accId = null) {
+  return `${TUTOR_SESSIONS_STORAGE_PREFIX}${accId || getTutorAccountIdSafe()}`;
+}
+
+function generateTutorSessionId() {
+  return `sess_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function loadPinnedTutorContext() {
+  try {
+    const raw = localStorage.getItem(PINNED_CTX_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+function persistPinnedTutorContext(ctx) {
+  try {
+    if (!ctx) {
+      localStorage.removeItem(PINNED_CTX_STORAGE_KEY);
+    } else {
+      localStorage.setItem(PINNED_CTX_STORAGE_KEY, JSON.stringify({
+        id: ctx.id || null,
+        kind: ctx.kind || 'question',
+        shortTitle: String(ctx.shortTitle || '').slice(0, 120),
+        fullTitle: String(ctx.fullTitle || '').slice(0, 1200),
+        topic: String(ctx.topic || '').slice(0, 120),
+        subjectName: String(ctx.subjectName || '').slice(0, 120),
+        code_snippet: String(ctx.code_snippet || '').slice(0, 3000),
+        selected_term: String(ctx.selected_term || '').slice(0, 180),
+        option_a: String(ctx.option_a || '').slice(0, 400),
+        option_b: String(ctx.option_b || '').slice(0, 400),
+        option_c: String(ctx.option_c || '').slice(0, 400),
+        option_d: String(ctx.option_d || '').slice(0, 400),
+        correct_option: String(ctx.correct_option || '').slice(0, 16),
+        user_answer: String(ctx.user_answer || '').slice(0, 200),
+        is_correct: ctx.is_correct
+      }));
+    }
+  } catch (_) {}
+}
+
+let pinnedTutorQuestion = loadPinnedTutorContext();
+
+function normalizeTutorMsgRecord(m, idx = 0) {
+  if (!m || typeof m !== 'object') return null;
+  const role = m.role === 'user' ? 'user' : 'model';
+  const content = String(m.content || '').trim();
+  if (!content) return null;
+  const id = String(m.id || `tmsg_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 6)}`);
+  const meta = m.meta && typeof m.meta === 'object' ? m.meta : {};
+  const createdAt = m.created_at || m.timestamp || new Date().toISOString();
+  let displayTime = m.displayTime || '';
+  if (!displayTime && createdAt) {
+    try {
+      displayTime = new Date(createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    } catch (_) {}
+  }
+  return {
+    id,
+    role,
+    content,
+    mode: m.mode || meta.mode || '',
+    context: m.context || meta.context || '',
+    question_id: m.question_id || meta.question_id || null,
+    provider_used: m.provider_used || meta.provider_used || '',
+    provider_label: m.provider_label || meta.provider_label || '',
+    model_used: m.model_used || meta.model_used || '',
+    masked_key: m.masked_key || meta.masked_key || '',
+    latency_ms: m.latency_ms ?? meta.latency_ms ?? null,
+    created_at: createdAt,
+    displayTime
+  };
+}
+
+function readLocalTutorSessions(accId = null) {
+  try {
+    const raw = JSON.parse(localStorage.getItem(getSessionsStorageKey(accId)) || '[]');
+    if (Array.isArray(raw)) {
+      return raw.map((s) => ({
+        session_id: String(s.session_id || generateTutorSessionId()),
+        account_id: s.account_id || accId || getTutorAccountIdSafe(),
+        title: String(s.title || 'Cuộc trò chuyện cùng Gia Sư AI'),
+        subject_id: s.subject_id || null,
+        subject_name: String(s.subject_name || 'Tổng hợp'),
+        mode: s.mode || 'explain',
+        persona: s.persona || 'professor',
+        is_archived: Boolean(s.is_archived),
+        created_at: s.created_at || new Date().toISOString(),
+        updated_at: s.updated_at || s.created_at || new Date().toISOString(),
+        messages: Array.isArray(s.messages) ? s.messages.map((m, i) => normalizeTutorMsgRecord(m, i)).filter(Boolean) : []
+      }));
+    }
+  } catch (_) {}
+  return [];
+}
+
+function writeLocalTutorSessions(sessions, accId = null) {
+  try {
+    const cleaned = (Array.isArray(sessions) ? sessions : []).slice(0, 80);
+    localStorage.setItem(getSessionsStorageKey(accId), JSON.stringify(cleaned));
+    tutorSessionsCache = cleaned;
+  } catch (_) {}
+}
+
+function migrateLegacyHistoryIntoSessionsIfNeeded() {
+  const existing = readLocalTutorSessions();
+  if (existing.length) {
+    tutorSessionsCache = existing;
+    const active = existing.find((s) => !s.is_archived) || null;
+    if (active) {
+      currentTutorSessionId = active.session_id;
+      return active.messages;
+    }
+    currentTutorSessionId = generateTutorSessionId();
+    return [];
+  }
+  let legacyMsgs = [];
   try {
     const shared = JSON.parse(localStorage.getItem(SHARED_TUTOR_HISTORY_KEY) || 'null');
-    if (Array.isArray(shared)) return shared;
-    return (typeof getLocalTutorHistory === 'function' ? getLocalTutorHistory() : [])
-      .filter((m) => m && (m.role === 'user' || m.role === 'model'))
-      .map((m) => ({ role: m.role, content: String(m.content || '') }));
-  } catch (_) { return []; }
+    if (Array.isArray(shared) && shared.length) {
+      legacyMsgs = shared.map((m, i) => normalizeTutorMsgRecord(m, i)).filter(Boolean);
+    } else if (typeof getLocalTutorHistory === 'function') {
+      const l = getLocalTutorHistory();
+      if (Array.isArray(l) && l.length) {
+        legacyMsgs = l.map((m, i) => normalizeTutorMsgRecord(m, i)).filter(Boolean);
+      }
+    }
+  } catch (_) {}
+
+  currentTutorSessionId = generateTutorSessionId();
+  if (legacyMsgs.length) {
+    const firstUser = legacyMsgs.find((m) => m.role === 'user');
+    const sess = {
+      session_id: currentTutorSessionId,
+      account_id: getTutorAccountIdSafe(),
+      title: (firstUser?.content || 'Phiên trò chuyện đã lưu').slice(0, 72),
+      subject_id: null,
+      subject_name: firstUser?.context || 'Đại học',
+      mode: currentTutorMode,
+      persona: currentTutorPersona,
+      is_archived: false,
+      created_at: legacyMsgs[0]?.created_at || new Date().toISOString(),
+      updated_at: legacyMsgs[legacyMsgs.length - 1]?.created_at || new Date().toISOString(),
+      messages: legacyMsgs.slice(-120)
+    };
+    writeLocalTutorSessions([sess]);
+    return sess.messages;
+  }
+  return [];
 }
+
+function getActiveTutorSession(createIfMissing = false) {
+  if (!tutorSessionsCache.length) tutorSessionsCache = readLocalTutorSessions();
+  let sess = tutorSessionsCache.find((s) => s.session_id === currentTutorSessionId);
+  if (!sess && createIfMissing) {
+    if (!currentTutorSessionId) currentTutorSessionId = generateTutorSessionId();
+    const sub = (typeof STATE !== 'undefined' && Array.isArray(STATE.subjects))
+      ? STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId))
+      : null;
+    sess = {
+      session_id: currentTutorSessionId,
+      account_id: getTutorAccountIdSafe(),
+      title: 'Phiên Gia Sư AI mới',
+      subject_id: sub?.id || null,
+      subject_name: sub?.name || 'Tổng hợp Đại học',
+      mode: currentTutorMode,
+      persona: currentTutorPersona,
+      is_archived: false,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      messages: []
+    };
+    tutorSessionsCache.unshift(sess);
+  }
+  return sess || null;
+}
+
+function loadSharedTutorHistory() {
+  return migrateLegacyHistoryIntoSessionsIfNeeded();
+}
+
+let floatingTutorChatHistory = loadSharedTutorHistory();
 
 function saveSharedTutorHistory() {
   try {
-    localStorage.setItem(SHARED_TUTOR_HISTORY_KEY, JSON.stringify(floatingTutorChatHistory.slice(-300)));
+    const cleaned = (Array.isArray(floatingTutorChatHistory) ? floatingTutorChatHistory : [])
+      .map((m, i) => normalizeTutorMsgRecord(m, i))
+      .filter(Boolean)
+      .slice(-200);
+    floatingTutorChatHistory = cleaned;
+    localStorage.setItem(SHARED_TUTOR_HISTORY_KEY, JSON.stringify(cleaned));
     window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
+
+    if (cleaned.length) {
+      const sess = getActiveTutorSession(true);
+      sess.messages = cleaned;
+      sess.updated_at = new Date().toISOString();
+      sess.mode = currentTutorMode;
+      sess.persona = currentTutorPersona;
+      const firstU = cleaned.find((m) => m.role === 'user');
+      if (firstU && (!sess.title || sess.title === 'Phiên Gia Sư AI mới')) {
+        sess.title = firstU.content.slice(0, 76);
+      }
+      writeLocalTutorSessions(tutorSessionsCache);
+    }
+    if (typeof updateTutorSessionsBadges === 'function') updateTutorSessionsBadges();
   } catch (_) {}
 }
 
@@ -39,62 +268,285 @@ function setTutorCustomStyle(value) {
   showToast(tutorCustomStyle ? 'Đã lưu phong cách gia sư tùy chỉnh.' : 'Đã xóa phong cách tùy chỉnh.', 'success');
 }
 
-function renderSharedTutorHistory() {
-  const history = floatingTutorChatHistory.slice(-60);
-  const tabBox = document.getElementById('tutor-chat-box');
-  if (tabBox) {
-    if (history.length) {
-      tabBox.innerHTML = history.map((m) => m.role === 'user'
-        ? `<div class="ml-auto max-w-xl p-3.5 rounded-2xl text-sm font-semibold text-white" style="background:linear-gradient(135deg,var(--brand),var(--brand-2))">${escapeHtml(m.content)}</div>`
-        : `<div class="ai-callout max-w-3xl text-sm markdown-body">${renderMarkdown(m.content)}</div>`).join('');
-      tabBox.scrollTop = tabBox.scrollHeight;
-      renderAllMathOnPage(tabBox);
+function highlightBiochemTermsSafe(html) {
+  if (!html) return '';
+  const pattern = /\b(ATP|NADH|NADPH|FADH2|LDL|HDL|VLDL|AST|ALT|GGT|HbA1c|OGTT|Creatinin|Bilirubin|Albumin|Cholesterol|Triglycerid|Big-O|SOLID|Polymorphism|Encapsulation)\b/g;
+  const parts = String(html).split(/(<[^>]+>)/g);
+  let skipDepth = 0;
+  return parts.map((chunk) => {
+    if (!chunk) return '';
+    if (chunk.startsWith('<')) {
+      if (/^<(pre|code|a|script|style)\b/i.test(chunk) || /class=["'][^"']*katex/i.test(chunk)) {
+        skipDepth++;
+      } else if (/^<\/(pre|code|a|script|style)\b/i.test(chunk) && skipDepth > 0) {
+        skipDepth--;
+      } else if (/^<\/span>/i.test(chunk) && skipDepth > 0) {
+        skipDepth = Math.max(0, skipDepth - 1);
+      }
+      return chunk;
+    }
+    if (skipDepth > 0) return chunk;
+    return chunk.replace(pattern, '<strong class="tutor-biochem-highlight">$1</strong>');
+  }).join('');
+}
+
+function renderTutorAcademicHtml(rawText) {
+  const mdHtml = typeof renderMarkdown === 'function'
+    ? renderMarkdown(rawText)
+    : (typeof renderAcademicText === 'function' ? renderAcademicText(rawText) : escapeHtml(rawText));
+  return highlightBiochemTermsSafe(mdHtml);
+}
+
+function formatTutorProviderBadge(msg) {
+  const label = msg.provider_label || (
+    msg.provider_used === '9router' ? '9Router' :
+    msg.provider_used === 'fosta' ? 'FOSTA Codex' :
+    msg.provider_used === 'openai' ? 'OpenAI Gateway' :
+    msg.provider_used === 'gemini' ? 'Gemini' :
+    msg.provider_used === 'fallback' ? 'Gia sư Dự phòng' :
+    ''
+  );
+  if (!label && msg.latency_ms == null && !msg.model_used) return '';
+  const bits = [];
+  if (label) bits.push(escapeHtml(label));
+  if (msg.latency_ms != null) {
+    const ms = Number(msg.latency_ms);
+    bits.push(ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`);
+  }
+  const titleAttr = msg.model_used ? ` title="${escapeHtml(msg.model_used + (msg.masked_key ? ' • ' + msg.masked_key : ''))}"` : '';
+  return `<span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-extrabold font-mono shrink-0"${titleAttr}>${bits.join(' • ')}</span>`;
+}
+
+function buildTutorMessageHtml(msg, compact = false) {
+  if (!msg) return '';
+  if (msg.role === 'user') {
+    const ctxPill = msg.context
+      ? `<div class="text-[10px] opacity-85 font-bold mb-1 flex items-center gap-1"><span>📌</span><span>${escapeHtml(msg.context)}</span></div>`
+      : '';
+    return `
+      <div class="flex items-start justify-end gap-2 animate-fade-in">
+        <div class="tutor-user-bubble ${compact ? 'p-2.5 text-xs max-w-[88%]' : 'p-3.5 text-sm max-w-xl'} rounded-2xl font-semibold shadow-sm whitespace-pre-wrap">
+          ${ctxPill}
+          <div>${escapeHtml(msg.content)}</div>
+        </div>
+        <div class="${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-lg flex items-center justify-center bg-violet-600 text-white shrink-0">👤</div>
+      </div>
+    `;
+  }
+
+  const msgId = msg.id || ('tmsg_' + Date.now());
+  window._tutorReplies[msgId] = msg.content;
+  window._tutorMsgMeta[msgId] = msg;
+  const modeMeta = msg.mode && TUTOR_MODES_META[msg.mode] ? TUTOR_MODES_META[msg.mode] : null;
+  const provBadge = formatTutorProviderBadge(msg);
+  const subLabel = msg.context || 'Gia Sư AI UniMaster';
+  const renderedBody = renderTutorAcademicHtml(msg.content);
+
+  return `
+    <div class="flex items-start gap-2 animate-fade-in" id="${escapeHtml(msgId)}">
+      <div class="${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-lg flex items-center justify-center bg-indigo-500/20 txt-brand shrink-0 mt-0.5">🤖</div>
+      <div class="tutor-ai-bubble ${compact ? 'p-3 max-w-[92%]' : 'p-4 max-w-3xl'} rounded-2xl border space-y-2.5 flex-1 min-w-0 shadow-sm">
+        <div class="flex items-center justify-between gap-2 flex-wrap border-b pb-1.5" style="border-color: var(--border);">
+          <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+            <span class="txt-brand text-[11px] font-extrabold flex items-center gap-1 truncate">
+              <span>🎓</span><span>${escapeHtml(subLabel)}</span>
+            </span>
+            ${modeMeta ? `<span class="badge-soft text-[10px] px-1.5 py-0.5 rounded font-bold">${modeMeta.icon} ${escapeHtml(modeMeta.label)}</span>` : ''}
+            ${provBadge}
+          </div>
+          <span class="text-[10px] font-mono txt-muted shrink-0">${escapeHtml(msg.displayTime || '')}</span>
+        </div>
+
+        <div class="leading-relaxed ai-tutor-content markdown-body ${compact ? 'text-xs sm:text-sm' : 'text-sm'}">
+          ${renderedBody}
+        </div>
+
+        <div class="flex items-center gap-1.5 flex-wrap pt-2 border-t" style="border-color: var(--border);">
+          <button type="button" onclick="copyAiReply('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold">📋 Copy</button>
+          <button type="button" onclick="saveAiReplyToNotebook('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold txt-emerald">📌 Lưu vào Sổ tay</button>
+          <button type="button" onclick="speakAiReply('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold">🔊 Đọc</button>
+          <button type="button" onclick="askFollowUpOnAiReply('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold txt-brand">👍 Hỏi đào sâu thêm</button>
+          <button type="button" onclick="saveAiReplyAsFlashcard('${escapeHtml(msgId)}')" class="btn-soft px-2 py-1 text-[11px] font-bold txt-amber">🃏 Đúc Thẻ</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function buildTutorGreetingMarkup(compact = false) {
+  const curSub = (typeof STATE !== 'undefined' && Array.isArray(STATE.subjects))
+    ? (STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId)) || STATE.subjects[0])
+    : null;
+  const subName = curSub?.name || 'này';
+  const body = renderTutorAcademicHtml(
+    `Chào bạn! Tôi là **Gia sư AI UniMaster** phụ trách môn **${subName}**.\n\n- Chọn **Chế độ sư phạm** phía trên (*Giải sâu & Mẹo nhớ*, *Loại trừ A/B/C/D*, *Socratic*, *Biện luận lâm sàng*, *Debug Code*).\n- Bấm **"Hỏi AI Câu Này"** trong đề thi hoặc bôi đen bất kỳ thuật ngữ / dòng code nào để gắn ngữ cảnh trực tiếp!`
+  );
+  return `
+    <div class="flex items-start gap-2">
+      <div class="${compact ? 'w-6 h-6 text-xs' : 'w-8 h-8 text-sm'} rounded-lg flex items-center justify-center bg-indigo-500/20 txt-brand shrink-0">🤖</div>
+      <div class="tutor-ai-bubble ${compact ? 'p-2.5 text-xs max-w-[90%]' : 'p-4 text-sm max-w-3xl'} rounded-2xl border markdown-body ai-tutor-content">
+        ${body}
+      </div>
+    </div>
+  `;
+}
+
+function scrollTutorToBottom(boxId) {
+  const box = document.getElementById(boxId);
+  if (!box) return;
+  box.scrollTop = box.scrollHeight;
+  const btnId = boxId === 'floating-chat-messages' ? 'btn-ft-scroll-bottom' : 'btn-tutor-scroll-bottom';
+  document.getElementById(btnId)?.classList.add('hidden');
+}
+window.scrollTutorToBottom = scrollTutorToBottom;
+
+function onTutorBoxScroll(boxId, btnId) {
+  const box = document.getElementById(boxId);
+  const btn = document.getElementById(btnId);
+  if (!box || !btn) return;
+  const distFromBottom = box.scrollHeight - box.scrollTop - box.clientHeight;
+  btn.classList.toggle('hidden', distFromBottom < 80);
+}
+window.onTutorBoxScroll = onTutorBoxScroll;
+
+function renderActiveTutorMessages() {
+  const history = Array.isArray(floatingTutorChatHistory) ? floatingTutorChatHistory.slice(-80) : [];
+
+  const floatBox = document.getElementById('floating-chat-messages');
+  if (floatBox) {
+    floatBox.innerHTML = history.length
+      ? history.map((m) => buildTutorMessageHtml(m, true)).join('')
+      : buildTutorGreetingMarkup(true);
+    if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(floatBox);
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => scrollTutorToBottom('floating-chat-messages'));
     } else {
-      tabBox.innerHTML = `<div class="ai-callout max-w-3xl text-sm markdown-body">Chưa có nội dung hội thoại. Hãy hỏi Gia Sư AI bất kỳ điều gì về môn <strong id="tutor-welcome-subject">này</strong>!</div>`;
+      scrollTutorToBottom('floating-chat-messages');
     }
   }
-  if (typeof initTutorHistoryFromStorage === 'function') initTutorHistoryFromStorage();
+
+  const tabBox = document.getElementById('tutor-chat-box');
+  if (tabBox) {
+    tabBox.innerHTML = history.length
+      ? history.map((m) => buildTutorMessageHtml(m, false)).join('')
+      : buildTutorGreetingMarkup(false);
+    if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(tabBox);
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => scrollTutorToBottom('tutor-chat-box'));
+    } else {
+      scrollTutorToBottom('tutor-chat-box');
+    }
+  }
 }
-let pinnedTutorQuestion = null;
-let floatingVoiceRecognition = null;
-let isFloatingVoiceListening = false;
-window._tutorReplies = window._tutorReplies || {};
+
+function renderSharedTutorHistory() {
+  renderActiveTutorMessages();
+  syncTutorContextBarsUI();
+}
+window.renderSharedTutorHistory = renderSharedTutorHistory;
+
+function setTutorMode(mode) {
+  const cleanMode = TUTOR_MODES_META[mode] ? mode : 'explain';
+  currentTutorMode = cleanMode;
+  try { localStorage.setItem(TUTOR_MODE_KEY, cleanMode); } catch (_) {}
+  updateTutorModeUI();
+  if (typeof playSound === 'function') playSound('click');
+  const meta = TUTOR_MODES_META[cleanMode];
+  if (meta && typeof showToast === 'function') {
+    showToast(`${meta.icon} Chế độ sư phạm: ${meta.label}`, 'info');
+  }
+}
+window.setTutorMode = setTutorMode;
+
+function updateTutorModeUI() {
+  document.querySelectorAll('[data-tutor-mode]').forEach((btn) => {
+    btn.classList.toggle('active', btn.getAttribute('data-tutor-mode') === currentTutorMode);
+  });
+}
+
+function syncTutorContextBarsUI() {
+  const ctx = pinnedTutorQuestion;
+  const ftWrap = document.getElementById('ft-pinned-question-container');
+  const tabWrap = document.getElementById('tutor-context-bar');
+
+  if (ctx) {
+    const subText = ctx.subjectName ? ` • ${ctx.subjectName}` : (ctx.topic ? ` • ${ctx.topic}` : '');
+    const titleLabel = `Đang hỏi về: ${ctx.shortTitle || 'Ngữ cảnh đính kèm'}${subText}`;
+    const previewText = ctx.selected_term
+      ? `Thuật ngữ: "${ctx.selected_term}"`
+      : ctx.code_snippet
+      ? ctx.code_snippet.split('\n').slice(0, 2).join(' ').trim()
+      : (ctx.fullTitle || '');
+
+    if (ftWrap) {
+      ftWrap.classList.remove('hidden');
+      setText('ft-pinned-q-title', titleLabel);
+      setText('ft-pinned-q-body', previewText.slice(0, 120) + (previewText.length > 120 ? '...' : ''));
+    }
+    if (tabWrap) {
+      tabWrap.classList.remove('hidden');
+      setText('tutor-context-badge', titleLabel);
+      setText('tutor-context-preview', previewText.slice(0, 160) + (previewText.length > 160 ? '...' : ''));
+    }
+  } else {
+    ftWrap?.classList.add('hidden');
+    tabWrap?.classList.add('hidden');
+  }
+}
 
 function openFloatingTutor() {
+  if (typeof STATE !== 'undefined' && STATE.currentTab === 'tutor') {
+    const inp = document.getElementById('tutor-input');
+    if (inp) setTimeout(() => inp.focus(), 60);
+    return;
+  }
+  const container = document.getElementById('floating-tutor-container');
   const win = document.getElementById('floating-tutor-window');
+  if (container) container.classList.remove('hidden');
   if (win && win.classList.contains('hidden')) {
     toggleFloatingTutor();
+  } else if (win) {
+    syncFloatingTutorSubjectContext();
+    syncTutorContextBarsUI();
+    renderFloatingActionChips();
+    updateTutorModeUI();
+    updateTutorPersonaUI();
+    renderActiveTutorMessages();
   }
 }
 window.openFloatingTutor = openFloatingTutor;
 
 function toggleFloatingTutor() {
+  if (typeof STATE !== 'undefined' && STATE.currentTab === 'tutor') {
+    const tabInp = document.getElementById('tutor-input');
+    if (tabInp) tabInp.focus();
+    if (typeof showToast === 'function') showToast('Đang ở màn hình Gia Sư AI đầy đủ — nhập câu hỏi trực tiếp!', 'info');
+    return;
+  }
+  const container = document.getElementById('floating-tutor-container');
   const win = document.getElementById('floating-tutor-window');
   const backdrop = document.getElementById('floating-tutor-backdrop');
   if (!win) return;
+
   const isHidden = win.classList.contains('hidden');
   if (isHidden) {
+    if (container) container.classList.remove('hidden');
     win.classList.remove('hidden');
     if (windowTutorSizeExpanded && backdrop) backdrop.classList.remove('hidden');
-    playSound('click');
+    if (typeof playSound === 'function') playSound('click');
     syncFloatingTutorSubjectContext();
+    syncTutorContextBarsUI();
     renderFloatingActionChips();
+    updateTutorModeUI();
     updateTutorPersonaUI();
+    renderActiveTutorMessages();
     const input = document.getElementById('floating-chat-input');
-    if (input) setTimeout(() => input.focus(), 100);
+    if (input) setTimeout(() => input.focus(), 80);
   } else {
-    win.classList.add('hidden');
-    if (backdrop) backdrop.classList.add('hidden');
-    const container = document.getElementById('floating-tutor-container');
-    if (container) container.classList.remove('tutor-expanded-parent');
-    win.classList.remove('expanded');
-    windowTutorSizeExpanded = false;
-    const label = document.getElementById('ft-expand-label');
-    if (label) label.textContent = 'Phóng To';
-    stopFloatingVoiceInput();
-    playSound('click');
+    closeFloatingTutor();
   }
 }
+window.toggleFloatingTutor = toggleFloatingTutor;
 
 function closeFloatingTutor() {
   const win = document.getElementById('floating-tutor-window');
@@ -102,11 +554,16 @@ function closeFloatingTutor() {
   const container = document.getElementById('floating-tutor-container');
   if (win) win.classList.add('hidden');
   if (backdrop) backdrop.classList.add('hidden');
-  if (container) container.classList.remove('tutor-expanded-parent');
+  if (container) {
+    container.classList.remove('tutor-expanded-parent');
+    if (typeof STATE !== 'undefined' && (STATE.currentTab === 'dashboard' || STATE.currentTab === 'tutor')) {
+      container.classList.add('hidden');
+    }
+  }
   if (win) win.classList.remove('expanded');
   windowTutorSizeExpanded = false;
   const label = document.getElementById('ft-expand-label');
-  if (label) label.textContent = 'Phóng To';
+  if (label) label.textContent = 'Mở rộng';
   if (typeof stopFloatingVoiceInput === 'function') stopFloatingVoiceInput();
   if (typeof playSound === 'function') playSound('click');
 }
@@ -115,6 +572,7 @@ window.closeFloatingTutor = closeFloatingTutor;
 function toggleFloatingTutorSize() {
   const container = document.getElementById('floating-tutor-container');
   const win = document.getElementById('floating-tutor-window');
+  const backdrop = document.getElementById('floating-tutor-backdrop');
   const btn = document.getElementById('btn-ft-expand');
   const label = document.getElementById('ft-expand-label');
   const svg = document.getElementById('ft-expand-svg');
@@ -126,9 +584,12 @@ function toggleFloatingTutorSize() {
     container.classList.toggle('tutor-expanded-parent', windowTutorSizeExpanded);
   }
   win.classList.toggle('expanded', windowTutorSizeExpanded);
+  if (backdrop) {
+    backdrop.classList.toggle('hidden', !windowTutorSizeExpanded || win.classList.contains('hidden'));
+  }
 
   if (label) {
-    label.textContent = windowTutorSizeExpanded ? 'Thu Nhỏ' : 'Phóng To';
+    label.textContent = windowTutorSizeExpanded ? 'Thu nhỏ' : 'Mở rộng';
   }
   if (svg) {
     svg.innerHTML = windowTutorSizeExpanded
@@ -136,47 +597,53 @@ function toggleFloatingTutorSize() {
       : '<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>';
   }
   if (btn) {
-    btn.title = windowTutorSizeExpanded ? 'Thu nhỏ cửa sổ AI' : 'Phóng to hết nguyên màn hình';
+    btn.title = windowTutorSizeExpanded ? 'Thu nhỏ cửa sổ AI' : 'Mở rộng toàn màn hình';
   }
 
-  const chatMsgs = document.getElementById('floating-chat-messages');
-  if (chatMsgs) {
-    setTimeout(() => {
-      chatMsgs.scrollTop = chatMsgs.scrollHeight;
-    }, 100);
-  }
-  playSound('click');
+  setTimeout(() => scrollTutorToBottom('floating-chat-messages'), 80);
+  if (typeof playSound === 'function') playSound('click');
+}
+window.toggleFloatingTutorSize = toggleFloatingTutorSize;
+
+async function sendFloatingTutorCustomMessage(customText, modeOverride = null) {
+  openFloatingTutor();
+  await sendTutorChatUnified(customText, { mode: modeOverride || currentTutorMode });
 }
 
-async function sendFloatingTutorCustomMessage(customText) {
-  const input = document.getElementById('floating-chat-input');
-  if (input) {
-    input.value = customText;
-    await sendFloatingTutorMessage();
-  } else {
-    openFloatingTutor();
-    setTimeout(() => sendFloatingTutorCustomMessage(customText), 0);
-  }
+function getActiveSubjectInfoForTutor() {
+  const tabSubSel = document.getElementById('tutor-subject-select')?.value;
+  const preferTab = typeof STATE !== 'undefined' && STATE.currentTab === 'tutor' && tabSubSel;
+  const targetId = preferTab ? tabSubSel : STATE?.activeSubjectId;
+  const sub = (STATE?.subjects || []).find((s) => String(s.id) === String(targetId)) || STATE?.subjects?.[0] || null;
+  return {
+    id: sub?.id || null,
+    name: sub?.name || 'Tổng hợp Đại học',
+    code: sub?.code || ''
+  };
 }
 
 // Handler độc lập cho chip "Bấm từ để hỏi AI", không phụ thuộc text-selection bubble.
-window.askAiFromTermChip = function(term) {
+window.askAiFromTermChip = function (term) {
   const cleanTerm = String(term || '').trim();
   if (!cleanTerm) return;
-  openFloatingTutor();
   const currentQ = (STATE.exam?.active && STATE.exam?.questions)
     ? STATE.exam.questions[STATE.exam.currentIndex] : null;
-  const context = currentQ
-    ? `Trong câu hỏi thi: "${(currentQ.question_text || '').replace(/<[^>]+>/g, '').trim().slice(0, 140)}..."`
-    : 'Trong bài học';
-  sendFloatingTutorCustomMessage(`${context}\n\nEm chưa hiểu thuật ngữ: "${cleanTerm}". Hãy giải thích ngắn gọn, dễ hiểu, kèm ví dụ và mẹo ghi nhớ.`);
+  const sub = getActiveSubjectInfoForTutor();
+  attachContextToTutor({
+    id: currentQ?.id || null,
+    kind: 'term',
+    shortTitle: `Thuật ngữ: ${cleanTerm}`,
+    selected_term: cleanTerm,
+    fullTitle: currentQ ? (currentQ.question_text || '').replace(/<[^>]+>/g, '').trim() : `Giải thích khái niệm ${cleanTerm}`,
+    subjectName: sub.name
+  }, { open: true });
+  sendTutorChatUnified(`Giải thích ngắn gọn, dễ hiểu thuật ngữ "${cleanTerm}", kèm ví dụ và mẹo nhớ nhanh để thi không nhầm!`, { mode: 'explain' });
 };
 
 function syncFloatingTutorSubjectContext() {
-  const currentSub = STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId));
-  const subName = currentSub ? currentSub.name : 'Tổng hợp Đại học';
-  setText('floating-tutor-context', pinnedTutorQuestion ? `📌 Đang hỏi: ${pinnedTutorQuestion.shortTitle}` : `Đang hỗ trợ: ${subName}`);
-  setText('floating-welcome-subj', subName);
+  const sub = getActiveSubjectInfoForTutor();
+  setText('floating-tutor-context', pinnedTutorQuestion ? `📌 Đang hỏi: ${pinnedTutorQuestion.shortTitle}` : `Đang hỗ trợ: ${sub.name}`);
+  setText('floating-welcome-subj', sub.name);
   const qBadge = document.getElementById('floating-btn-q-badge');
   if (qBadge) {
     if (pinnedTutorQuestion) {
@@ -190,18 +657,17 @@ function syncFloatingTutorSubjectContext() {
 
 function setFloatingPersona(persona) {
   currentTutorPersona = persona;
-  STATE.tutorPersona = persona;
+  if (typeof STATE !== 'undefined') STATE.tutorPersona = persona;
   localStorage.setItem('unimaster_tutor_persona', persona);
   updateTutorPersonaUI();
-  document.querySelectorAll('[data-persona]').forEach((btn) => btn.classList.toggle('active', btn.getAttribute('data-persona') === persona));
-  playSound('click');
+  if (typeof playSound === 'function') playSound('click');
   const personaNames = {
     professor: 'Giáo Sư Chuẩn Mực',
     feynman: 'Richard Feynman (Dễ Hiểu)',
     speed: 'Giải Nhanh 10 Giây',
     examiner: 'Giảng Viên Vấn Đáp'
   };
-  showToast(`Đã chuyển phong cách: ${personaNames[persona] || persona}`, 'info');
+  showToast(`Đã chuyển giọng giảng: ${personaNames[persona] || persona}`, 'info');
 }
 
 function updateTutorPersonaUI() {
@@ -211,20 +677,64 @@ function updateTutorPersonaUI() {
       el.classList.toggle('active', p === currentTutorPersona);
     }
   });
+  document.querySelectorAll('[data-persona]').forEach((btn) => {
+    btn.classList.toggle('active', btn.getAttribute('data-persona') === currentTutorPersona);
+  });
 }
+
+function attachContextToTutor(ctxObj = {}, opts = {}) {
+  const sub = getActiveSubjectInfoForTutor();
+  pinnedTutorQuestion = {
+    id: ctxObj.id || null,
+    kind: ctxObj.kind || 'question',
+    shortTitle: String(ctxObj.shortTitle || 'Ngữ cảnh đính kèm'),
+    fullTitle: String(ctxObj.fullTitle || ''),
+    topic: String(ctxObj.topic || ''),
+    subjectName: String(ctxObj.subjectName || sub.name || ''),
+    code_snippet: String(ctxObj.code_snippet || ''),
+    selected_term: String(ctxObj.selected_term || ''),
+    option_a: String(ctxObj.option_a || ''),
+    option_b: String(ctxObj.option_b || ''),
+    option_c: String(ctxObj.option_c || ''),
+    option_d: String(ctxObj.option_d || ''),
+    correct_option: String(ctxObj.correct_option || ''),
+    user_answer: String(ctxObj.user_answer || ''),
+    is_correct: ctxObj.is_correct
+  };
+  persistPinnedTutorContext(pinnedTutorQuestion);
+  syncFloatingTutorSubjectContext();
+  syncTutorContextBarsUI();
+  renderFloatingActionChips();
+
+  if (opts.mode && TUTOR_MODES_META[opts.mode]) {
+    setTutorMode(opts.mode);
+  }
+  if (opts.open !== false) {
+    if (typeof STATE !== 'undefined' && STATE.currentTab !== 'tutor') {
+      openFloatingTutor();
+    } else {
+      const inp = document.getElementById('tutor-input');
+      if (inp) inp.focus();
+    }
+  }
+}
+window.attachContextToTutor = attachContextToTutor;
 
 function pinQuestionToTutor(q, meta = {}) {
   if (!q) return;
-  const parsed = parseQuestionHeader(q.question_text || '');
+  const parsed = typeof parseQuestionHeader === 'function' ? parseQuestionHeader(q.question_text || '') : { body: q.question_text };
   const rawTitle = parsed.body || q.question_text || 'Câu hỏi';
   const cleanTitle = rawTitle.replace(/<[^>]+>/g, '').trim();
-  const shortTitle = meta.label || (parsed.bankNum ? `Câu #${parsed.bankNum}` : `Câu hỏi`);
+  const shortTitle = meta.label || (parsed.bankNum ? `Câu #${parsed.bankNum}` : 'Câu hỏi');
+  const sub = getActiveSubjectInfoForTutor();
 
-  pinnedTutorQuestion = {
+  attachContextToTutor({
     id: q.id,
-    shortTitle: shortTitle,
+    kind: 'question',
+    shortTitle,
     fullTitle: cleanTitle,
     topic: parsed.topic || q.topic_tag || '',
+    subjectName: meta.subjectName || sub.name,
     code_snippet: q.code_snippet || '',
     option_a: q.option_a || '',
     option_b: q.option_b || '',
@@ -234,269 +744,377 @@ function pinQuestionToTutor(q, meta = {}) {
     explanation: q.explanation || '',
     user_answer: meta.user_answer || '',
     is_correct: meta.is_correct
-  };
-
-  const container = document.getElementById('ft-pinned-question-container');
-  if (container) {
-    container.classList.remove('hidden');
-    setText('ft-pinned-q-title', `📌 ${shortTitle} • ${pinnedTutorQuestion.topic || 'Kiến thức cốt lõi'}`);
-    setText('ft-pinned-q-body', cleanTitle.substring(0, 110) + (cleanTitle.length > 110 ? '...' : ''));
-  }
-
-  syncFloatingTutorSubjectContext();
-  renderFloatingActionChips();
-
-  const win = document.getElementById('floating-tutor-window');
-  if (win && win.classList.contains('hidden')) {
-    toggleFloatingTutor();
-  }
-
-  const box = document.getElementById('floating-chat-messages');
-  if (box) {
-    box.innerHTML += `
-      <div class="flex items-start gap-2 animate-fade-in">
-        <div class="w-6 h-6 rounded-md flex items-center justify-center bg-indigo-500/20 text-indigo-400 text-xs shrink-0">📌</div>
-        <div class="p-2.5 rounded-xl border border-indigo-500/30 text-xs txt-sub max-w-[90%]" style="background: rgba(99, 102, 241, 0.08);">
-          <div class="font-extrabold text-indigo-300">Đã nạp ${shortTitle}:</div>
-          <div class="italic py-0.5 line-clamp-2">"${escapeHtml(cleanTitle.substring(0, 130))}..."</div>
-          <div class="text-[11px] txt-muted pt-1">Bấm 1 trong 4 chip bên trên để AI phân tích ngay tức thì!</div>
-        </div>
-      </div>
-    `;
-    box.scrollTop = box.scrollHeight;
-  }
+  }, { open: true });
 }
 
 function unpinTutorQuestion() {
   pinnedTutorQuestion = null;
-  const container = document.getElementById('ft-pinned-question-container');
-  if (container) container.classList.add('hidden');
+  persistPinnedTutorContext(null);
   syncFloatingTutorSubjectContext();
+  syncTutorContextBarsUI();
   renderFloatingActionChips();
-  showToast('Đã chuyển về chế độ hỏi đáp môn học chung.', 'info');
+  showToast('Đã bỏ gắn ngữ cảnh — chuyển về hỏi đáp môn học chung.', 'info');
 }
+window.unpinTutorQuestion = unpinTutorQuestion;
 
 function renderFloatingActionChips() {
   const container = document.getElementById('ft-action-chips');
   if (!container) return;
 
-  const activeSub = STATE.subjects.find((s) => s.id === STATE.activeSubjectId);
+  const activeSub = (STATE?.subjects || []).find((s) => String(s.id) === String(STATE?.activeSubjectId));
   const isCodeOrAlgo = activeSub && (/OOP|CSHARP|ALGO|DISCRETE|NNLT/.test(activeSub.code) || /lập trình|thuật toán|toán rời rạc/i.test(activeSub.name));
 
   if (pinnedTutorQuestion) {
     container.innerHTML = `
-      <button type="button" onclick="sendFloatingPrompt('Tại sao đáp án này đúng? Hãy giải thích chi tiết bản chất và phương pháp suy luận.')"
-        class="badge-brand px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 shadow-sm hover:scale-105 transition-all">
-        🔍 Tại sao đúng?
+      <button type="button" onclick="sendFloatingPrompt('Tại sao đáp án đúng là chính xác? Hãy phân tích bản chất và loại trừ từng phương án A/B/C/D.', 'eliminate')"
+        class="badge-brand px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 shadow-sm hover:opacity-90 transition-opacity">
+        🔍 Loại trừ A/B/C/D
       </button>
-      <button type="button" onclick="sendFloatingPrompt('Chỉ ra các bẫy đề thi và phân tích tại sao các đáp án còn lại là sai?')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
-        ⚠️ Bẫy đề & Đáp án sai
+      <button type="button" onclick="sendFloatingPrompt('Chỉ ra bẫy đề thi dễ mất điểm oan ở câu này!', 'explain')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
+        ⚠️ Bẫy đề thi
       </button>
-      ${isCodeOrAlgo ? `
-      <button type="button" onclick="sendFloatingPrompt('Hãy phân tích độ phức tạp thời gian/bộ nhớ Big-O và chỉ ra cách tối ưu mã nguồn này!')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-amber-300">
-        ⚡ Big-O & Tối ưu Code
-      </button>
-      <button type="button" onclick="sendFloatingPrompt('Giải thích chi tiết 4 tính chất OOP (Đóng gói, Kế thừa, Đa hình, Trừu tượng) liên quan câu này!')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-emerald-300">
-        💻 Phân tích 4 trụ cột OOP
+      ${(isCodeOrAlgo || pinnedTutorQuestion.code_snippet) ? `
+      <button type="button" onclick="sendFloatingPrompt('Phân tích luồng chạy code, Big-O và lỗi rò rỉ bộ nhớ nếu có!', 'debug')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-amber">
+        💻 Debug &amp; Big-O
       </button>` : `
-      <button type="button" onclick="sendFloatingPrompt('Cho tôi mẹo nhớ nhanh 5 giây hoặc quy tắc vàng để không bao giờ quên câu này!')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
+      <button type="button" onclick="sendFloatingPrompt('Tạo mẹo nhớ nhanh 5 giây để không bao giờ nhầm kiến thức này!', 'mnemonic')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
         💡 Mẹo nhớ 5s
       </button>`}
-      <button type="button" onclick="sendFloatingPrompt('Hướng dẫn từng bước cách giải chi tiết và dạng bài tương tự có thể ra thi!')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
-        📐 Hướng dẫn từng bước
+      <button type="button" onclick="sendFloatingPrompt('Cho 1 câu hỏi tương tự để tự kiểm tra lại!', 'explain')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
+        📝 Ví dụ tương tự
       </button>
     `;
   } else {
     container.innerHTML = isCodeOrAlgo ? `
-      <button type="button" onclick="sendFloatingPrompt('Tóm tắt 4 trụ cột OOP C# (Đóng gói, Kế thừa, Đa hình, Trừu tượng) và cho ví dụ code ngắn gọn!')"
-        class="badge-brand px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:scale-105">
+      <button type="button" onclick="sendFloatingPrompt('Tóm tắt 4 trụ cột OOP C# (Đóng gói, Kế thừa, Đa hình, Trừu tượng) và ví dụ ngắn gọn!', 'explain')"
+        class="badge-brand px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
         💻 4 Trụ Cột OOP C#
       </button>
-      <button type="button" onclick="sendFloatingPrompt('Liệt kê và so sánh độ phức tạp Big-O của QuickSort, MergeSort, Dijkstra kèm lưu ý phòng thi!')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-amber-300">
-        ⚡ Bảng Tra Big-O Thuật Toán
+      <button type="button" onclick="sendFloatingPrompt('So sánh Big-O của QuickSort, MergeSort, Dijkstra kèm lưu ý phòng thi!', 'explain')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-amber">
+        ⚡ Bảng Tra Big-O
       </button>
-      <button type="button" onclick="sendFloatingPrompt('Phân biệt rõ virtual vs override, new method hiding và abstract class vs interface trong C#!')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-cyan-300">
-        🔍 virtual/override vs interface
+      <button type="button" onclick="sendFloatingPrompt('Phân biệt virtual vs override, new method hiding và abstract vs interface!', 'debug')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-cyan">
+        🔍 virtual vs interface
       </button>
-      <button type="button" onclick="sendFloatingPrompt('Những bẫy thi và lỗi sai kinh điển sinh viên hay gặp ở môn OOP & Giải thuật?')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white text-rose-300">
-        ⚠️ Bẫy Đề Thi C#/Giải Thuật
+      <button type="button" onclick="sendFloatingPrompt('Những lỗi sai & bẫy thi kinh điển ở môn OOP & Giải thuật?', 'debug')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-rose">
+        ⚠️ Bẫy Đề Thi C#
       </button>
     ` : `
-      <button type="button" onclick="sendFloatingPrompt('Tóm tắt 3 ý quan trọng nhất môn này để ôn thi cấp tốc!')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
+      <button type="button" onclick="sendFloatingPrompt('Tóm tắt 3 trọng tâm cốt lõi hay ra thi nhất của môn này!', 'explain')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
         ✨ 3 Ý Cốt Lõi
       </button>
-      <button type="button" onclick="sendFloatingPrompt('Cho tôi 1 câu hỏi trắc nghiệm thử thách môn này kèm đáp án và phân tích!')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
-        💡 Đố 1 Câu Nhanh
+      <button type="button" onclick="sendFloatingPrompt('Đố tôi 1 câu trắc nghiệm vận dụng môn này (gợi mở từng bước trước)!', 'socratic')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
+        💡 Đố 1 Câu Socratic
       </button>
-      <button type="button" onclick="sendFloatingPrompt('Những bẫy thi và lỗi sai sinh viên hay gặp nhất ở môn này?')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
+      <button type="button" onclick="sendFloatingPrompt('Những bẫy đề thi Ngoại Trừ và lỗi nhầm lẫn sinh viên Y/ĐH hay gặp nhất?', 'eliminate')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
         ⚠️ Bẫy Đề Thi
       </button>
-      <button type="button" onclick="sendFloatingPrompt('Lập kế hoạch ôn tập nước rút 3 ngày cho môn này!')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 hover:text-white">
-        🗺️ Kế Hoạch Nước Rút
+      <button type="button" onclick="sendFloatingPrompt('Cho 1 ca lâm sàng / tình huống thực tế tiêu biểu môn này!', 'clinical')"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
+        🩺 Ca Lâm Sàng Nhanh
       </button>
     `;
   }
 }
 
-function openFloatingTutorWithPrompt(promptText) {
-  const win = document.getElementById('floating-tutor-window');
-  if (win && win.classList.contains('hidden')) {
-    toggleFloatingTutor();
+function sendContextQuickPrompt(kind) {
+  if (kind === 'explain_wrong') {
+    setTutorMode('eliminate');
+    sendTutorChatUnified('Giải thích vì sao đáp án đúng là chính xác và chỉ rõ vì sao từng đáp án còn lại sai / bẫy đề ở đâu.', { mode: 'eliminate' });
+  } else if (kind === 'mnemonic') {
+    sendTutorChatUnified('Tạo cho tôi mẹo nhớ ngắn gọn, quy tắc 5 giây để nhớ chắc kiến thức này!', { mode: 'mnemonic' });
+  } else if (kind === 'similar') {
+    sendTutorChatUnified('Tạo 1 câu hỏi hoặc ví dụ tương tự sát với phần này kèm đáp án chi tiết để tôi luyện thêm.', { mode: currentTutorMode });
   }
-  sendFloatingPrompt(promptText);
+}
+window.sendContextQuickPrompt = sendContextQuickPrompt;
+
+async function askFollowUpOnAiReply(msgId) {
+  const prevReply = window._tutorReplies?.[msgId];
+  if (!prevReply) return;
+  const prompt = 'Hãy hỏi đào sâu thêm bản chất cơ chế, liên hệ thực tế / lâm sàng và 1 bẫy đề thi hay nhầm nhất của phần bạn vừa giải thích.';
+  await sendTutorChatUnified(prompt, { mode: currentTutorMode });
+}
+window.askFollowUpOnAiReply = askFollowUpOnAiReply;
+
+async function saveAiReplyToNotebook(msgId) {
+  const text = window._tutorReplies?.[msgId];
+  if (!text) return;
+  const meta = window._tutorMsgMeta?.[msgId] || {};
+  const cleanSnippet = String(text).replace(/```[\s\S]*?```/g, '[Code]').replace(/<[^>]+>/g, '').trim();
+  const qId = meta.question_id || pinnedTutorQuestion?.id || null;
+  const sub = getActiveSubjectInfoForTutor();
+  const noteHeader = pinnedTutorQuestion?.shortTitle
+    ? `[Gia Sư AI • ${pinnedTutorQuestion.shortTitle}]: `
+    : `[Gia Sư AI • ${sub.name}]: `;
+  const formattedNote = `${noteHeader}${cleanSnippet.slice(0, 600)}`;
+
+  if (typeof STATE !== 'undefined') {
+    STATE.notes = STATE.notes || {};
+    if (qId) {
+      const existing = STATE.notes[qId] ? `${STATE.notes[qId]}\n---\n` : '';
+      STATE.notes[qId] = `${existing}${formattedNote}`;
+    } else {
+      STATE.notes[`ai_note_${Date.now()}`] = formattedNote;
+    }
+    try {
+      localStorage.setItem('unimaster_notes', JSON.stringify(STATE.notes));
+      const accId = getTutorAccountIdSafe();
+      const nbKey = `${AI_NOTEBOOK_STORAGE_PREFIX}${accId}`;
+      const nbList = JSON.parse(localStorage.getItem(nbKey) || '[]');
+      nbList.unshift({
+        id: `ainote_${Date.now()}`,
+        subject_name: sub.name,
+        question_id: qId,
+        context: meta.context || pinnedTutorQuestion?.shortTitle || sub.name,
+        content: text,
+        created_at: new Date().toISOString()
+      });
+      localStorage.setItem(nbKey, JSON.stringify(nbList.slice(0, 120)));
+      if (typeof setText === 'function') {
+        setText('notebook-notes-count', Object.keys(STATE.notes).filter((k) => STATE.notes[k]).length);
+      }
+      if (typeof syncUserStateToServer === 'function') syncUserStateToServer();
+    } catch (_) {}
+  }
+  if (typeof playSound === 'function') playSound('correct');
+  if (typeof showToast === 'function') showToast('📌 Đã lưu lời giảng vào Sổ tay ghi chép cá nhân!', 'success');
+}
+window.saveAiReplyToNotebook = saveAiReplyToNotebook;
+
+function openFloatingTutorWithPrompt(promptText, mode = null) {
+  openFloatingTutor();
+  sendFloatingPrompt(promptText, mode);
+}
+
+async function archiveCurrentTutorSessionInternal(reasonToast = '') {
+  const sess = getActiveTutorSession(false);
+  const accId = getTutorAccountIdSafe();
+  const hasMessages = Boolean(sess && Array.isArray(sess.messages) && sess.messages.length);
+  const archivedSessionId = hasMessages ? sess.session_id : null;
+  if (hasMessages) {
+    sess.is_archived = true;
+    sess.updated_at = new Date().toISOString();
+    writeLocalTutorSessions(tutorSessionsCache, accId);
+  }
+  currentTutorSessionId = generateTutorSessionId();
+  floatingTutorChatHistory = [];
+  window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
+  try { localStorage.setItem(SHARED_TUTOR_HISTORY_KEY, '[]'); } catch (_) {}
+  renderActiveTutorMessages();
+  if (typeof updateTutorSessionsBadges === 'function') updateTutorSessionsBadges();
+  if (typeof renderTutorSessionsDrawer === 'function') renderTutorSessionsDrawer();
+  if (reasonToast && typeof showToast === 'function') showToast(reasonToast, 'success');
+
+  if (archivedSessionId && !STATE?.isOfflineStandalone) {
+    try {
+      await apiFetch('/api/ai/history/archive', {
+        method: 'POST',
+        body: JSON.stringify({
+          account_id: accId,
+          session_id: archivedSessionId,
+          restore: false
+        })
+      });
+    } catch (_) {}
+  }
 }
 
 function clearFloatingTutorChat() {
-  floatingTutorChatHistory = [];
-  saveSharedTutorHistory();
-  window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
-  const box = document.getElementById('floating-chat-messages');
-  const currentSub = STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId));
-  const subName = currentSub ? currentSub.name : 'này';
-  if (box) {
-    box.innerHTML = `
-      <div class="flex items-start gap-2">
-        <div class="w-6 h-6 rounded-md flex items-center justify-center bg-indigo-500/20 text-indigo-400 text-xs shrink-0">🤖</div>
-        <div class="p-2.5 rounded-xl bg-white/5 border border-white/5 txt-sub max-w-[85%]">
-          Đã xóa hội thoại. Hãy hỏi tôi bất kỳ điều gì về môn <strong class="txt-brand">${escapeHtml(subName)}</strong>!
-        </div>
-      </div>
-    `;
-  }
-  showToast('Đã làm mới cuộc hội thoại với Gia sư AI.', 'info');
+  return archiveCurrentTutorSessionInternal('🗂️ Đã làm mới khung chat — hội thoại cũ đã được lưu an toàn vào Kho Lưu Trữ!');
 }
+window.clearFloatingTutorChat = clearFloatingTutorChat;
 
-async function sendFloatingPrompt(promptText) {
-  const input = document.getElementById('floating-chat-input');
-  if (input) input.value = promptText;
-  await sendFloatingTutorMessage();
+async function sendFloatingPrompt(text, modeOverride = null) {
+  if (modeOverride && TUTOR_MODES_META[modeOverride]) setTutorMode(modeOverride);
+  await sendTutorChatUnified(text, { mode: modeOverride || currentTutorMode, source: 'floating' });
 }
 
 async function sendFloatingTutorMessage() {
   const input = document.getElementById('floating-chat-input');
-  const userMsg = (input?.value || '').trim();
+  if (!input) return;
+  const userMsg = input.value.trim();
   if (!userMsg) return;
   input.value = '';
+  await sendTutorChatUnified(userMsg, { mode: currentTutorMode, source: 'floating' });
+}
+window.sendFloatingTutorMessage = sendFloatingTutorMessage;
 
-  const currentSub = STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId));
-  const subName = currentSub ? currentSub.name : 'Tổng hợp Đại học';
-
-  // Build complete context prompt for AI
-  let fullPromptForAi = userMsg;
-  if (pinnedTutorQuestion) {
-    const pq = pinnedTutorQuestion;
-    const opts = [
-      pq.option_a ? `A. ${pq.option_a}` : '',
-      pq.option_b ? `B. ${pq.option_b}` : '',
-      pq.option_c ? `C. ${pq.option_c}` : '',
-      pq.option_d ? `D. ${pq.option_d}` : ''
-    ].filter(Boolean).join('\n');
-
-    fullPromptForAi = `[NGỮ CẢNH CÂU HỎI THI]:
-Môn: ${subName} | ${pq.shortTitle}
-Đề bài: ${pq.fullTitle}
-${pq.code_snippet ? `Mã nguồn đi kèm:\n\`\`\`csharp\n${pq.code_snippet}\n\`\`\`\n` : ''}
-Các phương án:
-${opts || 'Tự luận / Trả lời ngắn'}
-Đáp án chuẩn: ${pq.correct_option || 'Chưa công bố'}
-${pq.explanation ? `Lời giải tham chiếu: ${pq.explanation}` : ''}
-${pq.user_answer ? `Sinh viên chọn: ${pq.user_answer}` : ''}
-
-[YÊU CẦU CỦA SINH VIÊN]:
-${userMsg}`;
+async function sendTutorChatUnified(userMsg, opts = {}) {
+  const cleanText = String(userMsg || '').trim();
+  if (!cleanText) return;
+  if (tutorSendingLock) {
+    if (typeof showToast === 'function') showToast('⏳ Gia Sư AI đang trả lời câu trước...', 'info');
+    return;
   }
 
-  const box = document.getElementById('floating-chat-messages');
-  if (box) {
-    box.innerHTML += `
-      <div class="flex items-start justify-end gap-2 animate-fade-in">
-        <div class="p-2.5 rounded-xl badge-brand max-w-[85%] font-semibold">
-          ${escapeHtml(userMsg)}
-        </div>
-        <div class="w-6 h-6 rounded-md flex items-center justify-center bg-violet-600 text-white text-xs shrink-0">👤</div>
-      </div>
-      <div id="ft-spinner" class="flex items-center gap-2 text-xs txt-muted pt-1">
-        <div class="spinner-sm"></div> AI Gia Sư đang tư duy...
-      </div>
-    `;
-    box.scrollTop = box.scrollHeight;
-  }
+  tutorSendingLock = true;
+  const sub = getActiveSubjectInfoForTutor();
+  const modeToUse = TUTOR_MODES_META[opts.mode] ? opts.mode : currentTutorMode;
+  const accId = getTutorAccountIdSafe();
+  const sess = getActiveTutorSession(true);
+  const ctx = opts.context !== undefined ? opts.context : pinnedTutorQuestion;
+  const ctxLabel = ctx?.shortTitle || sub.name;
 
-  floatingTutorChatHistory.push({ role: 'user', content: fullPromptForAi });
+  const userRecord = normalizeTutorMsgRecord({
+    id: `tmsg_${Date.now()}_u`,
+    role: 'user',
+    content: cleanText,
+    mode: modeToUse,
+    context: ctx ? ctxLabel : '',
+    question_id: ctx?.id || null,
+    created_at: new Date().toISOString()
+  });
+
+  floatingTutorChatHistory.push(userRecord);
   saveSharedTutorHistory();
-  saveLocalTutorMessage('user', userMsg, subName);
+  if (typeof saveLocalTutorMessage === 'function') {
+    saveLocalTutorMessage('user', cleanText, ctxLabel);
+  }
+  renderActiveTutorMessages();
+
+  ['floating-chat-messages', 'tutor-chat-box'].forEach((boxId) => {
+    const b = document.getElementById(boxId);
+    if (!b) return;
+    const sp = document.createElement('div');
+    sp.className = 'tutor-thinking-spinner flex items-center gap-2 text-xs txt-muted py-1.5';
+    sp.innerHTML = `<div class="spinner-sm"></div><span>Gia Sư AI (${escapeHtml((TUTOR_MODES_META[modeToUse] || {}).label || 'Giải sâu')}) đang phân tích...</span>`;
+    b.appendChild(sp);
+    b.scrollTop = b.scrollHeight;
+  });
+
+  const cleanHistoryPayload = floatingTutorChatHistory
+    .slice(-10, -1)
+    .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', content: m.content }));
+
+  const payload = {
+    message: cleanText,
+    mode: modeToUse,
+    persona: currentTutorPersona || STATE?.tutorPersona || 'professor',
+    tutor_style_prompt: getTutorStylePrompt(),
+    subject_id: sub.id || 5,
+    subject_name: sub.name,
+    chat_history: cleanHistoryPayload,
+    history: cleanHistoryPayload,
+    session_id: sess.session_id,
+    account_id: accId
+  };
+
+  if (ctx) {
+    if (ctx.id) payload.question_id = ctx.id;
+    if (ctx.fullTitle) payload.question_text = ctx.fullTitle;
+    if (ctx.option_a || ctx.option_b || ctx.option_c || ctx.option_d) {
+      payload.options = {
+        A: ctx.option_a || '',
+        B: ctx.option_b || '',
+        C: ctx.option_c || '',
+        D: ctx.option_d || ''
+      };
+    }
+    if (ctx.correct_option) payload.correct_answer = ctx.correct_option;
+    if (ctx.user_answer) payload.selected_answer = ctx.user_answer;
+    if (ctx.code_snippet) payload.code_snippet = ctx.code_snippet;
+    if (ctx.selected_term) payload.selected_term = ctx.selected_term;
+  }
 
   try {
-    const res = await fetch('/api/ai/chat', {
+    const data = await apiFetch('/api/ai/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        subject_name: subName,
-        message: fullPromptForAi,
-        persona: currentTutorPersona,
-        tutor_style_prompt: getTutorStylePrompt(),
-        history: floatingTutorChatHistory.slice(-8)
-      })
+      body: JSON.stringify(payload)
     });
-    const data = await res.json();
-    document.getElementById('ft-spinner')?.remove();
+    document.querySelectorAll('.tutor-thinking-spinner').forEach((el) => el.remove());
 
-    const reply = data.reply || 'Không có phản hồi từ AI.';
-    floatingTutorChatHistory.push({ role: 'model', content: reply });
-    saveSharedTutorHistory();
-    saveLocalTutorMessage('model', reply, subName);
-    renderSharedTutorHistory();
+    const reply = data?.reply || 'Xin lỗi, tôi chưa nhận được phản hồi từ AI.';
+    if (data?.session_id) {
+      const nextSessId = String(data.session_id);
+      if (currentTutorSessionId === sess.session_id) currentTutorSessionId = nextSessId;
+      sess.session_id = nextSessId;
+    }
 
-    const msgId = 'ft-msg-' + Date.now();
-    window._tutorReplies[msgId] = reply;
+    const modelRecord = normalizeTutorMsgRecord({
+      id: `tmsg_${Date.now()}_m`,
+      role: 'model',
+      content: reply,
+      mode: data?.mode || modeToUse,
+      context: ctxLabel,
+      question_id: ctx?.id || null,
+      provider_used: data?.provider_used || '',
+      provider_label: data?.provider_label || '',
+      model_used: data?.model_used || '',
+      masked_key: data?.masked_key || '',
+      latency_ms: data?.latency_ms ?? null,
+      created_at: new Date().toISOString()
+    });
 
-    if (box) {
-      box.innerHTML += `
-        <div class="flex items-start gap-2 animate-fade-in" id="${msgId}">
-          <div class="w-6 h-6 rounded-md flex items-center justify-center bg-indigo-500/20 text-indigo-400 text-xs shrink-0 mt-0.5">🤖</div>
-          <div class="p-3 rounded-xl bg-white/5 border border-white/5 txt-sub max-w-[90%] space-y-2">
-            <div class="flex items-center justify-between gap-1 text-[10px] font-mono txt-muted border-b pb-1 border-white/5">
-              <span class="text-indigo-400 font-extrabold flex items-center gap-1">
-                <span>🎓</span> ${escapeHtml(subName)}
-              </span>
-              <div class="flex items-center gap-1">
-                <button type="button" onclick="speakAiReply('${msgId}')" class="btn-soft p-1 text-[11px]" title="Đọc bằng giọng nói">🔊</button>
-                <button type="button" onclick="saveAiReplyAsFlashcard('${msgId}')" class="btn-soft px-1.5 py-0.5 text-[10px] font-bold text-amber-300" title="Lưu thành Flashcard">🃏 Đúc Thẻ</button>
-                <button type="button" onclick="copyAiReply('${msgId}')" class="btn-soft p-1 text-[11px]" title="Sao chép">📋</button>
-              </div>
-            </div>
-            <div class="leading-relaxed ai-tutor-content">
-              ${renderAcademicText(reply)}
-            </div>
-          </div>
-        </div>
-      `;
-      box.scrollTop = box.scrollHeight;
-      renderAllMathOnPage(box);
+    if (currentTutorSessionId === sess.session_id && !sess.is_archived) {
+      floatingTutorChatHistory.push(modelRecord);
+      saveSharedTutorHistory();
+      if (typeof saveLocalTutorMessage === 'function') {
+        saveLocalTutorMessage('model', reply, ctxLabel);
+      }
+      renderActiveTutorMessages();
+    } else {
+      sess.messages = Array.isArray(sess.messages) ? [...sess.messages, modelRecord] : [userRecord, modelRecord];
+      sess.updated_at = new Date().toISOString();
+      writeLocalTutorSessions(tutorSessionsCache, accId);
+    }
+
+    // Server /api/ai/chat already appends the [user, model] turn to tutor_chats (history_saved: true).
+    // Only perform fallback POST /api/ai/history (with full session & replace: true) when server didn't persist it.
+    if (!STATE?.isOfflineStandalone && !data?.history_saved) {
+      const fullMessages = (Array.isArray(sess.messages) && sess.messages.length ? sess.messages : [userRecord, modelRecord])
+        .map((m) => ({
+          role: m.role === 'user' ? 'user' : 'model',
+          content: m.content,
+          mode: m.mode || modeToUse,
+          context: m.context || '',
+          provider_used: m.provider_used || '',
+          model_used: m.model_used || '',
+          masked_key: m.masked_key || '',
+          latency_ms: m.latency_ms ?? null
+        }));
+      apiFetch('/api/ai/history', {
+        method: 'POST',
+        body: JSON.stringify({
+          account_id: accId,
+          session_id: sess.session_id,
+          title: sess.title,
+          subject_id: sub.id || null,
+          subject_name: sub.name,
+          mode: modeToUse,
+          persona: payload.persona,
+          replace: true,
+          messages: fullMessages
+        })
+      }).catch(() => {});
     }
   } catch (err) {
-    document.getElementById('ft-spinner')?.remove();
-    if (box) {
-      box.innerHTML += `
-        <div class="p-2.5 rounded-xl badge-rose text-xs">
-          Lỗi kết nối AI: ${escapeHtml(err.message)}
-        </div>
-      `;
-    }
+    document.querySelectorAll('.tutor-thinking-spinner').forEach((el) => el.remove());
+    const errRecord = normalizeTutorMsgRecord({
+      id: `tmsg_${Date.now()}_err`,
+      role: 'model',
+      content: `**Lỗi kết nối AI:** ${err.message || 'Không thể kết nối máy chủ.'}`,
+      mode: modeToUse,
+      context: ctxLabel,
+      provider_used: 'fallback'
+    });
+    floatingTutorChatHistory.push(errRecord);
+    renderActiveTutorMessages();
+  } finally {
+    tutorSendingLock = false;
   }
 }
+window.sendTutorChatUnified = sendTutorChatUnified;
 
 function speakAiReply(msgId) {
   const text = window._tutorReplies?.[msgId];
@@ -2496,8 +3114,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateXpUI();
   populateStemReferenceModal();
   refreshIcons();
+  // Clean up any legacy plaintext gateway key from browser storage when server-connected
+  try {
+    if (!STATE?.isOfflineStandalone && localStorage.getItem('unimaster_ai_offline_sandbox') !== '1') {
+      localStorage.removeItem('unimaster_openai_key');
+    }
+  } catch (_) {}
   initTutorGreeting();
   initTutorHistoryFromStorage();
+  updateTutorModeUI();
+  updateTutorPersonaUI();
   renderSharedTutorHistory();
 
   if (!STATE.isOfflineStandalone && 'serviceWorker' in navigator) {
@@ -2508,6 +3134,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const subStatsPromise = loadSubjectsAndStats();
   const userStatePromise = hydrateUserStateFromServer();
   await Promise.all([subStatsPromise, userStatePromise, checkApiKeyStatus(), fetchNetworkQrInfo()]);
+  if (typeof syncTutorSessionsFromServer === 'function') syncTutorSessionsFromServer();
   renderTutorQuickPrompts();
   setupTextSelectionAiListener();
   setupKeyboardShortcuts();
@@ -2711,11 +3338,9 @@ function switchTab(tabName) {
     const isHomeOrTutor = tabName === 'dashboard' || tabName === 'tutor';
     ftContainer.classList.toggle('hidden', isHomeOrTutor);
     if (isHomeOrTutor) {
-      document.getElementById('floating-tutor-window')?.classList.add('hidden');
-      document.getElementById('floating-tutor-backdrop')?.classList.add('hidden');
-      if (typeof windowTutorSizeExpanded !== 'undefined' && windowTutorSizeExpanded) {
-        toggleFloatingTutorSize();
-      }
+      closeFloatingTutor();
+    } else {
+      syncFloatingTutorSubjectContext();
     }
   }
 
@@ -2739,7 +3364,13 @@ function switchTab(tabName) {
   if (tabName === 'flashcards') loadFlashcardsView();
   if (tabName === 'mistakes') renderMistakeNotebook();
   if (tabName === 'search') loadBankQuestions();
-  if (tabName === 'tutor') renderTutorQuickPrompts();
+  if (tabName === 'tutor') {
+    renderTutorQuickPrompts();
+    updateTutorModeUI();
+    updateTutorPersonaUI();
+    renderSharedTutorHistory();
+    if (typeof syncTutorSessionsFromServer === 'function') syncTutorSessionsFromServer();
+  }
   if (tabName === 'arena') initArenaView();
   if (tabName === 'lab' && typeof initLabHubView === 'function') initLabHubView();
 
@@ -3377,19 +4008,20 @@ async function onExamSubjectChange() {
         const num = parseInt(chap.match(/Chương\s+(\d+)/i)?.[1] || '1', 10);
         const icon = chapIcons[num] || '📖';
         const key = 'chap_' + num;
+        const safeChapJs = String(chap).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
 
         html += `
-          <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 hover:border-indigo-500/40 transition-all">
-            <div class="font-bold text-xs txt-main flex items-center gap-1.5 shrink-0 max-w-full sm:max-w-md truncate">
-              <span>${icon}</span>
-              <span class="truncate">${escapeHtml(chap)}</span>
+          <div class="chapter-card-item col-span-full p-2.5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 hover:border-indigo-500/40 transition-all" data-chapter-tag="${escapeHtml(chap)}" data-subject-id="${sid}" data-range-key="${key}">
+            <div class="font-bold text-xs txt-main flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
+              <span class="shrink-0">${icon}</span>
+              <span class="truncate max-w-full sm:max-w-xs">${escapeHtml(chap)}</span>
               <span class="badge-soft px-1.5 py-0.5 rounded text-[10px] shrink-0">${lQs.length} câu</span>
             </div>
-            <div class="flex items-center gap-1.5 w-full sm:w-auto justify-end shrink-0">
-              <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
+            <div class="flex items-center flex-wrap gap-1.5 w-full sm:w-auto justify-end shrink-0">
+              <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-14 px-1.5 py-1 text-xs text-center font-bold" />
               <span class="text-xs txt-muted">–</span>
-              <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
-              <button type="button" onclick="startCustomLessonRange('${escapeHtml(chap)}', ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
+              <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-14 px-1.5 py-1 text-xs text-center font-bold" />
+              <button type="button" data-orig-chap-btn="1" onclick="startCustomLessonRange('${safeChapJs}', ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
                 Luyện tập →
               </button>
             </div>
@@ -5824,16 +6456,12 @@ function setTutorPersona(persona) {
 function initTutorGreeting() {
   const styleInput = document.getElementById('tutor-style-prompt');
   if (styleInput) styleInput.value = tutorCustomStyle;
-  const box = document.getElementById('tutor-chat-box');
-  if (box) {
-    box.innerHTML = `<div class="ai-callout ai-callout-indigo max-w-3xl text-sm markdown-body">${renderMarkdown(
-      `Chào bạn! Tôi là **Giáo sư AI UniMaster v7.0** — hỗ trợ trọn vẹn công thức **Toán ($\\int, \\sum$), Vật Lý ($\\vec{F}, \\omega$), Hóa Học ($\\ce{H2SO4}, \\ce{<=>}$), Sinh Học & Code Lập Trình**.\n\nHãy chọn **Môn học**, **Phong cách giảng** hoặc bấm các gợi ý phía trên để bắt đầu!`
-    )}</div>`;
-  }
+  renderActiveTutorMessages();
 }
 
-function clearTutorChat() { initTutorGreeting();
-  initTutorHistoryFromStorage(); }
+function clearTutorChat() {
+  return archiveCurrentTutorSessionInternal('🗂️ Đã mở khung chat mới — hội thoại cũ vẫn được giữ nguyên trong Kho Lưu Trữ Hội Thoại!');
+}
 
 function sendQuickTutorPrompt(text) {
   const inp = document.getElementById('tutor-input');
@@ -5844,51 +6472,10 @@ window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
 
 async function sendTutorMessage() {
   const inp = document.getElementById('tutor-input');
-  const box = document.getElementById('tutor-chat-box');
-  if (!inp || !box || !inp.value.trim()) return;
+  if (!inp || !inp.value.trim()) return;
   const msg = inp.value.trim();
   inp.value = '';
-
-  const sub = STATE.subjects.find((s) => String(s.id) === String(document.getElementById('tutor-subject-select')?.value));
-  const uDiv = document.createElement('div');
-  uDiv.className = 'ml-auto max-w-xl p-3.5 rounded-2xl text-sm font-semibold text-white';
-  uDiv.style.background = 'linear-gradient(135deg, var(--brand), var(--brand-2))';
-  uDiv.textContent = msg;
-  box.appendChild(uDiv);
-
-  const aDiv = document.createElement('div');
-  aDiv.className = 'ai-callout max-w-3xl text-sm markdown-body';
-  aDiv.innerHTML = `<div class="skeleton-shimmer h-14 w-full"></div>`;
-  box.appendChild(aDiv);
-  box.scrollTop = box.scrollHeight;
-
-  floatingTutorChatHistory.push({ role: 'user', content: msg });
-  saveSharedTutorHistory();
-  saveLocalTutorMessage('user', msg, sub?.name || 'Đại học');
-
-  try {
-    const res = await apiFetch('/api/ai/chat', {
-      method: 'POST',
-      body: JSON.stringify({
-        subject_id: sub?.id || 5,
-        subject_name: sub?.name || 'Đại học',
-        persona: STATE.tutorPersona || currentTutorPersona || 'professor',
-        message: msg,
-        tutor_style_prompt: getTutorStylePrompt(),
-        history: floatingTutorChatHistory.slice(-8)
-      })
-    });
-    const replyText = res.reply || 'Xin lỗi, tôi chưa thể trả lời lúc này.';
-    floatingTutorChatHistory.push({ role: 'model', content: replyText });
-    saveSharedTutorHistory();
-    saveLocalTutorMessage('model', replyText, sub?.name || 'Đại học');
-    aDiv.innerHTML = renderMarkdown(replyText);
-    renderAllMathOnPage(aDiv);
-  } catch (err) {
-    aDiv.innerHTML = `<p class="txt-rose">Lỗi kết nối AI: ${escapeHtml(err.message)}</p>`;
-  }
-  box.scrollTop = box.scrollHeight;
-  renderSharedTutorHistory();
+  await sendTutorChatUnified(msg, { mode: currentTutorMode, source: 'tutor_tab' });
 }
 
 // Universal Document Drag & Drop / Multi-File Upload (.pdf, .pptx, .docx, .xlsx, images)
@@ -7845,11 +8432,12 @@ async function syncFullSnapshotToBrowserForPcOff(silent = false) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const data = await resp.json();
     if (data.success && data.snapshot) {
-      window.__UNIMASTER_OFFLINE_DB__ = data.snapshot;
-      if (Array.isArray(data.snapshot.gemini_api_keys) && data.snapshot.gemini_api_keys.length) {
-        localStorage.setItem('unimaster_offline_gemini_keys', JSON.stringify(data.snapshot.gemini_api_keys));
-        localStorage.setItem('unimaster_offline_gemini_key', data.snapshot.gemini_api_keys[0]);
-      }
+      // Never cache server API keys in browser storage or offline snapshot copy
+      const sanitizedSnapshot = { ...data.snapshot };
+      delete sanitizedSnapshot.gemini_api_keys;
+      delete sanitizedSnapshot.gemini_api_key;
+      delete sanitizedSnapshot.openai_api_key;
+      window.__UNIMASTER_OFFLINE_DB__ = sanitizedSnapshot;
       await saveSnapshotToIdb(data.snapshot);
       const pill = document.getElementById('pcoff-cache-status-pill');
       if (pill) {
@@ -7874,30 +8462,33 @@ setTimeout(() => {
 
 let _browserKeyCursor = 0;
 async function callGeminiRawFromBrowser(promptText, imageBase64 = null, mimeType = 'image/jpeg') {
-  // PRIORITY 1: Try OpenAI ChatGPT first
-  const openaiKey = localStorage.getItem('unimaster_openai_key') || '';
-  const openaiBase = (localStorage.getItem('unimaster_openai_base') || 'https://api.openai.com/v1').replace(/\/$/, '');
-  if (openaiKey && !imageBase64) {
-    try {
-      const resp = await fetch(`${openaiBase}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openaiKey}`
-        },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [{ role: 'user', content: promptText }],
-          max_tokens: 2048,
-          temperature: 0.4
-        })
-      });
-      if (resp.ok) {
-        const d = await resp.json();
-        const ans = d.choices?.[0]?.message?.content?.trim();
-        if (ans) return ans;
-      }
-    } catch (_) {}
+  // Strictly allow browser-side keys ONLY in standalone offline mode or explicit offline sandbox
+  const sandboxOn = Boolean(STATE?.isOfflineStandalone || localStorage.getItem('unimaster_ai_offline_sandbox') === '1');
+  if (sandboxOn) {
+    const openaiKey = localStorage.getItem('unimaster_offline_openai_key') || '';
+    const openaiBase = (localStorage.getItem('unimaster_openai_base') || 'http://127.0.0.1:20128/v1').replace(/\/$/, '');
+    if (openaiKey && !imageBase64) {
+      try {
+        const resp = await fetch(`${openaiBase}/chat/completions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openaiKey}`
+          },
+          body: JSON.stringify({
+            model: localStorage.getItem('unimaster_openai_model') || 'All',
+            messages: [{ role: 'user', content: promptText }],
+            max_tokens: 2048,
+            temperature: 0.4
+          })
+        });
+        if (resp.ok) {
+          const d = await resp.json();
+          const ans = d.choices?.[0]?.message?.content?.trim();
+          if (ans) return ans;
+        }
+      } catch (_) {}
+    }
   }
 
   const keys = getBrowserGeminiKeyPool();
@@ -8682,16 +9273,14 @@ async function askAiAboutOsceStation(stationIdx) {
     aiBox.innerHTML = '<div class="p-3 text-xs txt-sub flex items-center gap-2"><div class="spinner-sm"></div> AI Gia Sư đang phân tích tiêu bản & ca lâm sàng...</div>';
   }
   try {
-    const res = await fetch('/api/ai/chat', {
+    const data = await apiFetch('/api/ai/chat', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         subject_name: 'Thực Hành Hóa Sinh Lâm Sàng (CTUMP)',
         message: prompt,
         persona: 'professor'
       })
     });
-    const data = await res.json();
     if (aiBox) {
       aiBox.innerHTML = `
         <div class="p-4 rounded-xl text-xs space-y-2 border" style="background-color: var(--bg-surface); border-color: var(--brand);">
@@ -10407,15 +10996,18 @@ function renderExerciseDetail() {
             <option value="java" ${ex.language === 'java' ? 'selected' : ''}>Java (OpenJDK)</option>
           </select>
         </div>
-        <div class="flex items-center gap-2">
+        <div class="flex items-center gap-2 flex-wrap">
           <button type="button" onclick="runCodeCustomInput()" class="btn-soft px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5">
             <span>⚡</span> Chạy Thử
           </button>
           <button type="button" onclick="submitCodeTestCases()" class="btn-primary px-4 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-md">
             <span>🧪</span> Chấm Test Case (Submit)
           </button>
+          <button type="button" onclick="askAiAboutSelectedCode()" class="btn-soft px-3 py-1.5 text-xs font-bold txt-brand flex items-center gap-1.5">
+            <span>💬</span> Hỏi Gia Sư AI
+          </button>
           <button type="button" onclick="aiReviewCurrentCode()" class="ai-chip-btn !py-1.5 !px-3 text-xs flex items-center gap-1.5 font-bold">
-            <span>🤖</span> AI Soi Rò Rỉ & Review
+            <span>🤖</span> AI Soi Rò Rỉ &amp; Review
           </button>
         </div>
       </div>
@@ -12395,50 +12987,37 @@ function togglePasswordVis(inputId) {
   el.type = el.type === 'password' ? 'text' : 'password';
 }
 
-function applyFostaPreset(model = 'gpt-6-astra') {
-  const baseInp = document.getElementById('cfg-openai-base');
-  const modelSel = document.getElementById('cfg-openai-model');
-  const keyInp = document.getElementById('cfg-openai-key');
-  if (baseInp) baseInp.value = 'https://codex.fosta.app/v1';
-  if (modelSel) {
-    if (!Array.from(modelSel.options).some((opt) => opt.value === model)) {
+function _setRouterModelInputValue(model) {
+  const modelEl = document.getElementById('cfg-openai-model');
+  if (!modelEl) return;
+  if (modelEl.tagName === 'SELECT' && modelEl.options) {
+    if (!Array.from(modelEl.options).some((opt) => opt.value === model)) {
       const opt = document.createElement('option');
       opt.value = model;
       opt.textContent = model;
-      modelSel.appendChild(opt);
+      modelEl.appendChild(opt);
     }
-    modelSel.value = model;
   }
-  // ponytail: leave input empty to avoid committing or auto-injecting expired secrets; user enters key via Settings
-  showToast(`⚡ Đã điền cấu hình FOSTA (${model})! Hãy bấm "Kiểm Tra Kết Nối" hoặc "Lưu Cài Đặt".`, 'info');
-  playSound('click');
+  modelEl.value = model;
+}
+
+function applyFostaPreset(model = 'gpt-6-astra') {
+  const baseInp = document.getElementById('cfg-openai-base');
+  if (baseInp) baseInp.value = 'https://codex.fosta.app/v1';
+  _setRouterModelInputValue(model);
+  showToast(`⚡ Đã điền cấu hình FOSTA Codex (${model}). Nhập API Key mới nếu cần thay đổi rồi bấm Lưu!`, 'info');
+  if (typeof playSound === 'function') playSound('click');
 }
 
 function applyOpenAiDirectPreset(model = 'o3-mini') {
   const baseInp = document.getElementById('cfg-openai-base');
-  const modelSel = document.getElementById('cfg-openai-model');
   if (baseInp) baseInp.value = 'https://api.openai.com/v1';
-  if (modelSel) {
-    if (!Array.from(modelSel.options).some((opt) => opt.value === model)) {
-      const opt = document.createElement('option');
-      opt.value = model;
-      opt.textContent = model;
-      modelSel.appendChild(opt);
-    }
-    modelSel.value = model;
-  }
-  showToast(`🌐 Đã chọn OpenAI Gốc (${model})!`, 'info');
-  playSound('click');
+  _setRouterModelInputValue(model);
+  showToast(`🌐 Đã chọn OpenAI Direct (${model})!`, 'info');
+  if (typeof playSound === 'function') playSound('click');
 }
 
 // 9Router là gateway OpenAI-compatible chạy trên máy cá nhân (mặc định cổng 20128).
-// Khi deploy Render, đặt base URL nội bộ và dùng AI_GATEWAY_DISCOVERY_URL để app
-// tự dò địa chỉ Cloudflare Tunnel công khai mới nhất.
-//
-// LƯU Ý: nếu trang đang chạy trên Render, "127.0.0.1" là localhost của máy chủ
-// Render chứ KHÔNG phải máy bạn. Khi đó bắt buộc phải chạy start_ai_gateway.py
-// trên máy bạn (proxy + Cloudflare Tunnel) và khai báo AI_GATEWAY_DISCOVERY_URL,
-// AI_GATEWAY_SECRET trong Render.
 function isRunningOnLocalHost() {
   const host = (window.location.hostname || '').toLowerCase();
   return host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0' || host === '::1';
@@ -12446,32 +13025,62 @@ function isRunningOnLocalHost() {
 
 function applyRouterPreset(model = 'All') {
   const baseInp = document.getElementById('cfg-openai-base');
-  const modelSel = document.getElementById('cfg-openai-model');
   if (baseInp) baseInp.value = 'http://127.0.0.1:20128/v1';
-  if (modelSel) {
-    // Nếu option chưa tồn tại (bản cũ), thêm vào để tránh giá trị rỗng.
-    if (!Array.from(modelSel.options).some((opt) => opt.value === model)) {
-      const opt = document.createElement('option');
-      opt.value = model;
-      opt.textContent = model;
-      modelSel.appendChild(opt);
-    }
-    modelSel.value = model;
-  }
+  _setRouterModelInputValue(model);
   if (isRunningOnLocalHost()) {
-    showToast(`🔀 Đã chọn 9Router Gateway (${model}). Nhập API key 9Router (mở 9Router > API Keys) rồi Lưu Cài Đặt.`, 'info');
+    showToast(`🔀 Đã chọn 9Router Local (${model}). Nhập API Key của 9Router rồi bấm "Kiểm tra 9Router" & Lưu.`, 'info');
   } else {
-    showToast(`⚠ Đang chạy trên máy chủ cloud: 127.0.0.1 là localhost của Render, không phải máy bạn. Cần chạy start_ai_gateway.py trên máy bạn và khai báo AI_GATEWAY_DISCOVERY_URL + AI_GATEWAY_SECRET trong Render.`, 'warning');
+    showToast('⚠ Đang chạy trên máy chủ cloud: hãy dùng URL Gateway công khai (Cloudflare Tunnel) hoặc FOSTA Codex.', 'warning');
   }
-  playSound('click');
+  if (typeof playSound === 'function') playSound('click');
 }
+
+function applyRouterGatewayPreset(preset) {
+  const baseInp = document.getElementById('cfg-openai-base');
+  if (preset === '9router_local') {
+    applyRouterPreset('All');
+    return;
+  }
+  if (preset === 'fosta') {
+    applyFostaPreset('gpt-6-astra');
+    return;
+  }
+  if (preset === 'openai') {
+    applyOpenAiDirectPreset('gpt-4o');
+    return;
+  }
+  if (baseInp) {
+    baseInp.value = '';
+    baseInp.placeholder = 'https://your-gateway.example.com/v1';
+    baseInp.focus();
+  }
+  _setRouterModelInputValue('All');
+  showToast('🛠️ Đã chuyển sang chế độ Custom Gateway — nhập Base URL, Model & API Key rồi bấm Kiểm tra!', 'info');
+  if (typeof playSound === 'function') playSound('click');
+}
+window.applyRouterGatewayPreset = applyRouterGatewayPreset;
 
 function routerGatewaySetupHint() {
   const isCloud = !isRunningOnLocalHost();
   if (!isCloud) {
-    return 'Mẹo: 9Router chạy trên máy này, hãy bấm <strong>[🔀 9Router All]</strong> hoặc <strong>[🧑‍💻 9Router Coding-Pro]</strong> để tự điền Base URL <code>http://127.0.0.1:20128/v1</code> và nhập API key trong 9Router > API Keys.';
+    return 'Mẹo: Mở 9Router trên máy này → tạo API Key → điền <code>http://127.0.0.1:20128/v1</code> và dán key vào ô phía trên.';
   }
-  return 'Mẹo: trang này đang chạy trên Render nên <code>127.0.0.1:20128</code> KHÔNG trỏ tới máy bạn. Trên máy bạn hãy chạy <code>python start_ai_gateway.py</code> (proxy bảo vệ + Cloudflare Tunnel), rồi khai báo <code>AI_GATEWAY_DISCOVERY_URL=https://ntfy.sh/unimaster_ctump_5292/json?poll=1&since=72h</code> và <code>AI_GATEWAY_SECRET</code> (in ra khi chạy script) trong Render Dashboard. Hoặc dùng nút FOSTA Codex nếu chỉ cần chạy ngay.';
+  return 'Mẹo: trang này đang chạy trên Render nên <code>127.0.0.1:20128</code> không trỏ tới máy bạn. Hãy bật <code>start_ai_gateway.py</code> (Cloudflare Tunnel) hoặc chọn FOSTA Codex.';
+}
+
+function _populateRouterModelDatalist(models) {
+  const dl = document.getElementById('cfg-openai-model-list');
+  if (!dl || !Array.isArray(models) || !models.length) return;
+  const existing = new Set(Array.from(dl.querySelectorAll('option')).map((o) => o.value));
+  models.forEach((m) => {
+    const val = String(m || '').trim();
+    if (val && !existing.has(val)) {
+      const opt = document.createElement('option');
+      opt.value = val;
+      opt.textContent = val;
+      dl.appendChild(opt);
+    }
+  });
 }
 
 async function testOpenAiKeyUI() {
@@ -12481,35 +13090,40 @@ async function testOpenAiKeyUI() {
   const fb = document.getElementById('openai-test-feedback');
   if (!fb) return;
 
-  const key = keyInp ? keyInp.value.trim() : '';
+  const rawKey = keyInp ? keyInp.value.trim() : '';
+  const api_key = rawKey.includes('••••') ? '' : rawKey;
   const base_url = baseInp ? baseInp.value.trim() : '';
   const model = modelSel ? modelSel.value.trim() : '';
 
   fb.classList.remove('hidden');
   fb.className = 'text-xs p-3 rounded-xl font-bold badge-subtle';
-  fb.textContent = '⏳ Đang gửi yêu cầu kiểm tra kết nối tới LLM / FOSTA Codex / OpenAI API...';
+  fb.textContent = '⏳ Đang kiểm tra kết nối trực tiếp tới 9Router / Gateway...';
 
   try {
-    const res = await apiFetch('/api/ai/test-openai', {
+    const res = await apiFetch('/api/ai/test_9router', {
       method: 'POST',
-      body: JSON.stringify({ key, base_url, model })
+      body: JSON.stringify({ api_key, key: api_key, base_url, model })
     });
 
     if (res.success) {
+      _populateRouterModelDatalist(res.available_models);
+      const latTxt = res.latency_ms != null ? ` • ${Number(res.latency_ms)}ms` : '';
+      const modTxt = res.model ? ` • Model: ${res.model}` : '';
       fb.className = 'text-xs p-3 rounded-xl font-bold badge-emerald';
-      fb.textContent = `✔ ${res.message || 'Kết nối thành công!'} • Khóa: ${res.masked_key || ''}`;
-      showToast(res.message || 'Khóa AI hoạt động xuất sắc!', 'success');
-      playSound('success');
+      fb.textContent = `✔ ${res.message || 'Kết nối Gateway thành công!'}${modTxt}${latTxt}${res.masked_key ? ` • ${res.masked_key}` : ''}`;
+      showToast(res.message || 'Kết nối 9Router thành công!', 'success');
+      if (typeof playSound === 'function') playSound('success');
+      await checkApiKeyStatus();
     } else {
       fb.className = 'text-xs p-3 rounded-xl font-bold badge-rose';
-      fb.innerHTML = `✘ ${escapeHtml(res.message || 'Lỗi kết nối')}. <br/><span class="font-normal opacity-90 mt-1 block">${routerGatewaySetupHint()}</span>`;
-      showToast('Kiểm tra LLM: ' + (res.message || 'Lỗi'), 'warning');
-      playSound('error');
+      fb.innerHTML = `✘ ${escapeHtml(res.message || 'Lỗi kết nối Gateway')}. <br/><span class="font-normal opacity-90 mt-1 block">${routerGatewaySetupHint()}</span>`;
+      showToast('Kiểm tra 9Router: ' + (res.message || 'Lỗi'), 'warning');
+      if (typeof playSound === 'function') playSound('error');
     }
   } catch (err) {
     fb.className = 'text-xs p-3 rounded-xl font-bold badge-rose';
-    fb.textContent = '✘ Lỗi kiểm tra: ' + err.message;
-    playSound('error');
+    fb.textContent = '✘ Lỗi kiểm tra 9Router: ' + err.message;
+    if (typeof playSound === 'function') playSound('error');
   }
 }
 
@@ -12519,37 +13133,95 @@ async function saveOpenAiSettingsUI() {
   const modelSel = document.getElementById('cfg-openai-model');
   const prioSel = document.getElementById('cfg-ai-priority');
 
-  const payload = {};
-  if (keyInp && keyInp.value.trim()) {
-    payload.openai_api_key = keyInp.value.trim();
-    localStorage.setItem('unimaster_openai_key', keyInp.value.trim());
-  }
-  if (baseInp && baseInp.value.trim()) {
-    payload.openai_base_url = baseInp.value.trim();
-    localStorage.setItem('unimaster_openai_base', baseInp.value.trim());
-  }
-  if (modelSel && modelSel.value.trim()) {
-    payload.openai_model = modelSel.value.trim();
-    localStorage.setItem('unimaster_openai_model', modelSel.value.trim());
-  }
-  if (prioSel) {
-    payload.ai_provider_priority = prioSel.value;
+  const rawKey = keyInp ? keyInp.value.trim() : '';
+  const apiKey = rawKey.includes('••••') ? '' : rawKey;
+  const baseUrl = baseInp ? baseInp.value.trim() : '';
+  const model = modelSel ? modelSel.value.trim() : '';
+  const priority = prioSel ? prioSel.value : 'gemini_first';
+
+  // SECURITY: Never write plaintext Gateway keys into localStorage when online
+  const sandboxAllowed = Boolean(STATE?.isOfflineStandalone || localStorage.getItem('unimaster_ai_offline_sandbox') === '1');
+  if (!sandboxAllowed) {
+    try { localStorage.removeItem('unimaster_openai_key'); } catch (_) {}
+  } else if (apiKey) {
+    try {
+      localStorage.setItem('unimaster_offline_openai_key', apiKey);
+      if (baseUrl) localStorage.setItem('unimaster_openai_base', baseUrl);
+      if (model) localStorage.setItem('unimaster_openai_model', model);
+    } catch (_) {}
   }
 
-  const res = await apiFetch('/api/settings', {
+  const res = await apiFetch('/api/ai/9router', {
     method: 'POST',
-    body: JSON.stringify(payload)
+    body: JSON.stringify({
+      base_url: baseUrl,
+      api_key: apiKey,
+      model,
+      priority,
+      clear_key: false
+    })
   });
 
-  if (res.success) {
-    showToast('💾 Đã lưu cấu hình LLM (FOSTA / ChatGPT) thành công!', 'success');
-    playSound('success');
-    if (keyInp) keyInp.value = '';
+  if (keyInp) keyInp.value = '';
+
+  if (res?.success) {
+    showToast(res.message || '💾 Đã lưu cấu hình 9Router bảo mật (ô nhập đã tự xóa)!', 'success');
+    if (typeof playSound === 'function') playSound('success');
     await checkApiKeyStatus();
   } else {
-    showToast('Lỗi lưu cấu hình: ' + (res.error || 'Thử lại'), 'error');
+    showToast('Lỗi lưu cấu hình: ' + (res?.message || res?.error || 'Thử lại'), 'error');
   }
 }
+
+async function clearRouterKeyOnServer() {
+  const res = await apiFetch('/api/ai/9router', {
+    method: 'POST',
+    body: JSON.stringify({ clear_key: true })
+  });
+  const keyInp = document.getElementById('cfg-openai-key');
+  if (keyInp) keyInp.value = '';
+  try {
+    localStorage.removeItem('unimaster_openai_key');
+    localStorage.removeItem('unimaster_offline_openai_key');
+  } catch (_) {}
+  if (res?.success) {
+    showToast('🗑️ Đã gỡ API Key khỏi cổng 9Router!', 'info');
+    await checkApiKeyStatus();
+  } else {
+    showToast('Không thể gỡ key: ' + (res?.message || res?.error || ''), 'warning');
+  }
+}
+window.clearRouterKeyOnServer = clearRouterKeyOnServer;
+
+function toggleOfflineSandboxMode(enabled) {
+  const isOn = Boolean(enabled);
+  try {
+    localStorage.setItem('unimaster_ai_offline_sandbox', isOn ? '1' : '0');
+    if (!isOn) {
+      localStorage.removeItem('unimaster_offline_openai_key');
+      localStorage.removeItem('unimaster_openai_key');
+    }
+  } catch (_) {}
+  const wrap = document.getElementById('api-offline-local-inputs');
+  if (wrap) wrap.classList.toggle('hidden', !isOn && !STATE?.isOfflineStandalone);
+  showToast(
+    isOn
+      ? '📴 Đã bật Sandbox Offline trên trình duyệt — bạn có thể nhập key dùng khi không có Server.'
+      : '🔒 Đã tắt Sandbox Offline — toàn bộ Key chỉ được quản lý bảo mật trên Server.',
+    'info'
+  );
+  if (typeof checkApiKeyStatus === 'function') checkApiKeyStatus();
+}
+window.toggleOfflineSandboxMode = toggleOfflineSandboxMode;
+
+function toggleServerGeminiInputMask() {
+  const ta = document.getElementById('server-gemini-keys-input');
+  const btn = document.getElementById('btn-toggle-gemini-input-mask');
+  if (!ta) return;
+  const revealed = ta.classList.toggle('is-revealed');
+  if (btn) btn.textContent = revealed ? '🙈 Ẩn chữ lại' : '👁️ Hiện chữ khi dán';
+}
+window.toggleServerGeminiInputMask = toggleServerGeminiInputMask;
 
 
 
@@ -12559,8 +13231,8 @@ async function saveOpenAiSettingsUI() {
 
 // --- 1. CUSTOM RANGE EXAM (Từ câu ... đến câu ...) ---
 function setRangePreset(from, to) {
-  const fromEl = document.getElementById('exam-range-from');
-  const toEl = document.getElementById('exam-range-to');
+  const fromEl = document.getElementById('exam-quick-range-from');
+  const toEl = document.getElementById('exam-quick-range-to');
   const total = STATE.examConfig.subjectAllQuestions?.length || 200;
   if (fromEl) fromEl.value = Math.max(1, from);
   if (toEl) toEl.value = to >= 9999 ? total : Math.min(total, to);
@@ -12569,8 +13241,8 @@ function setRangePreset(from, to) {
 }
 
 function updateRangePreview() {
-  const fromEl = document.getElementById('exam-range-from');
-  const toEl = document.getElementById('exam-range-to');
+  const fromEl = document.getElementById('exam-quick-range-from');
+  const toEl = document.getElementById('exam-quick-range-to');
   const badge = document.getElementById('range-preview-badge');
   const from = parseInt(fromEl?.value || '1', 10);
   const to = parseInt(toEl?.value || '50', 10);
@@ -12589,8 +13261,8 @@ async function startCustomRangeExam() {
     STATE.examConfig.subjectId = sid;
   }
 
-  const fromVal = Math.max(1, parseInt(document.getElementById('exam-range-from')?.value || '1', 10));
-  const toVal = Math.max(fromVal, parseInt(document.getElementById('exam-range-to')?.value || String(pool.length || 50), 10));
+  const fromVal = Math.max(1, parseInt(document.getElementById('exam-quick-range-from')?.value || '1', 10));
+  const toVal = Math.max(fromVal, parseInt(document.getElementById('exam-quick-range-to')?.value || String(pool.length || 50), 10));
   
   const fromIdx = fromVal - 1;
   const toIdx = Math.min(pool.length, toVal);
@@ -13138,55 +13810,323 @@ function saveLocalTutorMessage(role, content, contextName = '') {
 
 function initTutorHistoryFromStorage() {
   try {
-    const history = getLocalTutorHistory();
     const staleFallback = /AI chưa nhận được phản hồi từ FOSTA Codex|Hệ thống không còn hiển thị nhầm hướng dẫn/i;
-    const cleanHistory = history.filter((msg) => !(msg.role === 'model' && staleFallback.test(String(msg.content || ''))));
-    if (cleanHistory.length !== history.length) {
-      localStorage.setItem(LOCAL_TUTOR_CHAT_KEY, JSON.stringify(cleanHistory));
+    if (Array.isArray(tutorSessionsCache)) {
+      tutorSessionsCache.forEach((s) => {
+        if (Array.isArray(s.messages)) {
+          s.messages = s.messages.filter((m) => !(m.role === 'model' && staleFallback.test(String(m.content || ''))));
+        }
+      });
     }
-    const box = document.getElementById('floating-chat-messages');
-    if (!box || !cleanHistory.length) return;
-    
-    // Clear initial greeting and render last 10 valid messages from history
-    box.innerHTML = '';
-    const recent = cleanHistory.slice(-60);
-    recent.forEach((msg) => {
-      if (msg.role === 'user') {
-        box.innerHTML += `
-          <div class="flex items-start justify-end gap-2 animate-fade-in">
-            <div class="p-2.5 rounded-xl badge-brand max-w-[85%] font-semibold text-xs">
-              ${escapeHtml(msg.content)}
-            </div>
-            <div class="w-6 h-6 rounded-md flex items-center justify-center bg-violet-600 text-white text-xs shrink-0">👤</div>
-          </div>
-        `;
-      } else {
-        const msgId = msg.id;
-        window._tutorReplies[msgId] = msg.content;
-        box.innerHTML += `
-          <div class="flex items-start gap-2 animate-fade-in" id="${msgId}">
-            <div class="w-6 h-6 rounded-md flex items-center justify-center bg-indigo-500/20 text-indigo-400 text-xs shrink-0 mt-0.5">🤖</div>
-            <div class="p-3 rounded-xl bg-white/5 border border-white/5 txt-sub max-w-[90%] space-y-2">
-              <div class="flex items-center justify-between gap-1 text-[10px] font-mono txt-muted border-b pb-1 border-white/5">
-                <span class="text-indigo-400 font-extrabold flex items-center gap-1">
-                  <span>🎓</span> ${escapeHtml(msg.context || 'Gia Sư AI')}
-                </span>
-                <span class="text-[10px] opacity-70">${msg.displayTime || ''}</span>
-              </div>
-              <div class="leading-relaxed ai-tutor-content">
-                ${renderAcademicText(msg.content)}
-              </div>
-            </div>
-          </div>
-        `;
+    if (!floatingTutorChatHistory.length) {
+      const legacy = getLocalTutorHistory().filter((m) => !(m.role === 'model' && staleFallback.test(String(m.content || ''))));
+      if (legacy.length && !readLocalTutorSessions().length) {
+        floatingTutorChatHistory = legacy.map((m, i) => normalizeTutorMsgRecord(m, i)).filter(Boolean);
+        saveSharedTutorHistory();
       }
-    });
-    box.scrollTop = box.scrollHeight;
-    renderAllMathOnPage(box);
+    }
+    renderActiveTutorMessages();
+    updateTutorSessionsBadges();
+    renderTutorSessionsDrawer();
   } catch (err) {
     console.warn('Cannot hydrate tutor chat history:', err);
   }
 }
+
+let _tutorSearchDebounceTimer = null;
+function debouncedSearchTutorSessions(q) {
+  tutorSessionSearchQuery = String(q || '').trim();
+  clearTimeout(_tutorSearchDebounceTimer);
+  _tutorSearchDebounceTimer = setTimeout(() => {
+    syncTutorSessionsFromServer(tutorSessionSearchQuery);
+  }, 220);
+}
+window.debouncedSearchTutorSessions = debouncedSearchTutorSessions;
+
+function updateTutorSessionsBadges() {
+  const all = Array.isArray(tutorSessionsCache) ? tutorSessionsCache : readLocalTutorSessions();
+  const activeCount = all.filter((s) => !s.is_archived).length;
+  const archivedCount = all.filter((s) => s.is_archived).length;
+  setText('tutor-sessions-badge', all.length);
+  setText('drawer-count-all', all.length);
+  setText('drawer-count-active', activeCount);
+  setText('drawer-count-archived', archivedCount);
+  setText('tutor-hist-active-count', activeCount);
+  setText('tutor-hist-archive-count', archivedCount);
+}
+
+function toggleTutorSessionsDrawer(forceOpen = null) {
+  const drawer = document.getElementById('tutor-sessions-drawer');
+  const mainCard = document.getElementById('tutor-main-card');
+  if (!drawer) return;
+  tutorSessionsDrawerOpen = forceOpen !== null ? Boolean(forceOpen) : !tutorSessionsDrawerOpen;
+  drawer.classList.toggle('hidden', !tutorSessionsDrawerOpen);
+  if (mainCard) {
+    mainCard.classList.toggle('lg:col-span-8', tutorSessionsDrawerOpen);
+    mainCard.classList.toggle('lg:col-span-12', !tutorSessionsDrawerOpen);
+  }
+  if (tutorSessionsDrawerOpen) {
+    renderTutorSessionsDrawer();
+    syncTutorSessionsFromServer(tutorSessionSearchQuery);
+  }
+}
+window.toggleTutorSessionsDrawer = toggleTutorSessionsDrawer;
+
+function setTutorDrawerFilter(filter) {
+  tutorDrawerFilter = filter === 'active' || filter === 'archived' ? filter : 'all';
+  ['all', 'active', 'archived'].forEach((k) => {
+    document.getElementById(`btn-drawer-tab-${k}`)?.classList.toggle('active', k === tutorDrawerFilter);
+  });
+  renderTutorSessionsDrawer();
+}
+window.setTutorDrawerFilter = setTutorDrawerFilter;
+
+function startNewTutorSession() {
+  archiveCurrentTutorSessionInternal('🆕 Đã tạo phiên trò chuyện mới (phiên cũ vẫn lưu trong Kho Lưu Trữ).');
+}
+window.startNewTutorSession = startNewTutorSession;
+
+function openTutorSession(sessionId, opts = {}) {
+  const accId = getTutorAccountIdSafe();
+  if (!tutorSessionsCache.length) tutorSessionsCache = readLocalTutorSessions(accId);
+  const sess = tutorSessionsCache.find((s) => s.session_id === sessionId);
+  if (!sess) return;
+
+  currentTutorSessionId = sess.session_id;
+  if (sess.is_archived && opts.restoreIfArchived) {
+    sess.is_archived = false;
+    sess.updated_at = new Date().toISOString();
+    writeLocalTutorSessions(tutorSessionsCache, accId);
+    if (!STATE?.isOfflineStandalone) {
+      apiFetch('/api/ai/history/archive', {
+        method: 'POST',
+        body: JSON.stringify({ account_id: accId, session_id: sess.session_id, restore: true })
+      }).catch(() => {});
+    }
+  }
+
+  floatingTutorChatHistory = Array.isArray(sess.messages)
+    ? sess.messages.map((m, i) => normalizeTutorMsgRecord(m, i)).filter(Boolean)
+    : [];
+  try { localStorage.setItem(SHARED_TUTOR_HISTORY_KEY, JSON.stringify(floatingTutorChatHistory)); } catch (_) {}
+  window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
+
+  if (sess.mode && TUTOR_MODES_META[sess.mode]) {
+    currentTutorMode = sess.mode;
+    updateTutorModeUI();
+  }
+  if (sess.subject_id) {
+    const sel = document.getElementById('tutor-subject-select');
+    if (sel) sel.value = String(sess.subject_id);
+  }
+
+  renderActiveTutorMessages();
+  updateTutorSessionsBadges();
+  renderTutorSessionsDrawer();
+  closeModal('modal-tutor-chat-history');
+  if (typeof showToast === 'function') showToast(`📂 Đã mở lại: ${sess.title.slice(0, 48)}`, 'success');
+}
+window.openTutorSession = openTutorSession;
+
+async function restoreTutorSession(sessionId, openAfter = true) {
+  const accId = getTutorAccountIdSafe();
+  const sess = tutorSessionsCache.find((s) => s.session_id === sessionId);
+  if (!sess) return;
+  sess.is_archived = false;
+  sess.updated_at = new Date().toISOString();
+  writeLocalTutorSessions(tutorSessionsCache, accId);
+
+  if (!STATE?.isOfflineStandalone) {
+    try {
+      await apiFetch('/api/ai/history/archive', {
+        method: 'POST',
+        body: JSON.stringify({ account_id: accId, session_id: sessionId, restore: true })
+      });
+    } catch (_) {}
+  }
+
+  updateTutorSessionsBadges();
+  renderTutorSessionsDrawer();
+  renderTutorHistoryModal();
+  if (openAfter) {
+    openTutorSession(sessionId, { restoreIfArchived: false });
+  } else if (typeof showToast === 'function') {
+    showToast('✅ Đã khôi phục cuộc trò chuyện từ Kho Lưu Trữ!', 'success');
+  }
+}
+window.restoreTutorSession = restoreTutorSession;
+
+async function archiveTutorSession(sessionId) {
+  const accId = getTutorAccountIdSafe();
+  const sess = tutorSessionsCache.find((s) => s.session_id === sessionId);
+  if (!sess) return;
+  sess.is_archived = true;
+  sess.updated_at = new Date().toISOString();
+  writeLocalTutorSessions(tutorSessionsCache, accId);
+
+  if (sessionId === currentTutorSessionId) {
+    currentTutorSessionId = generateTutorSessionId();
+    floatingTutorChatHistory = [];
+    window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
+    renderActiveTutorMessages();
+  }
+
+  if (!STATE?.isOfflineStandalone) {
+    try {
+      await apiFetch('/api/ai/history/archive', {
+        method: 'POST',
+        body: JSON.stringify({ account_id: accId, session_id: sessionId, restore: false })
+      });
+    } catch (_) {}
+  }
+  updateTutorSessionsBadges();
+  renderTutorSessionsDrawer();
+  renderTutorHistoryModal();
+  if (typeof showToast === 'function') showToast('📦 Đã cất phiên vào Kho Lưu Trữ!', 'info');
+}
+window.archiveTutorSession = archiveTutorSession;
+
+async function deleteTutorSessionForever(sessionId) {
+  const accId = getTutorAccountIdSafe();
+  if (!tutorSessionsCache.length) tutorSessionsCache = readLocalTutorSessions(accId);
+  const idx = tutorSessionsCache.findIndex((s) => s.session_id === sessionId);
+  if (idx === -1) return;
+
+  tutorSessionsCache.splice(idx, 1);
+  writeLocalTutorSessions(tutorSessionsCache, accId);
+
+  if (sessionId === currentTutorSessionId) {
+    currentTutorSessionId = generateTutorSessionId();
+    floatingTutorChatHistory = [];
+    window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
+    renderActiveTutorMessages();
+  }
+
+  if (!STATE?.isOfflineStandalone) {
+    try {
+      await apiFetch(`/api/ai/history/${encodeURIComponent(sessionId)}?account_id=${encodeURIComponent(accId)}`, {
+        method: 'DELETE'
+      });
+    } catch (_) {}
+  }
+
+  updateTutorSessionsBadges();
+  renderTutorSessionsDrawer();
+  renderTutorHistoryModal();
+  if (typeof showToast === 'function') showToast('🗑️ Đã xóa vĩnh viễn phiên trò chuyện khỏi Kho Lưu Trữ.', 'info');
+}
+window.deleteTutorSessionForever = deleteTutorSessionForever;
+
+async function syncTutorSessionsFromServer(query = '') {
+  const accId = getTutorAccountIdSafe();
+  if (!tutorSessionsCache.length) tutorSessionsCache = readLocalTutorSessions(accId);
+  if (STATE?.isOfflineStandalone) {
+    updateTutorSessionsBadges();
+    renderTutorSessionsDrawer();
+    if (!document.getElementById('modal-tutor-chat-history')?.classList.contains('hidden')) renderTutorHistoryModal();
+    return;
+  }
+
+  try {
+    const qParam = query ? `&q=${encodeURIComponent(query)}` : '';
+    const res = await apiFetch(`/api/ai/history?account_id=${encodeURIComponent(accId)}&archived=all${qParam}&limit=60`);
+    if (res?.success && Array.isArray(res.sessions)) {
+      const mergedMap = new Map();
+      tutorSessionsCache.forEach((s) => mergedMap.set(s.session_id, s));
+      res.sessions.forEach((srv) => {
+        const msgs = Array.isArray(srv.messages)
+          ? srv.messages.map((m, i) => normalizeTutorMsgRecord(m, i)).filter(Boolean)
+          : [];
+        const existing = mergedMap.get(srv.session_id);
+        mergedMap.set(srv.session_id, {
+          session_id: srv.session_id,
+          account_id: srv.account_id || accId,
+          title: srv.title || existing?.title || 'Phiên Gia Sư AI',
+          subject_id: srv.subject_id ?? existing?.subject_id ?? null,
+          subject_name: srv.subject_name || existing?.subject_name || 'Đại học',
+          mode: srv.mode || existing?.mode || 'explain',
+          persona: srv.persona || existing?.persona || 'professor',
+          is_archived: Boolean(srv.is_archived),
+          created_at: srv.created_at || existing?.created_at || new Date().toISOString(),
+          updated_at: srv.updated_at || existing?.updated_at || new Date().toISOString(),
+          messages: msgs.length ? msgs : (existing?.messages || [])
+        });
+      });
+      if (!query) {
+        const sorted = Array.from(mergedMap.values()).sort((a, b) => String(b.updated_at || '').localeCompare(String(a.updated_at || '')));
+        writeLocalTutorSessions(sorted, accId);
+      } else {
+        renderTutorSessionsDrawer(Array.from(mergedMap.values()));
+        renderTutorHistoryModal(Array.from(mergedMap.values()));
+        return;
+      }
+    }
+  } catch (_) {}
+
+  updateTutorSessionsBadges();
+  renderTutorSessionsDrawer();
+  if (!document.getElementById('modal-tutor-chat-history')?.classList.contains('hidden')) {
+    renderTutorHistoryModal();
+  }
+}
+window.syncTutorSessionsFromServer = syncTutorSessionsFromServer;
+
+function _filterSessionsList(sessions, modeFilter, keyword) {
+  const q = String(keyword || '').toLowerCase().trim();
+  return (Array.isArray(sessions) ? sessions : []).filter((s) => {
+    if (modeFilter === 'active' && s.is_archived) return false;
+    if (modeFilter === 'archived' && !s.is_archived) return false;
+    if (!q) return true;
+    if (String(s.title || '').toLowerCase().includes(q)) return true;
+    if (String(s.subject_name || '').toLowerCase().includes(q)) return true;
+    return (s.messages || []).some((m) => String(m.content || '').toLowerCase().includes(q));
+  });
+}
+
+function renderTutorSessionsDrawer(overrideList = null) {
+  const listEl = document.getElementById('tutor-sessions-list');
+  if (!listEl) return;
+  const source = Array.isArray(overrideList) ? overrideList : (tutorSessionsCache.length ? tutorSessionsCache : readLocalTutorSessions());
+  const filtered = _filterSessionsList(source, tutorDrawerFilter, tutorSessionSearchQuery);
+
+  if (!filtered.length) {
+    listEl.innerHTML = `<div class="p-4 rounded-xl border text-center txt-muted" style="border-color: var(--border); background: var(--bg-subtle);">Không có cuộc trò chuyện nào khớp bộ lọc.</div>`;
+    return;
+  }
+
+  listEl.innerHTML = filtered.map((s) => {
+    const isCurrent = s.session_id === currentTutorSessionId;
+    const msgCount = s.messages?.length || s.message_count || 0;
+    const preview = s.messages?.[s.messages.length - 1]?.content || s.last_message_preview || '';
+    const dateTxt = s.updated_at ? new Date(s.updated_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+    return `
+      <div class="tutor-session-item ${isCurrent ? 'active' : ''} space-y-1.5">
+        <div class="flex items-start justify-between gap-2">
+          <button type="button" onclick="openTutorSession('${escapeHtml(s.session_id)}', { restoreIfArchived: true })" class="text-left flex-1 min-w-0">
+            <div class="font-extrabold txt-main text-xs truncate">${escapeHtml(s.title || 'Phiên Gia Sư AI')}</div>
+            <div class="text-[10px] txt-muted flex items-center gap-1.5 flex-wrap mt-0.5">
+              <span class="txt-brand font-bold">${escapeHtml(s.subject_name || 'Đại học')}</span>
+              <span>• ${msgCount} tin</span>
+              ${dateTxt ? `<span>• ${escapeHtml(dateTxt)}</span>` : ''}
+            </div>
+          </button>
+          <span class="${s.is_archived ? 'badge-amber' : 'badge-emerald'} text-[9px] px-1.5 py-0.5 rounded-full font-extrabold shrink-0">
+            ${s.is_archived ? 'Lưu trữ' : (isCurrent ? 'Đang mở' : 'Hoạt động')}
+          </span>
+        </div>
+        ${preview ? `<div class="text-[11px] txt-sub line-clamp-2">${escapeHtml(preview.slice(0, 120))}</div>` : ''}
+        <div class="flex items-center gap-1.5 pt-1 flex-wrap">
+          <button type="button" onclick="openTutorSession('${escapeHtml(s.session_id)}', { restoreIfArchived: true })" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-brand">📂 Mở</button>
+          ${s.is_archived
+            ? `<button type="button" onclick="restoreTutorSession('${escapeHtml(s.session_id)}', false)" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-emerald">🔄 Khôi phục</button>
+               <button type="button" onclick="deleteTutorSessionForever('${escapeHtml(s.session_id)}')" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-rose">🗑️ Xóa hẳn</button>`
+            : `<button type="button" onclick="archiveTutorSession('${escapeHtml(s.session_id)}')" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-amber">📦 Cất vào Kho</button>`}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+window.renderTutorSessionsDrawer = renderTutorSessionsDrawer;
 
 function openTutorHistoryModal() {
   const modal = document.getElementById('modal-tutor-chat-history');
@@ -13194,96 +14134,114 @@ function openTutorHistoryModal() {
     renderTutorHistoryModal();
     modal.classList.remove('hidden');
     if (window.lucide) window.lucide.createIcons();
+    syncTutorSessionsFromServer();
   }
 }
 
-function renderTutorHistoryModal(filteredList = null) {
-  const activeList = getLocalTutorHistory();
-  const archiveList = getLocalTutorArchive();
-  setText('tutor-hist-active-count', activeList.length);
-  setText('tutor-hist-archive-count', archiveList.length);
+function renderTutorHistoryModal(filteredSessions = null) {
+  const source = Array.isArray(filteredSessions)
+    ? filteredSessions
+    : (tutorSessionsCache.length ? tutorSessionsCache : readLocalTutorSessions());
+  updateTutorSessionsBadges();
 
   const isArchive = currentTutorHistorySubTab === 'archive';
-  const list = filteredList !== null ? filteredList : (isArchive ? archiveList : activeList);
+  const q = document.getElementById('tutor-history-search')?.value || '';
+  const list = _filterSessionsList(source, isArchive ? 'archived' : 'active', q);
   const container = document.getElementById('tutor-history-messages-list');
-  setText('tutor-history-count', `${list.length} tin nhắn`);
+  setText('tutor-history-count', `${list.length} phiên`);
 
   if (!container) return;
   if (!list.length) {
     container.innerHTML = `
       <div class="text-center py-12 space-y-3">
-        <span class="text-4xl">💬</span>
-        <div class="font-extrabold text-sm txt-main">Chưa Có Tin Nhắn Nào Trong Lịch Sử</div>
-        <p class="text-xs txt-muted max-w-sm mx-auto">Mọi câu hỏi và giải đáp giữa bạn và Gia Sư AI sẽ được lưu trữ tự động trên thiết bị này.</p>
+        <span class="text-4xl">${isArchive ? '📦' : '💬'}</span>
+        <div class="font-extrabold text-sm txt-main">${isArchive ? 'Kho Lưu Trữ Đang Trống' : 'Chưa Có Cuộc Trò Chuyện Đang Mở'}</div>
+        <p class="text-xs txt-muted max-w-sm mx-auto">Mỗi khi bạn bấm "Làm mới khung chat", phiên cũ sẽ tự động được cất an toàn tại Kho Lưu Trữ để tra cứu lại.</p>
       </div>
     `;
     return;
   }
 
-  container.innerHTML = list.map((msg) => {
-    const isUser = msg.role === 'user';
+  container.innerHTML = list.map((s) => {
+    const msgs = Array.isArray(s.messages) ? s.messages : [];
+    const lastTwo = msgs.slice(-2);
+    const updatedLabel = s.updated_at ? new Date(s.updated_at).toLocaleString('vi-VN', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
     return `
-      <div class="p-3.5 rounded-2xl border transition-all space-y-2" style="background-color: var(--bg-surface); border-color: var(--border);">
-        <div class="flex items-center justify-between text-xs font-bold border-b pb-1.5" style="border-color: var(--border);">
-          <span class="flex items-center gap-1.5 ${isUser ? 'text-purple-400' : 'text-indigo-400'}">
-            <span>${isUser ? '👤 Bạn đã hỏi' : '🤖 Gia sư AI giải đáp'}</span>
-            ${msg.context ? `<span class="badge-subtle text-[10px] px-1.5 py-0.2 rounded font-normal font-sans">${escapeHtml(msg.context)}</span>` : ''}
-          </span>
-          <span class="text-[10px] font-mono txt-muted">${msg.displayTime || ''}</span>
+      <div class="p-3.5 rounded-2xl border space-y-2.5" style="background-color: var(--bg-surface); border-color: var(--border);">
+        <div class="flex items-start justify-between gap-2 flex-wrap border-b pb-2" style="border-color: var(--border);">
+          <div class="min-w-0 flex-1">
+            <div class="text-xs sm:text-sm font-black txt-main truncate">${escapeHtml(s.title || 'Phiên Gia Sư AI')}</div>
+            <div class="text-[11px] txt-muted flex items-center gap-2 flex-wrap mt-0.5">
+              <span class="txt-brand font-bold">${escapeHtml(s.subject_name || 'Đại học')}</span>
+              <span>• ${msgs.length} tin nhắn</span>
+              ${updatedLabel ? `<span class="font-mono">• ${escapeHtml(updatedLabel)}</span>` : ''}
+            </div>
+          </div>
+          <div class="flex items-center gap-1.5 flex-wrap shrink-0">
+            <button type="button" onclick="openTutorSession('${escapeHtml(s.session_id)}', { restoreIfArchived: true })" class="btn-primary px-2.5 py-1 text-[11px] font-bold">
+              📂 Mở lại hội thoại
+            </button>
+            ${isArchive
+              ? `<button type="button" onclick="restoreTutorSession('${escapeHtml(s.session_id)}', false)" class="btn-soft px-2.5 py-1 text-[11px] font-bold txt-emerald">🔄 Khôi phục</button>
+                 <button type="button" onclick="deleteTutorSessionForever('${escapeHtml(s.session_id)}')" class="btn-soft px-2.5 py-1 text-[11px] font-bold txt-rose">🗑️ Xóa vĩnh viễn</button>`
+              : `<button type="button" onclick="archiveTutorSession('${escapeHtml(s.session_id)}')" class="btn-soft px-2.5 py-1 text-[11px] font-bold txt-amber">📦 Cất vào Kho</button>`}
+          </div>
         </div>
-        <div class="text-xs leading-relaxed ${isUser ? 'txt-main font-semibold' : 'ai-tutor-content'}">
-          ${isUser ? escapeHtml(msg.content) : renderAcademicText(msg.content)}
-        </div>
+        ${lastTwo.map((m) => `
+          <div class="p-2 rounded-xl border text-xs ${m.role === 'user' ? 'badge-brand' : 'tutor-ai-bubble'}" style="border-color: var(--border);">
+            <div class="text-[10px] font-extrabold mb-0.5">${m.role === 'user' ? '👤 Bạn hỏi:' : '🤖 Gia Sư AI:'}</div>
+            <div class="${m.role === 'user' ? 'font-semibold' : 'ai-tutor-content line-clamp-4'}">
+              ${m.role === 'user' ? escapeHtml(m.content) : renderTutorAcademicHtml(m.content)}
+            </div>
+          </div>
+        `).join('')}
       </div>
     `;
   }).join('');
-  renderAllMathOnPage(container);
+  if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(container);
 }
 
 function filterTutorHistory(keyword) {
-  const q = String(keyword || '').toLowerCase().trim();
-  const all = getLocalTutorHistory();
-  if (!q) {
-    renderTutorHistoryModal(all);
-    return;
+  renderTutorHistoryModal();
+  if (typeof syncTutorSessionsFromServer === 'function' && String(keyword || '').trim().length >= 2) {
+    syncTutorSessionsFromServer(String(keyword).trim());
   }
-  const filtered = all.filter((m) => (m.content || '').toLowerCase().includes(q) || (m.context || '').toLowerCase().includes(q));
-  renderTutorHistoryModal(filtered);
 }
 
-function clearAllTutorHistory() {
-  const activeList = getLocalTutorHistory();
-  if (!activeList.length) {
-    showToast('Không có tin nhắn nào trong danh sách đang hiển thị!', 'info');
-    return;
-  }
-
-  // Safe Archive: NEVER lose user records!
-  const archive = getLocalTutorArchive();
-  const merged = [...activeList, ...archive];
-  saveLocalTutorArchive(merged);
-  saveLocalTutorHistory([]);
-
-  // Sync to backend SQLite archive
-  activeList.forEach((item) => {
-    apiFetch('/api/history/archive', {
-      method: 'POST',
-      body: JSON.stringify({
-        history_type: 'tutor_chat',
-        item_id: item.id || `tmsg_${Date.now()}`,
-        payload_json: JSON.stringify(item)
-      })
-    }).catch(() => {});
+async function clearAllTutorHistory() {
+  const accId = getTutorAccountIdSafe();
+  if (!tutorSessionsCache.length) tutorSessionsCache = readLocalTutorSessions(accId);
+  let moved = 0;
+  tutorSessionsCache.forEach((s) => {
+    if (!s.is_archived) {
+      s.is_archived = true;
+      moved++;
+    }
   });
+  writeLocalTutorSessions(tutorSessionsCache, accId);
 
+  currentTutorSessionId = generateTutorSessionId();
+  floatingTutorChatHistory = [];
+  window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
+  try { localStorage.setItem(SHARED_TUTOR_HISTORY_KEY, '[]'); } catch (_) {}
+  renderActiveTutorMessages();
+  updateTutorSessionsBadges();
+  renderTutorSessionsDrawer();
   renderTutorHistoryModal();
-  const box = document.getElementById('floating-chat-messages');
-  if (box) clearFloatingTutorChat();
-  showToast('🛡️ Đã lưu tin nhắn vào Kho Lưu Trữ An Toàn! Không lo mất đoạn chat.', 'success');
+  showToast(moved ? `📦 Đã cất ${moved} phiên vào Kho Lưu Trữ An Toàn!` : 'Kho Đang Trò Chuyện đã gọn sạch (mọi phiên cũ vẫn an toàn trong Kho Lưu Trữ).', 'success');
+
+  if (!STATE?.isOfflineStandalone) {
+    try {
+      await apiFetch('/api/ai/history/archive', {
+        method: 'POST',
+        body: JSON.stringify({ account_id: accId, archive_all_active: true, restore: false })
+      });
+    } catch (_) {}
+  }
 }
 
 function exportTutorHistory() {
-  const list = getLocalTutorHistory();
+  const list = floatingTutorChatHistory.length ? floatingTutorChatHistory : getLocalTutorHistory();
   if (!list.length) {
     showToast('Chưa có tin nhắn nào để xuất!', 'info');
     return;
@@ -13307,18 +14265,26 @@ function askAiAboutCodeLine(uid, lineNum) {
   const lineText = lines[lineNum - 1] || '';
   if (!lineText.trim()) return;
 
-  openFloatingTutor();
-  const query = `Trong bài thực hành lập trình có đoạn mã sau:\n\`\`\`csharp\n${code}\n\`\`\`\n\n👉 Em chưa hiểu rõ dòng #${lineNum}: \`${lineText.trim()}\`\nXin Thầy/Cô Gia Sư AI giải thích chi tiết dòng này làm nhiệm vụ gì, cú pháp hoạt động thế nào và các bẫy đề thi hay hỏi về nó?`;
-  sendFloatingTutorCustomMessage(query);
+  attachContextToTutor({
+    kind: 'code',
+    shortTitle: `Code dòng #${lineNum}`,
+    fullTitle: `Dòng #${lineNum}: ${lineText.trim()}`,
+    code_snippet: code
+  }, { mode: 'debug', open: true });
+  sendTutorChatUnified(`Giải thích dòng code #${lineNum}: \`${lineText.trim()}\` — nó hoạt động thế nào và có bẫy đề thi gì cần tránh?`, { mode: 'debug' });
 }
 
 function askAiAboutWholeCodeSnippet(uid, title = 'Program.cs', lang = 'csharp') {
   const code = CODE_REGISTRY[uid] || '';
   if (!code.trim()) return;
 
-  openFloatingTutor();
-  const query = `Em cần giải thích toàn bộ đoạn code "${title}":\n\`\`\`${lang}\n${code}\n\`\`\`\n\n👉 Xin Gia Sư AI phân tích từng khối lệnh, cấu trúc giải thuật và kết quả in ra màn hình của đoạn code này!`;
-  sendFloatingTutorCustomMessage(query);
+  attachContextToTutor({
+    kind: 'code',
+    shortTitle: `Code: ${title}`,
+    fullTitle: `Đoạn mã ${title} (${lang})`,
+    code_snippet: code
+  }, { mode: 'debug', open: true });
+  sendTutorChatUnified(`Phân tích luồng chạy, cấu trúc thuật toán và kết quả đầu ra của đoạn code "${title}".`, { mode: 'debug' });
 }
 
 
@@ -13362,13 +14328,39 @@ function setupTextSelectionAiListener() {
     bubble.classList.add('hidden');
     if (!term) return;
 
-    openFloatingTutor();
     const currentQ = (STATE.exam?.active && STATE.exam?.questions) ? STATE.exam.questions[STATE.exam.currentIndex] : null;
-    const contextPrompt = currentQ ? `Trong câu hỏi thi: "${(currentQ.question_text || '').replace(/<[^>]+>/g, '').trim().slice(0, 140)}..."` : 'Trong bài học';
-    const query = `${contextPrompt}\n\n👉 Em chưa hiểu rõ về thuật ngữ/khái niệm: "${term}".\nXin Gia Sư AI giải thích thật ngắn gọn, dễ hiểu, đưa ra ví dụ và mẹo ghi nhớ để thi không bị nhầm lẫn!`;
-    sendFloatingTutorCustomMessage(query);
+    const sub = typeof getActiveSubjectInfoForTutor === 'function' ? getActiveSubjectInfoForTutor() : { name: 'Bài học' };
+    attachContextToTutor({
+      id: currentQ?.id || null,
+      kind: 'term',
+      shortTitle: `Thuật ngữ: ${term}`,
+      selected_term: term,
+      fullTitle: currentQ ? (currentQ.question_text || '').replace(/<[^>]+>/g, '').trim() : `Giải thích khái niệm "${term}"`,
+      subjectName: sub.name
+    }, { open: true });
+    sendTutorChatUnified(`Giải thích thật ngắn gọn, dễ hiểu khái niệm "${term}", cho ví dụ và mẹo ghi nhớ để đi thi không bị nhầm!`, { mode: currentTutorMode || 'explain' });
   };
 }
+
+function askAiAboutCurrentEssay() {
+  const promptTitle = document.getElementById('essay-prompt-title')?.textContent?.trim() || 'Bài tự luận hiện tại';
+  const draft = document.getElementById('essay-student-input')?.value?.trim() || '';
+  const sub = typeof getActiveSubjectInfoForTutor === 'function' ? getActiveSubjectInfoForTutor() : { name: 'Tự luận' };
+
+  attachContextToTutor({
+    kind: 'essay',
+    shortTitle: `Tự luận: ${promptTitle.slice(0, 42)}`,
+    fullTitle: `${promptTitle}${draft ? `\n\nBài viết nháp của sinh viên:\n${draft.slice(0, 1200)}` : ''}`,
+    subjectName: sub.name
+  }, { mode: 'socratic', open: true });
+  sendTutorChatUnified(
+    draft
+      ? 'Hãy nhận xét bài tự luận nháp tôi vừa gắn, chỉ ra chỗ thiếu ý, công thức cần bổ sung và gợi ý cách nâng điểm tối đa!'
+      : 'Hãy gợi ý dàn ý cốt lõi và các công thức / từ khóa chấm điểm quan trọng cho đề tự luận này (theo hướng gợi mở từng bước).',
+    { mode: 'socratic' }
+  );
+}
+window.askAiAboutCurrentEssay = askAiAboutCurrentEssay;
 
 
 // --- UNIMASTER SAFE ARCHIVE SYSTEM (PERMANENT RETENTION & INSTANT RESTORE) ---
@@ -13459,12 +14451,16 @@ function switchTutorHistoryTab(tab) {
   const archiveActions = document.getElementById('tutor-hist-archive-actions');
 
   if (tab === 'active') {
-    activeBtn?.classList.add('bg-indigo-600', 'text-white');
-    archiveBtn?.classList.remove('bg-amber-600', 'text-white');
+    activeBtn?.classList.add('btn-primary');
+    activeBtn?.classList.remove('btn-soft');
+    archiveBtn?.classList.remove('btn-primary');
+    archiveBtn?.classList.add('btn-soft');
     archiveActions?.classList.add('hidden');
   } else {
-    archiveBtn?.classList.add('bg-amber-600', 'text-white');
-    activeBtn?.classList.remove('bg-indigo-600', 'text-white');
+    archiveBtn?.classList.add('btn-primary');
+    archiveBtn?.classList.remove('btn-soft');
+    activeBtn?.classList.remove('btn-primary');
+    activeBtn?.classList.add('btn-soft');
     archiveActions?.classList.remove('hidden');
   }
   renderTutorHistoryModal();
@@ -13502,36 +14498,34 @@ function restoreSingleExamHistory(examId) {
   showToast('✅ Đã khôi phục bài thi này vào danh sách!', 'success');
 }
 
-function restoreAllTutorHistory() {
-  const archive = getLocalTutorArchive();
-  if (!archive.length) {
-    showToast('Kho lưu trữ đoạn chat đang trống!', 'info');
+async function restoreAllTutorHistory() {
+  const accId = getTutorAccountIdSafe();
+  if (!tutorSessionsCache.length) tutorSessionsCache = readLocalTutorSessions(accId);
+  const archived = tutorSessionsCache.filter((s) => s.is_archived);
+  if (!archived.length) {
+    showToast('Kho lưu trữ hội thoại đang trống!', 'info');
     return;
   }
-  const activeList = getLocalTutorHistory();
-  const merged = [...archive, ...activeList];
-  saveLocalTutorHistory(merged);
-  saveLocalTutorArchive([]);
+  archived.forEach((s) => { s.is_archived = false; });
+  writeLocalTutorSessions(tutorSessionsCache, accId);
 
+  if (!STATE?.isOfflineStandalone) {
+    for (const s of archived) {
+      await apiFetch('/api/ai/history/archive', {
+        method: 'POST',
+        body: JSON.stringify({ account_id: accId, session_id: s.session_id, restore: true })
+      }).catch(() => {});
+    }
+  }
+
+  updateTutorSessionsBadges();
+  renderTutorSessionsDrawer();
   switchTutorHistoryTab('active');
-  showToast(`✅ Đã khôi phục ${archive.length} tin nhắn cùng Gia Sư AI!`, 'success');
+  showToast(`✅ Đã khôi phục ${archived.length} cuộc trò chuyện cùng Gia Sư AI!`, 'success');
 }
 
 function restoreSingleTutorHistory(chatId) {
-  const archive = getLocalTutorArchive();
-  const itemIndex = archive.findIndex((x) => x.id === chatId);
-  if (itemIndex === -1) return;
-
-  const item = archive[itemIndex];
-  archive.splice(itemIndex, 1);
-  saveLocalTutorArchive(archive);
-
-  const activeList = getLocalTutorHistory();
-  activeList.unshift(item);
-  saveLocalTutorHistory(activeList);
-
-  renderTutorHistoryModal();
-  showToast('✅ Đã khôi phục đoạn chat này vào danh sách!', 'success');
+  restoreTutorSession(chatId, true);
 }
 
 
@@ -14305,12 +15299,13 @@ function askAiAboutSelectedCode() {
   const langSel = document.getElementById('code-lang-select');
   const lang = langSel?.value || (ex?.language || 'csharp');
 
-  const questionPrompt = `Em đang học phần code thực hành "${ex?.title || 'Lập trình'}".\n\nĐây là đoạn code em đang thắc mắc:\n\`\`\`${lang}\n${codeSnippet || '// (Toàn bộ bài code)'}\n\`\`\`\n\nThầy/Cô hãy giải thích cặn kẽ từng dòng hoạt động như thế nào, em có bị lỗi cú pháp, logic hay rò rỉ bộ nhớ (memory leak) ở đâu không?`;
-
-  if (typeof openFloatingTutor === 'function') openFloatingTutor();
-  if (typeof sendFloatingTutorCustomMessage === 'function') {
-    sendFloatingTutorCustomMessage(questionPrompt);
-  }
+  attachContextToTutor({
+    kind: 'code',
+    shortTitle: `Code: ${ex?.title || 'Thực hành'}`,
+    fullTitle: `Bài thực hành "${ex?.title || 'Lập trình'}" (${lang})`,
+    code_snippet: codeSnippet || '// (Chưa nhập code)'
+  }, { mode: 'debug', open: true });
+  sendTutorChatUnified('Giải thích chi tiết luồng chạy đoạn code đính kèm và kiểm tra xem có lỗi cú pháp, logic hay rò rỉ bộ nhớ nào không!', { mode: 'debug' });
 }
 window.askAiAboutSelectedCode = askAiAboutSelectedCode;
 
@@ -14319,7 +15314,7 @@ function analyzeCurrentCodeComplexity() {
   if (window.exerciseMonacoEditor) {
     userCode = window.exerciseMonacoEditor.getValue();
   } else {
-    const fallbackTextarea = document.getElementById('exercise-code-editor');
+    const fallbackTextarea = document.getElementById('code-editor-textarea') || document.getElementById('exercise-code-editor');
     if (fallbackTextarea) userCode = fallbackTextarea.value;
   }
 
@@ -14328,20 +15323,13 @@ function analyzeCurrentCodeComplexity() {
     return;
   }
 
-  const prompt = `[PHÂN TÍCH ĐỘ PHỨC TẠP VÀ KIẾN TRÚC MÃ NGUỒN]:
-\`\`\`csharp
-${userCode}
-\`\`\`
-Xin hãy đóng vai Giám Khảo & Chuyên Gia Thuật Toán:
-1. Đánh giá độ phức tạp thời gian Big-O Time Complexity (Tốt nhất, Trung bình, Xấu nhất).
-2. Đánh giá độ phức tạp không gian Big-O Space Complexity (RAM / Stack / Heap).
-3. Rà soát chuẩn OOP: Đóng gói (Encapsulation), Kế thừa, Đa hình, tính toàn vẹn của Class và tài nguyên.
-4. Đưa ra gợi ý Refactor để tối ưu hóa hiệu năng phòng thi!`;
-
-  if (typeof openFloatingTutor === 'function') openFloatingTutor();
-  if (typeof sendFloatingTutorCustomMessage === 'function') {
-    sendFloatingTutorCustomMessage(prompt);
-  }
+  attachContextToTutor({
+    kind: 'code',
+    shortTitle: 'Phân tích Big-O & OOP',
+    fullTitle: 'Đánh giá độ phức tạp thời gian/không gian và chuẩn OOP',
+    code_snippet: userCode
+  }, { mode: 'debug', open: true });
+  sendTutorChatUnified('Phân tích Time/Space Complexity Big-O (Best/Avg/Worst), rà soát OOP & rò rỉ tài nguyên, và gợi ý Refactor tối ưu nhất!', { mode: 'debug' });
 }
 window.analyzeCurrentCodeComplexity = analyzeCurrentCodeComplexity;
 
@@ -14351,11 +15339,19 @@ function askAiAboutQuestionCode() {
     if (typeof showToast === 'function') showToast('Câu này không có đoạn code đính kèm', 'info');
     return;
   }
-  const prompt = `Em chưa hiểu cách chạy của đoạn code trong Câu ${STATE.exam.currentIndex + 1}:\n\`\`\`\n${q.code_snippet}\n\`\`\`\n\nThầy/Cô hãy giải thích từng dòng và cách tư duy để chọn đáp án đúng nhé!`;
-  if (typeof openFloatingTutor === 'function') openFloatingTutor();
-  if (typeof sendFloatingTutorCustomMessage === 'function') {
-    sendFloatingTutorCustomMessage(prompt);
-  }
+  attachContextToTutor({
+    id: q.id,
+    kind: 'code',
+    shortTitle: `Code Câu ${STATE.exam.currentIndex + 1}`,
+    fullTitle: (q.question_text || '').replace(/<[^>]+>/g, '').trim(),
+    code_snippet: q.code_snippet,
+    option_a: q.option_a || '',
+    option_b: q.option_b || '',
+    option_c: q.option_c || '',
+    option_d: q.option_d || '',
+    correct_option: q._effectiveCorrect || q.correct_option || ''
+  }, { mode: 'debug', open: true });
+  sendTutorChatUnified('Giải thích từng dòng chạy của đoạn code trong câu này và cách tư duy chọn đáp án đúng!', { mode: 'debug' });
 }
 window.askAiAboutQuestionCode = askAiAboutQuestionCode;
 
@@ -14456,3 +15452,2360 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 });
+
+// =========================================================================
+// UNIMASTER v36: UNIFIED SAVE/RESUME ENGINE & SECURE SERVER AI KEY MANAGER
+// =========================================================================
+(function initUniMasterV36Module() {
+  const PROGRESS_PREFIX = 'unimaster_drafts_v1_';
+  const TOMBSTONE_PREFIX = 'unimaster_draft_tombstones_v1_';
+  let examSyncTimer = null;
+  let essaySyncTimer = null;
+  let codeSyncTimer = null;
+  let fcSyncTimer = null;
+  let tutorSyncTimer = null;
+  let lastTimedSyncBucket = -1;
+  let lastSavedExamIndex = -1;
+  let activePendingMeta = null;
+  let isLaunchingExam = false;
+  const recentlyDiscardedKeys = new Set();
+
+  // --- Offline standalone raw fetch safety for /api/ai/* (e.g. Floating Tutor) ---
+  if (typeof window.fetch === 'function' && !window.__unimasterFetchWrapped) {
+    const _nativeFetch = window.fetch.bind(window);
+    window.__unimasterFetchWrapped = true;
+    window.fetch = async function (input, init) {
+      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (
+        typeof url === 'string' &&
+        url.startsWith('/api/ai/') &&
+        (STATE?.isOfflineStandalone || window.__UNIMASTER_PC_OFF__) &&
+        typeof handleStandaloneOfflineApi === 'function'
+      ) {
+        const res = await handleStandaloneOfflineApi(url, init || {});
+        return {
+          ok: true,
+          status: 200,
+          json: async () => res,
+          text: async () => JSON.stringify(res)
+        };
+      }
+      return _nativeFetch(input, init);
+    };
+  }
+
+  // --- Account & Slug Helpers ---
+  function getProgressAccountId() {
+    const lsAcc = localStorage.getItem('unimaster_active_account_id');
+    const localAcc =
+      lsAcc ||
+      (typeof getActiveAccountId === 'function' ? getActiveAccountId() : '');
+    const srvAcc = STATE?.serverUser?.username || STATE?.currentUser?.username;
+    return String(localAcc || srvAcc || 'acc_default').trim() || 'acc_default';
+  }
+  window.getProgressAccountId = getProgressAccountId;
+
+  function normalizeDraftSlug(raw, maxLen = 40) {
+    const str = String(raw || '').trim();
+    if (!str) return 'default';
+    let ascii = str
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[đĐ]/g, 'd')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '_')
+      .replace(/^_+|_+$/g, '');
+    if (!ascii) ascii = 'item';
+    if (ascii.length > maxLen) ascii = ascii.slice(0, maxLen).replace(/_+$/, '');
+    let hash = 2166136261;
+    for (let i = 0; i < str.length; i++) {
+      hash ^= str.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return `${ascii}_${(hash >>> 0).toString(36)}`;
+  }
+
+  function makeChapterDraftKey(subjectId, chapterTag) {
+    return `exam_sub${Number(subjectId) || 0}_chap_${normalizeDraftSlug(chapterTag, 36)}`;
+  }
+  window.makeChapterDraftKey = makeChapterDraftKey;
+
+  function makeExamDraftKey(subjectId, title, mode) {
+    const cleanedTitle = String(title || '').replace(/\s*\(\d+\s*câu\)\s*$/i, '').trim();
+    return `exam_sub${Number(subjectId) || 0}_${normalizeDraftSlug(mode || 'practice', 16)}_${normalizeDraftSlug(cleanedTitle || 'all', 36)}`;
+  }
+
+  function formatDraftUpdatedLabel(ms) {
+    const t = Number(ms || 0);
+    if (!t) return 'Vừa xong';
+    const diffSec = Math.max(0, Math.floor((Date.now() - t) / 1000));
+    if (diffSec < 60) return 'Vừa lưu vài giây trước';
+    if (diffSec < 3600) return `${Math.floor(diffSec / 60)} phút trước`;
+    if (diffSec < 86400) return `${Math.floor(diffSec / 3600)} giờ trước`;
+    try {
+      return new Date(t).toLocaleString('vi-VN', { hour12: false, day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    } catch (_) {
+      return 'Gần đây';
+    }
+  }
+
+  // --- LocalStorage Draft Store + Tombstones ---
+  function readLocalDraftMap(accId = getProgressAccountId()) {
+    try {
+      const raw = localStorage.getItem(PROGRESS_PREFIX + accId);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function writeLocalDraftMap(mapObj, accId = getProgressAccountId()) {
+    try {
+      localStorage.setItem(PROGRESS_PREFIX + accId, JSON.stringify(mapObj || {}));
+    } catch (_) {}
+  }
+
+  function readTombstones(accId = getProgressAccountId()) {
+    try {
+      const raw = localStorage.getItem(TOMBSTONE_PREFIX + accId);
+      const parsed = raw ? JSON.parse(raw) : {};
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function writeTombstones(mapObj, accId = getProgressAccountId()) {
+    try {
+      // Keep only last 7 days of tombstones
+      const cutoff = Date.now() - 7 * 86400 * 1000;
+      const pruned = {};
+      Object.entries(mapObj || {}).forEach(([k, ts]) => {
+        if (Number(ts) > cutoff) pruned[k] = Number(ts);
+      });
+      localStorage.setItem(TOMBSTONE_PREFIX + accId, JSON.stringify(pruned));
+    } catch (_) {}
+  }
+
+  function normalizeDraftRecord(raw) {
+    if (!raw || typeof raw !== 'object' || !raw.draft_key) return null;
+    let payload = raw.payload;
+    if (!payload && raw.payload_json) {
+      try { payload = JSON.parse(raw.payload_json); } catch (_) { payload = {}; }
+    }
+    if (!payload || typeof payload !== 'object') payload = {};
+    const ms = Number(raw.updated_at_ms || (raw.updated_at ? Date.parse(raw.updated_at) : 0) || Date.now());
+    return {
+      account_id: String(raw.account_id || getProgressAccountId()),
+      draft_key: String(raw.draft_key),
+      progress_type: String(raw.progress_type || 'exam'),
+      subject_id: raw.subject_id != null && raw.subject_id !== '' ? Number(raw.subject_id) : null,
+      chapter_tag: String(raw.chapter_tag || payload.chapterTag || ''),
+      title: String(raw.title || payload.examTitle || raw.draft_key),
+      current_index: Number(raw.current_index ?? payload.currentIndex ?? 0),
+      total_items: Number(raw.total_items ?? payload.totalQuestions ?? 0),
+      answered_count: Number(raw.answered_count ?? 0),
+      updated_at: raw.updated_at || new Date(ms).toISOString(),
+      updated_at_ms: ms,
+      payload
+    };
+  }
+
+  function listAllDrafts(accId = getProgressAccountId(), progressType = null) {
+    const map = readLocalDraftMap(accId);
+    return Object.values(map)
+      .map(normalizeDraftRecord)
+      .filter((d) => d && (!progressType || d.progress_type === progressType))
+      .sort((a, b) => (b.updated_at_ms || 0) - (a.updated_at_ms || 0));
+  }
+  window.listAllProgressDrafts = listAllDrafts;
+
+  function getChapterExamDraft(subjectId, chapterTag) {
+    const acc = getProgressAccountId();
+    const map = readLocalDraftMap(acc);
+    const key = makeChapterDraftKey(subjectId, chapterTag);
+    if (map[key]) return normalizeDraftRecord(map[key]);
+    // Fallback match by chapter_tag + subject_id
+    const sidNum = Number(subjectId);
+    return listAllDrafts(acc, 'exam').find(
+      (d) => Number(d.subject_id) === sidNum && d.chapter_tag === chapterTag
+    ) || null;
+  }
+  window.getChapterExamDraft = getChapterExamDraft;
+
+  // --- Save & Delete Drafts (LocalStorage + Backend /api/progress) ---
+  async function saveProgressDraft(draftInput, { syncServer = true, keepalive = false } = {}) {
+    const acc = String(draftInput.account_id || getProgressAccountId());
+    const nowMs = Date.now();
+    const record = normalizeDraftRecord({
+      ...draftInput,
+      account_id: acc,
+      updated_at: new Date(nowMs).toISOString(),
+      updated_at_ms: nowMs
+    });
+    if (!record) return null;
+
+    // Save synchronously to localStorage
+    const map = readLocalDraftMap(acc);
+    map[record.draft_key] = record;
+    writeLocalDraftMap(map, acc);
+
+    // Clear tombstone if recreated
+    const tombs = readTombstones(acc);
+    if (tombs[record.draft_key]) {
+      delete tombs[record.draft_key];
+      writeTombstones(tombs, acc);
+    }
+
+    if (!syncServer || STATE?.isOfflineStandalone) return record;
+
+    const bodyObj = {
+      account_id: acc,
+      draft_key: record.draft_key,
+      progress_type: record.progress_type,
+      subject_id: record.subject_id,
+      chapter_tag: record.chapter_tag,
+      title: record.title,
+      payload: record.payload,
+      current_index: record.current_index,
+      total_items: record.total_items,
+      answered_count: record.answered_count
+    };
+    const bodyStr = JSON.stringify(bodyObj);
+
+    if (keepalive) {
+      try {
+        if (bodyStr.length <= 60000) {
+          fetch('/api/progress', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Account-Id': acc },
+            body: bodyStr,
+            keepalive: true,
+            credentials: 'same-origin'
+          }).catch(() => {});
+        } else if (typeof navigator.sendBeacon === 'function' && bodyStr.length <= 64000) {
+          navigator.sendBeacon('/api/progress', new Blob([bodyStr], { type: 'application/json' }));
+        }
+      } catch (_) {}
+      return record;
+    }
+
+    try {
+      await apiFetch('/api/progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Account-Id': acc },
+        body: bodyStr
+      });
+    } catch (_) {
+      // Keep localStorage copy even if server temporarily unreachable
+    }
+    return record;
+  }
+  window.saveProgressDraft = saveProgressDraft;
+
+  async function discardProgressDraft(draftKey, { silent = false } = {}) {
+    if (!draftKey) return;
+    recentlyDiscardedKeys.add(draftKey);
+
+    if (draftKey.startsWith('exam_') || STATE?.exam?.draftKey === draftKey) {
+      clearTimeout(examSyncTimer);
+      examSyncTimer = null;
+    }
+    if (draftKey.startsWith('essay_')) {
+      clearTimeout(essaySyncTimer);
+      essaySyncTimer = null;
+    }
+    if (draftKey.startsWith('code_')) {
+      clearTimeout(codeSyncTimer);
+      codeSyncTimer = null;
+    }
+    if (draftKey.startsWith('flashcard_')) {
+      clearTimeout(fcSyncTimer);
+      fcSyncTimer = null;
+    }
+    if (draftKey === 'tutor_shared_history') {
+      clearTimeout(tutorSyncTimer);
+      tutorSyncTimer = null;
+    }
+
+    if (STATE?.exam && STATE.exam.draftKey === draftKey) {
+      STATE.exam._discarded = true;
+      STATE.exam.draftKey = null;
+      STATE.exam.active = false;
+      if (STATE.exam.timerId) {
+        clearInterval(STATE.exam.timerId);
+        STATE.exam.timerId = null;
+      }
+    }
+
+    const acc = getProgressAccountId();
+    const map = readLocalDraftMap(acc);
+    delete map[draftKey];
+    writeLocalDraftMap(map, acc);
+
+    const tombs = readTombstones(acc);
+    tombs[draftKey] = Date.now();
+    writeTombstones(tombs, acc);
+
+    renderResumePanels();
+    decorateChapterDraftCards();
+
+    if (!STATE?.isOfflineStandalone) {
+      try {
+        await apiFetch('/api/progress/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Account-Id': acc },
+          body: JSON.stringify({ account_id: acc, draft_key: draftKey })
+        });
+      } catch (_) {}
+    }
+    if (!silent) {
+      showToast('🗑️ Đã xóa bản nháp tiến trình.', 'info');
+      playSound('click');
+    }
+  }
+  window.discardProgressDraft = discardProgressDraft;
+
+  window.discardProgressDraftUI = async function (draftKey) {
+    const choice = await askCustomConfirm({
+      icon: '🗑️',
+      iconTone: 'rose',
+      title: 'Xóa bản nháp đang làm dở?',
+      desc: 'Tiến trình đã lưu của phần này sẽ bị xóa khỏi trình duyệt và máy chủ.',
+      actions: [
+        { id: 'cancel', label: 'Giữ lại', cls: 'btn-soft px-4 py-2.5 text-xs' },
+        { id: 'confirm', label: '🗑️ Xóa nháp', cls: 'btn-primary px-5 py-2.5 text-xs' }
+      ]
+    });
+    if (choice !== 'confirm') return;
+    await discardProgressDraft(draftKey, { silent: false });
+  };
+
+  // --- Merge LocalStorage + Backend /api/progress on init / login / account switch ---
+  async function syncProgressDraftsFromServer() {
+    const acc = getProgressAccountId();
+    const localMap = readLocalDraftMap(acc);
+    const tombs = readTombstones(acc);
+
+    if (!STATE?.isOfflineStandalone) {
+      try {
+        const res = await apiFetch(`/api/progress?account_id=${encodeURIComponent(acc)}`, {
+          headers: { 'X-Account-Id': acc }
+        });
+        const serverDrafts = Array.isArray(res?.drafts) ? res.drafts : [];
+        const merged = { ...localMap };
+        const seenOnServer = new Set();
+
+        for (const rawSrv of serverDrafts) {
+          const srv = normalizeDraftRecord(rawSrv);
+          if (!srv) continue;
+          seenOnServer.add(srv.draft_key);
+
+          // Respect recent explicit deletion
+          if (tombs[srv.draft_key] && tombs[srv.draft_key] >= (srv.updated_at_ms || 0)) {
+            apiFetch('/api/progress/delete', {
+              method: 'POST',
+              headers: { 'X-Account-Id': acc },
+              body: JSON.stringify({ account_id: acc, draft_key: srv.draft_key })
+            }).catch(() => {});
+            continue;
+          }
+
+          const loc = merged[srv.draft_key] ? normalizeDraftRecord(merged[srv.draft_key]) : null;
+          if (!loc || (srv.updated_at_ms || 0) >= (loc.updated_at_ms || 0)) {
+            merged[srv.draft_key] = srv;
+          }
+        }
+
+        // Push any newer or offline-created local drafts up to server
+        for (const [k, rawLoc] of Object.entries(localMap)) {
+          const loc = normalizeDraftRecord(rawLoc);
+          if (!loc) continue;
+          const srvMatch = serverDrafts.find((s) => s.draft_key === k);
+          const srvMs = srvMatch ? Number(srvMatch.updated_at_ms || Date.parse(srvMatch.updated_at) || 0) : 0;
+          if (!seenOnServer.has(k) || (loc.updated_at_ms || 0) > srvMs + 1000) {
+            saveProgressDraft(loc, { syncServer: true }).catch(() => {});
+          }
+        }
+
+        writeLocalDraftMap(merged, acc);
+      } catch (_) {}
+    }
+
+    hydrateSecondaryDraftsIntoState(acc);
+    renderResumePanels();
+    decorateChapterDraftCards();
+  }
+  window.syncProgressDraftsFromServer = syncProgressDraftsFromServer;
+
+  function hydrateSecondaryDraftsIntoState(acc = getProgressAccountId()) {
+    const drafts = listAllDrafts(acc);
+    // 1) Essay drafts
+    if (STATE?.essay) {
+      STATE.essay.drafts = STATE.essay.drafts || {};
+      drafts.filter((d) => d.progress_type === 'essay').forEach((d) => {
+        const pid = d.payload?.promptId || d.chapter_tag || d.draft_key.replace(/^essay_/, '');
+        if (pid && typeof d.payload?.text === 'string' && !STATE.essay.drafts[pid]) {
+          STATE.essay.drafts[pid] = d.payload.text;
+        }
+      });
+      const curPid = STATE.essay.currentPromptId;
+      const essayTa = document.getElementById('essay-student-input');
+      if (essayTa && curPid && STATE.essay.drafts[curPid] && !essayTa.value.trim()) {
+        essayTa.value = STATE.essay.drafts[curPid];
+        if (typeof _origUpdateEssayLivePreview === 'function') _origUpdateEssayLivePreview();
+      }
+    }
+
+    // 2) Code drafts
+    if (STATE?.exercises) {
+      STATE.exercises.userCode = STATE.exercises.userCode || {};
+      drafts.filter((d) => d.progress_type === 'code').forEach((d) => {
+        const exId = d.payload?.exerciseId || d.chapter_tag;
+        if (exId != null && typeof d.payload?.code === 'string' && !STATE.exercises.userCode[exId]) {
+          STATE.exercises.userCode[exId] = d.payload.code;
+        }
+      });
+    }
+
+    // 3) AI Tutor history
+    const tutorDraft = drafts.find((d) => d.progress_type === 'tutor' && d.draft_key === 'tutor_shared_history');
+    if (tutorDraft && Array.isArray(tutorDraft.payload?.history) && tutorDraft.payload.history.length) {
+      const targetHist = typeof floatingTutorChatHistory !== 'undefined' ? floatingTutorChatHistory : window.TUTOR_CHAT_HISTORY;
+      if (Array.isArray(targetHist) && targetHist.length === 0) {
+        targetHist.push(...tutorDraft.payload.history);
+        window.TUTOR_CHAT_HISTORY = targetHist;
+        if (typeof _origSaveSharedTutorHistory === 'function') _origSaveSharedTutorHistory();
+        if (typeof renderSharedTutorHistory === 'function') renderSharedTutorHistory();
+      }
+    }
+  }
+
+  // --- Build & Save Active Exam Draft ---
+  function collectExamNotesSnapshot(questions) {
+    const out = {};
+    if (!STATE?.notes || !Array.isArray(questions)) return out;
+    questions.forEach((q) => {
+      if (STATE.notes[q.id]) out[q.id] = STATE.notes[q.id];
+    });
+    return out;
+  }
+
+  function buildCurrentExamDraftObject() {
+    if (isLaunchingExam) return null;
+    if (!STATE?.exam?.active || STATE.exam._discarded || !Array.isArray(STATE.exam.questions) || !STATE.exam.questions.length) return null;
+    const qs = STATE.exam.questions;
+    const sid = Number(STATE.exam.subjectId || STATE.examConfig?.subjectId || 0) || null;
+    const draftKey = STATE.exam.draftKey || makeExamDraftKey(sid, STATE.exam.subjectName, STATE.exam.mode);
+    if (!draftKey || recentlyDiscardedKeys.has(draftKey)) return null;
+    STATE.exam.draftKey = draftKey;
+
+    let answeredCount = 0;
+    qs.forEach((q) => {
+      const a = STATE.exam.answers?.[q.id];
+      const hasEssay = Boolean(STATE.exam.essayGrades?.[q.id]);
+      if ((a !== undefined && a !== null && String(a).trim() !== '') || hasEssay) {
+        answeredCount++;
+      }
+    });
+
+    const bmArr = Array.isArray(STATE.bookmarks) ? STATE.bookmarks : [];
+    const flagged = qs.filter((q) => bmArr.includes(q.id)).map((q) => q.id);
+    const curIdx = Math.min(Math.max(0, Number(STATE.exam.currentIndex || 0)), qs.length - 1);
+
+    return {
+      account_id: getProgressAccountId(),
+      draft_key: draftKey,
+      progress_type: 'exam',
+      subject_id: sid,
+      chapter_tag: String(STATE.exam.chapterTag || ''),
+      title: String(STATE.exam.subjectName || 'Bài thi'),
+      current_index: curIdx,
+      total_items: qs.length,
+      answered_count: answeredCount,
+      payload: {
+        draftKey,
+        subjectId: sid,
+        chapterTag: String(STATE.exam.chapterTag || ''),
+        mode: String(STATE.exam.mode || 'practice'),
+        examTitle: String(STATE.exam.subjectName || 'Bài thi'),
+        startedAt: STATE.exam.startedAt || new Date().toISOString(),
+        totalQuestions: qs.length,
+        question_ids: qs.map((q) => q.id),
+        option_orders: STATE.exam._optionOrders || {},
+        answers: { ...(STATE.exam.answers || {}) },
+        graded: { ...(STATE.exam.graded || {}) },
+        correctMap: { ...(STATE.exam.correctMap || {}) },
+        eliminated: { ...(STATE.exam.eliminated || {}) },
+        essayGrades: { ...(STATE.exam.essayGrades || {}) },
+        flagged,
+        notes: collectExamNotesSnapshot(qs),
+        currentIndex: curIdx,
+        timeLeft: Number(STATE.exam.remainingSeconds ?? 0),
+        durationSeconds: Number(STATE.exam.durationSeconds ?? 0),
+        elapsedSeconds: Number(STATE.exam.elapsedSeconds ?? 0),
+        streak: Number(STATE.exam.streak || 0),
+        maxStreak: Number(STATE.exam.maxStreak || 0),
+        blitzLives: STATE.exam.blitzLives ?? 3,
+        blitzScore: Number(STATE.exam.blitzScore || 0)
+      }
+    };
+  }
+
+  function saveActiveExamDraftNow({ syncServer = true, keepalive = false } = {}) {
+    const draft = buildCurrentExamDraftObject();
+    if (!draft || recentlyDiscardedKeys.has(draft.draft_key)) return null;
+    lastSavedExamIndex = draft.current_index;
+    return saveProgressDraft(draft, { syncServer, keepalive });
+  }
+  window.saveActiveExamDraftNow = saveActiveExamDraftNow;
+
+  function scheduleExamDraftSync(delayMs = 250) {
+    const draft = buildCurrentExamDraftObject();
+    if (!draft || recentlyDiscardedKeys.has(draft.draft_key)) return;
+    // Always write localStorage immediately (0ms)
+    saveProgressDraft(draft, { syncServer: false });
+    clearTimeout(examSyncTimer);
+    examSyncTimer = setTimeout(() => {
+      saveActiveExamDraftNow({ syncServer: true });
+    }, delayMs);
+  }
+
+  // --- Secondary Auto-Save Helpers (Essay, Code, Flashcard, Tutor) ---
+  function scheduleEssayDraftSync(delayMs = 500) {
+    const pid = STATE?.essay?.currentPromptId;
+    if (!pid) return;
+    const text = String(document.getElementById('essay-student-input')?.value ?? STATE.essay.drafts?.[pid] ?? '');
+    if (!text.trim()) return;
+    const promptObj = (STATE.essay.prompts || []).find((p) => p.id === pid);
+    const title = promptObj?.title || pid;
+    const draftObj = {
+      progress_type: 'essay',
+      draft_key: `essay_${pid}`,
+      subject_id: promptObj?.subject_id || null,
+      chapter_tag: pid,
+      title: `Tự luận: ${title}`,
+      current_index: 0,
+      total_items: 1,
+      answered_count: 1,
+      payload: { promptId: pid, title, text }
+    };
+    recentlyDiscardedKeys.delete(draftObj.draft_key);
+    saveProgressDraft(draftObj, { syncServer: false });
+    clearTimeout(essaySyncTimer);
+    essaySyncTimer = setTimeout(() => saveProgressDraft(draftObj, { syncServer: true }), delayMs);
+  }
+
+  function scheduleCodeDraftSync(delayMs = 600) {
+    const list = STATE?.exercises?.list || [];
+    const ex = list[STATE?.exercises?.selectedIndex || 0];
+    if (!ex) return;
+    const sid = Number(document.getElementById('exercise-subject-select')?.value || STATE.examConfig?.subjectId || 0) || null;
+    const code = String(document.getElementById('code-editor-textarea')?.value ?? STATE.exercises.userCode?.[ex.id] ?? '');
+    if (!code.trim()) return;
+    const draftObj = {
+      progress_type: 'code',
+      draft_key: `code_sub${sid || 0}_ex${ex.id}`,
+      subject_id: sid,
+      chapter_tag: String(ex.id),
+      title: `Code: ${ex.title || 'Bài #' + ex.id}`,
+      current_index: Number(STATE.exercises.selectedIndex || 0),
+      total_items: list.length || 1,
+      answered_count: 1,
+      payload: {
+        subjectId: sid,
+        exerciseId: ex.id,
+        selectedIndex: Number(STATE.exercises.selectedIndex || 0),
+        title: ex.title || `Bài #${ex.id}`,
+        language: ex.language || 'python',
+        code
+      }
+    };
+    recentlyDiscardedKeys.delete(draftObj.draft_key);
+    saveProgressDraft(draftObj, { syncServer: false });
+    clearTimeout(codeSyncTimer);
+    codeSyncTimer = setTimeout(() => saveProgressDraft(draftObj, { syncServer: true }), delayMs);
+  }
+
+  function scheduleFlashcardDraftSync(delayMs = 500) {
+    const cards = STATE?.flashcards?.cards;
+    if (!Array.isArray(cards) || !cards.length) return;
+    const sid = Number(document.getElementById('fc-subject-select')?.value || STATE.examConfig?.subjectId || 0) || null;
+    const mode = String(document.getElementById('fc-mode-select')?.value || 'all');
+    const sub = (STATE.subjects || []).find((s) => Number(s.id) === sid);
+    const curIdx = Number(STATE.flashcards.index || 0);
+    const draftObj = {
+      progress_type: 'flashcard',
+      draft_key: `flashcard_sub${sid || 0}_${normalizeDraftSlug(mode, 16)}`,
+      subject_id: sid,
+      chapter_tag: mode,
+      title: `Thẻ nhớ: ${sub ? sub.name : 'Môn học'}`,
+      current_index: curIdx,
+      total_items: cards.length,
+      answered_count: Math.min(cards.length, curIdx + 1),
+      payload: {
+        subjectId: sid,
+        mode,
+        currentIndex: curIdx,
+        flipped: !!STATE.flashcards.flipped,
+        orderIds: cards.map((c) => c.id)
+      }
+    };
+    saveProgressDraft(draftObj, { syncServer: false });
+    clearTimeout(fcSyncTimer);
+    fcSyncTimer = setTimeout(() => saveProgressDraft(draftObj, { syncServer: true }), delayMs);
+  }
+
+  function scheduleTutorDraftSync(delayMs = 900) {
+    const hist = typeof floatingTutorChatHistory !== 'undefined' && Array.isArray(floatingTutorChatHistory)
+      ? floatingTutorChatHistory
+      : Array.isArray(window.TUTOR_CHAT_HISTORY)
+      ? window.TUTOR_CHAT_HISTORY
+      : [];
+    const subId = Number(document.getElementById('tutor-subject-select')?.value || STATE.examConfig?.subjectId || 0) || null;
+    if (!hist.length) return;
+    const draftObj = {
+      progress_type: 'tutor',
+      draft_key: 'tutor_shared_history',
+      subject_id: subId,
+      chapter_tag: 'shared',
+      title: 'Hội thoại AI Gia Sư',
+      current_index: hist.length,
+      total_items: hist.length,
+      answered_count: hist.length,
+      payload: {
+        subjectId: subId,
+        persona: STATE.tutorPersona || 'professor',
+        history: hist.slice(-40)
+      }
+    };
+    saveProgressDraft(draftObj, { syncServer: false });
+    clearTimeout(tutorSyncTimer);
+    tutorSyncTimer = setTimeout(() => saveProgressDraft(draftObj, { syncServer: true }), delayMs);
+  }
+
+  // --- Resume Restoration ---
+  async function resumeSavedDraft(draftKey) {
+    const acc = getProgressAccountId();
+    let draft = normalizeDraftRecord(readLocalDraftMap(acc)[draftKey]);
+    if (!draft && !STATE?.isOfflineStandalone) {
+      try {
+        const res = await apiFetch(`/api/progress/${encodeURIComponent(draftKey)}?account_id=${encodeURIComponent(acc)}`);
+        if (res?.draft) draft = normalizeDraftRecord(res.draft);
+      } catch (_) {}
+    }
+    if (!draft) {
+      showToast('Không tìm thấy bản nháp cần khôi phục.', 'warning');
+      return;
+    }
+
+    const p = draft.payload || {};
+
+    if (draft.progress_type === 'essay') {
+      if (typeof switchTab === 'function') switchTab('essay');
+      if (typeof loadEssayView === 'function') await loadEssayView();
+      const pid = p.promptId || draft.chapter_tag;
+      if (pid) {
+        STATE.essay.currentPromptId = pid;
+        STATE.essay.drafts = STATE.essay.drafts || {};
+        if (typeof p.text === 'string') STATE.essay.drafts[pid] = p.text;
+        const sel = document.getElementById('essay-prompt-select');
+        if (sel) sel.value = pid;
+        if (typeof loadSelectedEssayPrompt === 'function') loadSelectedEssayPrompt();
+        const ta = document.getElementById('essay-student-input');
+        if (ta && typeof p.text === 'string') ta.value = p.text;
+        if (typeof updateEssayLivePreview === 'function') _origUpdateEssayLivePreview?.();
+      }
+      showToast(`✍️ Đã khôi phục bài tự luận "${draft.title}"`, 'success');
+      return;
+    }
+
+    if (draft.progress_type === 'code') {
+      if (typeof switchTab === 'function') switchTab('exercises');
+      const sel = document.getElementById('exercise-subject-select');
+      if (sel && p.subjectId) sel.value = String(p.subjectId);
+      if (typeof loadExercisesView === 'function') await loadExercisesView();
+      const exList = STATE.exercises?.list || [];
+      const idx = exList.findIndex((e) => String(e.id) === String(p.exerciseId));
+      if (idx >= 0) {
+        STATE.exercises.userCode = STATE.exercises.userCode || {};
+        if (typeof p.code === 'string') STATE.exercises.userCode[p.exerciseId] = p.code;
+        if (typeof selectExercise === 'function') selectExercise(idx);
+        const ed = document.getElementById('code-editor-textarea');
+        if (ed && typeof p.code === 'string') ed.value = p.code;
+      }
+      showToast(`💻 Đã khôi phục bài code "${draft.title}"`, 'success');
+      return;
+    }
+
+    if (draft.progress_type === 'flashcard') {
+      if (typeof switchTab === 'function') switchTab('flashcards');
+      const fcSel = document.getElementById('fc-subject-select');
+      const fcMode = document.getElementById('fc-mode-select');
+      if (fcSel && p.subjectId) fcSel.value = String(p.subjectId);
+      if (fcMode && p.mode) fcMode.value = String(p.mode);
+      if (typeof loadFlashcardsView === 'function') await _origLoadFlashcardsView?.();
+      const cards = STATE.flashcards?.cards || [];
+      if (Array.isArray(p.orderIds) && p.orderIds.length && cards.length) {
+        const byId = new Map(cards.map((c) => [String(c.id), c]));
+        const reordered = p.orderIds.map((id) => byId.get(String(id))).filter(Boolean);
+        const used = new Set(reordered.map((c) => String(c.id)));
+        cards.forEach((c) => { if (!used.has(String(c.id))) reordered.push(c); });
+        STATE.flashcards.cards = reordered;
+      }
+      if (STATE.flashcards.cards.length) {
+        STATE.flashcards.index = Math.min(Math.max(0, Number(p.currentIndex || 0)), STATE.flashcards.cards.length - 1);
+        STATE.flashcards.flipped = !!p.flipped;
+        if (typeof renderCurrentFlashcard === 'function') _origRenderCurrentFlashcard?.();
+      }
+      showToast(`🗂️ Đã khôi phục Thẻ nhớ tại thẻ ${Number(p.currentIndex || 0) + 1}`, 'success');
+      return;
+    }
+
+    if (draft.progress_type === 'tutor') {
+      const targetHist = typeof floatingTutorChatHistory !== 'undefined' ? floatingTutorChatHistory : window.TUTOR_CHAT_HISTORY;
+      if (Array.isArray(p.history) && p.history.length && Array.isArray(targetHist)) {
+        targetHist.length = 0;
+        targetHist.push(...p.history);
+        window.TUTOR_CHAT_HISTORY = targetHist;
+        if (typeof _origSaveSharedTutorHistory === 'function') _origSaveSharedTutorHistory();
+        if (typeof renderSharedTutorHistory === 'function') renderSharedTutorHistory();
+      }
+      if (typeof openFloatingTutor === 'function') openFloatingTutor();
+      return;
+    }
+
+    // --- Exam Resume ---
+    const sid = Number(p.subjectId || draft.subject_id || STATE.examConfig?.subjectId || 0);
+    const qIds = Array.isArray(p.question_ids) ? p.question_ids : [];
+    if (!qIds.length) {
+      showToast('Bản nháp đề thi không có danh sách câu hỏi hợp lệ.', 'warning');
+      return;
+    }
+
+    showToast('⏳ Đang khôi phục đề thi đang làm dở...', 'info');
+    let pool = [];
+    if (sid && Number(STATE.examConfig?.subjectId) === sid && Array.isArray(STATE.examConfig.subjectAllQuestions) && STATE.examConfig.subjectAllQuestions.length) {
+      pool = STATE.examConfig.subjectAllQuestions;
+    }
+    const haveSet = new Set(pool.map((q) => String(q.id)));
+    const needsFetch = qIds.some((id) => !haveSet.has(String(id)));
+    if (needsFetch && sid) {
+      try {
+        const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+        if (Array.isArray(res?.questions) && res.questions.length) {
+          pool = res.questions;
+          STATE.examConfig.subjectAllQuestions = pool;
+          STATE.examConfig.subjectId = sid;
+        }
+      } catch (_) {}
+    }
+
+    // Fallback search across offline DB (questions_by_subject) or other subjects if question pack spans subjects
+    let poolMap = new Map((pool || []).map((q) => [String(q.id), q]));
+    if (qIds.some((id) => !poolMap.has(String(id))) && window.__UNIMASTER_OFFLINE_DB__) {
+      const qBySub = window.__UNIMASTER_OFFLINE_DB__.questions_by_subject || {};
+      Object.values(qBySub).forEach((arr) => {
+        if (Array.isArray(arr)) {
+          arr.forEach((q) => {
+            if (q && !poolMap.has(String(q.id))) poolMap.set(String(q.id), q);
+          });
+        }
+      });
+      if (Array.isArray(window.__UNIMASTER_OFFLINE_DB__.questions)) {
+        window.__UNIMASTER_OFFLINE_DB__.questions.forEach((q) => {
+          if (q && !poolMap.has(String(q.id))) poolMap.set(String(q.id), q);
+        });
+      }
+    }
+    if (qIds.some((id) => !poolMap.has(String(id))) && Array.isArray(STATE?.subjects)) {
+      for (const s of STATE.subjects) {
+        if (Number(s.id) === sid) continue;
+        try {
+          const extra = await apiFetch(`/api/subjects/${s.id}/questions?type=all`);
+          (extra?.questions || []).forEach((q) => {
+            if (!poolMap.has(String(q.id))) poolMap.set(String(q.id), q);
+          });
+          if (!qIds.some((id) => !poolMap.has(String(id)))) break;
+        } catch (_) {}
+      }
+    }
+
+    const optOrders = p.option_orders || {};
+    const prepared = [];
+    for (const qid of qIds) {
+      const origQ = poolMap.get(String(qid));
+      if (!origQ) continue;
+      const cloned = JSON.parse(JSON.stringify(origQ));
+      const perm = optOrders[qid] || optOrders[String(qid)];
+      if (Array.isArray(perm) && perm.length >= 2) {
+        const origVals = {
+          A: cloned.option_a,
+          B: cloned.option_b,
+          C: cloned.option_c,
+          D: cloned.option_d
+        };
+        if (perm[0]) cloned.option_a = origVals[perm[0]];
+        if (perm[1]) cloned.option_b = origVals[perm[1]];
+        if (perm[2] !== undefined) cloned.option_c = origVals[perm[2]];
+        if (perm[3] !== undefined) cloned.option_d = origVals[perm[3]];
+      }
+      const mappedCorrect = p.correctMap?.[cloned.id] ?? p.correctMap?.[String(cloned.id)];
+      const effCorr =
+        mappedCorrect ??
+        cloned._effectiveCorrect ??
+        (typeof normalizeCorrectLetter === 'function' ? normalizeCorrectLetter(cloned) : cloned.correct_option) ??
+        'A';
+      cloned._effectiveCorrect = effCorr;
+      prepared.push(cloned);
+    }
+
+    if (!prepared.length) {
+      showToast('Không thể tải lại câu hỏi của bản nháp này.', 'error');
+      return;
+    }
+
+    // Restore bookmarks (Array) & notes scoped to these questions
+    if (Array.isArray(p.flagged)) {
+      if (!Array.isArray(STATE.bookmarks)) STATE.bookmarks = [];
+      p.flagged.forEach((id) => {
+        if (!STATE.bookmarks.includes(id)) STATE.bookmarks.push(id);
+      });
+      try {
+        localStorage.setItem('unimaster_bookmarks', JSON.stringify(STATE.bookmarks));
+      } catch (_) {}
+    }
+    if (p.notes && typeof p.notes === 'object') {
+      STATE.notes = STATE.notes || {};
+      Object.entries(p.notes).forEach(([k, v]) => {
+        if (v) STATE.notes[k] = v;
+      });
+    }
+
+    // Switch to Exam view cleanly before populating active screen
+    if (typeof switchTab === 'function') switchTab('exam');
+    const examSel = document.getElementById('exam-subject-select');
+    if (examSel && sid) examSel.value = String(sid);
+
+    clearInterval(STATE.exam.timerId);
+    clearTimeout(examSyncTimer);
+    examSyncTimer = null;
+    recentlyDiscardedKeys.delete(draft.draft_key);
+    const curIndex = Math.min(Math.max(0, Number(p.currentIndex ?? draft.current_index ?? 0)), prepared.length - 1);
+
+    Object.assign(STATE.exam, {
+      active: true,
+      _discarded: false,
+      paused: false,
+      subjectId: sid || STATE.exam.subjectId,
+      subjectName: String(p.examTitle || draft.title || 'Phòng thi'),
+      mode: String(p.mode || 'practice'),
+      questions: prepared,
+      currentIndex: curIndex,
+      answers: { ...(p.answers || {}) },
+      graded: { ...(p.graded || {}) },
+      correctMap: { ...(p.correctMap || {}) },
+      eliminated: { ...(p.eliminated || {}) },
+      essayGrades: { ...(p.essayGrades || {}) },
+      paletteFilter: 'all',
+      lastResult: null,
+      hints: {},
+      concepts: {},
+      mnemonics: {},
+      deepAnalysis: {},
+      similarQuiz: {},
+      mistakeDiagnosis: {},
+      customQa: {},
+      durationSeconds: Number(p.durationSeconds ?? 0),
+      remainingSeconds: Number(p.timeLeft ?? p.durationSeconds ?? 0),
+      elapsedSeconds: Number(p.elapsedSeconds ?? 0),
+      streak: Number(p.streak || 0),
+      maxStreak: Number(p.maxStreak || 0),
+      blitzLives: p.blitzLives ?? 3,
+      blitzScore: Number(p.blitzScore || 0),
+      timerId: null,
+      draftKey: draft.draft_key,
+      chapterTag: String(p.chapterTag || draft.chapter_tag || ''),
+      startedAt: p.startedAt || new Date().toISOString(),
+      _optionOrders: optOrders
+    });
+
+    // Ensure correctMap and _effectiveCorrect stay aligned for every question
+    prepared.forEach((q) => {
+      if (STATE.exam.correctMap[q.id] == null) {
+        STATE.exam.correctMap[q.id] = q._effectiveCorrect;
+      } else {
+        q._effectiveCorrect = STATE.exam.correctMap[q.id];
+      }
+    });
+
+    document.getElementById('exam-config-screen')?.classList.add('hidden');
+    document.getElementById('exam-result-screen')?.classList.add('hidden');
+    document.getElementById('exam-pause-overlay')?.classList.add('hidden');
+    document.getElementById('exam-question-stage')?.classList.remove('exam-paused-blur');
+    document.getElementById('exam-active-screen')?.classList.remove('hidden');
+
+    if (typeof setText === 'function') {
+      setText('active-exam-title', STATE.exam.subjectName);
+      setText('total-q-num', prepared.length);
+    } else {
+      const activeTitle = document.getElementById('active-exam-title');
+      if (activeTitle) activeTitle.textContent = STATE.exam.subjectName;
+      const totalQEl = document.getElementById('total-q-num');
+      if (totalQEl) totalQEl.textContent = String(prepared.length);
+    }
+
+    if (typeof renderPaletteGrid === 'function') renderPaletteGrid();
+    if (typeof renderCurrentExamQuestion === 'function') _origRenderCurrentExamQuestion?.();
+    if (typeof startExamTimerLoop === 'function') _origStartExamTimerLoop?.();
+
+    lastSavedExamIndex = curIndex;
+    lastTimedSyncBucket = Math.floor((STATE.exam.elapsedSeconds || 0) / 5);
+    playSound('start');
+    showToast(`▶ Tiếp tục từ Câu ${curIndex + 1}/${prepared.length}!`, 'success');
+  }
+  window.resumeSavedDraft = resumeSavedDraft;
+
+  window.restartChapterDraft = async function (chap, sid, key, draftKey) {
+    if (draftKey) await discardProgressDraft(draftKey, { silent: true });
+    if (typeof startCustomLessonRange === 'function') {
+      startCustomLessonRange(chap, sid, key);
+    }
+  };
+
+  // --- Resume UI Rendering ("Đang Làm Dở — Tiếp Tục Ngay") ---
+  function ensureResumeContainers() {
+    const dash = document.getElementById('view-dashboard');
+    if (dash && !document.getElementById('dashboard-resume-panel')) {
+      const panel = document.createElement('div');
+      panel.id = 'dashboard-resume-panel';
+      panel.className = 'hidden';
+      const firstCard = dash.firstElementChild;
+      if (firstCard) firstCard.insertAdjacentElement('afterend', panel);
+      else dash.prepend(panel);
+    }
+    const examCfg = document.getElementById('exam-config-screen');
+    if (examCfg && !document.getElementById('exam-resume-panel')) {
+      const panel = document.createElement('div');
+      panel.id = 'exam-resume-panel';
+      panel.className = 'hidden';
+      examCfg.prepend(panel);
+    }
+  }
+
+  function renderResumePanelMarkup(drafts, context = 'dashboard') {
+    const typeMeta = {
+      exam: { icon: '📝', label: 'Phòng thi', badge: 'badge-brand' },
+      essay: { icon: '✍️', label: 'Tự luận', badge: 'badge-amber' },
+      code: { icon: '💻', label: 'Thực hành Code', badge: 'badge-cyan' },
+      flashcard: { icon: '🗂️', label: 'Thẻ nhớ', badge: 'badge-emerald' }
+    };
+    const visible = drafts.filter((d) => d.progress_type !== 'tutor');
+    if (!visible.length) return '';
+
+    const itemsHtml = visible
+      .slice(0, context === 'dashboard' ? 4 : 6)
+      .map((d) => {
+        const meta = typeMeta[d.progress_type] || typeMeta.exam;
+        const p = d.payload || {};
+        const total = Math.max(1, Number(d.total_items || p.totalQuestions || 1));
+        const curPos = d.progress_type === 'exam' || d.progress_type === 'flashcard'
+          ? Math.min(total, Math.max(1, Number(d.current_index || 0) + 1))
+          : 1;
+        const answered = Math.max(0, Number(d.answered_count || 0));
+        const pct = d.progress_type === 'exam'
+          ? Math.min(100, Math.round((Math.max(answered, curPos) / total) * 100))
+          : d.progress_type === 'flashcard'
+          ? Math.min(100, Math.round((curPos / total) * 100))
+          : 50;
+
+        const progressSummary = d.progress_type === 'exam'
+          ? `Câu ${curPos}/${total} • Đã trả lời ${answered}/${total} (${pct}%)`
+          : d.progress_type === 'flashcard'
+          ? `Thẻ ${curPos}/${total} (${pct}%)`
+          : d.progress_type === 'essay'
+          ? `Nháp tự luận • ${(p.text || '').length} ký tự`
+          : `Nháp code • ${(p.code || '').split('\n').length} dòng`;
+
+        const timeChips = [];
+        if (d.progress_type === 'exam') {
+          if (Number(p.elapsedSeconds || 0) > 0 && typeof formatDuration === 'function') {
+            timeChips.push(`⏱️ Đã làm ${formatDuration(p.elapsedSeconds)}`);
+          }
+          if (Number(p.durationSeconds || 0) > 0 && typeof formatDuration === 'function') {
+            timeChips.push(`⏳ Còn ${formatDuration(Math.max(0, p.timeLeft ?? 0))}`);
+          }
+        }
+        timeChips.push(`🕒 ${formatDraftUpdatedLabel(d.updated_at_ms)}`);
+
+        const safeKeyJs = escapeHtml(d.draft_key).replace(/'/g, '&#39;');
+        return `
+          <div class="resume-draft-item p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="space-y-1.5 min-w-0 flex-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="${meta.badge} text-[10px] px-2 py-0.5 rounded-full font-extrabold shrink-0">${meta.icon} ${meta.label}</span>
+                <span class="font-extrabold text-xs sm:text-sm txt-main truncate">${escapeHtml(d.title)}</span>
+              </div>
+              <div class="flex items-center justify-between gap-2 text-[11px] font-bold txt-sub">
+                <span>${escapeHtml(progressSummary)}</span>
+                <span class="font-mono txt-brand">${pct}%</span>
+              </div>
+              <div class="resume-progress-track">
+                <div class="resume-progress-fill" style="width: ${pct}%"></div>
+              </div>
+              <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-[10px] txt-muted font-semibold">
+                ${timeChips.map((c) => `<span>${escapeHtml(c)}</span>`).join('')}
+              </div>
+            </div>
+            <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
+              <button type="button" onclick="resumeSavedDraft('${safeKeyJs}')" class="btn-primary px-3.5 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm">
+                ▶ Tiếp tục ngay
+              </button>
+              <button type="button" onclick="discardProgressDraftUI('${safeKeyJs}')" class="btn-soft px-2.5 py-2 text-xs txt-rose font-bold whitespace-nowrap" title="Xóa nháp">
+                🗑️ Xóa nháp
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+
+    return `
+      <div class="uni-card resume-panel-card p-4 sm:p-5 space-y-3 animate-fade-in">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📌</span>
+            <div>
+              <h3 class="text-sm sm:text-base font-black txt-main leading-tight">Đang Làm Dở — Tiếp Tục Ngay</h3>
+              <p class="text-[11px] txt-muted font-semibold">Tiến trình được tự động lưu đồng bộ trên máy &amp; Server cho tài khoản <span class="txt-brand font-bold">${escapeHtml(getProgressAccountId())}</span></p>
+            </div>
+          </div>
+          <span class="badge-brand text-[11px] px-2.5 py-0.5 rounded-full font-extrabold">${visible.length} phiên đang lưu</span>
+        </div>
+        <div class="space-y-2.5">${itemsHtml}</div>
+      </div>
+    `;
+  }
+
+  function renderResumePanels() {
+    ensureResumeContainers();
+    const drafts = listAllDrafts(getProgressAccountId()).filter((d) => d.progress_type !== 'tutor');
+    ['dashboard-resume-panel', 'exam-resume-panel'].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const html = renderResumePanelMarkup(drafts, id.startsWith('dashboard') ? 'dashboard' : 'exam');
+      if (html) {
+        el.innerHTML = html;
+        el.classList.remove('hidden');
+      } else {
+        el.innerHTML = '';
+        el.classList.add('hidden');
+      }
+    });
+  }
+  window.renderResumePanels = renderResumePanels;
+
+  function decodeHtmlEntities(str) {
+    return String(str || '')
+      .replace(/&#0*39;|&#x0*27;/gi, "'")
+      .replace(/&quot;/gi, '"')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&amp;/gi, '&');
+  }
+
+  function decorateChapterDraftCards() {
+    const container = document.getElementById('exam-parts-grid');
+    if (!container) return;
+    const sid = Number(document.getElementById('exam-subject-select')?.value || STATE.examConfig?.subjectId || 0);
+
+    // 1. Discover & tag CTUMP Bài 2-6 / KST 45-topic rows in #exam-parts-grid
+    container.querySelectorAll('button[onclick*="startCustomLessonRange("]').forEach((btn) => {
+      if (btn.closest('.dyn-chap-resume, .dyn-chap-restart, .dyn-chap-trash')) return;
+      const card = btn.closest('.rounded-xl') || btn.closest('div.p-2\\.5, div.p-3');
+      if (!card) return;
+      if (!card.hasAttribute('data-chapter-tag')) {
+        const oc = btn.getAttribute('onclick') || '';
+        const m = oc.match(/startCustomLessonRange\(\s*'((?:\\'|[^'])*)'\s*,\s*(\d+)(?:\s*,\s*'([^']*)')?\s*\)/);
+        if (!m) return;
+        const chap = decodeHtmlEntities(m[1].replace(/\\([\\'])/g, '$1'));
+        const cardSid = Number(m[2] || sid);
+        const rangeKey = m[3] ? String(m[3]) : '';
+        card.setAttribute('data-chapter-tag', chap);
+        card.setAttribute('data-subject-id', String(cardSid));
+        if (rangeKey) card.setAttribute('data-range-key', rangeKey);
+        card.classList.add('chapter-card-item');
+      }
+      if (!btn.hasAttribute('data-orig-chap-btn')) {
+        btn.setAttribute('data-orig-chap-btn', '1');
+      }
+    });
+
+    // 2. Synchronize every tagged chapter card (YDS 18, CTUMP Bài 2-6, KST 45) idempotently
+    container.querySelectorAll('.chapter-card-item[data-chapter-tag]').forEach((card) => {
+      const chap = card.getAttribute('data-chapter-tag') || '';
+      if (!chap) return;
+      const cardSid = Number(card.getAttribute('data-subject-id') || sid);
+      const rangeKey = card.getAttribute('data-range-key') || null;
+
+      card.querySelectorAll('.dyn-chap-badge, .dyn-chap-resume, .dyn-chap-restart, .dyn-chap-trash').forEach((el) => el.remove());
+
+      const origBtn = card.querySelector('[data-orig-chap-btn="1"]');
+      const draft = getChapterExamDraft(cardSid, chap);
+      if (!draft) {
+        card.classList.remove('has-draft');
+        if (origBtn) origBtn.classList.remove('hidden');
+        return;
+      }
+
+      card.classList.add('has-draft');
+      const total = Math.max(1, draft.total_items || 1);
+      const curPos = Math.min(Math.max(1, (draft.current_index || 0) + 1), total);
+      const badge = document.createElement('span');
+      badge.className = 'badge-brand px-2 py-0.5 rounded-full text-[10px] font-extrabold shrink-0 dyn-chap-badge';
+      badge.textContent = `Đang dở: Câu ${curPos}/${total}`;
+      const titleArea = card.firstElementChild || card;
+      titleArea.classList.add('flex-wrap', 'min-w-0', 'flex-1');
+      titleArea.appendChild(badge);
+
+      if (origBtn && origBtn.parentElement) {
+        const actionWrap = origBtn.parentElement;
+        actionWrap.classList.add('flex-wrap');
+        origBtn.classList.add('hidden');
+
+        const resBtn = document.createElement('button');
+        resBtn.type = 'button';
+        resBtn.className = 'btn-primary px-2.5 py-1 text-xs font-extrabold shrink-0 dyn-chap-resume';
+        resBtn.textContent = '▶ Tiếp tục';
+        resBtn.onclick = () => resumeSavedDraft(draft.draft_key);
+
+        const restartBtn = document.createElement('button');
+        restartBtn.type = 'button';
+        restartBtn.className = 'btn-soft px-2.5 py-1 text-xs font-bold shrink-0 dyn-chap-restart';
+        restartBtn.textContent = 'Làm lại';
+        restartBtn.onclick = () => restartChapterDraft(chap, cardSid, rangeKey, draft.draft_key);
+
+        const trashBtn = document.createElement('button');
+        trashBtn.type = 'button';
+        trashBtn.className = 'btn-soft px-2 py-1 text-xs txt-rose shrink-0 dyn-chap-trash';
+        trashBtn.title = 'Xóa nháp chương này';
+        trashBtn.textContent = '🗑️';
+        trashBtn.onclick = () => discardProgressDraftUI(draft.draft_key);
+
+        actionWrap.insertBefore(resBtn, origBtn);
+        actionWrap.insertBefore(restartBtn, origBtn);
+        actionWrap.insertBefore(trashBtn, origBtn);
+      }
+    });
+  }
+  window.decorateChapterDraftCards = decorateChapterDraftCards;
+
+  // --- Hook Existing Lifecycle & Exam / Study Functions ---
+  const _origApiFetch = typeof apiFetch === 'function' ? apiFetch : null;
+  if (_origApiFetch) {
+    apiFetch = async function (url, options = {}) {
+      // Preserve Content-Type: application/json whenever custom headers like X-Account-Id are attached
+      if (options && options.headers && typeof options.body === 'string' && !options.headers['Content-Type'] && !options.headers['content-type']) {
+        options = { ...options, headers: { 'Content-Type': 'application/json', ...options.headers } };
+      }
+      // Automatically include active draft_key & account_id on exam submission for atomic server cleanup
+      if ((url === '/api/exam/submit' || url === '/api/timed-exam/submit') && options.body && typeof options.body === 'string') {
+        try {
+          const parsed = JSON.parse(options.body);
+          if (!parsed.account_id) parsed.account_id = getProgressAccountId();
+          if (!parsed.draft_key && url === '/api/exam/submit' && STATE?.exam?.draftKey) {
+            parsed.draft_key = STATE.exam.draftKey;
+          }
+          options = { ...options, body: JSON.stringify(parsed) };
+        } catch (_) {}
+      }
+      return _origApiFetch(url, options);
+    };
+  }
+
+  const _origHandleStandaloneOfflineApi = typeof handleStandaloneOfflineApi === 'function' ? handleStandaloneOfflineApi : null;
+  if (_origHandleStandaloneOfflineApi) {
+    handleStandaloneOfflineApi = async function (url, options = {}) {
+      const path = String(url || '').split('?')[0];
+      const method = String(options?.method || 'GET').toUpperCase();
+      let body = {};
+      if (options?.body && typeof options.body === 'string') {
+        try { body = JSON.parse(options.body); } catch (_) {}
+      }
+
+      if (path === '/api/progress' && method === 'GET') {
+        const qs = String(url || '').includes('?') ? new URLSearchParams(String(url).split('?')[1]) : new URLSearchParams();
+        const acc = qs.get('account_id') || getProgressAccountId();
+        const pType = qs.get('progress_type');
+        const subFilter = qs.get('subject_id');
+        let drafts = listAllDrafts(acc, pType || null);
+        if (subFilter) drafts = drafts.filter((d) => String(d.subject_id) === String(subFilter));
+        return { success: true, account_id: acc, drafts };
+      }
+
+      if (path.startsWith('/api/progress/') && path !== '/api/progress/delete' && method === 'GET') {
+        const draftKey = decodeURIComponent(path.replace('/api/progress/', ''));
+        const qs = String(url || '').includes('?') ? new URLSearchParams(String(url).split('?')[1]) : new URLSearchParams();
+        const acc = qs.get('account_id') || getProgressAccountId();
+        const d = readLocalDraftMap(acc)[draftKey];
+        if (!d) return { success: false, error: 'Not found' };
+        return { success: true, draft: normalizeDraftRecord(d) };
+      }
+
+      if (path === '/api/progress' && method === 'POST') {
+        const saved = await saveProgressDraft(body, { syncServer: false });
+        return { success: true, draft: saved };
+      }
+
+      if ((path === '/api/progress/delete' && method === 'POST') || (path.startsWith('/api/progress/') && method === 'DELETE')) {
+        const qs = String(url || '').includes('?') ? new URLSearchParams(String(url).split('?')[1]) : new URLSearchParams();
+        const acc = body.account_id || qs.get('account_id') || getProgressAccountId();
+        const draftKey = body.draft_key || (path.startsWith('/api/progress/') ? decodeURIComponent(path.replace('/api/progress/', '')) : '');
+        if (draftKey) {
+          const map = readLocalDraftMap(acc);
+          const existed = Boolean(map[draftKey]);
+          delete map[draftKey];
+          writeLocalDraftMap(map, acc);
+          return { success: true, deleted: existed, account_id: acc, draft_key: draftKey };
+        }
+        return { success: true, deleted: false, account_id: acc, draft_key: '' };
+      }
+
+      if ((path === '/api/exam/submit' || path === '/api/timed-exam/submit') && body.draft_key) {
+        const acc = body.account_id || getProgressAccountId();
+        const map = readLocalDraftMap(acc);
+        delete map[body.draft_key];
+        writeLocalDraftMap(map, acc);
+      }
+
+      if (path === '/api/ai/keys' && method === 'GET') {
+        const pool = getBrowserGeminiKeyPool();
+        const maskedList = pool.map((k, idx) => ({
+          id: `offline_${idx + 1}`,
+          index: idx + 1,
+          label: `Offline Key #${idx + 1}`,
+          provider: 'gemini',
+          key_type: k.startsWith('AQ.') ? 'aistudio_aq' : 'google_aiza',
+          masked_key: k.length > 11 ? `${k.slice(0, 7)}••••${k.slice(-4)}` : '••••',
+          status: 'ready',
+          is_enabled: true,
+          calls: 0,
+          failovers: 0,
+          cooldown_remaining: 0,
+          model: 'gemini-2.5-flash',
+          latency_ms: null,
+          last_error: ''
+        }));
+        const offRouterKey = localStorage.getItem('unimaster_offline_openai_key') || '';
+        const offBase = localStorage.getItem('unimaster_openai_base') || 'http://127.0.0.1:20128/v1';
+        const offModel = localStorage.getItem('unimaster_openai_model') || 'All';
+        const offPrio = localStorage.getItem('unimaster_ai_priority') || 'gemini_first';
+        const maskedRouter = offRouterKey.length > 9 ? `${offRouterKey.slice(0, 5)}••••${offRouterKey.slice(-4)}` : (offRouterKey ? '••••' : '');
+        const routerMeta = {
+          has_key: Boolean(offRouterKey),
+          masked_key: maskedRouter,
+          base_url: offBase,
+          model: offModel,
+          priority: offPrio,
+          provider_label: offBase.includes('fosta') ? 'FOSTA Codex' : (offBase.includes('20128') ? '9Router Local' : 'Gateway Offline'),
+          is_local: /127\.0\.0\.1|localhost/.test(offBase),
+          status: offRouterKey ? 'ready' : 'unconfigured',
+          latency_ms: null,
+          last_error: ''
+        };
+        return {
+          success: true,
+          secured_on_server: false,
+          offline_mode: true,
+          has_gemini_key: pool.length > 0,
+          total_count: pool.length,
+          ready_count: pool.length,
+          active_count: pool.length,
+          cooldown_count: 0,
+          invalid_count: 0,
+          disabled_count: 0,
+          masked_key: maskedList[0]?.masked_key || '',
+          keys: maskedList,
+          pool: maskedList,
+          router: routerMeta,
+          openai: routerMeta
+        };
+      }
+
+      if (path === '/api/ai/keys/add' && method === 'POST') {
+        const raw = String(body.keys || body.api_keys || body.key || '');
+        const parsed = raw.split(/[\r\n,;]+/).map((s) => s.trim()).filter((k) => k.startsWith('AIza') || k.startsWith('AQ.'));
+        const existing = getBrowserGeminiKeyPool();
+        const existingSet = new Set(existing);
+        const added = parsed.filter((k) => !existingSet.has(k));
+        const merged = [...existing, ...added];
+        localStorage.setItem('unimaster_offline_gemini_keys', JSON.stringify(merged));
+        if (merged[0]) localStorage.setItem('unimaster_offline_gemini_key', merged[0]);
+        return {
+          success: added.length > 0 || parsed.length > 0,
+          added_count: added.length,
+          duplicate_count: parsed.length - added.length,
+          rejected_count: 0,
+          total_count: merged.length,
+          ready_count: merged.length,
+          message: `Đã lưu ${added.length} key vào Offline Sandbox.`
+        };
+      }
+
+      if ((path === '/api/ai/keys/delete' && method === 'POST') || (path.startsWith('/api/ai/keys/') && method === 'DELETE')) {
+        const idx = Number(body.index || path.split('/').pop() || 0) - 1;
+        const existing = getBrowserGeminiKeyPool();
+        if (idx >= 0 && idx < existing.length) existing.splice(idx, 1);
+        localStorage.setItem('unimaster_offline_gemini_keys', JSON.stringify(existing));
+        return { success: true, total_count: existing.length, ready_count: existing.length };
+      }
+
+      if (path === '/api/ai/keys/toggle' && method === 'POST') {
+        return { success: true, is_enabled: body.enabled !== false };
+      }
+
+      if (path === '/api/ai/9router' && method === 'POST') {
+        if (body.clear_key) localStorage.removeItem('unimaster_offline_openai_key');
+        else if (body.api_key) localStorage.setItem('unimaster_offline_openai_key', String(body.api_key).trim());
+        if (body.base_url) localStorage.setItem('unimaster_openai_base', String(body.base_url).trim());
+        if (body.model) localStorage.setItem('unimaster_openai_model', String(body.model).trim());
+        if (body.priority) localStorage.setItem('unimaster_ai_priority', String(body.priority));
+        return { success: true, message: 'Đã cập nhật cấu hình Gateway chế độ Offline.' };
+      }
+
+      if ((path === '/api/ai/test_9router' || path === '/api/ai/test-9router' || path === '/api/ai/test-openai') && method === 'POST') {
+        const k = String(body.api_key || body.key || localStorage.getItem('unimaster_offline_openai_key') || '').trim();
+        const bUrl = String(body.base_url || localStorage.getItem('unimaster_openai_base') || 'http://127.0.0.1:20128/v1').replace(/\/$/, '');
+        if (!k) return { success: false, message: 'Chưa nhập API Key Gateway.' };
+        const t0 = performance.now();
+        try {
+          const resp = await _nativeFetchOrRaw(`${bUrl}/models`, {
+            headers: { Authorization: `Bearer ${k}` }
+          });
+          const lat = Math.round(performance.now() - t0);
+          if (!resp.ok) return { success: false, message: `HTTP ${resp.status} từ ${bUrl}` };
+          const d = await resp.json().catch(() => ({}));
+          const avail = Array.isArray(d.data) ? d.data.map((m) => m.id).filter(Boolean).slice(0, 20) : [];
+          return {
+            success: true,
+            provider: '9router',
+            model: body.model || localStorage.getItem('unimaster_openai_model') || 'All',
+            base_url: bUrl,
+            masked_key: k.length > 9 ? `${k.slice(0, 5)}••••${k.slice(-4)}` : '••••',
+            latency_ms: lat,
+            available_models: avail,
+            message: 'Kết nối Gateway thành công!'
+          };
+        } catch (err) {
+          return { success: false, message: err.message || 'Không kết nối được Gateway' };
+        }
+      }
+
+      if (path === '/api/ai/tutor-assist' && method === 'POST') {
+        return handleStandaloneOfflineApi('/api/ai/chat', options);
+      }
+
+      if (path === '/api/ai/history' && method === 'GET') {
+        const qs = String(url || '').includes('?') ? new URLSearchParams(String(url).split('?')[1]) : new URLSearchParams();
+        const acc = qs.get('account_id') || getTutorAccountIdSafe();
+        const sessions = readLocalTutorSessions(acc);
+        return {
+          success: true,
+          account_id: acc,
+          sessions,
+          active_count: sessions.filter((s) => !s.is_archived).length,
+          archived_count: sessions.filter((s) => s.is_archived).length,
+          total_count: sessions.length
+        };
+      }
+
+      if (path === '/api/ai/history' && method === 'POST') {
+        return { success: true, session: { session_id: body.session_id || currentTutorSessionId } };
+      }
+
+      if (path === '/api/ai/history/archive' && method === 'POST') {
+        return { success: true, updated_count: 1, is_archived: !body.restore };
+      }
+
+      if ((path.startsWith('/api/ai/history/') && method === 'DELETE') || (path === '/api/ai/history/delete' && method === 'POST')) {
+        return { success: true, deleted: true };
+      }
+
+      if ((path === '/api/ai/test_keys' || path === '/api/ai/test-all-keys') && method === 'POST') {
+        const pool = getBrowserGeminiKeyPool();
+        const results = [];
+        for (let i = 0; i < pool.length; i++) {
+          const k = pool[i];
+          const masked = k.length > 11 ? `${k.slice(0, 7)}••••${k.slice(-4)}` : '••••';
+          const t0 = performance.now();
+          let ok = false;
+          let status = 'invalid';
+          let err = '';
+          let modelUsed = 'gemini-3.1-flash-lite';
+          try {
+            const resp = await _nativeFetchOrRaw(`https://generativelanguage.googleapis.com/v1beta/models/${modelUsed}:generateContent`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'x-goog-api-key': k },
+              body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: 'ping' }] }], generationConfig: { maxOutputTokens: 4 } })
+            });
+            if (resp.ok) {
+              ok = true;
+              status = 'active';
+            } else if (resp.status === 429) {
+              status = 'cooldown';
+              err = 'HTTP 429 Quota';
+            } else {
+              err = `HTTP ${resp.status}`;
+            }
+          } catch (e) {
+            err = e.message || 'Network error';
+          }
+          results.push({
+            index: i + 1,
+            label: `Offline Key #${i + 1}`,
+            masked_key: masked,
+            key_type: k.startsWith('AQ.') ? 'aistudio_aq' : 'google_aiza',
+            ok,
+            success: ok,
+            status,
+            model: modelUsed,
+            latency_ms: Math.round(performance.now() - t0),
+            message: ok ? 'OK' : err,
+            error: err
+          });
+        }
+        const okCount = results.filter((r) => r.ok).length;
+        return {
+          success: okCount > 0,
+          total_count: results.length,
+          active_count: okCount,
+          ready_count: okCount,
+          results,
+          keys: results,
+          pool: results,
+          message: results.length ? `${okCount}/${results.length} Offline Key hoạt động` : 'Chưa nhập Offline Key nào'
+        };
+      }
+
+      return _origHandleStandaloneOfflineApi(url, options);
+    };
+  }
+
+  async function _nativeFetchOrRaw(u, opt) {
+    return window.fetch(u, opt);
+  }
+
+  // Wrap startCustomLessonRange so chapter cards get exact deterministic draftKey + chapterTag
+  if (typeof startCustomLessonRange === 'function') {
+    const _origStartCustomLessonRange = startCustomLessonRange;
+    startCustomLessonRange = function (prefix, sid, explicitKey = null) {
+      const targetSid = Number(sid || document.getElementById('exam-subject-select')?.value || STATE.examConfig?.subjectId || 0);
+      const pendingMeta = {
+        draftKey: makeChapterDraftKey(targetSid, prefix),
+        chapterTag: String(prefix || ''),
+        subjectId: targetSid
+      };
+      activePendingMeta = pendingMeta;
+      try {
+        const res = _origStartCustomLessonRange(prefix, sid, explicitKey);
+        if (res && typeof res.finally === 'function') {
+          return res.finally(() => {
+            if (activePendingMeta === pendingMeta) activePendingMeta = null;
+          });
+        }
+        if (activePendingMeta === pendingMeta) activePendingMeta = null;
+        return res;
+      } catch (err) {
+        if (activePendingMeta === pendingMeta) activePendingMeta = null;
+        throw err;
+      }
+    };
+  }
+
+  // Wrap launchExamWithQuestions to capture exact question_ids + option_a..d permutation & save immediately
+  if (typeof launchExamWithQuestions === 'function') {
+    const _origLaunchExamWithQuestions = launchExamWithQuestions;
+    launchExamWithQuestions = function (rawQuestions, title, forceNoShuffle = false) {
+      clearTimeout(examSyncTimer);
+      examSyncTimer = null;
+      const meta = activePendingMeta;
+      activePendingMeta = null;
+
+      const preOptionSlots = new Map();
+      (rawQuestions || []).forEach((q) => {
+        if (q && (q.option_a !== undefined || q.option_b !== undefined || q.option_c !== undefined || q.option_d !== undefined)) {
+          preOptionSlots.set(String(q.id), [
+            ['A', String(q.option_a ?? '')],
+            ['B', String(q.option_b ?? '')],
+            ['C', String(q.option_c ?? '')],
+            ['D', String(q.option_d ?? '')]
+          ]);
+        }
+      });
+
+      isLaunchingExam = true;
+      lastSavedExamIndex = 0;
+      let ret;
+      try {
+        ret = _origLaunchExamWithQuestions(rawQuestions, title, forceNoShuffle);
+      } finally {
+        isLaunchingExam = false;
+      }
+
+      if (STATE?.exam?.active && Array.isArray(STATE.exam.questions)) {
+        const optionOrders = {};
+        STATE.exam.questions.forEach((pq) => {
+          const origEntries = preOptionSlots.get(String(pq.id));
+          if (origEntries && (pq.option_a !== undefined || pq.option_b !== undefined)) {
+            const usedOrigLetters = new Set();
+            optionOrders[pq.id] = ['A', 'B', 'C', 'D'].map((slot) => {
+              const curText = String(pq['option_' + slot.toLowerCase()] ?? '');
+              const match = origEntries.find(([origL, origT]) => !usedOrigLetters.has(origL) && origT === curText);
+              const chosen = match ? match[0] : slot;
+              usedOrigLetters.add(chosen);
+              return chosen;
+            });
+          }
+        });
+
+        const sid = Number(meta?.subjectId || STATE.exam.subjectId || STATE.examConfig?.subjectId || 0);
+        STATE.exam.subjectId = sid || STATE.exam.subjectId;
+        STATE.exam.chapterTag = meta?.chapterTag || '';
+        STATE.exam.draftKey = meta?.draftKey || makeExamDraftKey(sid, title, STATE.exam.mode);
+        STATE.exam._discarded = false;
+        STATE.exam.startedAt = new Date().toISOString();
+        STATE.exam._optionOrders = optionOrders;
+        recentlyDiscardedKeys.delete(STATE.exam.draftKey);
+        lastSavedExamIndex = Number(STATE.exam.currentIndex || 0);
+        lastTimedSyncBucket = 0;
+
+        saveActiveExamDraftNow({ syncServer: true });
+      }
+      return ret;
+    };
+  }
+
+  // Hook option picks, text input, bookmark, note, navigation, pause, study break
+  if (typeof selectExamOption === 'function') {
+    const _orig = selectExamOption;
+    selectExamOption = function (letter, fromKeyboard = false) {
+      const res = _orig(letter, fromKeyboard);
+      if (STATE?.exam?.active) scheduleExamDraftSync(250);
+      return res;
+    };
+  }
+  if (typeof onTextAnswerInput === 'function') {
+    const _orig = onTextAnswerInput;
+    onTextAnswerInput = function (val) {
+      const res = _orig(val);
+      if (STATE?.exam?.active) scheduleExamDraftSync(500);
+      return res;
+    };
+  }
+  if (typeof confirmTextAnswer === 'function') {
+    const _orig = confirmTextAnswer;
+    confirmTextAnswer = function () {
+      const res = _orig();
+      if (STATE?.exam?.active) scheduleExamDraftSync(200);
+      return res;
+    };
+  }
+  if (typeof toggleBookmarkCurrent === 'function') {
+    const _orig = toggleBookmarkCurrent;
+    toggleBookmarkCurrent = function () {
+      const res = _orig();
+      if (STATE?.exam?.active) scheduleExamDraftSync(200);
+      return res;
+    };
+  }
+  if (typeof toggleBookmarkById === 'function') {
+    const _orig = toggleBookmarkById;
+    toggleBookmarkById = function (qid) {
+      const res = _orig(qid);
+      if (STATE?.exam?.active) scheduleExamDraftSync(200);
+      return res;
+    };
+  }
+  if (typeof saveCurrentNote === 'function') {
+    const _orig = saveCurrentNote;
+    saveCurrentNote = function () {
+      const res = _orig();
+      if (STATE?.exam?.active) scheduleExamDraftSync(250);
+      return res;
+    };
+  }
+  if (typeof prevQuestion === 'function') {
+    const _orig = prevQuestion;
+    prevQuestion = function () {
+      const res = _orig();
+      if (STATE?.exam?.active) scheduleExamDraftSync(250);
+      return res;
+    };
+  }
+  if (typeof nextQuestion === 'function') {
+    const _orig = nextQuestion;
+    nextQuestion = function () {
+      const res = _orig();
+      if (STATE?.exam?.active) scheduleExamDraftSync(250);
+      return res;
+    };
+  }
+  if (typeof jumpToInputQuestion === 'function') {
+    const _orig = jumpToInputQuestion;
+    jumpToInputQuestion = function () {
+      const res = _orig();
+      if (STATE?.exam?.active) scheduleExamDraftSync(250);
+      return res;
+    };
+  }
+  if (typeof togglePauseExam === 'function') {
+    const _orig = togglePauseExam;
+    togglePauseExam = function () {
+      const res = _orig();
+      if (STATE?.exam?.active) saveActiveExamDraftNow({ syncServer: true });
+      return res;
+    };
+  }
+  if (typeof openModal === 'function') {
+    const _origOpenModal = openModal;
+    openModal = function (id) {
+      if (id === 'modal-study-break' && STATE?.exam?.active) {
+        saveActiveExamDraftNow({ syncServer: true });
+      }
+      return _origOpenModal(id);
+    };
+  }
+
+  // Catch direct palette button jumps & timer ticks cleanly
+  let _origRenderCurrentExamQuestion = null;
+  if (typeof renderCurrentExamQuestion === 'function') {
+    _origRenderCurrentExamQuestion = renderCurrentExamQuestion;
+    renderCurrentExamQuestion = function () {
+      const res = _origRenderCurrentExamQuestion();
+      if (
+        !isLaunchingExam &&
+        STATE?.exam?.active &&
+        !STATE.exam._discarded &&
+        STATE.exam.draftKey &&
+        !recentlyDiscardedKeys.has(STATE.exam.draftKey) &&
+        Number(STATE.exam.currentIndex || 0) !== lastSavedExamIndex
+      ) {
+        scheduleExamDraftSync(250);
+      }
+      return res;
+    };
+  }
+
+  let _origStartExamTimerLoop = null;
+  if (typeof startExamTimerLoop === 'function') {
+    _origStartExamTimerLoop = startExamTimerLoop;
+    startExamTimerLoop = function () {
+      return _origStartExamTimerLoop();
+    };
+  }
+
+  // Throttled 5s auto-save monitor while actively taking an exam
+  setInterval(() => {
+    if (
+      !isLaunchingExam &&
+      STATE?.exam?.active &&
+      !STATE.exam._discarded &&
+      !STATE.exam.paused &&
+      STATE.exam.draftKey &&
+      !recentlyDiscardedKeys.has(STATE.exam.draftKey)
+    ) {
+      const bucket = Math.floor(Number(STATE.exam.elapsedSeconds || 0) / 5);
+      if (bucket !== lastTimedSyncBucket) {
+        lastTimedSyncBucket = bucket;
+        saveActiveExamDraftNow({ syncServer: true });
+      }
+    }
+  }, 1000);
+
+  // Save draft on Exit (keep draft intact) & Clean up on Submit
+  if (typeof confirmExitExam === 'function') {
+    const _origConfirmExitExam = confirmExitExam;
+    confirmExitExam = async function () {
+      if (STATE?.exam?.active && !STATE.exam._discarded) {
+        await saveActiveExamDraftNow({ syncServer: true });
+      }
+      const res = await _origConfirmExitExam();
+      renderResumePanels();
+      decorateChapterDraftCards();
+      return res;
+    };
+  }
+
+  if (typeof submitExamNow === 'function') {
+    const _origSubmitExamNow = submitExamNow;
+    submitExamNow = async function (auto = false) {
+      const draftKey = STATE?.exam?.draftKey;
+      clearTimeout(examSyncTimer);
+      examSyncTimer = null;
+      if (draftKey) recentlyDiscardedKeys.add(draftKey);
+      const res = await _origSubmitExamNow(auto);
+      if (draftKey && !STATE?.exam?.active) {
+        await discardProgressDraft(draftKey, { silent: true });
+      } else if (draftKey && STATE?.exam?.active) {
+        recentlyDiscardedKeys.delete(draftKey);
+      }
+      return res;
+    };
+  }
+
+  // Hook Essay, Code, Flashcard & AI Tutor auto-save/restore
+  let _origUpdateEssayLivePreview = null;
+  if (typeof updateEssayLivePreview === 'function') {
+    _origUpdateEssayLivePreview = updateEssayLivePreview;
+    updateEssayLivePreview = function () {
+      const res = _origUpdateEssayLivePreview();
+      scheduleEssayDraftSync(600);
+      return res;
+    };
+  }
+  if (typeof loadSelectedEssayPrompt === 'function') {
+    const _orig = loadSelectedEssayPrompt;
+    loadSelectedEssayPrompt = function () {
+      hydrateSecondaryDraftsIntoState();
+      return _orig();
+    };
+  }
+  if (typeof loadEssayView === 'function') {
+    const _orig = loadEssayView;
+    loadEssayView = async function () {
+      const r = await _orig();
+      hydrateSecondaryDraftsIntoState();
+      return r;
+    };
+  }
+  if (typeof clearEssayInput === 'function') {
+    const _orig = clearEssayInput;
+    clearEssayInput = function () {
+      const pid = STATE?.essay?.currentPromptId;
+      const r = _orig();
+      if (pid) discardProgressDraft(`essay_${pid}`, { silent: true });
+      return r;
+    };
+  }
+
+  if (typeof saveCurrentCodeDebounced === 'function') {
+    const _orig = saveCurrentCodeDebounced;
+    saveCurrentCodeDebounced = function () {
+      const r = _orig();
+      scheduleCodeDraftSync(600);
+      return r;
+    };
+  }
+  if (typeof loadExercisesView === 'function') {
+    const _orig = loadExercisesView;
+    loadExercisesView = async function () {
+      const r = await _orig();
+      hydrateSecondaryDraftsIntoState();
+      const ex = STATE?.exercises?.list?.[STATE.exercises.selectedIndex || 0];
+      const ed = document.getElementById('code-editor-textarea');
+      if (ex && ed && STATE.exercises.userCode?.[ex.id] && ed.value !== STATE.exercises.userCode[ex.id]) {
+        ed.value = STATE.exercises.userCode[ex.id];
+      }
+      return r;
+    };
+  }
+  if (typeof selectExercise === 'function') {
+    const _orig = selectExercise;
+    selectExercise = function (idx) {
+      hydrateSecondaryDraftsIntoState();
+      return _orig(idx);
+    };
+  }
+
+  let _origLoadFlashcardsView = null;
+  let _origRenderCurrentFlashcard = null;
+  if (typeof loadFlashcardsView === 'function') {
+    _origLoadFlashcardsView = loadFlashcardsView;
+    loadFlashcardsView = async function () {
+      const res = await _origLoadFlashcardsView();
+      const sid = Number(document.getElementById('fc-subject-select')?.value || STATE.examConfig?.subjectId || 0);
+      const mode = String(document.getElementById('fc-mode-select')?.value || 'all');
+      const key = `flashcard_sub${sid || 0}_${normalizeDraftSlug(mode, 16)}`;
+      const draft = normalizeDraftRecord(readLocalDraftMap()[key]);
+      if (draft && STATE?.flashcards?.cards?.length) {
+        const p = draft.payload || {};
+        if (Array.isArray(p.orderIds) && p.orderIds.length) {
+          const byId = new Map(STATE.flashcards.cards.map((c) => [String(c.id), c]));
+          const reordered = p.orderIds.map((id) => byId.get(String(id))).filter(Boolean);
+          const used = new Set(reordered.map((c) => String(c.id)));
+          STATE.flashcards.cards.forEach((c) => { if (!used.has(String(c.id))) reordered.push(c); });
+          STATE.flashcards.cards = reordered;
+        }
+        STATE.flashcards.index = Math.min(Math.max(0, Number(p.currentIndex || 0)), STATE.flashcards.cards.length - 1);
+        STATE.flashcards.flipped = !!p.flipped;
+        if (_origRenderCurrentFlashcard) _origRenderCurrentFlashcard();
+      }
+      return res;
+    };
+  }
+  if (typeof renderCurrentFlashcard === 'function') {
+    _origRenderCurrentFlashcard = renderCurrentFlashcard;
+    renderCurrentFlashcard = function () {
+      const r = _origRenderCurrentFlashcard();
+      scheduleFlashcardDraftSync(500);
+      return r;
+    };
+  }
+  if (typeof shuffleFlashcards === 'function') {
+    const _orig = shuffleFlashcards;
+    shuffleFlashcards = function () {
+      const r = _orig();
+      scheduleFlashcardDraftSync(250);
+      return r;
+    };
+  }
+  if (typeof prevFlashcard === 'function') {
+    const _orig = prevFlashcard;
+    prevFlashcard = function () {
+      const r = _orig();
+      scheduleFlashcardDraftSync(350);
+      return r;
+    };
+  }
+  if (typeof nextFlashcard === 'function') {
+    const _orig = nextFlashcard;
+    nextFlashcard = function () {
+      const r = _orig();
+      scheduleFlashcardDraftSync(350);
+      return r;
+    };
+  }
+
+  let _origSaveSharedTutorHistory = null;
+  if (typeof saveSharedTutorHistory === 'function') {
+    _origSaveSharedTutorHistory = saveSharedTutorHistory;
+    saveSharedTutorHistory = function () {
+      const r = _origSaveSharedTutorHistory();
+      scheduleTutorDraftSync(900);
+      return r;
+    };
+  }
+  if (typeof clearFloatingTutorChat === 'function') {
+    const _orig = clearFloatingTutorChat;
+    clearFloatingTutorChat = function () {
+      const r = _orig();
+      discardProgressDraft('tutor_shared_history', { silent: true });
+      return r;
+    };
+  }
+  if (typeof clearTutorChat === 'function') {
+    const _orig = clearTutorChat;
+    clearTutorChat = function () {
+      const r = _orig();
+      discardProgressDraft('tutor_shared_history', { silent: true });
+      return r;
+    };
+  }
+
+  // Hook Dashboard, Exam Subject Change, Switch Tab, Account Switching
+  if (typeof renderDashboard === 'function') {
+    const _orig = renderDashboard;
+    renderDashboard = function () {
+      const r = _orig();
+      renderResumePanels();
+      return r;
+    };
+  }
+  if (typeof onExamSubjectChange === 'function') {
+    const _orig = onExamSubjectChange;
+    onExamSubjectChange = async function () {
+      const r = await _orig();
+      renderResumePanels();
+      decorateChapterDraftCards();
+      return r;
+    };
+  }
+  if (typeof switchTab === 'function') {
+    const _orig = switchTab;
+    switchTab = function (tabName) {
+      const r = _orig(tabName);
+      if (tabName === 'dashboard' || tabName === 'exam') {
+        renderResumePanels();
+        if (tabName === 'exam') decorateChapterDraftCards();
+      }
+      return r;
+    };
+  }
+  if (typeof switchActiveAccount === 'function') {
+    const _orig = switchActiveAccount;
+    switchActiveAccount = function (accountId) {
+      const r = _orig(accountId);
+      syncProgressDraftsFromServer();
+      tutorSessionsCache = readLocalTutorSessions(accountId);
+      const act = tutorSessionsCache.find((s) => !s.is_archived);
+      currentTutorSessionId = act ? act.session_id : generateTutorSessionId();
+      floatingTutorChatHistory = act ? act.messages : [];
+      renderActiveTutorMessages();
+      updateTutorSessionsBadges();
+      syncTutorSessionsFromServer();
+      return r;
+    };
+  }
+  if (typeof fetchCurrentUserProfile === 'function') {
+    const _orig = fetchCurrentUserProfile;
+    fetchCurrentUserProfile = async function () {
+      const r = await _orig();
+      syncProgressDraftsFromServer();
+      return r;
+    };
+  }
+
+  // Lifecycle flush (visibilitychange / pagehide / beforeunload)
+  function flushAllPendingProgress() {
+    if (STATE?.exam?.active) {
+      saveActiveExamDraftNow({ syncServer: true, keepalive: true });
+    }
+    if (STATE?.currentTab === 'essay' && STATE?.essay?.currentPromptId) {
+      const text = String(document.getElementById('essay-student-input')?.value || '');
+      if (text.trim()) {
+        saveProgressDraft(
+          {
+            progress_type: 'essay',
+            draft_key: `essay_${STATE.essay.currentPromptId}`,
+            chapter_tag: STATE.essay.currentPromptId,
+            title: `Tự luận: ${STATE.essay.currentPromptId}`,
+            payload: { promptId: STATE.essay.currentPromptId, text }
+          },
+          { syncServer: true, keepalive: true }
+        );
+      }
+    }
+    if (STATE?.currentTab === 'exercises' && STATE?.exercises?.list?.length) {
+      const ex = STATE.exercises.list[STATE.exercises.selectedIndex || 0];
+      const code = String(document.getElementById('code-editor-textarea')?.value || '');
+      if (ex && code.trim()) {
+        const sid = Number(document.getElementById('exercise-subject-select')?.value || 0) || null;
+        saveProgressDraft(
+          {
+            progress_type: 'code',
+            draft_key: `code_sub${sid || 0}_ex${ex.id}`,
+            subject_id: sid,
+            chapter_tag: String(ex.id),
+            title: `Code: ${ex.title || 'Bài #' + ex.id}`,
+            payload: { subjectId: sid, exerciseId: ex.id, title: ex.title, language: ex.language, code }
+          },
+          { syncServer: true, keepalive: true }
+        );
+      }
+    }
+  }
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') flushAllPendingProgress();
+  });
+  window.addEventListener('pagehide', flushAllPendingProgress);
+  window.addEventListener('beforeunload', flushAllPendingProgress);
+
+  // =========================================================================
+  // SECURE SERVER GEMINI + 9ROUTER KEY UI (ZERO PLAINTEXT SERVER KEY EXPOSURE)
+  // =========================================================================
+  function isOfflineSandboxAllowed() {
+    return Boolean(STATE?.isOfflineStandalone || window.__UNIMASTER_PC_OFF__ || localStorage.getItem('unimaster_ai_offline_sandbox') === '1');
+  }
+
+  getBrowserGeminiKeyPool = function getBrowserGeminiKeyPool() {
+    if (!isOfflineSandboxAllowed()) return [];
+    const keys = [];
+    try {
+      const arr = JSON.parse(localStorage.getItem('unimaster_offline_gemini_keys') || '[]');
+      if (Array.isArray(arr)) keys.push(...arr);
+    } catch (_) {}
+    const single = localStorage.getItem('unimaster_offline_gemini_key');
+    if (single) keys.push(single);
+    return [...new Set(keys.map((k) => String(k || '').trim()).filter(Boolean))];
+  };
+  window.getBrowserGeminiKeyPool = getBrowserGeminiKeyPool;
+
+  renderApiKeyPoolList = function renderApiKeyPoolList(data, overrideResults = null) {
+    const listEl = document.getElementById('api-pool-list');
+    if (!listEl) return;
+    const rawPool = Array.isArray(overrideResults)
+      ? overrideResults
+      : Array.isArray(data?.keys)
+      ? data.keys
+      : Array.isArray(data?.pool)
+      ? data.pool
+      : [];
+    const isOffline = Boolean(data?.offline_mode || STATE?.isOfflineStandalone);
+
+    if (!rawPool.length) {
+      listEl.innerHTML = `
+        <div class="p-3 rounded-xl border text-xs txt-muted text-center" style="background-color: var(--bg-subtle); border-color: var(--border);">
+          ${isOffline ? 'Chưa nhập Offline Key cá nhân nào trong Sandbox.' : 'Chưa gắn Gemini Key nào trên Server. Hãy dán Key vào ô phía trên để gắn an toàn!'}
+        </div>
+      `;
+      return;
+    }
+
+    listEl.innerHTML = rawPool
+      .map((item, idx) => {
+        const indexNum = Number(item.index || idx + 1);
+        const label = escapeHtml(item.label || `Key #${indexNum}`);
+        const maskedRaw = String(item.masked_key || item.masked || '••••');
+        const masked = escapeHtml(maskedRaw);
+        const keyTypeLabel = item.key_type === 'aistudio_aq' ? 'AI Studio AQ' : 'Google API';
+        const status = String(item.status || (item.ok ? 'active' : 'ready')).toLowerCase();
+        const isDisabled = status === 'disabled' || item.is_enabled === false;
+        const isOk = !isDisabled && (item.ok === true || status === 'active' || status === 'ready');
+        const isCooldown = !isDisabled && status === 'cooldown';
+
+        const statusBadgeClass = isDisabled ? 'badge-soft' : (isOk ? 'badge-emerald' : isCooldown ? 'badge-amber' : 'badge-rose');
+        const statusText = isDisabled
+          ? '⏸ Đã tắt'
+          : (item.ok === true || status === 'active'
+            ? '🟢 Hoạt động'
+            : status === 'ready'
+            ? '🟢 Hoạt động'
+            : isCooldown
+            ? `⏳ Quota (${item.cooldown_remaining || 0}s)`
+            : '🔴 Lỗi');
+
+        const metaBits = [];
+        if (item.model) metaBits.push(`Model: ${escapeHtml(item.model)}`);
+        if (item.latency_ms != null) metaBits.push(`⚡ ${Number(item.latency_ms)}ms`);
+        if (Number(item.calls || 0) > 0) metaBits.push(`${item.calls} lượt`);
+        if (Number(item.failovers || 0) > 0) metaBits.push(`${item.failovers} failover`);
+        const errText = item.last_error || item.error || (!isOk && !isDisabled && item.message ? item.message : '');
+
+        const toggleBtn = !isOffline
+          ? `<button type="button" onclick="toggleServerGeminiKey(${indexNum}, ${isDisabled ? 'true' : 'false'})" class="btn-soft px-2 py-0.5 text-[10px] font-bold" title="${isDisabled ? 'Bật lại key này' : 'Tạm tắt key này'}">${isDisabled ? '▶ Bật' : '⏸ Tắt'}</button>`
+          : '';
+        const deleteBtn = isOffline
+          ? `<button type="button" onclick="removeApiKeyFromPool(${idx})" class="btn-soft px-2 py-0.5 text-[10px] txt-rose font-bold" title="Xóa Key offline này">🗑️</button>`
+          : `<button type="button" onclick="deleteServerGeminiKey(${indexNum}, '${escapeHtml(maskedRaw)}')" class="btn-soft px-2 py-0.5 text-[10px] txt-rose font-bold" title="Gỡ Key này khỏi Server">🗑️</button>`;
+
+        return `
+          <div class="p-2.5 rounded-xl border flex flex-col gap-1.5" style="background-color: var(--bg-subtle); border-color: var(--border); opacity: ${isDisabled ? '0.68' : '1'};">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div class="flex items-center gap-2 min-w-0 flex-wrap">
+                <span class="text-xs font-extrabold txt-main">${label}</span>
+                <code class="px-2 py-0.5 rounded text-[11px] font-mono font-bold txt-brand" style="background-color: var(--bg-surface); border: 1px solid var(--border);">${masked}</code>
+                <span class="badge-soft text-[10px] px-1.5 py-0.5 rounded font-bold">${keyTypeLabel}</span>
+              </div>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="${statusBadgeClass} text-[10px] px-2 py-0.5 rounded-full font-extrabold">${statusText}</span>
+                ${toggleBtn}
+                ${deleteBtn}
+              </div>
+            </div>
+            ${(metaBits.length || errText) ? `
+              <div class="flex items-center justify-between gap-2 flex-wrap text-[10px] txt-muted">
+                <span>${metaBits.join(' • ')}</span>
+                ${errText ? `<span class="txt-rose font-semibold">${escapeHtml(errText)}</span>` : ''}
+              </div>
+            ` : ''}
+          </div>
+        `;
+      })
+      .join('');
+  };
+  window.renderApiKeyPoolList = renderApiKeyPoolList;
+
+  function _syncRouterSettingsMeta(router) {
+    if (!router || typeof router !== 'object') return;
+    const maskEl = document.getElementById('openai-current-mask');
+    const pillEl = document.getElementById('openai-status-pill');
+    const baseInp = document.getElementById('cfg-openai-base');
+    const modelInp = document.getElementById('cfg-openai-model');
+    const prioSel = document.getElementById('cfg-ai-priority');
+    const keyInp = document.getElementById('cfg-openai-key');
+
+    if (baseInp && !baseInp.value && router.base_url) baseInp.value = router.base_url;
+    if (modelInp && router.model) modelInp.value = router.model;
+    if (prioSel && router.priority) prioSel.value = router.priority;
+
+    // Never write a raw secret into #cfg-openai-key.value — only update placeholder & masked status badge
+    if (keyInp) {
+      keyInp.value = '';
+      keyInp.placeholder = router.masked_key
+        ? `Đang gắn: ${router.masked_key} (nhập mới nếu muốn đổi)`
+        : 'Dán API Key 9Router / FOSTA / OpenAI...';
+    }
+    if (maskEl) {
+      maskEl.textContent = router.has_key
+        ? `🔒 Đang gắn: ${router.masked_key || 'sk-••••'} • ${router.provider_label || 'Gateway'} (${router.model || 'All'})`
+        : 'Chưa gắn API Key 9Router / Gateway trên Server';
+    }
+    if (pillEl) {
+      const st = String(router.status || '').toLowerCase();
+      if (st === 'active' || (router.has_key && st === 'ready')) {
+        pillEl.className = 'badge-emerald text-xs px-2.5 py-1 rounded-full font-bold';
+        pillEl.textContent = router.latency_ms != null ? `🟢 Hoạt động (${router.latency_ms}ms)` : '🟢 Sẵn sàng';
+      } else if (st === 'error' || st === 'invalid') {
+        pillEl.className = 'badge-rose text-xs px-2.5 py-1 rounded-full font-bold';
+        pillEl.textContent = '🔴 Cần kiểm tra lại';
+      } else {
+        pillEl.className = 'badge-soft text-xs px-2.5 py-1 rounded-full font-bold';
+        pillEl.textContent = router.has_key ? '🟡 Đã gắn — Chưa ping' : '⚪ Chưa gắn Key';
+      }
+    }
+  }
+
+  checkApiKeyStatus = async function checkApiKeyStatus() {
+    const maskEl = document.getElementById('api-current-mask');
+    const pillEl = document.getElementById('api-status-pill');
+    const secBadge = document.getElementById('api-server-security-badge');
+    const bannerEl = document.getElementById('api-mode-banner');
+    const sandboxChk = document.getElementById('cfg-offline-sandbox-mode');
+    const sandboxWrap = document.getElementById('api-offline-local-inputs');
+
+    const sandboxOn = localStorage.getItem('unimaster_ai_offline_sandbox') === '1';
+    if (sandboxChk) sandboxChk.checked = sandboxOn;
+    if (sandboxWrap) sandboxWrap.classList.toggle('hidden', !sandboxOn && !STATE?.isOfflineStandalone);
+
+    try {
+      const data = await apiFetch('/api/ai/keys');
+      const total = Number(data?.total_count ?? (data?.keys || data?.pool || []).length ?? 0);
+      const ready = Number(data?.ready_count ?? data?.active_count ?? 0);
+      const cooldown = Number(data?.cooldown_count ?? 0);
+      const securedOnServer = Boolean(data?.secured_on_server && !data?.offline_mode && !STATE?.isOfflineStandalone);
+
+      if (secBadge) {
+        if (securedOnServer) {
+          secBadge.className = ready > 0 ? 'badge-emerald text-[11px] px-2.5 py-0.5 rounded-full font-extrabold' : 'badge-amber text-[11px] px-2.5 py-0.5 rounded-full font-extrabold';
+          secBadge.textContent = `🔒 Bảo mật trên Server • ${ready}/${total} key sẵn sàng`;
+        } else {
+          secBadge.className = 'badge-soft text-[11px] px-2.5 py-0.5 rounded-full font-extrabold';
+          secBadge.textContent = `📴 Sandbox Offline • ${ready}/${total} key cục bộ`;
+        }
+      }
+
+      if (maskEl) {
+        const firstMask = data?.masked_key || data?.keys?.[0]?.masked_key || '';
+        maskEl.textContent = total > 0
+          ? `Key chính: ${firstMask} • Tổng ${total} key (${ready} sẵn sàng${cooldown ? `, ${cooldown} đang hồi` : ''})`
+          : 'Chưa gắn Gemini API Key nào';
+      }
+
+      if (pillEl) {
+        if (ready > 0) {
+          pillEl.className = 'badge-emerald text-xs px-3 py-1 rounded-full font-bold';
+          pillEl.textContent = `Hoạt động (${ready}/${total})`;
+        } else if (cooldown > 0) {
+          pillEl.className = 'badge-amber text-xs px-3 py-1 rounded-full font-bold';
+          pillEl.textContent = `Đang hồi quota (${cooldown}/${total})`;
+        } else {
+          pillEl.className = 'badge-rose text-xs px-3 py-1 rounded-full font-bold';
+          pillEl.textContent = total > 0 ? `Cần kiểm tra (0/${total})` : 'Chưa có Key';
+        }
+      }
+
+      if (bannerEl) {
+        bannerEl.classList.remove('hidden');
+        if (securedOnServer) {
+          bannerEl.className = 'p-3 rounded-xl text-xs leading-relaxed font-semibold badge-emerald';
+          bannerEl.innerHTML = '🔒 <strong>Bảo mật tuyệt đối:</strong> Toàn bộ API Key nằm an toàn trên Server. Giao diện chỉ hiển thị dạng che dấu (<code>AQ.Ab8R••••8qRg</code>) và tự động xóa sạch ô nhập ngay sau khi lưu.';
+        } else {
+          bannerEl.className = 'p-3 rounded-xl text-xs leading-relaxed font-semibold badge-amber';
+          bannerEl.innerHTML = '📴 <strong>Chế độ Offline HTML:</strong> Bật Sandbox phía dưới nếu bạn muốn gắn Key Gemini/9Router chạy trực tiếp không cần Server.';
+        }
+      }
+
+      _syncRouterSettingsMeta(data?.router || data?.openai);
+      renderApiKeyPoolList(data);
+    } catch (err) {
+      if (pillEl) {
+        pillEl.className = 'badge-rose text-xs px-3 py-1 rounded-full font-bold';
+        pillEl.textContent = 'Không kiểm tra được';
+      }
+      if (maskEl) maskEl.textContent = 'Lỗi tải trạng thái Key: ' + err.message;
+    }
+  };
+  window.checkApiKeyStatus = checkApiKeyStatus;
+
+  window.addServerGeminiKeys = async function addServerGeminiKeys() {
+    const ta = document.getElementById('server-gemini-keys-input');
+    const fb = document.getElementById('api-test-feedback');
+    const btn = document.getElementById('btn-add-server-gemini-keys');
+    const autoTest = document.getElementById('gemini-add-autotest')?.checked !== false;
+    const raw = String(ta?.value || '').trim();
+
+    if (!raw) {
+      showToast('Hãy dán ít nhất 1 mã Gemini API Key (AIza... hoặc AQ.Ab8R...).', 'warning');
+      return;
+    }
+
+    if (btn) btn.disabled = true;
+    try {
+      const res = await apiFetch('/api/ai/keys/add', {
+        method: 'POST',
+        body: JSON.stringify({ keys: raw, auto_test: autoTest })
+      });
+      // SECURITY: Clear textarea value immediately so plaintext key never remains in DOM
+      if (ta) {
+        ta.value = '';
+        ta.classList.remove('is-revealed');
+      }
+      const maskBtn = document.getElementById('btn-toggle-gemini-input-mask');
+      if (maskBtn) maskBtn.textContent = '👁️ Hiện chữ khi dán';
+
+      if (fb) {
+        fb.classList.remove('hidden');
+        fb.className = res?.success ? 'text-xs p-3 rounded-xl font-bold badge-emerald' : 'text-xs p-3 rounded-xl font-bold badge-amber';
+        fb.textContent = res?.message || `Đã thêm ${res?.added_count || 0} key mới (${res?.duplicate_count || 0} trùng, ${res?.rejected_count || 0} sai định dạng).`;
+      }
+      if (res?.success) {
+        if (typeof playSound === 'function') playSound('success');
+        showToast(res.message || '🔒 Đã gắn Key Gemini vào Server an toàn!', 'success');
+      } else {
+        showToast(res?.message || res?.error || 'Không thêm được Key nào hợp lệ.', 'warning');
+      }
+      await checkApiKeyStatus();
+    } catch (err) {
+      if (ta) ta.value = '';
+      showToast('Lỗi gắn Key: ' + err.message, 'error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
+
+  window.deleteServerGeminiKey = async function deleteServerGeminiKey(indexNum, maskedLabel = '') {
+    try {
+      const res = await apiFetch('/api/ai/keys/delete', {
+        method: 'POST',
+        body: JSON.stringify({ index: Number(indexNum), masked_key: maskedLabel })
+      });
+      if (res?.success) {
+        showToast(`🗑️ Đã gỡ Key ${maskedLabel || '#' + indexNum} khỏi Server.`, 'info');
+        await checkApiKeyStatus();
+      } else {
+        showToast(res?.message || res?.error || 'Không xóa được Key.', 'warning');
+      }
+    } catch (err) {
+      showToast('Lỗi xóa Key: ' + err.message, 'error');
+    }
+  };
+
+  window.toggleServerGeminiKey = async function toggleServerGeminiKey(indexNum, enabled) {
+    try {
+      const res = await apiFetch('/api/ai/keys/toggle', {
+        method: 'POST',
+        body: JSON.stringify({ index: Number(indexNum), enabled: Boolean(enabled) })
+      });
+      if (res?.success) {
+        showToast(enabled ? `▶ Đã bật lại Key #${indexNum}.` : `⏸ Đã tạm tắt Key #${indexNum}.`, 'info');
+        await checkApiKeyStatus();
+      } else {
+        showToast(res?.message || 'Không đổi được trạng thái Key.', 'warning');
+      }
+    } catch (err) {
+      showToast('Lỗi cập nhật trạng thái Key: ' + err.message, 'error');
+    }
+  };
+
+  testAllApiKeys = async function testAllApiKeys() {
+    const btn = document.getElementById('btn-test-gemini-keys');
+    const fb = document.getElementById('api-test-feedback');
+    if (btn) btn.disabled = true;
+    if (fb) {
+      fb.classList.remove('hidden');
+      fb.className = 'text-xs p-3 rounded-xl font-bold badge-subtle';
+      fb.textContent = '⏳ Đang ping kiểm tra trực tiếp từng Key trong dàn Server...';
+    }
+    try {
+      const res = await apiFetch('/api/ai/test_keys', { method: 'POST', body: '{}' });
+      const results = Array.isArray(res?.results) ? res.results : Array.isArray(res?.keys) ? res.keys : [];
+      const total = Number(res?.total_count ?? results.length);
+      const active = Number(res?.active_count ?? res?.ready_count ?? results.filter((r) => r.ok).length);
+
+      renderApiKeyPoolList({ offline_mode: Boolean(STATE?.isOfflineStandalone) }, results);
+
+      const secBadge = document.getElementById('api-server-security-badge');
+      const pillEl = document.getElementById('api-status-pill');
+      if (secBadge && !STATE?.isOfflineStandalone) {
+        secBadge.className = active > 0 ? 'badge-emerald text-[11px] px-2.5 py-0.5 rounded-full font-extrabold' : 'badge-rose text-[11px] px-2.5 py-0.5 rounded-full font-extrabold';
+        secBadge.textContent = `🔒 Bảo mật trên Server • ${active}/${total} key sẵn sàng`;
+      }
+      if (pillEl) {
+        pillEl.className = active > 0 ? 'badge-emerald text-xs px-3 py-1 rounded-full font-bold' : 'badge-rose text-xs px-3 py-1 rounded-full font-bold';
+        pillEl.textContent = `${active}/${total} Hoạt động`;
+      }
+
+      if (fb) {
+        const latencies = results.filter((r) => r.ok && r.latency_ms != null).map((r) => Number(r.latency_ms));
+        const avgMs = latencies.length ? Math.round(latencies.reduce((a, b) => a + b, 0) / latencies.length) : null;
+        fb.classList.remove('hidden');
+        fb.className = active > 0 ? 'text-xs p-3 rounded-xl font-bold badge-emerald' : 'text-xs p-3 rounded-xl font-bold badge-rose';
+        fb.textContent = active > 0
+          ? `✅ Kiểm tra hoàn tất: ${active}/${total} Key hoạt động tốt${avgMs != null ? ` (TB ${avgMs}ms)` : ''}!`
+          : `⚠️ ${res?.message || `0/${total} Key sẵn sàng. Kiểm tra lại quota hoặc gắn thêm Key mới.`}`;
+      }
+      if (typeof playSound === 'function') playSound(active > 0 ? 'success' : 'error');
+    } catch (err) {
+      if (fb) {
+        fb.classList.remove('hidden');
+        fb.className = 'text-xs p-3 rounded-xl font-bold badge-rose';
+        fb.textContent = '✘ Lỗi kiểm tra dàn Key: ' + err.message;
+      }
+      if (typeof playSound === 'function') playSound('error');
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
+  window.testAllApiKeys = testAllApiKeys;
+
+  addApiKeysToPool = async function addApiKeysToPool() {
+    if (!isOfflineSandboxAllowed()) {
+      showToast('Hãy bật "Chế độ Sandbox Offline" trước khi lưu key cục bộ, hoặc dùng ô Mục 1 phía trên để gắn bảo mật trên Server!', 'warning');
+      return;
+    }
+    const ta = document.getElementById('api-keys-textarea');
+    const raw = String(ta?.value || '').trim();
+    if (!raw) {
+      showToast('Hãy dán ít nhất 1 API Key vào ô Sandbox Offline.', 'warning');
+      return;
+    }
+    const parsed = raw
+      .split(/[\r\n,;]+/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (!parsed.length) return;
+
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem('unimaster_offline_gemini_keys') || '[]'); } catch (_) {}
+    const merged = [...new Set([...(Array.isArray(existing) ? existing : []), ...parsed])];
+    localStorage.setItem('unimaster_offline_gemini_keys', JSON.stringify(merged));
+    if (merged[0]) localStorage.setItem('unimaster_offline_gemini_key', merged[0]);
+    if (ta) ta.value = '';
+
+    showToast(`📴 Đã lưu ${parsed.length} Key vào Offline Sandbox trình duyệt.`, 'success');
+    await checkApiKeyStatus();
+  };
+  window.addApiKeysToPool = addApiKeysToPool;
+
+  removeApiKeyFromPool = async function removeApiKeyFromPool(idx) {
+    let existing = [];
+    try { existing = JSON.parse(localStorage.getItem('unimaster_offline_gemini_keys') || '[]'); } catch (_) {}
+    if (!Array.isArray(existing)) existing = [];
+    existing.splice(Number(idx), 1);
+    localStorage.setItem('unimaster_offline_gemini_keys', JSON.stringify(existing));
+    if (existing[0]) localStorage.setItem('unimaster_offline_gemini_key', existing[0]);
+    else localStorage.removeItem('unimaster_offline_gemini_key');
+    await checkApiKeyStatus();
+  };
+  window.removeApiKeyFromPool = removeApiKeyFromPool;
+
+  clearAllApiKeys = async function clearAllApiKeys() {
+    localStorage.removeItem('unimaster_offline_gemini_keys');
+    localStorage.removeItem('unimaster_offline_gemini_key');
+    const ta = document.getElementById('api-keys-textarea');
+    if (ta) ta.value = '';
+    showToast('🗑️ Đã xóa các Offline Key lưu trên trình duyệt.', 'info');
+    await checkApiKeyStatus();
+  };
+  window.clearAllApiKeys = clearAllApiKeys;
+
+  // Boot sequence: hydrate local drafts synchronously, then sync & merge with server
+  document.addEventListener('DOMContentLoaded', () => {
+    ensureResumeContainers();
+    hydrateSecondaryDraftsIntoState();
+    renderResumePanels();
+    decorateChapterDraftCards();
+    syncProgressDraftsFromServer();
+  });
+})();

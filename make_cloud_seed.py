@@ -25,6 +25,9 @@ SECRET_SETTING_KEYS = (
     "openai_api_key",
     "openai_base_url",
     "openai_model",
+    "router_api_key",
+    "router_base_url",
+    "router_model",
     "ai_provider_priority",
     "user_sync_state",
 )
@@ -33,10 +36,15 @@ SECRET_SETTING_KEYS = (
 PERSONAL_TABLES = (
     "users",
     "user_states",
+    "login_events",
     "exam_results",
     "mistake_notebook",
     "question_discussions",
     "archived_history",
+    "study_progress",
+    "ai_api_keys",
+    "ai_chat_sessions",
+    "tutor_chats",
 )
 
 

@@ -3,8 +3,13 @@ __pycache__/
 tools/
 *.log
 .env
+.env.*
+!.env.example
 online_password.txt
 online_tunnel.json
+telegram_token.txt
+*.bak
+*.tmp
 # Cổng AI 9Router: secret, PID và URL tunnel chỉ lưu trên máy, tuyệt đối không commit
 ai_gateway_secret.txt
 ai_gateway.pid
@@ -14,9 +19,13 @@ ai_gateway_cloudflared.log
 # Dữ liệu cá nhân có chứa API Key — KHÔNG đưa lên GitHub. Cloud dùng seed/unimaster_seed.db (đã gỡ key)
 unimaster.db
 unimaster.db-journal
+unimaster.db-wal
+unimaster.db-shm
 
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 
 # Ngoại lệ: bản seed đã làm sạch (không key, không tài khoản) dùng để khởi tạo
 # database trên Render. Bắt buộc phải commit để bản deploy có đủ 12 môn + ngân hàng đề.

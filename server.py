@@ -33,6 +33,9 @@ import seed_hoasinh_ctump
 import extensions
 import code_engine
 
+# Ensure .env is loaded even if imported outside __main__
+db.load_env_file()
+
 # Cloud hosts (Render / Railway / Fly.io / Hugging Face) inject PORT; fallback 8080 for local PC
 PORT = int(os.environ.get("PORT", "8080"))
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
@@ -43,12 +46,15 @@ STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
 # Không đặt -> chạy chế độ nội bộ (PC / Wi-Fi gia đình) như cũ.
 # ==========================================
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "").strip()
+REQUIRE_AUTH = os.environ.get("REQUIRE_AUTH", "").strip().lower() in ("1", "true", "yes", "on")
+AUTH_ENABLED = bool(APP_PASSWORD or REQUIRE_AUTH)
 SESSION_COOKIE = "um_session"
 SESSION_DAYS = 30
 _SESSION_KEY = hashlib.sha256(
-    (os.environ.get("SESSION_SECRET", "") + "|" + APP_PASSWORD + "|unimaster-v7").encode("utf-8")
+    (os.environ.get("SESSION_SECRET", "") + "|" + (APP_PASSWORD or os.environ.get("REQUIRE_AUTH", "")) + "|unimaster-v7").encode("utf-8")
 ).digest()
 _LOGIN_FAILS = {}  # ip -> [fail_count, locked_until]
+_RATE_LIMIT_BUCKETS = {}  # (bucket, ip) -> [timestamps]
 AUTH_EXEMPT_PATHS = {
     "/login", "/api/login", "/api/auth/login", "/api/auth/register",
     "/manifest.json", "/icon.svg", "/healthz",
@@ -138,6 +144,38 @@ def _note_user_activity(request, user_info):
         print(f"⚠️ Không ghi được hoạt động người dùng: {exc}")
 
 
+def _check_rate_limit(request, bucket: str = "ai_test", limit: int = 15, window_sec: int = 60) -> tuple[bool, int]:
+    """Sliding-window rate limiter per (bucket, ip) protecting AI probe endpoints."""
+    now = time.time()
+    ip = _client_ip(request)
+    key = (bucket, ip)
+    recent = [ts for ts in _RATE_LIMIT_BUCKETS.get(key, []) if (now - ts) < window_sec]
+    if len(recent) >= limit:
+        _RATE_LIMIT_BUCKETS[key] = recent
+        oldest = recent[0] if recent else now
+        retry_after = max(1, int(window_sec - (now - oldest)))
+        return False, retry_after
+    recent.append(now)
+    if len(_RATE_LIMIT_BUCKETS) > 1000:
+        stale = [k for k, arr in _RATE_LIMIT_BUCKETS.items() if not arr or (now - arr[-1]) >= window_sec]
+        for k in stale:
+            _RATE_LIMIT_BUCKETS.pop(k, None)
+    _RATE_LIMIT_BUCKETS[key] = recent
+    return True, 0
+
+
+def _require_admin_if_auth(request):
+    """When APP_PASSWORD/REQUIRE_AUTH is active, require authenticated admin for server key/config actions."""
+    if not AUTH_ENABLED:
+        return None
+    user_info = request.get("user") or {}
+    if not request.get("_authenticated"):
+        return json_resp({"success": False, "error": "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.", "auth_required": True}, 401)
+    if user_info.get("role") != "admin":
+        return json_resp({"success": False, "error": "Chỉ Quản trị viên mới có quyền thao tác cấu hình API Key / 9Router trên server."}, 403)
+    return None
+
+
 @web.middleware
 async def auth_middleware(request, handler):
     token = request.cookies.get(SESSION_COOKIE, "")
@@ -147,13 +185,14 @@ async def auth_middleware(request, handler):
     user_info = _parse_session_token(token)
     if user_info:
         request["user"] = user_info
+        request["_authenticated"] = True
         if request.path.startswith("/api/"):
             _note_user_activity(request, user_info)
     else:
-        # Default fallback: If APP_PASSWORD is empty, admin access; else guest
-        request["user"] = {"id": 1, "role": "admin" if not APP_PASSWORD else "guest"}
+        request["_authenticated"] = False
+        request["user"] = {"id": 1, "role": "admin" if not AUTH_ENABLED else "guest"}
 
-    if not APP_PASSWORD or request.path in AUTH_EXEMPT_PATHS:
+    if not AUTH_ENABLED or request.path in AUTH_EXEMPT_PATHS:
         return await handler(request)
 
     if user_info:
@@ -506,8 +545,8 @@ async def auth_me_api(request):
     user_info = request.get("user")
     if not user_info or user_info.get("role") == "guest":
         return json_resp({"success": False, "error": "Chưa đăng nhập", "auth_required": True}, 401)
-    full_user = db.get_user_by_id(user_info["id"])
-    if not full_user and APP_PASSWORD:
+    full_user = await asyncio.to_thread(db.get_user_by_id, user_info["id"])
+    if not full_user and AUTH_ENABLED:
         # Cookie còn hạn nhưng tài khoản không còn trong DB (vd. Render khởi động lại làm DB về bản seed).
         # Xóa cookie để người dùng đăng nhập/đăng ký lại thay vì bị "đăng nhập ma".
         resp = json_resp({"success": False, "error": "Tài khoản không còn tồn tại trên máy chủ. Hãy đăng nhập lại.", "auth_required": True}, 401)
@@ -576,9 +615,27 @@ async def healthz(request):
 
 @web.middleware
 async def no_cache_static_middleware(request, handler):
-    resp = await handler(request)
-    if request.path == "/" or request.path.startswith("/static/"):
+    try:
+        resp = await handler(request)
+        raised = None
+    except web.HTTPException as exc:
+        resp = exc
+        raised = exc
+
+    resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+    resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
+    resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    if (
+        request.path == "/"
+        or request.path.startswith("/static/")
+        or request.path.startswith("/api/ai/")
+        or request.path in ("/api/settings", "/api/progress")
+        or request.path.startswith("/api/progress/")
+    ):
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+
+    if raised is not None:
+        raise raised
     return resp
 
 
@@ -604,7 +661,7 @@ async def safe_get_json(request):
 # Handlers: Môn học
 # ==========================================
 async def get_subjects(request):
-    subjects = db.get_all_subjects()
+    subjects = await asyncio.to_thread(db.get_all_subjects)
     return json_resp({"success": True, "subjects": subjects})
 
 
@@ -620,7 +677,7 @@ async def create_subject(request):
         if not code or not name:
             return json_resp({"success": False, "error": "Mã môn và tên môn không được để trống"}, 400)
 
-        sid = db.add_subject(code, name, icon, category, description)
+        sid = await asyncio.to_thread(db.add_subject, code, name, icon, category, description)
         return json_resp({"success": True, "id": sid, "subject_id": sid, "message": "Thêm môn học thành công!"})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -629,7 +686,7 @@ async def create_subject(request):
 async def delete_subject(request):
     try:
         sid = int(request.match_info["id"])
-        db.delete_subject(sid)
+        await asyncio.to_thread(db.delete_subject, sid)
         return json_resp({"success": True, "message": "Đã xóa môn học"})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -646,9 +703,16 @@ async def get_questions(request):
         q_type = request.query.get("type", "all")
         difficulty = request.query.get("difficulty", "all")
         topic_tag = request.query.get("topic_tag") or request.query.get("chapter")
-        questions = db.get_questions_by_subject(sid, q_type=q_type, limit=limit, random_order=random_order, topic_tag=topic_tag)
-        if difficulty and difficulty != "all":
-            questions = [q for q in questions if q.get("difficulty") == difficulty]
+
+        def _fetch():
+            qs = db.get_questions_by_subject(
+                sid, q_type=q_type, limit=limit, random_order=random_order, topic_tag=topic_tag
+            )
+            if difficulty and difficulty != "all":
+                qs = [q for q in qs if q.get("difficulty") == difficulty]
+            return qs
+
+        questions = await asyncio.to_thread(_fetch)
         return json_resp({"success": True, "questions": questions})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -696,6 +760,17 @@ def answers_match_short(user_ans: str, expected_ans: str) -> bool:
         return False
 
 
+def _extract_account_id(request, data=None) -> str:
+    acc = ""
+    if isinstance(data, dict):
+        acc = str(data.get("account_id") or "").strip()
+    if not acc:
+        acc = str(request.query.get("account_id") or "").strip()
+    if not acc:
+        acc = str(request.headers.get("X-Account-Id") or "").strip()
+    return db._sanitize_account_id(acc)
+
+
 async def submit_exam(request):
     """
     Chấm điểm chính xác toàn bộ đề thi (bao gồm câu chưa làm, câu xáo trộn đáp án,
@@ -710,81 +785,178 @@ async def submit_exam(request):
         essay_ai_scores = data.get("essay_ai_scores", {})
         time_spent = int(data.get("time_spent_seconds", 0))
         exam_type = data.get("exam_type", "mixed")
+        draft_key = str(data.get("draft_key") or "").strip()
+        acc_id = _extract_account_id(request, data)
+        uid = (request.get("user") or {"id": 1}).get("id", 1)
 
-        all_q = db.get_questions_by_subject(subject_id)
-        q_map = {str(q["id"]): q for q in all_q}
+        def _score_and_persist():
+            all_q = db.get_questions_by_subject(subject_id)
+            q_map = {str(q["id"]): q for q in all_q}
+            target_ids = [str(qid) for qid in question_ids] if question_ids else list(user_answers.keys())
 
-        target_ids = [str(qid) for qid in question_ids] if question_ids else list(user_answers.keys())
+            correct_count = 0.0
+            total_questions = len(target_ids)
+            detail_results = []
+            idx_map = {
+                "0": "A", "1": "B", "2": "C", "3": "D",
+                "TRUE": "A", "ĐÚNG": "A", "FALSE": "B", "SAI": "B",
+            }
 
-        correct_count = 0.0
-        total_questions = len(target_ids)
-        detail_results = []
-        idx_map = {
-            "0": "A", "1": "B", "2": "C", "3": "D",
-            "TRUE": "A", "ĐÚNG": "A", "FALSE": "B", "SAI": "B"
-        }
+            for q_id_str in target_ids:
+                if q_id_str not in q_map:
+                    continue
+                q = q_map[q_id_str]
+                q_type = q.get("q_type", "mcq")
+                user_ans = user_answers.get(q_id_str, "")
+                expected_correct = custom_correct_map.get(q_id_str, q["correct_option"])
 
-        for q_id_str in target_ids:
-            if q_id_str not in q_map:
-                continue
-            q = q_map[q_id_str]
-            q_type = q.get("q_type", "mcq")
-            user_ans = user_answers.get(q_id_str, "")
-            expected_correct = custom_correct_map.get(q_id_str, q["correct_option"])
-
-            if user_ans is None or str(user_ans).strip() == "":
-                is_correct = False
-            elif q_type in ["mcq", "true_false"]:
-                c_opt = idx_map.get(str(expected_correct).strip().upper(), str(expected_correct).strip().upper())
-                u_ans = idx_map.get(str(user_ans).strip().upper(), str(user_ans).strip().upper())
-                is_correct = (u_ans == c_opt)
-            elif q_type == "short_answer":
-                is_correct = answers_match_short(user_ans, expected_correct)
-            else:  # essay
-                if q_id_str in essay_ai_scores:
-                    ai_sc = float(essay_ai_scores[q_id_str])
-                    is_correct = ai_sc >= 5.0
+                if user_ans is None or str(user_ans).strip() == "":
+                    is_correct = False
+                elif q_type in ["mcq", "true_false"]:
+                    c_opt = idx_map.get(str(expected_correct).strip().upper(), str(expected_correct).strip().upper())
+                    u_ans = idx_map.get(str(user_ans).strip().upper(), str(user_ans).strip().upper())
+                    is_correct = (u_ans == c_opt)
+                elif q_type == "short_answer":
+                    is_correct = answers_match_short(user_ans, expected_correct)
                 else:
-                    is_correct = len(str(user_ans).strip()) >= 10
+                    if q_id_str in essay_ai_scores:
+                        ai_sc = float(essay_ai_scores[q_id_str])
+                        is_correct = ai_sc >= 5.0
+                    else:
+                        is_correct = len(str(user_ans).strip()) >= 10
 
-            if is_correct:
-                correct_count += 1
+                if is_correct:
+                    correct_count += 1
 
-            detail_results.append({
-                "question_id": q["id"],
-                "question_text": q["question_text"],
-                "code_snippet": q.get("code_snippet", ""),
-                "image_url": q.get("image_url", ""),
-                "topic_tag": q.get("topic_tag", ""),
-                "q_type": q_type,
-                "difficulty": q.get("difficulty", "medium"),
-                "user_answer": user_ans,
-                "correct_option": expected_correct,
-                "is_correct": is_correct,
-                "explanation": q["explanation"]
-            })
+                detail_results.append({
+                    "question_id": q["id"],
+                    "question_text": q["question_text"],
+                    "code_snippet": q.get("code_snippet", ""),
+                    "image_url": q.get("image_url", ""),
+                    "topic_tag": q.get("topic_tag", ""),
+                    "q_type": q_type,
+                    "difficulty": q.get("difficulty", "medium"),
+                    "user_answer": user_ans,
+                    "correct_option": expected_correct,
+                    "is_correct": is_correct,
+                    "explanation": q["explanation"],
+                })
 
-        int_correct = int(round(correct_count))
-        score = round((correct_count / total_questions * 10), 1) if total_questions > 0 else 0
-        res_id = db.save_exam_result(
-            subject_id=subject_id,
-            total_questions=total_questions,
-            correct_answers=int_correct,
-            score=score,
-            time_spent_seconds=time_spent,
-            detail_json=json.dumps(detail_results, ensure_ascii=False),
-            exam_type=exam_type,
-            user_id=(request.get("user") or {"id": 1}).get("id", 1)
+            int_correct = int(round(correct_count))
+            score = round((correct_count / total_questions * 10), 1) if total_questions > 0 else 0
+            res_id = db.save_exam_result(
+                subject_id=subject_id,
+                total_questions=total_questions,
+                correct_answers=int_correct,
+                score=score,
+                time_spent_seconds=time_spent,
+                detail_json=json.dumps(detail_results, ensure_ascii=False),
+                exam_type=exam_type,
+                user_id=uid,
+            )
+            draft_cleared = False
+            if draft_key:
+                draft_cleared = db.delete_study_progress(acc_id, draft_key)
+            return {
+                "success": True,
+                "result_id": res_id,
+                "score": score,
+                "correct_count": int_correct,
+                "total_questions": total_questions,
+                "draft_cleared": draft_cleared,
+                "details": detail_results,
+            }
+
+        result_payload = await asyncio.to_thread(_score_and_persist)
+        return json_resp(result_payload)
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+# ==========================================
+# Handlers: Lưu & Tiếp Tục Tiến Trình Học (Save & Resume)
+# ==========================================
+async def list_progress_handler(request):
+    try:
+        acc = _extract_account_id(request)
+        ptype = request.query.get("progress_type")
+        sid = request.query.get("subject_id")
+        lim = request.query.get("limit", "50")
+        drafts = await asyncio.to_thread(
+            db.list_study_progress, account_id=acc, progress_type=ptype, subject_id=sid, limit=lim
         )
+        return json_resp({"success": True, "account_id": acc, "drafts": drafts})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
 
-        return json_resp({
-            "success": True,
-            "result_id": res_id,
-            "score": score,
-            "correct_count": int_correct,
-            "total_questions": total_questions,
-            "details": detail_results
-        })
+
+async def get_progress_item_handler(request):
+    try:
+        acc = _extract_account_id(request)
+        draft_key = request.match_info.get("draft_key", "").strip()
+        if not draft_key:
+            return json_resp({"success": False, "error": "draft_key is required"}, 400)
+        draft = await asyncio.to_thread(db.get_study_progress, acc, draft_key)
+        if not draft:
+            return json_resp({"success": False, "error": "Draft not found"}, 404)
+        return json_resp({"success": True, "draft": draft})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def save_progress_handler(request):
+    try:
+        data = await safe_get_json(request)
+        if not isinstance(data, dict):
+            return json_resp({"success": False, "error": "JSON object expected"}, 400)
+        acc = _extract_account_id(request, data)
+        draft_key = str(data.get("draft_key") or "").strip()
+        if not draft_key:
+            return json_resp({"success": False, "error": "draft_key is required"}, 400)
+        draft = await asyncio.to_thread(
+            db.upsert_study_progress,
+            account_id=acc,
+            draft_key=draft_key,
+            progress_type=data.get("progress_type", "exam"),
+            subject_id=data.get("subject_id"),
+            chapter_tag=data.get("chapter_tag", ""),
+            title=data.get("title", ""),
+            payload=data.get("payload"),
+            payload_json=data.get("payload_json"),
+            current_index=data.get("current_index", 0),
+            total_items=data.get("total_items", 0),
+            answered_count=data.get("answered_count", 0),
+        )
+        return json_resp({"success": True, "draft": draft})
+    except ValueError as ve:
+        return json_resp({"success": False, "error": str(ve)}, 400)
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def delete_progress_handler(request):
+    try:
+        data = {}
+        if request.method == "POST" or request.can_read_body:
+            try:
+                raw_data = await safe_get_json(request)
+                if isinstance(raw_data, dict):
+                    data = raw_data
+            except Exception:
+                data = {}
+        acc = _extract_account_id(request, data)
+        draft_key = (
+            request.match_info.get("draft_key")
+            or data.get("draft_key")
+            or request.query.get("draft_key")
+            or ""
+        ).strip()
+        if not draft_key:
+            return json_resp({"success": False, "error": "draft_key is required"}, 400)
+        deleted = await asyncio.to_thread(db.delete_study_progress, acc, draft_key)
+        return json_resp({"success": True, "deleted": deleted, "account_id": acc, "draft_key": draft_key})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
 
@@ -847,17 +1019,215 @@ async def get_flashcards_by_query(request):
         return json_resp({"success": False, "error": str(e)}, 500)
 
 
-async def api_ai_key_status(request):
-    """GET /api/ai/key-status — trả trạng thái pool Gemini và OpenAI."""
-    import ai_service as ai
-    pool = ai.get_api_keys_pool()
-    openai_cfg = ai.get_openai_settings()
-    return json_resp({
+async def _build_keys_status_payload() -> dict:
+    summary, router_status = await asyncio.gather(
+        asyncio.to_thread(ai.get_pool_summary),
+        asyncio.to_thread(ai.get_router_public_status),
+    )
+    return {
         "success": True,
-        "gemini_keys": len(pool),
-        "openai_configured": bool(openai_cfg.get("key")),
-        "openai_base": openai_cfg.get("base_url", ""),
+        "secured_on_server": True,
+        "has_gemini_key": summary["has_gemini_key"],
+        "key_count": summary["total_count"],
+        "total_count": summary["total_count"],
+        "ready_count": summary["ready_count"],
+        "active_count": summary["active_count"],
+        "cooldown_count": summary["cooldown_count"],
+        "invalid_count": summary["invalid_count"],
+        "disabled_count": summary.get("disabled_count", 0),
+        "masked_key": summary["masked_key"],
+        "keys": summary["keys"],
+        "pool": summary["keys"],
+        "router": router_status,
+        "openai": router_status,
+        "gateway_local_hint": ai.get_gateway_local_hint(),
+    }
+
+
+async def api_ai_key_status(request):
+    """GET /api/ai/key-status — trả trạng thái pool Gemini (đã che) và 9Router/OpenAI."""
+    payload = await _build_keys_status_payload()
+    summary_total = payload["total_count"]
+    router_info = payload["router"]
+    payload.update({
+        "gemini_keys": summary_total,
+        "openai_configured": bool(router_info.get("has_key")),
+        "openai_base": router_info.get("base_url", ""),
     })
+    return json_resp(payload)
+
+
+async def api_ai_keys_handler(request):
+    """GET /api/ai/keys — danh sách API Key & 9Router được bảo vệ trên server (chỉ trả bản che masked)."""
+    return json_resp(await _build_keys_status_payload())
+
+
+async def api_ai_keys_add(request):
+    """POST /api/ai/keys/add — gắn 1 hoặc nhiều Gemini API Key an toàn, kiểm tra định dạng & deduplicate."""
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
+    try:
+        data = await safe_get_json(request)
+        if not isinstance(data, dict):
+            return json_resp({"success": False, "error": "JSON object expected"}, 400)
+
+        auto_test = bool(data.get("auto_test", False))
+        if auto_test:
+            allowed, retry_after = _check_rate_limit(request, "ai_test", limit=15, window_sec=60)
+            if not allowed:
+                return json_resp(
+                    {"success": False, "error": f"Quá nhiều lượt kiểm tra key. Thử lại sau {retry_after}s.", "retry_after": retry_after},
+                    429,
+                )
+
+        raw_keys = (
+            data.get("keys")
+            or data.get("api_keys")
+            or data.get("gemini_api_keys")
+            or data.get("key")
+            or ""
+        )
+        res = await ai.add_gemini_keys_to_pool(raw_keys, auto_test=auto_test, sync_env=True)
+        if not res.get("success"):
+            return json_resp(res, 400)
+        return json_resp(res)
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
+
+
+async def api_ai_keys_delete(request):
+    """POST /api/ai/keys/delete hoặc DELETE /api/ai/keys/{index} — xóa Gemini API Key khỏi pool & .env."""
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
+    try:
+        data = {}
+        if request.method != "DELETE" and request.can_read_body:
+            try:
+                raw_data = await safe_get_json(request)
+                if isinstance(raw_data, dict):
+                    data = raw_data
+            except Exception:
+                data = {}
+
+        idx_param = request.match_info.get("index")
+        raw_idx = idx_param if idx_param is not None else data.get("index")
+        index_val = int(raw_idx) if raw_idx is not None and str(raw_idx).strip().lstrip("-").isdigit() else None
+        key_id = data.get("id") or data.get("key_id")
+        if key_id is not None:
+            try:
+                key_id = int(key_id)
+            except (TypeError, ValueError):
+                key_id = None
+        masked_key = str(data.get("masked_key") or "").strip() or None
+        zero_idx = data.get("zero_index")
+        if zero_idx is not None:
+            try:
+                zero_idx = int(zero_idx)
+            except (TypeError, ValueError):
+                zero_idx = None
+
+        res = await asyncio.to_thread(
+            ai.delete_gemini_key_from_pool,
+            index=index_val,
+            key_id=key_id,
+            masked_key=masked_key,
+            zero_index=zero_idx,
+            sync_env=True,
+        )
+        if not res.get("deleted"):
+            return json_resp(res, 404)
+        return json_resp(res)
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
+
+
+async def api_ai_keys_toggle(request):
+    """POST /api/ai/keys/toggle — tạm tắt hoặc bật lại 1 Gemini key trong pool."""
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
+    try:
+        data = await safe_get_json(request)
+        if not isinstance(data, dict):
+            return json_resp({"success": False, "error": "JSON object expected"}, 400)
+        raw_idx = data.get("index")
+        index_val = int(raw_idx) if raw_idx is not None and str(raw_idx).strip().lstrip("-").isdigit() else None
+        key_id = data.get("id") or data.get("key_id")
+        if key_id is not None:
+            try:
+                key_id = int(key_id)
+            except (TypeError, ValueError):
+                key_id = None
+        masked_key = str(data.get("masked_key") or "").strip() or None
+        enabled = data.get("enabled") if "enabled" in data else None
+        if enabled is not None:
+            enabled = bool(enabled)
+
+        res = await asyncio.to_thread(
+            ai.toggle_gemini_key_in_pool,
+            index=index_val,
+            key_id=key_id,
+            masked_key=masked_key,
+            enabled=enabled,
+        )
+        if not res.get("success"):
+            return json_resp(res, 404)
+        return json_resp(res)
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
+
+
+async def api_ai_9router_config(request):
+    """POST /api/ai/9router — lưu cấu hình 9Router / FOSTA / OpenAI-compatible với kiểm tra SSRF & bảo toàn mask."""
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
+    try:
+        data = await safe_get_json(request)
+        if not isinstance(data, dict):
+            return json_resp({"success": False, "error": "JSON object expected"}, 400)
+
+        base_url = data.get("base_url") if "base_url" in data else data.get("router_base_url")
+        if base_url is None and "openai_base_url" in data:
+            base_url = data.get("openai_base_url")
+
+        if "api_key" in data:
+            api_key = data.get("api_key")
+        elif "key" in data:
+            api_key = data.get("key")
+        elif "router_api_key" in data:
+            api_key = data.get("router_api_key")
+        elif "openai_api_key" in data:
+            api_key = data.get("openai_api_key")
+        else:
+            api_key = None
+
+        model = data.get("model") if "model" in data else data.get("router_model")
+        if model is None and "openai_model" in data:
+            model = data.get("openai_model")
+
+        priority = data.get("priority") if "priority" in data else data.get("ai_provider_priority")
+        clear_key = bool(data.get("clear_key") or data.get("clear_openai_key"))
+
+        ok, router_pub, msg = await asyncio.to_thread(
+            ai.save_router_config,
+            base_url=base_url,
+            api_key=api_key,
+            model=model,
+            priority=priority,
+            clear_key=clear_key,
+        )
+        if not ok:
+            return json_resp({"success": False, "error": msg, "router": router_pub, "openai": router_pub}, 400)
+        return json_resp({"success": True, "router": router_pub, "openai": router_pub, "message": msg})
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
 
 
 async def api_network_qr_info(request):
@@ -880,7 +1250,7 @@ async def api_stem_reference(request):
 async def api_exam_ctump_parts(request):
     """GET /api/exam/ctump-parts — trả danh sách phần thi CTUMP từ DB."""
     try:
-        subjects = db.get_subjects()
+        subjects = db.get_all_subjects()
         keywords = ("ctump", "hóa sinh", "hoa sinh", "biochem")
         ctump = [
             s for s in subjects
@@ -1161,37 +1531,221 @@ async def upvote_discussion_handler(request):
 # ==========================================
 # Handlers: AI Features & Multi-Key Gemini Engine
 # ==========================================
+async def _resolve_subject_name_async(subject_id, subject_name: str = "") -> str:
+    sname = str(subject_name or "").strip()
+    if sname:
+        return sname
+    if subject_id is not None and str(subject_id).strip().isdigit():
+        sid = int(subject_id)
+        subs = await asyncio.to_thread(db.get_all_subjects)
+        found = next((s for s in subs if s["id"] == sid), None)
+        if found:
+            return found["name"]
+    return "Đại học tổng hợp"
+
+
+async def _handle_tutor_assist_common(request, default_mode: str = "explain"):
+    data = await safe_get_json(request)
+    if not isinstance(data, dict):
+        return json_resp({"success": False, "error": "JSON object expected"}, 400)
+
+    subject_name = await _resolve_subject_name_async(data.get("subject_id"), data.get("subject_name", ""))
+    message = str(data.get("message") or data.get("query") or "").strip()
+    mode = str(data.get("mode") or default_mode).strip()
+    persona = str(data.get("persona") or "professor").strip()
+    tutor_style_prompt = str(data.get("tutor_style_prompt") or "").strip()
+    question_text = str(data.get("question_text") or "").strip()
+    options = data.get("options")
+    correct_answer = str(data.get("correct_answer") or data.get("correct_option") or "").strip()
+    selected_answer = str(data.get("selected_answer") or data.get("user_wrong_answer") or "").strip()
+    question_image_hint = str(data.get("question_image_hint") or "").strip()
+    code_snippet = str(data.get("code_snippet") or "").strip()
+    selected_term = str(data.get("selected_term") or "").strip()
+    chat_history = data.get("chat_history") if isinstance(data.get("chat_history"), list) else data.get("history")
+
+    res = await ai.ai_tutor_assist(
+        subject_name=subject_name,
+        message=message,
+        mode=mode,
+        persona=persona,
+        tutor_style_prompt=tutor_style_prompt,
+        question_text=question_text,
+        options=options,
+        correct_answer=correct_answer,
+        selected_answer=selected_answer,
+        question_image_hint=question_image_hint,
+        code_snippet=code_snippet,
+        selected_term=selected_term,
+        chat_history=chat_history if isinstance(chat_history, list) else None,
+    )
+
+    session_id = str(data.get("session_id") or "").strip()
+    save_history = bool(data.get("save_history")) or bool(session_id)
+    res["history_saved"] = False
+    if save_history:
+        acc_id = _extract_account_id(request, data)
+        ctx_meta = {
+            k: v
+            for k, v in {
+                "question_id": data.get("question_id"),
+                "question_text": question_text[:400] if question_text else "",
+                "selected_answer": selected_answer,
+                "correct_answer": correct_answer,
+                "selected_term": selected_term,
+            }.items()
+            if v not in (None, "")
+        }
+        turns_to_save = []
+        user_txt = message or question_text or selected_term
+        if user_txt:
+            turns_to_save.append({"role": "user", "content": user_txt, "mode": res["mode"], "context": ctx_meta})
+        if res.get("reply"):
+            turns_to_save.append({
+                "role": "model",
+                "content": res["reply"],
+                "mode": res["mode"],
+                "context": ctx_meta,
+                "provider_used": res.get("provider_used", ""),
+                "model_used": res.get("model_used", ""),
+                "masked_key": res.get("masked_key", ""),
+                "latency_ms": res.get("latency_ms"),
+            })
+        if turns_to_save:
+            try:
+                auto_title = str(data.get("title") or "").strip()
+                if not auto_title:
+                    topic_snippet = re.sub(r"\s+", " ", (question_text or selected_term or message)).strip()
+                    if topic_snippet:
+                        auto_title = (f"{subject_name} — {topic_snippet}" if subject_name else topic_snippet)[:120]
+                saved = await asyncio.to_thread(
+                    _append_tutor_turns,
+                    acc_id,
+                    session_id or None,
+                    auto_title,
+                    data.get("subject_id"),
+                    subject_name,
+                    res["mode"],
+                    persona,
+                    turns_to_save,
+                )
+                res["session_id"] = saved["session_id"]
+                res["history_saved"] = True
+            except Exception:
+                if session_id:
+                    res["session_id"] = session_id
+
+    return res
+
+
+def _append_tutor_turns(
+    account_id: str,
+    session_id: str,
+    title: str,
+    subject_id,
+    subject_name: str,
+    mode: str,
+    persona: str,
+    turns: list,
+) -> dict:
+    last_sess = None
+    sid = session_id
+    for t in turns:
+        last_sess = db.save_tutor_chat_turn(
+            account_id=account_id,
+            session_id=sid,
+            title=title,
+            subject_id=subject_id,
+            subject_name=subject_name,
+            mode=t.get("mode", mode),
+            persona=persona,
+            role=t.get("role", "user"),
+            content=t.get("content", ""),
+            context=t.get("context"),
+            provider_used=t.get("provider_used", ""),
+            model_used=t.get("model_used", ""),
+            masked_key=t.get("masked_key", ""),
+            latency_ms=t.get("latency_ms"),
+        )
+        sid = last_sess["session_id"]
+    return last_sess or {"session_id": sid or ""}
+
+
 async def test_key_handler(request):
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
+    allowed, retry_after = _check_rate_limit(request, "ai_test", limit=15, window_sec=60)
+    if not allowed:
+        return json_resp(
+            {"success": False, "error": f"Quá nhiều lượt kiểm tra key. Thử lại sau {retry_after}s.", "retry_after": retry_after},
+            429,
+        )
     try:
         data = await safe_get_json(request)
-        key = data.get("api_key", "").strip()
-        if not key:
-            key = ai.get_api_key()
+        key = str(data.get("api_key") or "").strip() if isinstance(data, dict) else ""
+        if not key or ai._is_masked_placeholder(key):
+            pool = await asyncio.to_thread(ai.get_api_keys_pool)
+            idx = None
+            if isinstance(data, dict) and data.get("index") is not None:
+                try:
+                    idx = int(data["index"]) - 1
+                except (TypeError, ValueError):
+                    idx = None
+            if idx is not None and 0 <= idx < len(pool):
+                key = pool[idx]["key"]
+            else:
+                key = await asyncio.to_thread(ai.get_api_key)
         res = await ai.test_api_key(key)
-        res["pool"] = ai.get_pool_status()
+        res["secured_on_server"] = True
+        res["pool"] = await asyncio.to_thread(ai.get_pool_status)
         return json_resp(res)
     except Exception as e:
-        return json_resp({"success": False, "message": str(e)}, 500)
+        return json_resp({"success": False, "message": ai._sanitize_error_text(str(e))}, 500)
 
 
 async def test_all_keys_handler(request):
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
+    allowed, retry_after = _check_rate_limit(request, "ai_test", limit=15, window_sec=60)
+    if not allowed:
+        return json_resp(
+            {"success": False, "error": f"Quá nhiều lượt kiểm tra dàn key. Thử lại sau {retry_after}s.", "retry_after": retry_after},
+            429,
+        )
     try:
-        res = await ai.test_all_pool_keys()
+        keys_override = None
+        if request.can_read_body:
+            try:
+                data = await safe_get_json(request)
+                if isinstance(data, dict):
+                    keys_override = data.get("keys") or data.get("gemini_api_keys") or data.get("api_keys")
+            except Exception:
+                keys_override = None
+        res = await ai.test_all_pool_keys(keys_input=keys_override)
         return json_resp(res)
     except Exception as e:
-        return json_resp({"success": False, "message": str(e)}, 500)
+        return json_resp({"success": False, "message": ai._sanitize_error_text(str(e))}, 500)
 
 
 async def ai_hint_handler(request):
     try:
-        data = await safe_get_json(request)
-        q_text = data.get("question_text", "")
-        options = data.get("options", [])
-        code_snippet = data.get("code_snippet", "")
-        hint = await ai.ai_get_hint(q_text, options, code_snippet)
-        return json_resp({"success": True, "hint": hint})
+        out = await _handle_tutor_assist_common(request, default_mode="socratic")
+        if isinstance(out, web.Response):
+            return out
+        if not out.get("success"):
+            out["hint"] = (
+                "Hãy xác định công thức/định nghĩa trọng tâm của câu hỏi, kiểm tra điều kiện áp dụng "
+                "và loại trừ ngay 2 phương án trái bản chất."
+            )
+            out["reply"] = out.get("reply") or out["hint"]
+            out["fallback_used"] = True
+            out["success"] = True
+        else:
+            out["hint"] = out["reply"]
+        return json_resp(out)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
 
 
 async def ai_deep_analysis_handler(request):
@@ -1294,20 +1848,161 @@ async def ai_explain_exercise_handler(request):
 
 async def ai_chat(request):
     try:
-        data = await safe_get_json(request)
-        subject_name = data.get("subject_name", "")
-        if not subject_name and data.get("subject_id"):
-            subs = db.get_all_subjects()
-            found = next((s for s in subs if s["id"] == int(data["subject_id"])), None)
-            subject_name = found["name"] if found else "Đại học tổng hợp"
-        message = data.get("message", "")
-        persona = data.get("persona", "professor")
-        tutor_style_prompt = data.get("tutor_style_prompt", "")
-        history = data.get("history", [])
-        reply = await ai.ai_chat_tutor(subject_name or "Đại học tổng hợp", message, persona=persona, history=history, tutor_style_prompt=tutor_style_prompt)
-        return json_resp({"success": True, "reply": reply})
+        out = await _handle_tutor_assist_common(request, default_mode="explain")
+        if isinstance(out, web.Response):
+            return out
+        return json_resp(out)
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
+
+
+async def ai_tutor_assist_handler(request):
+    try:
+        out = await _handle_tutor_assist_common(request, default_mode="explain")
+        if isinstance(out, web.Response):
+            return out
+        return json_resp(out)
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
+
+
+async def ai_explain_handler(request):
+    try:
+        out = await _handle_tutor_assist_common(request, default_mode="explain")
+        if isinstance(out, web.Response):
+            return out
+        out["explanation"] = out.get("reply", "")
+        return json_resp(out)
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
+
+
+async def api_ai_history_list(request):
+    """GET /api/ai/history — lấy các phiên hội thoại AI (đang mở hoặc đã lưu trữ khi xóa màn hình)."""
+    try:
+        acc = _extract_account_id(request)
+        archived = request.query.get("archived", "all")
+        q_str = request.query.get("q", "")
+        session_id = request.query.get("session_id") or None
+        try:
+            limit = int(request.query.get("limit", "50"))
+        except (TypeError, ValueError):
+            limit = 50
+        res = await asyncio.to_thread(
+            db.list_tutor_chat_sessions,
+            account_id=acc,
+            archived=archived,
+            query=q_str,
+            session_id=session_id,
+            limit=limit,
+        )
+        res["success"] = True
+        return json_resp(res)
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
+
+
+async def api_ai_history_save(request):
+    """POST /api/ai/history — lưu lượt hỏi/đáp hoặc toàn bộ phiên chat gia sư AI."""
+    try:
+        data = await safe_get_json(request)
+        if not isinstance(data, dict):
+            return json_resp({"success": False, "error": "JSON object expected"}, 400)
+        acc = _extract_account_id(request, data)
+        messages = data.get("messages") if isinstance(data.get("messages"), list) else None
+        content = str(data.get("content") or "").strip()
+        if not messages and not content:
+            return json_resp({"success": False, "error": "Cần content hoặc danh sách messages để lưu lịch sử."}, 400)
+
+        sess = await asyncio.to_thread(
+            db.save_tutor_chat_turn,
+            account_id=acc,
+            session_id=data.get("session_id"),
+            title=str(data.get("title") or "").strip(),
+            subject_id=data.get("subject_id"),
+            subject_name=str(data.get("subject_name") or "").strip(),
+            mode=str(data.get("mode") or "explain").strip(),
+            persona=str(data.get("persona") or "professor").strip(),
+            role=str(data.get("role") or "user").strip(),
+            content=content,
+            context=data.get("context") if isinstance(data.get("context"), dict) else None,
+            provider_used=str(data.get("provider_used") or "").strip(),
+            model_used=str(data.get("model_used") or "").strip(),
+            masked_key=str(data.get("masked_key") or "").strip(),
+            latency_ms=data.get("latency_ms"),
+            messages=messages,
+            replace=bool(data.get("replace", False)),
+        )
+        return json_resp({"success": True, "account_id": acc, "session_id": sess["session_id"], "session": sess})
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
+
+
+async def api_ai_history_archive(request):
+    """POST /api/ai/history/archive — Xóa màn hình (lưu trữ mềm is_archived=1) hoặc khôi phục lại."""
+    try:
+        data = await safe_get_json(request)
+        if not isinstance(data, dict):
+            return json_resp({"success": False, "error": "JSON object expected"}, 400)
+        acc = _extract_account_id(request, data)
+        restore = bool(data.get("restore", False))
+        archive_all = bool(data.get("archive_all_active", False))
+        sid = data.get("session_id")
+        sids = data.get("session_ids") if isinstance(data.get("session_ids"), list) else None
+        updated = await asyncio.to_thread(
+            db.archive_tutor_chat_sessions,
+            account_id=acc,
+            session_id=sid,
+            session_ids=sids,
+            archive_all_active=archive_all,
+            restore=restore,
+        )
+        return json_resp({
+            "success": True,
+            "account_id": acc,
+            "updated_count": updated,
+            "restored": restore,
+        })
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
+
+
+async def api_ai_history_delete(request):
+    """DELETE /api/ai/history/{session_id} hoặc POST /api/ai/history/delete — xóa vĩnh viễn phiên trong kho lưu trữ."""
+    try:
+        data = {}
+        if request.method == "POST" and request.can_read_body:
+            try:
+                raw_data = await safe_get_json(request)
+                if isinstance(raw_data, dict):
+                    data = raw_data
+            except Exception:
+                data = {}
+        acc = _extract_account_id(request, data)
+        sid = (
+            request.match_info.get("session_id")
+            or data.get("session_id")
+            or request.query.get("session_id")
+            or ""
+        ).strip()
+        if not sid:
+            return json_resp({"success": False, "error": "session_id is required"}, 400)
+        deleted = await asyncio.to_thread(db.delete_tutor_chat_session, acc, sid)
+        if not deleted:
+            return json_resp({"success": False, "deleted": False, "error": "Không tìm thấy phiên hội thoại"}, 404)
+        return json_resp({"success": True, "deleted": True, "account_id": acc, "session_id": sid})
+    except Exception as e:
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
 
 
 async def ai_concept_recall_handler(request):
@@ -1605,162 +2300,192 @@ async def api_archive_list(request):
 
 
 async def get_stats(request):
-    stats = db.get_stats()
+    stats = await asyncio.to_thread(db.get_stats)
     return json_resp({"success": True, "stats": stats})
 
 
-
 async def handle_ai_gateway_diag(request):
-    """Chẩn đoán đường đi AI: cấu hình hiện tại + khả năng dò Cloudflare Tunnel.
-
-    Dùng để biết chính xác bản deploy đang chạy có tự dò được tunnel hay không,
-    thay vì chỉ thấy lỗi "Cannot connect to host 127.0.0.1".
-    """
+    """Chẩn đoán đường đi AI: cấu hình hiện tại + khả năng dò Cloudflare Tunnel."""
     info = {
-        "code_version": "gateway-diag-v1",
+        "code_version": "gateway-diag-v2",
         "discovery_env_set": bool(os.environ.get("AI_GATEWAY_DISCOVERY_URL", "").strip()),
         "discovery_url_used": ai.gateway_discovery_url(),
         "secret_required_by_client": bool(ai.gateway_secret()),
         "is_local_runtime": ai._is_local_runtime(),
     }
     try:
-        cfg = ai.get_openai_settings()
+        cfg = await asyncio.to_thread(ai.get_openai_settings)
         info["configured_base_url"] = cfg.get("base_url", "")
         info["configured_model"] = cfg.get("model", "")
+        info["provider_type"] = cfg.get("provider_type", "")
         info["has_key"] = bool(cfg.get("key"))
+        info["masked_key"] = ai.mask_key(cfg.get("key", "")) if cfg.get("key") else ""
     except Exception as exc:
-        info["settings_error"] = str(exc)
+        info["settings_error"] = ai._sanitize_error_text(str(exc))
 
     resolved = ""
     try:
         resolved = await ai.resolve_gateway_base_url(info.get("configured_base_url", ""))
         info["resolved_base_url"] = resolved
     except Exception as exc:
-        info["resolve_error"] = str(exc)
+        info["resolve_error"] = ai._sanitize_error_text(str(exc))
 
     if resolved and resolved.startswith("http"):
-        root = resolved[:-3] if resolved.endswith("/v1") else resolved.rstrip("/")
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(
-                    f"{root}/healthz",
-                    timeout=aiohttp.ClientTimeout(total=15),
-                ) as resp:
+        ok_u, norm_u, _ = ai.validate_router_base_url(resolved)
+        if ok_u:
+            root = norm_u[:-3] if norm_u.endswith("/v1") else norm_u.rstrip("/")
+            try:
+                session = await ai._get_http_session()
+                async with session.get(f"{root}/healthz", timeout=aiohttp.ClientTimeout(total=12)) as resp:
                     info["gateway_health_status"] = resp.status
                     info["gateway_reachable"] = resp.status == 200
-        except Exception as exc:
-            info["gateway_reachable"] = False
-            info["gateway_health_error"] = str(exc)
+            except Exception as exc:
+                info["gateway_reachable"] = False
+                info["gateway_health_error"] = ai._sanitize_error_text(str(exc))
 
     ok = bool(info.get("gateway_reachable"))
     info["success"] = ok
     info["verdict"] = (
-        "Tunnel OK - Render gọi được gateway trên máy bạn."
+        "Tunnel OK - Gateway phản hồi bình thường."
         if ok
-        else "Tunnel KHÔNG gọi được. Kiểm tra: start_ai_gateway.bat đang chạy? Máy đang bật? Đã publish URL mới lên ntfy chưa?"
+        else "Gateway/Tunnel chưa phản hồi. Kiểm tra dịch vụ 9Router / start_ai_gateway đang chạy hay chưa."
     )
     return json_resp(info)
 
 
 async def handle_test_openai_key(request):
+    """POST /api/ai/test_9router (and /api/ai/test-9router, /api/ai/test-openai)."""
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
+    allowed, retry_after = _check_rate_limit(request, "ai_test", limit=15, window_sec=60)
+    if not allowed:
+        return json_resp(
+            {"success": False, "error": f"Quá nhiều lượt kiểm tra 9Router/OpenAI. Thử lại sau {retry_after}s.", "retry_after": retry_after},
+            429,
+        )
     try:
         data = await safe_get_json(request)
-        key = data.get("key", "")
-        base_url = data.get("base_url", "")
-        model = data.get("model", "")
-        res = await ai.test_openai_key(key, base_url, model)
-        return json_resp(res)
+        if not isinstance(data, dict):
+            return json_resp({"success": False, "message": "JSON object expected"}, 400)
+        key = str(data.get("api_key") or data.get("key") or "").strip()
+        base_url = str(data.get("base_url") or data.get("router_base_url") or "").strip()
+        model = str(data.get("model") or data.get("router_model") or "").strip()
+        res = await ai.test_9router_endpoint(key=key, base_url=base_url, model=model)
+        status_code = 400 if res.get("status_code") == 400 else 200
+        return json_resp(res, status=status_code)
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "message": "Invalid JSON body"}, 400)
     except Exception as e:
-        return json_resp({"success": False, "message": str(e)}, status=500)
+        return json_resp({"success": False, "message": ai._sanitize_error_text(str(e))}, status=500)
+
 
 async def get_settings(request):
-    pool_status = ai.get_pool_status()
-    has_key = len(pool_status) > 0
-    masked_key = pool_status[0]["masked_key"] if has_key else ""
-    openai_cfg = ai.get_openai_settings()
-    masked_openai = ai.mask_key(openai_cfg.get("key", "")) if openai_cfg.get("key") else ""
-    return json_resp({
-        "success": True,
-        "has_gemini_key": has_key,
-        "key_count": len(pool_status),
-        "masked_key": masked_key,
-        "pool": pool_status,
-        "openai": {
-            "has_key": bool(openai_cfg.get("key")),
-            "masked_key": masked_openai,
-            "base_url": openai_cfg.get("base_url"),
-            "model": openai_cfg.get("model", "gpt-4o"),
-            "priority": openai_cfg.get("priority", "openai_first")
-        }
-    })
+    return json_resp(await _build_keys_status_payload())
 
 
 async def save_settings(request):
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
     try:
         data = await safe_get_json(request)
-        current_pool = ai.get_api_keys_pool()
+        if not isinstance(data, dict):
+            return json_resp({"success": False, "error": "JSON object expected"}, 400)
 
-        if data.get("clear_all_keys"):
-            ai.save_api_keys_pool([])
-        elif "remove_key_index" in data:
-            rm_idx = int(data["remove_key_index"])
-            if 0 <= rm_idx < len(current_pool):
-                current_pool.pop(rm_idx)
-                ai.save_api_keys_pool(current_pool)
-        elif "add_api_keys" in data:
-            raw_new = data["add_api_keys"]
-            if isinstance(raw_new, str):
-                new_keys = [ln.strip() for ln in re.split(r"[\r\n,;\s]+", raw_new) if ln.strip()]
-            elif isinstance(raw_new, list):
-                new_keys = [str(x).strip() for x in raw_new if str(x).strip()]
-            else:
-                new_keys = []
-
-            existing_set = {item["key"] for item in current_pool}
-            added = 0
-            for nk in new_keys:
-                if nk not in existing_set:
-                    existing_set.add(nk)
-                    current_pool.append({"key": nk, "label": f"Key #{len(current_pool) + 1}"})
-                    added += 1
-            ai.save_api_keys_pool(current_pool)
-        elif "gemini_api_keys" in data:
-            ai.save_api_keys_pool(data["gemini_api_keys"])
-        elif "gemini_api_key" in data:
-            single_k = data["gemini_api_key"].strip()
-            if single_k:
+        def _apply_gemini_updates():
+            current_pool = ai.get_api_keys_pool()
+            if data.get("clear_all_keys"):
+                ai.save_api_keys_pool([])
+            elif "remove_key_index" in data:
+                rm_idx = int(data["remove_key_index"])
+                ai.delete_gemini_key_from_pool(zero_index=rm_idx, sync_env=True)
+            elif "add_api_keys" in data:
+                raw_new = data["add_api_keys"]
+                tokens = ai._parse_key_tokens(raw_new) if isinstance(raw_new, str) else [
+                    str(x).strip()
+                    for x in (raw_new or [])
+                    if str(x).strip() and not ai._is_masked_placeholder(str(x).strip())
+                ]
                 existing_set = {item["key"] for item in current_pool}
-                if single_k not in existing_set:
-                    current_pool.append({"key": single_k, "label": f"Key #{len(current_pool) + 1}"})
-                ai.save_api_keys_pool(current_pool)
+                added_any = False
+                for nk in tokens:
+                    ok_fmt, _ = ai.validate_gemini_key_format(nk)
+                    if ok_fmt and nk not in existing_set:
+                        existing_set.add(nk)
+                        current_pool.append({"key": nk, "label": f"Key #{len(current_pool) + 1}"})
+                        added_any = True
+                if added_any:
+                    ai.save_api_keys_pool(current_pool)
+            elif "gemini_api_keys" in data:
+                raw_val = data["gemini_api_keys"]
+                parsed_tokens = ai._parse_key_tokens(raw_val) if isinstance(raw_val, str) else [
+                    str(x).strip()
+                    for x in (raw_val or [])
+                    if str(x).strip() and not ai._is_masked_placeholder(str(x).strip())
+                ]
+                valid_tokens = [t for t in parsed_tokens if ai.validate_gemini_key_format(t)[0]]
+                if valid_tokens:
+                    ai.save_api_keys_pool(valid_tokens)
+            elif "gemini_api_key" in data:
+                single_k = str(data["gemini_api_key"] or "").strip()
+                if single_k and not ai._is_masked_placeholder(single_k):
+                    ok_fmt, _ = ai.validate_gemini_key_format(single_k)
+                    if ok_fmt:
+                        existing_set = {item["key"] for item in current_pool}
+                        if single_k not in existing_set:
+                            current_pool.append({"key": single_k, "label": f"Key #{len(current_pool) + 1}"})
+                            ai.save_api_keys_pool(current_pool)
 
-        if "openai_api_key" in data:
-            db.set_setting("openai_api_key", str(data["openai_api_key"]).strip())
-        if "openai_base_url" in data:
-            db.set_setting("openai_base_url", str(data["openai_base_url"]).strip())
-        if "openai_model" in data:
-            db.set_setting("openai_model", str(data["openai_model"]).strip())
-        if "ai_provider_priority" in data:
-            db.set_setting("ai_provider_priority", str(data["ai_provider_priority"]).strip())
+        await asyncio.to_thread(_apply_gemini_updates)
 
-        pool_status = ai.get_pool_status()
-        openai_cfg = ai.get_openai_settings()
-        masked_openai = ai.mask_key(openai_cfg.get("key", "")) if openai_cfg.get("key") else ""
-        return json_resp({
-            "success": True,
-            "key_count": len(pool_status),
-            "pool": pool_status,
-            "openai": {
-                "has_key": bool(openai_cfg.get("key")),
-                "masked_key": masked_openai,
-                "base_url": openai_cfg.get("base_url"),
-                "model": openai_cfg.get("model", "gpt-4o"),
-                "priority": openai_cfg.get("priority", "openai_first")
-            },
-            "message": f"Đã cập nhật dàn {len(pool_status)} API Key luân phiên và cấu hình AI!"
-        })
+        has_router_fields = any(
+            k in data
+            for k in (
+                "clear_openai_key",
+                "clear_router_key",
+                "openai_api_key",
+                "router_api_key",
+                "openai_base_url",
+                "router_base_url",
+                "openai_model",
+                "router_model",
+                "ai_provider_priority",
+                "priority",
+            )
+        )
+        if has_router_fields:
+            base_url = data.get("router_base_url") if "router_base_url" in data else data.get("openai_base_url")
+            if "router_api_key" in data:
+                api_key = data.get("router_api_key")
+            elif "openai_api_key" in data:
+                api_key = data.get("openai_api_key")
+            else:
+                api_key = None
+            model = data.get("router_model") if "router_model" in data else data.get("openai_model")
+            priority = data.get("ai_provider_priority") if "ai_provider_priority" in data else data.get("priority")
+            clear_key = bool(data.get("clear_openai_key") or data.get("clear_router_key"))
+
+            ok_r, _, err_r = await asyncio.to_thread(
+                ai.save_router_config,
+                base_url=base_url,
+                api_key=api_key,
+                model=model,
+                priority=priority,
+                clear_key=clear_key,
+            )
+            if not ok_r:
+                return json_resp({"success": False, "error": err_r}, 400)
+
+        payload = await _build_keys_status_payload()
+        payload["message"] = (
+            f"Đã cập nhật dàn {payload['total_count']} Gemini API Key (được bảo mật trên server) và cấu hình AI Gateway!"
+        )
+        return json_resp(payload)
+    except json.JSONDecodeError:
+        return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
 
 
 def get_lan_ip():
@@ -1884,6 +2609,9 @@ def build_full_snapshot(include_api_key=False, embed_images_base64=False):
     raw_state = db.get_setting("user_sync_state", "{}")
     try:
         user_state = json.loads(raw_state) if raw_state else {}
+        if isinstance(user_state, dict):
+            for secret_k in ("gemini_api_key", "gemini_api_keys", "gemini_api_keys_pool", "openai_api_key"):
+                user_state.pop(secret_k, None)
     except Exception:
         user_state = {}
 
@@ -1896,52 +2624,61 @@ def build_full_snapshot(include_api_key=False, embed_images_base64=False):
         "stats": db.get_stats(),
         "user_state": user_state,
         "image_base64_map": img_cache,
+        "ai_keys_secured_on_server": True,
+        "ai_key_count": len(ai.get_api_keys_pool()),
     }
-    if include_api_key:
-        pool = ai.get_api_keys_pool()
-        snap["gemini_api_key"] = ai.get_api_key()
-        snap["gemini_api_keys"] = [item["key"] for item in pool if item.get("key")]
     return snap
 
 
 async def get_offline_snapshot(request):
-    """Trả về gói dữ liệu đầy đủ (kèm ảnh Base64 + dàn API key) để trình duyệt lưu vào IndexedDB chạy khi tắt PC"""
-    snap = build_full_snapshot(include_api_key=False, embed_images_base64=True)
+    """Trả về gói dữ liệu đầy đủ (kèm ảnh Base64, không bao giờ gắn API key thô) để trình duyệt lưu vào IndexedDB chạy khi tắt PC"""
+    snap = await asyncio.to_thread(build_full_snapshot, include_api_key=False, embed_images_base64=True)
     return json_resp({"success": True, "snapshot": snap})
 
 
 async def export_backup(request):
-    snap = build_full_snapshot(include_api_key=False)
-    body = json.dumps(snap, ensure_ascii=False, indent=2)
+    def _build():
+        snap = build_full_snapshot(include_api_key=False)
+        return json.dumps(snap, ensure_ascii=False, indent=2)
+
+    body = await asyncio.to_thread(_build)
     return web.Response(
         text=body,
         content_type="application/json",
-        headers={"Content-Disposition": 'attachment; filename="UniMaster_Backup.json"'}
+        headers={"Content-Disposition": 'attachment; filename="UniMaster_Backup.json"'},
     )
 
 
 async def import_backup(request):
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
     try:
         data = await safe_get_json(request)
-        if "user_state" in data and isinstance(data["user_state"], dict):
-            db.set_setting("user_sync_state", json.dumps(data["user_state"], ensure_ascii=False))
 
-        existing_codes = {s["code"]: s["id"] for s in db.get_all_subjects()}
-        imported_q = 0
-        for s in data.get("subjects", []):
-            code = s.get("code", "")
-            old_sid = str(s.get("id", ""))
-            if code and code not in existing_codes:
-                new_sid = db.add_subject(code, s.get("name", code), s.get("icon", "📘"), s.get("category", ""), s.get("description", ""))
-                existing_codes[code] = new_sid
-                for q in data.get("questions_by_subject", {}).get(old_sid, []):
-                    db.add_question(
-                        new_sid, q.get("question_text", ""), q.get("option_a", ""), q.get("option_b", ""),
-                        q.get("option_c", ""), q.get("option_d", ""), q.get("correct_option", "A"),
-                        q.get("explanation", ""), q.get("difficulty", "medium"), q.get("q_type", "mcq"),
-                        q.get("code_snippet", "")
-                    )
-                    imported_q += 1
+        def _do_import():
+            if "user_state" in data and isinstance(data["user_state"], dict):
+                db.set_setting("user_sync_state", json.dumps(data["user_state"], ensure_ascii=False))
+
+            existing_codes = {s["code"]: s["id"] for s in db.get_all_subjects()}
+            imported_q = 0
+            for s in data.get("subjects", []):
+                code = s.get("code", "")
+                old_sid = str(s.get("id", ""))
+                if code and code not in existing_codes:
+                    new_sid = db.add_subject(code, s.get("name", code), s.get("icon", "📘"), s.get("category", ""), s.get("description", ""))
+                    existing_codes[code] = new_sid
+                    for q in data.get("questions_by_subject", {}).get(old_sid, []):
+                        db.add_question(
+                            new_sid, q.get("question_text", ""), q.get("option_a", ""), q.get("option_b", ""),
+                            q.get("option_c", ""), q.get("option_d", ""), q.get("correct_option", "A"),
+                            q.get("explanation", ""), q.get("difficulty", "medium"), q.get("q_type", "mcq"),
+                            q.get("code_snippet", "")
+                        )
+                        imported_q += 1
+            return imported_q
+
+        imported_q = await asyncio.to_thread(_do_import)
         return json_resp({"success": True, "imported_questions": imported_q, "message": "Đã khôi phục dữ liệu thành công!"})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -1958,7 +2695,6 @@ async def admin_upload_backup(request):
     if not field or field.name != 'file':
         return json_resp({"success": False, "error": "Không tìm thấy file tải lên."}, 400)
 
-    # Lưu tạm ra file riêng để kiểm tra tính toàn vẹn (integrity check) trước khi ghi đè
     tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
     tmp_path = tmp.name
     tmp.close()
@@ -1970,24 +2706,25 @@ async def admin_upload_backup(request):
                     break
                 f.write(chunk)
 
-        conn = sqlite3.connect(tmp_path)
-        cur = conn.cursor()
-        cur.execute("PRAGMA integrity_check;")
-        res = cur.fetchone()
-        conn.close()
-        if not res or res[0] != "ok":
-            return json_resp({"success": False, "error": f"File SQLite không hợp lệ hoặc bị hỏng ({res[0] if res else 'unknown'})."}, 400)
+        def _verify_and_restore():
+            conn = sqlite3.connect(tmp_path)
+            cur = conn.cursor()
+            cur.execute("PRAGMA integrity_check;")
+            res = cur.fetchone()
+            conn.close()
+            if not res or res[0] != "ok":
+                return False, f"File SQLite không hợp lệ hoặc bị hỏng ({res[0] if res else 'unknown'})."
+            target_conn = sqlite3.connect(db.DB_PATH)
+            source_conn = sqlite3.connect(tmp_path)
+            source_conn.backup(target_conn)
+            target_conn.close()
+            source_conn.close()
+            db.init_db()
+            return True, ""
 
-        # Sao lưu an toàn: dùng SQLite online backup để ghi đè DB_PATH không khóa file
-        target_conn = sqlite3.connect(db.DB_PATH)
-        source_conn = sqlite3.connect(tmp_path)
-        source_conn.backup(target_conn)
-        target_conn.close()
-        source_conn.close()
-
-        # Khởi tạo migration nếu file backup cũ thiếu bảng
-        db.init_db()
-
+        ok, err_msg = await asyncio.to_thread(_verify_and_restore)
+        if not ok:
+            return json_resp({"success": False, "error": err_msg}, 400)
         return json_resp({"success": True, "message": "Đã khôi phục cơ sở dữ liệu thành công!"})
     except Exception as e:
         return json_resp({"success": False, "error": f"Lỗi khi khôi phục: {str(e)}"}, 500)
@@ -2008,32 +2745,33 @@ async def admin_download_backup(request):
     if not os.path.exists(db.DB_PATH):
         return json_resp({"success": False, "error": "Không tìm thấy file dữ liệu."}, 404)
 
-    # Sử dụng snapshot SQLite backup để tải file hoàn chỉnh, không bị lock hoặc dirty read
     stamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
-    tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
-    tmp_path = tmp.name
-    tmp.close()
-    try:
-        src = sqlite3.connect(db.DB_PATH)
-        dst = sqlite3.connect(tmp_path)
-        src.backup(dst)
-        src.close()
-        dst.close()
 
-        with open(tmp_path, "rb") as f:
-            content = f.read()
-
-        return web.Response(
-            body=content,
-            content_type="application/x-sqlite3",
-            headers={"Content-Disposition": f'attachment; filename="unimaster-{stamp}.db"'}
-        )
-    finally:
+    def _snapshot_db_bytes():
+        tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
+        tmp_path = tmp.name
+        tmp.close()
         try:
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-        except OSError:
-            pass
+            src = sqlite3.connect(db.DB_PATH)
+            dst = sqlite3.connect(tmp_path)
+            src.backup(dst)
+            src.close()
+            dst.close()
+            with open(tmp_path, "rb") as f:
+                return f.read()
+        finally:
+            try:
+                if os.path.exists(tmp_path):
+                    os.unlink(tmp_path)
+            except OSError:
+                pass
+
+    content = await asyncio.to_thread(_snapshot_db_bytes)
+    return web.Response(
+        body=content,
+        content_type="application/x-sqlite3",
+        headers={"Content-Disposition": f'attachment; filename="unimaster-{stamp}.db"'},
+    )
 
 
 def generate_standalone_html_string() -> str:
@@ -2057,18 +2795,20 @@ def generate_standalone_html_string() -> str:
         lambda _: f"<script>window.__UNIMASTER_OFFLINE_DB__ = {snap_json};</script>\n<script>\n{js}\n</script>",
         html
     )
+    if re.search(r"(AQ\.Ab[A-Za-z0-9._-]{16,}|AIzaSy[A-Za-z0-9_-]{16,}|sk-[A-Za-z0-9_-]{20,})", html):
+        raise ValueError("Security check failed: raw API key detected in standalone HTML output")
     return html
 
 
 async def export_standalone_html(request):
-    """Tạo 1 file HTML siêu độc lập chứa trọn bộ Ngân hàng 467 câu + 16 ảnh Base64 + Direct Gemini AI chạy mọi nơi khi TẮT PC"""
+    """Tạo 1 file HTML siêu độc lập chứa trọn bộ Ngân hàng câu hỏi + Ảnh Base64 + Offline chạy mọi nơi khi TẮT PC"""
     try:
-        html = generate_standalone_html_string()
+        html = await asyncio.to_thread(generate_standalone_html_string)
         return web.Response(
             text=html,
             content_type="text/html",
             charset="utf-8",
-            headers={"Content-Disposition": 'attachment; filename="UniMaster_Chay_Moi_Noi_Khong_Can_PC.html"'}
+            headers={"Content-Disposition": 'attachment; filename="UniMaster_Chay_Moi_Noi_Khong_Can_PC.html"'},
         )
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -2213,10 +2953,11 @@ async def api_timed_exam_start(request):
         sid = int(request.query.get("subject_id", 5))
         count = int(request.query.get("count", 40))
         duration = int(request.query.get("duration", 60))
-        res = code_engine.start_timed_exam(sid, count=count, duration_minutes=duration)
+        res = await asyncio.to_thread(code_engine.start_timed_exam, sid, count=count, duration_minutes=duration)
         return json_resp(res)
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
+
 
 async def api_timed_exam_submit(request):
     try:
@@ -2224,9 +2965,18 @@ async def api_timed_exam_submit(request):
         sid = int(data.get("subject_id", 5))
         answers = data.get("answers", {})
         time_spent = int(data.get("time_spent_seconds", 0))
+        draft_key = str(data.get("draft_key") or "").strip()
         user_info = request.get("user") or {"id": 1}
         user_id = user_info.get("id", 1)
-        res = code_engine.submit_timed_exam(sid, answers, time_spent, user_id=user_id)
+        acc_id = _extract_account_id(request, data)
+
+        def _submit():
+            out = code_engine.submit_timed_exam(sid, answers, time_spent, user_id=user_id)
+            if draft_key:
+                out["draft_cleared"] = db.delete_study_progress(acc_id, draft_key)
+            return out
+
+        res = await asyncio.to_thread(_submit)
         return json_resp(res)
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -2240,55 +2990,70 @@ async def api_validate_oop_structure(request):
         data = await safe_get_json(request)
         code = data.get("code", "")
         req = data.get("requirements", {})
-        res = code_engine.validate_csharp_oop_structure(code, req)
+        res = await asyncio.to_thread(code_engine.validate_csharp_oop_structure, code, req)
         return json_resp(res)
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
+
 
 async def api_exam_shuffle(request):
     try:
         sid = int(request.query.get("subject_id", 5))
         count = int(request.query.get("count", 40))
-        all_qs = db.get_questions_by_subject(sid)
-        if len(all_qs) > count:
-            selected = random.sample(all_qs, count)
-        else:
-            selected = all_qs
-        shuffled = code_engine.fisher_yates_shuffle_exam(selected)
+
+        def _shuffle():
+            all_qs = db.get_questions_by_subject(sid)
+            selected = random.sample(all_qs, count) if len(all_qs) > count else all_qs
+            return code_engine.fisher_yates_shuffle_exam(selected)
+
+        shuffled = await asyncio.to_thread(_shuffle)
         return json_resp({"success": True, "questions": shuffled})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
+
 
 async def api_sm2_review(request):
     try:
         data = await safe_get_json(request)
         card_id = int(data.get("card_id", 0))
         rating = data.get("rating", "good")
-        res = code_engine.calculate_sm2(card_id, rating)
+        res = await asyncio.to_thread(code_engine.calculate_sm2, card_id, rating)
         return json_resp(res)
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
+
 
 async def api_sm2_due_today(request):
     try:
         sid = request.query.get("subject_id")
         subject_id = int(sid) if sid and sid.isdigit() else None
-        conn = db.get_connection()
-        c = conn.cursor()
-        if subject_id:
-            c.execute("""
-            SELECT * FROM flashcards 
-            WHERE subject_id = ? AND (next_review <= datetime('now') OR next_review IS NULL OR next_review = '')
-            ORDER BY interval_days ASC LIMIT 150
-            """, (subject_id,))
-        else:
-            c.execute("""
-            SELECT * FROM flashcards 
-            WHERE next_review <= datetime('now') OR next_review IS NULL OR next_review = ''
-            ORDER BY interval_days ASC LIMIT 150
-            """)
-        rows = [dict(r) for r in c.fetchall()]
-        conn.close()
+
+        def _due():
+            conn = db.get_connection()
+            try:
+                c = conn.cursor()
+                if subject_id:
+                    c.execute(
+                        """
+                        SELECT * FROM flashcards
+                        WHERE subject_id = ? AND (next_review <= datetime('now') OR next_review IS NULL OR next_review = '')
+                        ORDER BY interval_days ASC LIMIT 150
+                        """,
+                        (subject_id,),
+                    )
+                else:
+                    c.execute(
+                        """
+                        SELECT * FROM flashcards
+                        WHERE next_review <= datetime('now') OR next_review IS NULL OR next_review = ''
+                        ORDER BY interval_days ASC LIMIT 150
+                        """
+                    )
+                return [dict(r) for r in c.fetchall()]
+            finally:
+                conn.close()
+
+        rows = await asyncio.to_thread(_due)
         return json_resp({"success": True, "count": len(rows), "cards": rows})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -2383,7 +3148,14 @@ def create_app():
     app.router.add_post("/api/subjects/{id}/questions", create_question)
     app.router.add_get("/api/subjects/{id}/exercises", get_exercises)
     app.router.add_post("/api/exam/submit", submit_exam)
+    app.router.add_post("/api/exams/submit", submit_exam)
     app.router.add_get("/api/exam/detail/{id}", get_exam_detail)
+
+    app.router.add_get("/api/progress", list_progress_handler)
+    app.router.add_post("/api/progress", save_progress_handler)
+    app.router.add_post("/api/progress/delete", delete_progress_handler)
+    app.router.add_get("/api/progress/{draft_key}", get_progress_item_handler)
+    app.router.add_delete("/api/progress/{draft_key}", delete_progress_handler)
 
     app.router.add_get("/api/questions/{id}/discussions", get_question_discussions_handler)
     app.router.add_post("/api/questions/{id}/discussions", add_question_discussion_handler)
@@ -2398,11 +3170,23 @@ def create_app():
     app.router.add_post("/api/ai/generate-image-question", ai_generate_image_question_handler)
     app.router.add_post("/api/ai/grade-handwritten", ai_grade_handwritten_handler)
 
+    app.router.add_get("/api/ai/keys", api_ai_keys_handler)
+    app.router.add_post("/api/ai/keys/add", api_ai_keys_add)
+    app.router.add_post("/api/ai/keys/delete", api_ai_keys_delete)
+    app.router.add_delete("/api/ai/keys/{index}", api_ai_keys_delete)
+    app.router.add_post("/api/ai/keys/toggle", api_ai_keys_toggle)
+    app.router.add_post("/api/ai/9router", api_ai_9router_config)
+    app.router.add_post("/api/ai/test_keys", test_all_keys_handler)
+    app.router.add_post("/api/ai/test-keys", test_all_keys_handler)
     app.router.add_post("/api/ai/test-key", test_key_handler)
     app.router.add_post("/api/ai/test-all-keys", test_all_keys_handler)
+    app.router.add_post("/api/ai/test_9router", handle_test_openai_key)
+    app.router.add_post("/api/ai/test-9router", handle_test_openai_key)
     app.router.add_post("/api/ai/test-openai", handle_test_openai_key)
     app.router.add_get("/api/ai/gateway-diag", handle_ai_gateway_diag)
     app.router.add_post("/api/ai/hint", ai_hint_handler)
+    app.router.add_post("/api/ai/explain", ai_explain_handler)
+    app.router.add_post("/api/ai/tutor-assist", ai_tutor_assist_handler)
     app.router.add_post("/api/ai/concept-recall", ai_concept_recall_handler)
     app.router.add_post("/api/ai/deep-analysis", ai_deep_analysis_handler)
     app.router.add_post("/api/ai/explain-mistake", ai_explain_mistake_handler)
@@ -2418,6 +3202,11 @@ def create_app():
     app.router.add_post("/api/ai/explain-exercise", ai_explain_exercise_handler)
 
     app.router.add_post("/api/ai/chat", ai_chat)
+    app.router.add_get("/api/ai/history", api_ai_history_list)
+    app.router.add_post("/api/ai/history", api_ai_history_save)
+    app.router.add_post("/api/ai/history/archive", api_ai_history_archive)
+    app.router.add_delete("/api/ai/history/{session_id}", api_ai_history_delete)
+    app.router.add_post("/api/ai/history/delete", api_ai_history_delete)
     app.router.add_post("/api/ai/generate-quiz", ai_generate_quiz)
     app.router.add_post("/api/ai/generate-flashcards", ai_generate_cards)
     app.router.add_post("/api/ai/cheat-sheet", ai_cheat_sheet)
@@ -2490,6 +3279,7 @@ def create_app():
 
     app.router.add_get("/", index_handler)
     app.router.add_static("/static/", STATIC_DIR)
+    app.on_cleanup.append(lambda _app: ai.close_http_session())
     if os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_BACKUP_CHAT_ID"):
         app.on_startup.append(lambda _app: _start_backup_task(_app))
         app.on_cleanup.append(lambda _app: _stop_backup_task(_app))
@@ -2510,5 +3300,5 @@ if __name__ == "__main__":
     app = create_app()
     lan_ip = get_lan_ip()
     print(f"🚀 UniMaster AI v10.0 running on PC: http://localhost:{PORT} | Mobile/iPad Wi-Fi: http://{lan_ip}:{PORT}")
-    print(f"🔐 Bảo vệ bằng mật khẩu: {'BẬT' if APP_PASSWORD else 'TẮT (chế độ nội bộ)'} | 💾 Dữ liệu: {db.DB_PATH}")
+    print(f"🔐 Bảo vệ truy cập: {'BẬT' if AUTH_ENABLED else 'TẮT (chế độ nội bộ)'} | 💾 Dữ liệu: {db.DB_PATH}")
     web.run_app(app, host="0.0.0.0", port=PORT)

@@ -1456,15 +1456,85 @@ body.zen-active #exit-zen-btn {
 }
 .ai-tutor-content pre {
   margin: 0.5rem 0;
-  border-radius: 0.5rem;
-  background: #0f172a;
+  border-radius: 0.65rem;
+  background: var(--code-bg, #0f172a);
+  color: var(--text-main);
   padding: 0.75rem;
   overflow-x: auto;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid var(--border);
 }
 .ai-tutor-content code {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   font-size: 0.82em;
+}
+.tutor-ai-bubble {
+  background-color: var(--bg-subtle);
+  border-color: var(--border);
+  color: var(--text-main);
+}
+.tutor-user-bubble {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
+  color: #ffffff;
+}
+.tutor-mode-pill {
+  background: var(--bg-subtle);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 0.3rem 0.72rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.16s ease;
+}
+.tutor-mode-pill:hover {
+  color: var(--text-main);
+  border-color: var(--brand);
+}
+.tutor-mode-pill.active {
+  background: linear-gradient(135deg, var(--brand), var(--brand-2)) !important;
+  color: #ffffff !important;
+  border-color: transparent !important;
+  box-shadow: 0 3px 10px -2px var(--brand-glow);
+}
+.tutor-mode-pill-sm {
+  padding: 0.18rem 0.55rem;
+  font-size: 0.68rem;
+}
+.tutor-drawer-tab {
+  flex: 1 1 0;
+  padding: 0.32rem 0.45rem;
+  border-radius: 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tutor-drawer-tab.active {
+  background: color-mix(in srgb, var(--brand) 16%, var(--bg-surface));
+  color: var(--brand);
+  border-color: color-mix(in srgb, var(--brand) 45%, var(--border));
+}
+.tutor-session-item {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 0.85rem;
+  padding: 0.65rem 0.75rem;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.tutor-session-item.active {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 10%, var(--bg-surface));
+}
+.secure-masked-textarea {
+  -webkit-text-security: disc;
+}
+.secure-masked-textarea.is-revealed {
+  -webkit-text-security: none;
 }
 
 
@@ -1547,17 +1617,17 @@ body.zen-active #exit-zen-btn {
   position: fixed !important;
   inset: 0 !important;
   width: 100vw !important;
-  height: 100vh !important;
+  height: 100dvh !important;
   max-width: 100vw !important;
-  max-height: 100vh !important;
+  max-height: 100dvh !important;
   z-index: 99999 !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: center !important;
   justify-content: center !important;
-  background: rgba(10, 15, 30, 0.78) !important;
+  background: rgba(10, 15, 30, 0.72) !important;
   backdrop-filter: blur(14px) !important;
-  padding: 1rem !important;
+  padding: max(0.75rem, env(safe-area-inset-top, 0px)) max(0.75rem, env(safe-area-inset-right, 0px)) max(0.75rem, env(safe-area-inset-bottom, 0px)) max(0.75rem, env(safe-area-inset-left, 0px)) !important;
   margin: 0 !important;
   left: 0 !important;
   top: 0 !important;
@@ -1566,28 +1636,43 @@ body.zen-active #exit-zen-btn {
 }
 
 #floating-tutor-container.tutor-expanded-parent #floating-tutor-window {
-  width: 96vw !important;
-  max-width: 1440px !important;
-  height: 94vh !important;
-  max-height: 94vh !important;
+  position: relative !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  width: min(1100px, 95vw) !important;
+  max-width: 1100px !important;
+  height: min(90dvh, 880px) !important;
+  max-height: 92dvh !important;
   display: flex !important;
   flex-direction: column !important;
   border-radius: 1.5rem !important;
-  border: 1.5px solid rgba(139, 92, 246, 0.45) !important;
-  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.8) !important;
+  border: 1.5px solid color-mix(in srgb, var(--brand) 50%, var(--border)) !important;
+  box-shadow: 0 30px 70px -15px rgba(0, 0, 0, 0.75) !important;
 }
 
-#floating-tutor-container.tutor-expanded-parent #ft-chat-messages {
+#floating-tutor-container.tutor-expanded-parent #floating-chat-messages {
   flex: 1 1 auto !important;
-  max-height: calc(94vh - 180px) !important;
+  max-height: none !important;
   overflow-y: auto !important;
-  font-size: 1.05rem !important;
+  font-size: 0.98rem !important;
   line-height: 1.7 !important;
-  padding: 1.5rem !important;
+  padding: 1.25rem 1.5rem !important;
 }
 
-#floating-tutor-container.tutor-expanded-parent #ft-pinned-question-box {
-  padding: 0.9rem 1.2rem !important;
+#floating-tutor-container.tutor-expanded-parent #ft-pinned-question-container {
+  padding: 0.65rem 1.25rem !important;
+}
+
+@media (max-width: 640px) {
+  #floating-tutor-container.tutor-expanded-parent #floating-tutor-window {
+    width: 98vw !important;
+    height: calc(100dvh - 1.5rem) !important;
+    max-height: 96dvh !important;
+    border-radius: 1rem !important;
+  }
 }
 
 /* 2. Interactive Code Line Ask AI */
@@ -2401,4 +2486,333 @@ header.hdr-scrolled { box-shadow: 0 10px 30px -12px rgba(0, 0, 0, 0.45); }
 }
 #ft-expand-svg {
   filter: drop-shadow(0 1px 1px rgba(0,0,0,0.3));
+}
+
+/* =========================================================================
+   UNIMASTER v36: 5-THEME CONTRAST FIXES, RESUME PANELS & RESPONSIVE AUDIT
+   ========================================================================= */
+.uni-top-header {
+  background: color-mix(in srgb, var(--bg-surface) 92%, transparent);
+}
+html:not(.dark):not(.sepia) .uni-top-header {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+}
+html.sepia .uni-top-header {
+  background: rgba(247, 241, 227, 0.95);
+  border-color: #d8ccb4 !important;
+}
+
+/* Hero Dashboard Card — 5 themes */
+html.dark .hero-dashboard-card {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.72) 0%, rgba(15, 23, 42, 0.90) 100%);
+  border: 1px solid var(--border);
+}
+html.dark .hero-dashboard-card .txt-muted,
+html.dark .hero-clock-sub,
+html.dark .hero-countdown-sub {
+  color: rgba(226, 232, 240, 0.85) !important;
+}
+.hero-clock-box {
+  background: rgba(0, 0, 0, 0.35);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.hero-clock-label { color: #a5b4fc; }
+.hero-clock-val { color: #ffffff; }
+.hero-countdown-box {
+  background: rgba(244, 63, 94, 0.14);
+  border-color: rgba(244, 63, 94, 0.45);
+}
+.hero-countdown-label,
+.hero-countdown-val { color: #fda4af; }
+
+html:not(.dark):not(.sepia) .hero-dashboard-card {
+  background: linear-gradient(135deg, #eef2ff 0%, #f8fafc 60%, #f5f3ff 100%) !important;
+  border: 1px solid #c7d2fe !important;
+  color: #0f172a;
+}
+html:not(.dark):not(.sepia) .hero-dashboard-card .text-white { color: #0f172a !important; }
+html:not(.dark):not(.sepia) .hero-dashboard-card .text-slate-300,
+html:not(.dark):not(.sepia) .hero-dashboard-card .txt-muted { color: #334155 !important; }
+html:not(.dark):not(.sepia) .hero-dashboard-card .text-indigo-300 { color: #4338ca !important; }
+html:not(.dark):not(.sepia) .hero-dashboard-card .text-rose-300 { color: #be123c !important; }
+html:not(.dark):not(.sepia) .hero-clock-box {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+html:not(.dark):not(.sepia) .hero-clock-label { color: #4338ca; }
+html:not(.dark):not(.sepia) .hero-clock-val { color: #0f172a; }
+html:not(.dark):not(.sepia) .hero-clock-sub { color: #334155; }
+html:not(.dark):not(.sepia) .hero-countdown-box {
+  background: #fff1f2;
+  border-color: #fda4af;
+}
+html:not(.dark):not(.sepia) .hero-countdown-label,
+html:not(.dark):not(.sepia) .hero-countdown-val { color: #be123c; }
+html:not(.dark):not(.sepia) .hero-countdown-sub { color: #881337; }
+
+html.sepia .hero-dashboard-card {
+  background: linear-gradient(135deg, #f3ebd6 0%, #f8f2e2 100%) !important;
+  border: 1px solid #d6c5a3 !important;
+  color: #2b1d0e;
+}
+html.sepia .hero-dashboard-card .text-white { color: #2b1d0e !important; }
+html.sepia .hero-dashboard-card .text-slate-300,
+html.sepia .hero-dashboard-card .txt-muted { color: #523e27 !important; }
+html.sepia .hero-dashboard-card .text-indigo-300 { color: #3730a3 !important; }
+html.sepia .hero-dashboard-card .text-rose-300 { color: #9f1239 !important; }
+html.sepia .hero-clock-box {
+  background: #fbf7ec;
+  border-color: #d6c5a3;
+}
+html.sepia .hero-clock-label { color: #3730a3; }
+html.sepia .hero-clock-val { color: #2b1d0e; }
+html.sepia .hero-clock-sub { color: #523e27; }
+html.sepia .hero-countdown-box {
+  background: rgba(190, 18, 60, 0.10);
+  border-color: rgba(190, 18, 60, 0.36);
+}
+html.sepia .hero-countdown-label,
+html.sepia .hero-countdown-val { color: #9f1239; }
+html.sepia .hero-countdown-sub { color: #6b1d2f; }
+
+/* 6-Exam Countdown Cards — crisp high contrast on Dark / Midnight / Contrast / Light / Sepia */
+html.dark .countdown-urgent { background: rgba(244, 63, 94, 0.16); border-color: rgba(251, 113, 133, 0.45); }
+html.dark .countdown-urgent .cd-top { color: #fda4af; }
+html.dark .countdown-urgent .cd-badge-solid { background: #e11d48; color: #ffffff; }
+html.dark .countdown-urgent .cd-title { color: #ffffff; }
+html.dark .countdown-urgent .cd-days { color: #fb7185; }
+
+html.dark .countdown-amber { background: rgba(245, 158, 11, 0.12); border-color: rgba(251, 191, 36, 0.38); }
+html.dark .countdown-amber .cd-top { color: #fcd34d; }
+html.dark .countdown-amber .cd-badge { background: rgba(245, 158, 11, 0.28); color: #fde68a; }
+html.dark .countdown-amber .cd-title { color: #ffffff; }
+html.dark .countdown-amber .cd-days { color: #fbbf24; }
+
+html.dark .countdown-indigo { background: rgba(99, 102, 241, 0.14); border-color: rgba(129, 140, 248, 0.38); }
+html.dark .countdown-indigo .cd-top { color: #c7d2fe; }
+html.dark .countdown-indigo .cd-badge { background: rgba(99, 102, 241, 0.28); color: #e0e7ff; }
+html.dark .countdown-indigo .cd-title { color: #ffffff; }
+html.dark .countdown-indigo .cd-days { color: #a5b4fc; }
+
+html.dark .countdown-cyan { background: rgba(6, 182, 212, 0.12); border-color: rgba(34, 211, 238, 0.38); }
+html.dark .countdown-cyan .cd-top { color: #a5f3fc; }
+html.dark .countdown-cyan .cd-badge { background: rgba(6, 182, 212, 0.28); color: #cffafe; }
+html.dark .countdown-cyan .cd-title { color: #ffffff; }
+html.dark .countdown-cyan .cd-days { color: #67e8f9; }
+
+html.dark .countdown-emerald { background: rgba(16, 185, 129, 0.12); border-color: rgba(52, 211, 153, 0.38); }
+html.dark .countdown-emerald .cd-top { color: #a7f3d0; }
+html.dark .countdown-emerald .cd-badge { background: rgba(16, 185, 129, 0.28); color: #d1fae5; }
+html.dark .countdown-emerald .cd-title { color: #ffffff; }
+html.dark .countdown-emerald .cd-days { color: #6ee7b7; }
+
+/* Light Mode Countdowns (WCAG AA/AAA high contrast) */
+html:not(.dark):not(.sepia) .countdown-urgent { background: #fff1f2 !important; border-color: #fda4af !important; }
+html:not(.dark):not(.sepia) .countdown-urgent .cd-top { color: #9f1239 !important; }
+html:not(.dark):not(.sepia) .countdown-urgent .cd-badge-solid { background: #e11d48 !important; color: #ffffff !important; }
+html:not(.dark):not(.sepia) .countdown-urgent .cd-title { color: #0f172a !important; }
+html:not(.dark):not(.sepia) .countdown-urgent .cd-days { color: #be123c !important; }
+
+html:not(.dark):not(.sepia) .countdown-amber { background: #fffbeb !important; border-color: #fbbf24 !important; }
+html:not(.dark):not(.sepia) .countdown-amber .cd-top { color: #92400e !important; }
+html:not(.dark):not(.sepia) .countdown-amber .cd-badge { background: #fef3c7 !important; color: #78350f !important; border: 1px solid #f59e0b; }
+html:not(.dark):not(.sepia) .countdown-amber .cd-title { color: #0f172a !important; }
+html:not(.dark):not(.sepia) .countdown-amber .cd-days { color: #b45309 !important; }
+
+html:not(.dark):not(.sepia) .countdown-indigo { background: #eef2ff !important; border-color: #a5b4fc !important; }
+html:not(.dark):not(.sepia) .countdown-indigo .cd-top { color: #3730a3 !important; }
+html:not(.dark):not(.sepia) .countdown-indigo .cd-badge { background: #e0e7ff !important; color: #312e81 !important; border: 1px solid #818cf8; }
+html:not(.dark):not(.sepia) .countdown-indigo .cd-title { color: #0f172a !important; }
+html:not(.dark):not(.sepia) .countdown-indigo .cd-days { color: #4338ca !important; }
+
+html:not(.dark):not(.sepia) .countdown-cyan { background: #ecfeff !important; border-color: #67e8f9 !important; }
+html:not(.dark):not(.sepia) .countdown-cyan .cd-top { color: #155e75 !important; }
+html:not(.dark):not(.sepia) .countdown-cyan .cd-badge { background: #cffafe !important; color: #164e63 !important; border: 1px solid #06b6d4; }
+html:not(.dark):not(.sepia) .countdown-cyan .cd-title { color: #0f172a !important; }
+html:not(.dark):not(.sepia) .countdown-cyan .cd-days { color: #0e7490 !important; }
+
+html:not(.dark):not(.sepia) .countdown-emerald { background: #ecfdf5 !important; border-color: #6ee7b7 !important; }
+html:not(.dark):not(.sepia) .countdown-emerald .cd-top { color: #065f46 !important; }
+html:not(.dark):not(.sepia) .countdown-emerald .cd-badge { background: #d1fae5 !important; color: #064e3b !important; border: 1px solid #10b981; }
+html:not(.dark):not(.sepia) .countdown-emerald .cd-title { color: #0f172a !important; }
+html:not(.dark):not(.sepia) .countdown-emerald .cd-days { color: #047857 !important; }
+
+/* Sepia Mode Countdowns (High-specificity >= 4.5:1 WCAG AA across all 6 cards) */
+html.sepia #survival-predictor-widget .countdown-urgent,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-urgent {
+  background: rgba(225, 29, 72, 0.08) !important;
+  border-color: rgba(136, 19, 55, 0.42) !important;
+}
+html.sepia #survival-predictor-widget .countdown-urgent .cd-top,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-urgent .cd-top { color: #881337 !important; }
+html.sepia #survival-predictor-widget .countdown-urgent .cd-badge-solid,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-urgent .cd-badge-solid { background: #9f1239 !important; color: #ffffff !important; }
+html.sepia #survival-predictor-widget .countdown-urgent .cd-title,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-urgent .cd-title { color: #1f1409 !important; }
+html.sepia #survival-predictor-widget .countdown-urgent .cd-days,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-urgent .cd-days,
+html.sepia #survival-predictor-widget #countdown-15-11,
+html.sepia #survival-predictor-widget #countdown-16-11,
+html[data-theme="sepia"] #countdown-15-11,
+html[data-theme="sepia"] #countdown-16-11 { color: #881337 !important; }
+
+html.sepia #survival-predictor-widget .countdown-amber,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-amber {
+  background: rgba(217, 119, 6, 0.09) !important;
+  border-color: rgba(120, 53, 15, 0.40) !important;
+}
+html.sepia #survival-predictor-widget .countdown-amber .cd-top,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-amber .cd-top { color: #78350f !important; }
+html.sepia #survival-predictor-widget .countdown-amber .cd-badge,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-amber .cd-badge { background: rgba(217, 119, 6, 0.20) !important; color: #5c280a !important; }
+html.sepia #survival-predictor-widget .countdown-amber .cd-title,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-amber .cd-title { color: #1f1409 !important; }
+html.sepia #survival-predictor-widget .countdown-amber .cd-days,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-amber .cd-days,
+html.sepia #survival-predictor-widget #countdown-26-11,
+html[data-theme="sepia"] #countdown-26-11 { color: #78350f !important; }
+
+html.sepia #survival-predictor-widget .countdown-indigo,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-indigo {
+  background: rgba(79, 70, 229, 0.08) !important;
+  border-color: rgba(49, 46, 129, 0.36) !important;
+}
+html.sepia #survival-predictor-widget .countdown-indigo .cd-top,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-indigo .cd-top { color: #312e81 !important; }
+html.sepia #survival-predictor-widget .countdown-indigo .cd-badge,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-indigo .cd-badge { background: rgba(79, 70, 229, 0.16) !important; color: #1e1b4b !important; }
+html.sepia #survival-predictor-widget .countdown-indigo .cd-title,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-indigo .cd-title { color: #1f1409 !important; }
+html.sepia #survival-predictor-widget .countdown-indigo .cd-days,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-indigo .cd-days,
+html.sepia #survival-predictor-widget #countdown-27-11,
+html[data-theme="sepia"] #countdown-27-11 { color: #312e81 !important; }
+
+html.sepia #survival-predictor-widget .countdown-cyan,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-cyan {
+  background: rgba(8, 145, 178, 0.08) !important;
+  border-color: rgba(22, 78, 99, 0.36) !important;
+}
+html.sepia #survival-predictor-widget .countdown-cyan .cd-top,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-cyan .cd-top { color: #164e63 !important; }
+html.sepia #survival-predictor-widget .countdown-cyan .cd-badge,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-cyan .cd-badge { background: rgba(8, 145, 178, 0.16) !important; color: #083344 !important; }
+html.sepia #survival-predictor-widget .countdown-cyan .cd-title,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-cyan .cd-title { color: #1f1409 !important; }
+html.sepia #survival-predictor-widget .countdown-cyan .cd-days,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-cyan .cd-days,
+html.sepia #survival-predictor-widget #countdown-01-12,
+html[data-theme="sepia"] #countdown-01-12 { color: #164e63 !important; }
+
+html.sepia #survival-predictor-widget .countdown-emerald,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-emerald {
+  background: rgba(5, 150, 105, 0.08) !important;
+  border-color: rgba(6, 78, 59, 0.36) !important;
+}
+html.sepia #survival-predictor-widget .countdown-emerald .cd-top,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-emerald .cd-top { color: #064e3b !important; }
+html.sepia #survival-predictor-widget .countdown-emerald .cd-badge,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-emerald .cd-badge { background: rgba(5, 150, 105, 0.16) !important; color: #022c22 !important; }
+html.sepia #survival-predictor-widget .countdown-emerald .cd-title,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-emerald .cd-title { color: #1f1409 !important; }
+html.sepia #survival-predictor-widget .countdown-emerald .cd-days,
+html[data-theme="sepia"] #survival-predictor-widget .countdown-emerald .cd-days,
+html.sepia #survival-predictor-widget #countdown-04-12,
+html[data-theme="sepia"] #countdown-04-12 { color: #064e3b !important; }
+
+/* Survival Widget text contrast in Light / Sepia */
+html:not(.dark) #survival-predictor-widget .text-white { color: var(--text-main) !important; }
+html:not(.dark) #survival-predictor-widget .text-slate-300,
+html:not(.dark) #survival-predictor-widget .text-slate-400 { color: var(--text-muted) !important; }
+
+/* Resume Panels & Progress Bars */
+.resume-panel-card {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 10%, var(--bg-surface)), color-mix(in srgb, var(--brand-2) 8%, var(--bg-surface)));
+  border: 1.5px solid color-mix(in srgb, var(--brand) 38%, var(--border));
+}
+.resume-draft-item {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border);
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.resume-draft-item:hover {
+  border-color: var(--brand);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.10);
+}
+.resume-progress-track {
+  width: 100%;
+  height: 7px;
+  border-radius: 999px;
+  background-color: color-mix(in srgb, var(--border) 65%, transparent);
+  overflow: hidden;
+}
+.resume-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-2));
+  transition: width 0.25s ease;
+}
+.chapter-card-item {
+  background-color: var(--bg-subtle);
+  border: 1px solid var(--border);
+}
+.chapter-card-item.has-draft {
+  border-color: color-mix(in srgb, var(--brand) 55%, var(--border));
+  background: color-mix(in srgb, var(--brand) 6%, var(--bg-subtle));
+}
+
+/* Settings Modal & Responsive Mobile / iPad Safety */
+#modal-settings > .uni-card {
+  width: min(96vw, 760px) !important;
+  max-height: min(92dvh, 880px) !important;
+  display: flex;
+  flex-direction: column;
+}
+#modal-settings .settings-tabs-bar,
+#modal-settings [role="tablist"] {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+#modal-settings .settings-tabs-bar::-webkit-scrollbar { display: none; }
+#floating-tutor-window {
+  width: min(430px, calc(100vw - 1.5rem));
+  max-height: min(76dvh, 650px);
+}
+@media (max-width: 1023px) {
+  main {
+    padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  #floating-tutor-container {
+    bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+}
+
+/* AI Tutor 5-Theme Readability & Biochemistry Term Highlight */
+.ai-tutor-content strong,
+.tutor-biochem-highlight {
+  color: var(--brand);
+  font-weight: 800;
+}
+html[data-theme="light"] .q-concept-chip,
+html[data-theme="sepia"] .q-concept-chip,
+html:not(.dark) .q-concept-chip {
+  color: var(--brand) !important;
+  background: color-mix(in srgb, var(--brand) 10%, var(--bg-surface)) !important;
+  border-color: color-mix(in srgb, var(--brand) 36%, var(--border)) !important;
+}
+html[data-theme="light"] .ai-tutor-content pre,
+html[data-theme="sepia"] .ai-tutor-content pre {
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: var(--border) !important;
+}
+html[data-theme="contrast"] .tutor-ai-bubble,
+html[data-theme="contrast"] .tutor-session-item {
+  border-width: 1.5px;
+  border-color: rgba(255, 255, 255, 0.35);
 }
