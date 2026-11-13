@@ -1,4 +1,4 @@
-# Render Blueprint — New + > Blueprint > chọn repo GitHub chứa thư mục này
+# Render Blueprint — New + > Blueprint > chọn repo GitHub tnpthinh/unimaster-ai
 services:
   - type: web
     name: unimaster-ai
@@ -8,32 +8,42 @@ services:
     envVars:
       - key: APP_PASSWORD
         sync: false
+      - key: REQUIRE_AUTH
+        value: "1"
       - key: SESSION_SECRET
         generateValue: true
       - key: DATA_DIR
         value: /tmp/unimaster-data
 
-      # ===== AI Provider: OpenAI hoặc 9Router Gateway =====
+      # ===== Dàn API Key Gemini (khuyên dùng, ngăn cách bởi dấu phẩy) =====
+      - key: GEMINI_API_KEYS
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+      # ===== AI Gateway: 9Router / FOSTA Codex / OpenAI =====
       # Nhập API key thật trong Render Dashboard > Environment (sync: false)
-      # OpenAI: https://api.openai.com/v1 + gpt-4o
-      # 9Router: http://127.0.0.1:20128/v1 + All hoặc Coding-Pro
+      - key: ROUTER_BASE_URL
+        sync: false
+      - key: ROUTER_API_KEY
+        sync: false
+      - key: ROUTER_MODEL
+        sync: false
       - key: OPENAI_API_KEY
         sync: false
-      # Để trống để cấu hình lưu trong giao diện/SQLite được ưu tiên.
-      # Chỉ điền các biến này trong Render Dashboard nếu muốn ép cấu hình cấp hệ thống.
       - key: OPENAI_BASE_URL
         sync: false
       - key: OPENAI_MODEL
         sync: false
-      # Dùng khi Render gọi gateway 9Router qua Cloudflare Tunnel discovery.
       - key: AI_GATEWAY_DISCOVERY_URL
         sync: false
       - key: AI_GATEWAY_SECRET
         sync: false
-      # openai_first: ưu tiên OpenAI Pro, tự động fallback sang Gemini pool khi lỗi/quota
       - key: AI_PROVIDER_PRIORITY
-        sync: false
+        value: gemini_first
 
-      # ===== Fallback: Gemini API Keys (không bắt buộc) =====
-      - key: GEMINI_API_KEY
+      # ===== Optional: Auto backup SQLite lên Telegram =====
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_BACKUP_CHAT_ID
         sync: false

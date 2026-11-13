@@ -444,7 +444,7 @@ async function handleRegisterSubmit(e) {
 
 
 async def login_page(request):
-    if not APP_PASSWORD or _valid_session_token(request.cookies.get(SESSION_COOKIE, "")):
+    if not AUTH_ENABLED or _valid_session_token(request.cookies.get(SESSION_COOKIE, "")):
         raise web.HTTPFound("/")
     return web.Response(text=LOGIN_PAGE_HTML, content_type="text/html", charset="utf-8")
 
@@ -2541,7 +2541,7 @@ async def get_network_info(request):
         "public_url": public_url,
         "permanent_gateway_url": "https://ntfy.sh/unimaster_ctump_5292",
         "is_online": bool(public_url),
-        "auth_enabled": bool(APP_PASSWORD)
+        "auth_enabled": AUTH_ENABLED
     })
 
 
