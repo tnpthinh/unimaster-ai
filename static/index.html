@@ -1214,31 +1214,31 @@
          =================================================================== -->
     <section id="view-exercises" class="hidden space-y-5 animate-fade-in">
       <!-- Top Bar: Subject Selector + Quick Actions -->
-      <div class="uni-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md">
-            <i data-lucide="code-2" class="w-5 h-5"></i>
+      <div class="uni-card p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md">
+            <i data-lucide="code-2" class="w-4 h-4"></i>
           </div>
           <div>
-            <h2 class="text-base sm:text-lg font-extrabold txt-main flex items-center gap-2">
-              Chấm Code Thực Hành
-              <span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">20 Bài Tập</span>
+            <h2 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-1.5">
+              Thực Hành Code
+              <span class="badge-brand text-[9px] px-1.5 py-0.5 rounded-full font-mono">20 bài</span>
             </h2>
-            <p class="text-xs txt-muted">Unit Test tự động • Soi rò rỉ bộ nhớ & kiến trúc OOP</p>
+            <p class="text-[10px] txt-muted leading-tight">Unit Test tự động • Soi rò rỉ bộ nhớ & OOP</p>
           </div>
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <select id="exercise-subject-select" onchange="loadExercisesView()" class="uni-input px-3.5 py-2 text-xs font-bold">
-            <option value="5">💻 OOP (C#) - Thi 15/11 & 26/11</option>
-            <option value="22">⚙️ NNLT 1 (Python) - Thi 01/12</option>
+        <div class="flex items-center gap-1 flex-wrap">
+          <select id="exercise-subject-select" onchange="loadExercisesView()" class="uni-input px-2.5 py-1.5 text-[10px] font-bold">
+            <option value="5">💻 OOP (C#)</option>
+            <option value="22">⚙️ NNLT 1 (Python)</option>
           </select>
-          <button onclick="submitCodeTestCases()" class="btn-primary px-4 py-2 text-xs flex items-center gap-1.5 font-bold shadow-md">
-            <span>🧪</span> Chạy Test Case
+          <button onclick="submitCodeTestCases()" class="btn-primary px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md">
+            <span>🧪</span> Chấm Test
           </button>
-          <button id="btn-toggle-ide-expand" type="button" onclick="toggleExerciseSidebarList()" class="btn-soft px-3 py-2 text-xs flex items-center gap-1.5 font-bold" title="Mở rộng IDE toàn màn hình / Hiện danh sách bài tập">
-            <span id="ide-expand-btn-icon">🖥️</span> <span id="ide-expand-btn-text">Mở Rộng Toàn Khung IDE</span>
+          <button id="btn-toggle-ide-expand" type="button" onclick="toggleExerciseSidebarList()" class="btn-soft px-2.5 py-1.5 text-[10px] flex items-center gap-1 font-bold" title="Mở rộng IDE toàn màn hình / Hiện danh sách bài tập">
+            <span id="ide-expand-btn-icon">🖥️</span> <span id="ide-expand-btn-text">Mở Rộng IDE</span>
           </button>
-          <button onclick="analyzeCurrentCodeComplexity()" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-rose-500 px-4 py-2 text-xs flex items-center gap-1.5 font-bold shadow-md" title="Phân tích độ phức tạp Big-O và phát hiện lỗi OOP">
+          <button onclick="analyzeCurrentCodeComplexity()" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-rose-500 px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Phân tích Big-O & OOP">
             <span>⚡</span> AI Big-O & OOP
           </button>
         </div>
@@ -1247,30 +1247,30 @@
       <!-- Main Split Layout: Hỗ trợ mở rộng 100% diện tích cho VS Code IDE -->
       <div id="exercise-workspace-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
         <!-- Left: Exercise List (Có thể thu gọn 1-click để giải phóng 100% diện tích cho Editor) -->
-        <div id="exercise-sidebar-col" class="lg:col-span-3 uni-card p-3.5 space-y-3 h-fit transition-all duration-300">
-          <div class="flex items-center justify-between text-xs font-bold pb-2 border-b" style="border-color: var(--border);">
-            <span class="txt-main flex items-center gap-1.5">
-              <span>📁</span> <span>20 Bài Thực Hành</span>
+        <div id="exercise-sidebar-col" class="lg:col-span-3 uni-card p-2.5 space-y-2 h-fit transition-all duration-300">
+          <div class="flex items-center justify-between text-[10px] font-bold pb-1 border-b" style="border-color: var(--border);">
+            <span class="txt-main flex items-center gap-1">
+              <span>📁</span> <span>20 Bài</span>
             </span>
-            <div class="flex items-center gap-1.5">
-              <span id="exercise-count-badge" class="badge-soft px-1.5 py-0.5 rounded text-[10px]">20 bài</span>
-              <button type="button" onclick="toggleExerciseSidebarList(false)" class="btn-soft px-2 py-0.5 text-[11px] font-bold hover:text-white" title="Thu gọn danh sách để IDE mở rộng toàn màn hình">◀ Ẩn</button>
+            <div class="flex items-center gap-1">
+              <span id="exercise-count-badge" class="badge-soft px-1 py-0.5 rounded text-[9px]">20 bài</span>
+              <button type="button" onclick="toggleExerciseSidebarList(false)" class="btn-soft px-1.5 py-0.5 text-[9px] font-bold hover:text-white" title="Thu gọn danh sách để IDE mở rộng toàn màn hình">◀ Ẩn</button>
             </div>
           </div>
           <input id="exercise-search" type="text" oninput="renderExerciseList()"
-            placeholder="🔍 Tìm bài (Class, Kế thừa, Mảng...)" class="uni-input w-full px-3 py-1.5 !text-xs" />
-          <div id="exercise-list" class="space-y-1.5 max-h-[640px] overflow-y-auto pr-1"></div>
+            placeholder="🔍 Tìm bài..." class="uni-input w-full px-2.5 py-1 !text-[10px]" />
+          <div id="exercise-list" class="space-y-1 max-h-[640px] overflow-y-auto pr-1"></div>
         </div>
 
         <!-- Right: Problem Description & Interactive Code Editor & Test Runner -->
         <div id="exercise-main-col" class="lg:col-span-9 space-y-3 transition-all duration-300">
           <!-- Banner hỗ trợ mở lại danh sách nhanh chóng khi đang thu gọn -->
-          <div id="exercise-sidebar-reopen-banner" class="hidden flex items-center justify-between p-2.5 px-4 rounded-xl bg-[#252526] border border-[#3c3c3d] text-xs">
-            <span class="text-slate-300 font-mono text-[11px] flex items-center gap-2">
-              <span class="text-emerald-400">●</span> Chế độ Focus Lập Trình (Không gian Code mở rộng tối đa)
+          <div id="exercise-sidebar-reopen-banner" class="hidden flex items-center justify-between p-2 px-3 rounded-xl bg-[#252526] border border-[#3c3c3d] text-[10px]">
+            <span class="text-slate-300 font-mono flex items-center gap-1.5">
+              <span class="text-emerald-400">●</span> Focus Code (Không gian mở rộng tối đa)
             </span>
-            <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-primary px-3 py-1 text-xs font-bold flex items-center gap-1.5">
-              <span>📂</span> Mở Lại Danh Sách Bài Tập
+            <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-primary px-2.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
+              <span>📂</span> Mở Lại Danh Sách
             </button>
           </div>
 

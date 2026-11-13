@@ -3933,28 +3933,54 @@ main:has(#view-tutor:not(.hidden)) {
   max-width: 220px !important;
 }
 
-/* Compact VS Code gutter - tighter line spacing for 30+ lines visible */
-.vscode-gutter {
-  width: 36px !important;
-  font-size: 11.5px !important;
-  line-height: 1.25rem !important;
-  padding: 8px 6px 8px 0 !important;
+/* ------------------------------------------------------------------
+   CRITICAL SYNC: gutter và textarea PHẢI cùng line-height + padding-top
+   Nếu lệch nhau 1px thì click số dòng sẽ trỏ sai dòng.
+   ------------------------------------------------------------------ */
+:root {
+  --vs-line-height: 20px;
+  --vs-code-pad-top: 8px;
 }
 
-/* High-density code editor - 12.5px font, 1.35rem line-height for 30+ lines */
+/* Compact VS Code gutter - 1 dòng = 20px, khớp tuyệt đối với editor */
+.vscode-gutter {
+  width: 38px !important;
+  font-size: 12.5px !important;
+  line-height: var(--vs-line-height) !important;
+  padding: var(--vs-code-pad-top) 6px var(--vs-code-pad-top) 0 !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.vscode-gutter-line,
+.vscode-gutter-lines > div {
+  height: var(--vs-line-height) !important;
+  line-height: var(--vs-line-height) !important;
+  font-size: 12.5px !important;
+  display: block !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  white-space: nowrap !important;
+}
+
+/* High-density code editor - cùng 20px/dòng để hiển thị 30+ dòng */
 #code-editor-textarea {
   font-size: 12.5px !important;
-  line-height: 1.35rem !important;
+  line-height: var(--vs-line-height) !important;
   tab-size: 4 !important;
-  white-space: pre !important;
   overflow-x: auto !important;
-  padding: 8px 12px !important;
+  padding: var(--vs-code-pad-top) 12px var(--vs-code-pad-top) 10px !important;
+  box-sizing: border-box !important;
 }
 
-/* Ensure code wraps naturally without breaking line numbers */
+/* Đồng bộ font mono tuyệt đối giữa gutter và editor */
+.vscode-gutter,
 .vscode-gutter-lines,
+.vscode-gutter-lines > div,
 #code-editor-textarea {
   font-family: 'Cascadia Code', Consolas, 'Fira Code', 'Courier New', monospace !important;
+  letter-spacing: normal !important;
+  font-variant-ligatures: none !important;
 }
 
 /* Single-row toolbar - condensed layout */

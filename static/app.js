@@ -3464,12 +3464,13 @@ function switchTab(tabName) {
   });
   updateNavIndicator();
 
-  // 1. Hide floating tutor button on Dashboard (trang chủ), Tutor view, và Exercises tab
+  // 1. Hide floating tutor button on Dashboard (trang chủ) và Tutor view
+  //    (KHÔNG ẩn khi vào Exercises để nút "Hỏi AI dòng này/từ này" vẫn hoạt động)
   const ftContainer = document.getElementById('floating-tutor-container');
   if (ftContainer) {
-    const isHomeOrTutorOrExercises = tabName === 'dashboard' || tabName === 'tutor' || tabName === 'exercises';
-    ftContainer.classList.toggle('hidden', isHomeOrTutorOrExercises);
-    if (isHomeOrTutorOrExercises) {
+    const isHomeOrTutor = tabName === 'dashboard' || tabName === 'tutor';
+    ftContainer.classList.toggle('hidden', isHomeOrTutor);
+    if (isHomeOrTutor) {
       closeFloatingTutor();
     } else {
       syncFloatingTutorSubjectContext();
