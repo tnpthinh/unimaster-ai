@@ -509,9 +509,14 @@ function buildTutorMessageHtml(msg, compact = false) {
 function scrollTutorToBottom(boxId) {
   const box = document.getElementById(boxId);
   if (!box) return;
-  box.scrollTop = box.scrollHeight;
-  const btnId = boxId === 'floating-chat-messages' ? 'btn-ft-scroll-bottom' : 'btn-tutor-scroll-bottom';
-  document.getElementById(btnId)?.classList.add('hidden');
+  // Chỉ cuộn xuống đáy nếu người dùng đang ở gần đáy (trong khoảng 80px).
+  // Nếu đang đọc tin nhắn cũ ở giữa, giữ nguyên vị trí cuộn hiện tại.
+  const distFromBottom = box.scrollHeight - box.scrollTop - box.clientHeight;
+  if (distFromBottom < 80) {
+    box.scrollTop = box.scrollHeight;
+    const btnId = boxId === 'floating-chat-messages' ? 'btn-ft-scroll-bottom' : 'btn-tutor-scroll-bottom';
+    document.getElementById(btnId)?.classList.add('hidden');
+  }
 }
 window.scrollTutorToBottom = scrollTutorToBottom;
 
@@ -11674,7 +11679,7 @@ function renderAiReviewPane(aiRev) {
 
   return `
     <div class="space-y-4 animate-fade-in text-xs leading-relaxed">
-      <div class="flex items-center justify-between p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10">
+      <div class="flex items-center justify-between p_3.5 rounded-xl border border-indigo-500/30 bg-indigo-500/10">
         <div>
           <span class="text-xs font-bold text-indigo-300 uppercase">Điểm Đánh Giá Tech Lead</span>
           <h4 class="text-lg font-black text-white">${aiRev.score || 8.5} / 10.0</h4>
@@ -11705,6 +11710,21 @@ function renderAiReviewPane(aiRev) {
               <ul class="space-y-1">${aiRev.refactoring_tips.map((t) => `<li class="flex items-start gap-2"><span class="text-amber-400">▸</span><span>${escapeHtml(t)}</span></li>`).join('')}</ul>
             </div>`
           : ''
+      }
+
+      ${aiRev.improved_code
+        ? `<div class="p-3.5 rounded-xl border space-y-1.5" style="border-color: var(--border); background: rgba(255,255,255,0.02);">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-bold text-cyan-400 flex items-center gap-1.5">
+                <span>💻</span> Code Đã Tối Ưu Từ AI Tech Lead:
+              </span>
+              <button type="button" onclick="applyAiReviewImprovedCode()" class="text-xs font-bold text-emerald-400 hover:underline">
+                Dán vào Editor ➔
+              </button>
+            </div>
+            <pre class="p-4 rounded-xl bg-slate-950 border text-xs font-mono text-cyan-200 overflow-x-auto max-h-72 leading-relaxed" style="border-color: rgba(16,185,129,0.3);"><code>${escapeHtml(aiRev.improved_code || '')}</code></pre>
+          </div>`
+        : ''
       }
     </div>
   `;
@@ -18624,6 +18644,23 @@ function applyUpgradedCodeToEditor(exId) {
   showToast('Đã dán mã nguồn nâng cấp chuẩn vào Editor! 🚀', 'success');
 }
 
+function applyAiReviewImprovedCode() {
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  if (!ex || !STATE.exercises.aiReviews || !STATE.exercises.aiReviews[ex.id]) return;
+
+  const improved = STATE.exercises.aiReviews[ex.id].improved_code;
+  if (!improved) return;
+
+  const editor = document.getElementById('code-editor-textarea');
+  if (editor) {
+    editor.value = improved;
+    updateVscodeLineNumbers();
+  }
+  STATE.exercises.userCode[ex.id] = improved;
+  persistUserCodeToStorage();
+  showToast('Đã áp dụng code tối ưu từ AI Tech Lead vào Editor! ✨', 'success');
+}
+
 // ==========================================
 // VISUAL STUDIO / VS CODE IDE CONTROLLERS & AI COPILOT
 // ==========================================
@@ -19147,7 +19184,7 @@ function openAiFullscreenForCurrentTab() {
   } else if (activeTab === 'aifix') {
     title = '🛠️ AI Sửa Lỗi & Nâng Cấp Code';
     const upgrade = STATE.exercises.aiUpgrades ? STATE.exercises.aiUpgrades[ex.id] : null;
-    contentHtml = renderAiFixPane(upgrade);
+    contentHtml = renderAiFixPane(upgrade, ex);
   } else if (activeTab === 'testcases') {
     title = '🧪 Test Cases & Kết Quả Chấm';
     const testRes = STATE.exercises.testResults[ex.id];
