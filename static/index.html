@@ -1238,6 +1238,9 @@
           <button id="btn-toggle-ide-expand" type="button" onclick="toggleExerciseSidebarList()" class="btn-soft px-2.5 py-1.5 text-[10px] flex items-center gap-1 font-bold" title="Mở rộng IDE toàn màn hình / Hiện danh sách bài tập">
             <span id="ide-expand-btn-icon">🖥️</span> <span id="ide-expand-btn-text">Mở Rộng IDE</span>
           </button>
+          <button onclick="nextExercise()" class="btn-primary px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Chuyển sang câu hỏi tiếp theo">
+            <span>⏭️</span> <span class="hidden sm:inline">Câu Tiếp Theo</span>
+          </button>
           <button onclick="analyzeCurrentCodeComplexity()" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-rose-500 px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Phân tích Big-O & OOP">
             <span>⚡</span> AI Big-O & OOP
           </button>
@@ -1254,7 +1257,7 @@
             </span>
             <div class="flex items-center gap-1">
               <span id="exercise-count-badge" class="badge-soft px-1 py-0.5 rounded text-[9px]">20 bài</span>
-              <button type="button" onclick="toggleExerciseSidebarList(false)" class="btn-soft px-1.5 py-0.5 text-[9px] font-bold hover:text-white" title="Thu gọn danh sách để IDE mở rộng toàn màn hình">◀ Ẩn</button>
+              <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-soft px-1.5 py-0.5 text-[9px] font-bold hover:text-white" title="Thu gọn danh sách để IDE mở rộng toàn màn hình">◀ Ẩn</button>
             </div>
           </div>
           <input id="exercise-search" type="text" oninput="renderExerciseList()"
@@ -1269,7 +1272,7 @@
             <span class="text-slate-300 font-mono flex items-center gap-1.5">
               <span class="text-emerald-400">●</span> Focus Code (Không gian mở rộng tối đa)
             </span>
-            <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-primary px-2.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
+            <button type="button" onclick="toggleExerciseSidebarList(false)" class="btn-primary px-2.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
               <span>📂</span> Mở Lại Danh Sách
             </button>
           </div>

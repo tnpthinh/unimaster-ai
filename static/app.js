@@ -19424,6 +19424,25 @@ function toggleExerciseSidebarList(force) {
 }
 
 /**
+ * Chuyển sang bài tập tiếp theo trong danh sách 20 bài (vòng lặp)
+ * Khi nhấn nút "Câu Tiếp Theo", sẽ load bài kế tiếp tự động
+ */
+function nextExercise() {
+  const list = STATE.exercises.list;
+  if (!list || !list.length) return;
+
+  let nextIndex = (STATE.exercises.selectedIndex + 1) % list.length;
+  STATE.exercises.selectedIndex = nextIndex;
+
+  // Cập nhật giao diện: render lại danh sách và chi tiết bài mới
+  renderExerciseList();
+  renderExerciseDetail();
+
+  // Cuộn lên đầu trang để xem bài mới
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/**
  * Toggle advanced settings drawer in AI Tutor header
  */
 function toggleTutorAdvancedSettings() {
