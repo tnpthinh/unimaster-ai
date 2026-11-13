@@ -1235,32 +1235,51 @@
           <button onclick="submitCodeTestCases()" class="btn-primary px-4 py-2 text-xs flex items-center gap-1.5 font-bold shadow-md">
             <span>🧪</span> Chạy Test Case
           </button>
+          <button id="btn-toggle-ide-expand" type="button" onclick="toggleExerciseSidebarList()" class="btn-soft px-3 py-2 text-xs flex items-center gap-1.5 font-bold" title="Mở rộng IDE toàn màn hình / Hiện danh sách bài tập">
+            <span id="ide-expand-btn-icon">🖥️</span> <span id="ide-expand-btn-text">Mở Rộng Toàn Khung IDE</span>
+          </button>
           <button onclick="analyzeCurrentCodeComplexity()" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-rose-500 px-4 py-2 text-xs flex items-center gap-1.5 font-bold shadow-md" title="Phân tích độ phức tạp Big-O và phát hiện lỗi OOP">
-            <span>⚡</span> AI Big-O & Kiến Trúc OOP
+            <span>⚡</span> AI Big-O & OOP
           </button>
         </div>
       </div>
 
-      <!-- Main Split Layout -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <!-- Left: Exercise List -->
-        <div class="lg:col-span-4 uni-card p-4 space-y-3 h-fit">
-          <div class="flex items-center justify-between text-xs font-bold">
-            <span class="txt-muted">Danh sách bài thực hành</span>
-            <span id="exercise-count-badge" class="badge-soft px-2 py-0.5 rounded">20 bài</span>
+      <!-- Main Split Layout: Hỗ trợ mở rộng 100% diện tích cho VS Code IDE -->
+      <div id="exercise-workspace-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+        <!-- Left: Exercise List (Có thể thu gọn 1-click để giải phóng 100% diện tích cho Editor) -->
+        <div id="exercise-sidebar-col" class="lg:col-span-3 uni-card p-3.5 space-y-3 h-fit transition-all duration-300">
+          <div class="flex items-center justify-between text-xs font-bold pb-2 border-b" style="border-color: var(--border);">
+            <span class="txt-main flex items-center gap-1.5">
+              <span>📁</span> <span>20 Bài Thực Hành</span>
+            </span>
+            <div class="flex items-center gap-1.5">
+              <span id="exercise-count-badge" class="badge-soft px-1.5 py-0.5 rounded text-[10px]">20 bài</span>
+              <button type="button" onclick="toggleExerciseSidebarList(false)" class="btn-soft px-2 py-0.5 text-[11px] font-bold hover:text-white" title="Thu gọn danh sách để IDE mở rộng toàn màn hình">◀ Ẩn</button>
+            </div>
           </div>
           <input id="exercise-search" type="text" oninput="renderExerciseList()"
-            placeholder="🔍 Tìm bài (Class, Kế thừa, Mảng, Con trỏ...)" class="uni-input w-full px-3.5 py-2 !text-xs" />
-          <div id="exercise-list" class="space-y-2 max-h-[640px] overflow-y-auto pr-1"></div>
+            placeholder="🔍 Tìm bài (Class, Kế thừa, Mảng...)" class="uni-input w-full px-3 py-1.5 !text-xs" />
+          <div id="exercise-list" class="space-y-1.5 max-h-[640px] overflow-y-auto pr-1"></div>
         </div>
 
         <!-- Right: Problem Description & Interactive Code Editor & Test Runner -->
-        <div class="lg:col-span-8 space-y-4">
+        <div id="exercise-main-col" class="lg:col-span-9 space-y-3 transition-all duration-300">
+          <!-- Banner hỗ trợ mở lại danh sách nhanh chóng khi đang thu gọn -->
+          <div id="exercise-sidebar-reopen-banner" class="hidden flex items-center justify-between p-2.5 px-4 rounded-xl bg-[#252526] border border-[#3c3c3d] text-xs">
+            <span class="text-slate-300 font-mono text-[11px] flex items-center gap-2">
+              <span class="text-emerald-400">●</span> Chế độ Focus Lập Trình (Không gian Code mở rộng tối đa)
+            </span>
+            <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-primary px-3 py-1 text-xs font-bold flex items-center gap-1.5">
+              <span>📂</span> Mở Lại Danh Sách Bài Tập
+            </button>
+          </div>
+
           <!-- Rubber Duck Toxic AI Assistant Sticky Callout -->
           <div id="rubber-duck-sidebar" class="hidden uni-card p-4 border border-amber-500/40 bg-gradient-to-r from-amber-950/40 to-slate-900/60 space-y-2 shadow-lg animate-fade-in">
             <div id="rubber-duck-message-box"></div>
           </div>
-          <div id="exercise-detail-pane" class="uni-card p-5 sm:p-6 space-y-5">
+
+          <div id="exercise-detail-pane" class="p-0 overflow-hidden rounded-xl border border-slate-700/80 shadow-2xl bg-[#1e1e1e]">
             <!-- Dynamically populated by renderExerciseDetail() -->
           </div>
         </div>
@@ -1552,56 +1571,72 @@
          VIEW 6: AI GIA SƯ 1-1 (4 CHẾ ĐỘ GIẢNG VIÊN & ĐA MÔN STEM/IT)
          =================================================================== -->
     <section id="view-tutor" class="hidden space-y-4 animate-fade-in">
-      <div class="uni-card p-4 sm:p-5 space-y-3">
-        <div class="flex flex-wrap items-center justify-between gap-2">
-          <h2 class="text-lg font-extrabold txt-main flex items-center gap-2">
-            <i data-lucide="bot" class="w-5 h-5 txt-brand"></i> Giáo Sư AI Kèm 1-1 Đa Khối Ngành
-          </h2>
-          <div class="flex flex-wrap items-center gap-2">
-            <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="uni-input px-3 py-1.5 text-xs font-bold"></select>
-            <button type="button" id="btn-toggle-sessions-drawer" onclick="toggleTutorSessionsDrawer()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
-              <span>🗂️</span>
-              <span>Kho Lưu Trữ Hội Thoại</span>
-              <span id="tutor-sessions-badge" class="badge-brand text-[10px] px-1.5 py-0.2 rounded-full font-mono">0</span>
-            </button>
-            <button type="button" onclick="openTutorHistoryModal()" class="btn-soft px-3 py-1.5 text-xs">📜 Tra Cứu Nhanh</button>
-            <button type="button" onclick="clearTutorChat()" class="btn-soft px-3 py-1.5 text-xs font-bold" title="Làm mới khung chat nhưng vẫn giữ cuộc trò chuyện cũ trong Kho Lưu Trữ">🆕 Làm mới khung chat</button>
+      <!-- Gemini Clean Top Navigation Bar -->
+      <div class="gemini-header-bar flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl border" style="background: rgba(25, 26, 30, 0.85); backdrop-filter: blur(16px); border-color: rgba(255, 255, 255, 0.08);">
+        <div class="flex items-center gap-3">
+          <div class="gemini-sparkle-icon" style="width: 28px; height: 28px;"></div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-extrabold text-sm sm:text-base tracking-tight gemini-gradient-text">Gemini 1.5 Pro</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 font-mono border border-indigo-500/30">Gia Sư 1-1</span>
+            </div>
+            <div class="text-[11px] text-slate-400">Trợ lý học thuật đa khối ngành: Y Dược, Toán Rời Rạc, Lập Trình OOP</div>
           </div>
         </div>
 
-        <!-- Pedagogy Mode Selector (1-Click Pills) -->
-        <div class="flex flex-wrap items-center gap-1.5 pt-2" style="border-top: 1px solid var(--border);">
-          <span class="text-[11px] font-extrabold txt-muted mr-1">Chế độ sư phạm:</span>
-          <button type="button" onclick="setTutorMode('explain')" data-tutor-mode="explain" class="tutor-mode-pill active">🧠 Giải sâu &amp; Mẹo nhớ</button>
+        <div class="flex items-center gap-2 flex-wrap">
+          <div class="flex items-center gap-1.5 bg-[#1e1f24] px-2.5 py-1 rounded-xl border border-white/10">
+            <span class="text-xs">📚</span>
+            <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="bg-transparent text-xs font-bold text-white outline-none cursor-pointer pr-1"></select>
+          </div>
+          <button type="button" onclick="toggleTutorAdvancedSettings()" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1" title="Tùy chỉnh chế độ sư phạm, giọng giảng & phong cách">
+            <span>⚙️</span> <span class="hidden sm:inline">Cài Đặt</span>
+          </button>
+          <button type="button" id="btn-toggle-sessions-drawer" onclick="toggleTutorSessionsDrawer()" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1.5">
+            <span>🗂️</span>
+            <span class="hidden sm:inline">Lịch Sử</span>
+            <span id="tutor-sessions-badge" class="badge-brand text-[10px] px-1.5 py-0.2 rounded-full font-mono">0</span>
+          </button>
+          <button type="button" onclick="clearTutorChat()" class="btn-primary !bg-[#2a2b32] hover:!bg-[#353740] !text-slate-200 border border-white/15 px-3 py-1.5 text-xs font-bold flex items-center gap-1" title="Bắt đầu phiên trò chuyện mới">
+            <span>✨</span> <span>Chat Mới</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Collapsible Gemini Settings Drawer -->
+      <div id="tutor-advanced-settings" class="hidden uni-card p-4 space-y-3 animate-fade-in border border-indigo-500/20" style="background: rgba(22, 23, 28, 0.95);">
+        <div class="flex items-center justify-between text-xs font-bold pb-2 border-b border-white/10 text-slate-300">
+          <span class="flex items-center gap-1.5"><span>⚙️</span> Tùy Chỉnh Sư Phạm & Giọng Giảng Gemini</span>
+          <button type="button" onclick="toggleTutorAdvancedSettings(false)" class="text-slate-400 hover:text-white text-xs">✕ Đóng</button>
+        </div>
+        <!-- Pedagogy Mode Selector -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <span class="text-[11px] font-extrabold text-slate-400 mr-1">Chế độ sư phạm:</span>
+          <button type="button" onclick="setTutorMode('explain')" data-tutor-mode="explain" class="tutor-mode-pill active">🧠 Giải sâu & Mẹo nhớ</button>
           <button type="button" onclick="setTutorMode('eliminate')" data-tutor-mode="eliminate" class="tutor-mode-pill">🔍 Loại trừ A/B/C/D</button>
           <button type="button" onclick="setTutorMode('socratic')" data-tutor-mode="socratic" class="tutor-mode-pill">💡 Gợi mở Socratic</button>
           <button type="button" onclick="setTutorMode('clinical')" data-tutor-mode="clinical" class="tutor-mode-pill">🩺 Biện luận lâm sàng</button>
           <button type="button" onclick="setTutorMode('debug')" data-tutor-mode="debug" class="tutor-mode-pill">💻 Debug Code</button>
         </div>
-
-        <!-- Persona & Simulations -->
-        <div class="flex flex-wrap items-center justify-between gap-2 pt-2" style="border-top: 1px solid var(--border);">
-          <div class="flex flex-wrap items-center gap-1.5">
-            <span class="text-[11px] font-bold txt-muted mr-1">Giọng giảng:</span>
-            <button type="button" onclick="setTutorPersona('professor')" data-persona="professor" class="preset-pill active !py-1 !px-2.5 !text-xs">🎓 Giáo sư</button>
-            <button type="button" onclick="setTutorPersona('feynman')" data-persona="feynman" class="preset-pill !py-1 !px-2.5 !text-xs">🧒 Feynman</button>
-            <button type="button" onclick="setTutorPersona('speed')" data-persona="speed" class="preset-pill !py-1 !px-2.5 !text-xs">⚡ Giải nhanh 10s</button>
-            <button type="button" onclick="setTutorPersona('examiner')" data-persona="examiner" class="preset-pill !py-1 !px-2.5 !text-xs">🎤 Hỏi xoáy Vấn đáp</button>
-          </div>
-          <div class="flex flex-wrap items-center gap-1.5">
-            <button type="button" onclick="startClinicalOrOralCaseSim()" class="ai-chip-btn !py-1 !px-2.5 !text-xs">🩺 Mô phỏng Ca bệnh / Vấn đáp</button>
-            <button type="button" onclick="generateSubjectMindmap()" class="ai-chip-btn !py-1 !px-2.5 !text-xs">🗺️ Vẽ Sơ đồ tư duy</button>
-          </div>
+        <!-- Persona -->
+        <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/5">
+          <span class="text-[11px] font-bold text-slate-400 mr-1">Giọng giảng:</span>
+          <button type="button" onclick="setTutorPersona('professor')" data-persona="professor" class="preset-pill active !py-1 !px-2.5 !text-xs">🎓 Giáo sư</button>
+          <button type="button" onclick="setTutorPersona('feynman')" data-persona="feynman" class="preset-pill !py-1 !px-2.5 !text-xs">🧒 Feynman</button>
+          <button type="button" onclick="setTutorPersona('speed')" data-persona="speed" class="preset-pill !py-1 !px-2.5 !text-xs">⚡ Giải nhanh 10s</button>
+          <button type="button" onclick="setTutorPersona('examiner')" data-persona="examiner" class="preset-pill !py-1 !px-2.5 !text-xs">🎤 Hỏi xoáy Vấn đáp</button>
+          <button type="button" onclick="startClinicalOrOralCaseSim()" class="ai-chip-btn !py-1 !px-2.5 !text-xs ml-auto">🩺 Mô phỏng Ca bệnh</button>
+          <button type="button" onclick="generateSubjectMindmap()" class="ai-chip-btn !py-1 !px-2.5 !text-xs">🗺️ Sơ đồ tư duy</button>
         </div>
-
-        <div class="flex flex-wrap items-center gap-2 pt-2">
-          <span class="text-[11px] font-bold txt-muted">Prompt phong cách:</span>
-          <input id="tutor-style-prompt" value="" oninput="tutorCustomStyle=this.value;localStorage.setItem(TUTOR_STYLE_KEY,this.value)" class="uni-input flex-1 min-w-[220px] px-3 py-1.5 text-xs" placeholder="Ví dụ: giải thích ngắn gọn như Gen Z, nhấn mạnh mẹo loại trừ Ngoại trừ..." />
-          <button type="button" onclick="setTutorCustomStyle('Giải thích thật dễ hiểu như cho người mất gốc, dùng ví dụ đời thường và giọng Gen Z thân thiện.')" class="btn-soft px-2.5 py-1.5 text-xs">✨ Gen Z dễ hiểu</button>
-          <button type="button" onclick="setTutorCustomStyle('')" class="btn-soft px-2.5 py-1.5 text-xs">Xóa prompt</button>
+        <!-- Custom Style Prompt -->
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
+          <span class="text-[11px] font-bold text-slate-400">Prompt bổ sung:</span>
+          <input id="tutor-style-prompt" value="" oninput="tutorCustomStyle=this.value;localStorage.setItem(TUTOR_STYLE_KEY,this.value)" class="uni-input flex-1 min-w-[200px] px-3 py-1 text-xs" placeholder="Ví dụ: dùng ví dụ đời thường, giọng Gen Z, nhấn mạnh câu bẫy..." />
+          <button type="button" onclick="setTutorCustomStyle('Giải thích thật dễ hiểu như cho người mất gốc, dùng ví dụ đời thường và giọng Gen Z thân thiện.')" class="btn-soft px-2.5 py-1 text-xs">✨ Gen Z dễ hiểu</button>
+          <button type="button" onclick="setTutorCustomStyle('')" class="btn-soft px-2 py-1 text-xs">Xóa</button>
         </div>
       </div>
-
+      
       <div id="tutor-workspace-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
         <!-- Kho Lưu Trữ Hội Thoại (Sessions Drawer) -->
         <aside id="tutor-sessions-drawer" class="hidden lg:col-span-4 uni-card p-3.5 sm:p-4 flex flex-col gap-3 max-h-[760px]">

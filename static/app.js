@@ -3464,12 +3464,12 @@ function switchTab(tabName) {
   });
   updateNavIndicator();
 
-  // 1. Hide floating tutor button on Dashboard (trang chủ) and full Tutor view
+  // 1. Hide floating tutor button on Dashboard (trang chủ), Tutor view, và Exercises tab
   const ftContainer = document.getElementById('floating-tutor-container');
   if (ftContainer) {
-    const isHomeOrTutor = tabName === 'dashboard' || tabName === 'tutor';
-    ftContainer.classList.toggle('hidden', isHomeOrTutor);
-    if (isHomeOrTutor) {
+    const isHomeOrTutorOrExercises = tabName === 'dashboard' || tabName === 'tutor' || tabName === 'exercises';
+    ftContainer.classList.toggle('hidden', isHomeOrTutorOrExercises);
+    if (isHomeOrTutorOrExercises) {
       closeFloatingTutor();
     } else {
       syncFloatingTutorSubjectContext();
@@ -18902,4 +18902,43 @@ function toggleTutorFullscreen() {
   } else {
     if (document.exitFullscreen) document.exitFullscreen();
   }
+}
+
+/**
+ * Toggle exercise sidebar list visibility (collapse/expand to maximize IDE workspace)
+ * @param {boolean} force - If true, force show sidebar; if false, force hide; if undefined, toggle
+ */
+function toggleExerciseSidebarList(force) {
+  const sidebarCol = document.getElementById('exercise-sidebar-col');
+  const mainCol = document.getElementById('exercise-main-col');
+  const btn = document.getElementById('btn-toggle-ide-expand');
+  const banner = document.getElementById('exercise-sidebar-reopen-banner');
+  
+  if (!sidebarCol || !mainCol) return;
+  
+  const isHidden = sidebarCol.classList.contains('hidden');
+  const shouldHide = force === true ? true : (force === false ? false : !isHidden);
+  
+  if (shouldHide) {
+    // Collapse sidebar - full width IDE
+    sidebarCol.classList.add('hidden');
+    mainCol.classList.replace('lg:col-span-9', 'lg:col-span-12');
+    if (btn) btn.innerHTML = '<span>📂</span> <span id="ide-expand-btn-text">Mở Lại Danh Sách</span>';
+    if (banner) banner.classList.remove('hidden');
+  } else {
+    // Show sidebar
+    sidebarCol.classList.remove('hidden');
+    mainCol.classList.replace('lg:col-span-12', 'lg:col-span-9');
+    if (btn) btn.innerHTML = '<span id="ide-expand-btn-icon">🖥️</span> <span id="ide-expand-btn-text">Mở Rộng Toàn Khung IDE</span>';
+    if (banner) banner.classList.add('hidden');
+  }
+}
+
+/**
+ * Toggle advanced settings drawer in AI Tutor header
+ */
+function toggleTutorAdvancedSettings() {
+  const drawer = document.getElementById('tutor-advanced-settings');
+  if (!drawer) return;
+  drawer.classList.toggle('hidden');
 }

@@ -3922,3 +3922,497 @@ main:has(#view-tutor:not(.hidden)) {
   font-weight: 700;
   margin-bottom: 12px;
 }
+
+/* ========================================================
+   ENHANCED VS CODE IDE LAYOUT
+   ======================================================== */
+
+/* Slim Explorer sidebar (220px instead of 320px) */
+#vscode-sidebar-pane {
+  width: 220px !important;
+  max-width: 220px !important;
+}
+
+/* Compact VS Code gutter - tighter line spacing for 30+ lines visible */
+.vscode-gutter {
+  width: 36px !important;
+  font-size: 11.5px !important;
+  line-height: 1.25rem !important;
+  padding: 8px 6px 8px 0 !important;
+}
+
+/* High-density code editor - 12.5px font, 1.35rem line-height for 30+ lines */
+#code-editor-textarea {
+  font-size: 12.5px !important;
+  line-height: 1.35rem !important;
+  tab-size: 4 !important;
+  white-space: pre !important;
+  overflow-x: auto !important;
+  padding: 8px 12px !important;
+}
+
+/* Ensure code wraps naturally without breaking line numbers */
+.vscode-gutter-lines,
+#code-editor-textarea {
+  font-family: 'Cascadia Code', Consolas, 'Fira Code', 'Courier New', monospace !important;
+}
+
+/* Single-row toolbar - condensed layout */
+.vscode-run-toolbar {
+  flex-wrap: nowrap !important;
+  gap: 1rem !important;
+  padding: 1rem 1.5rem !important;
+  font-size: 12px !important;
+}
+
+.vscode-run-toolbar > div {
+  flex-shrink: 0;
+}
+
+/* Floating tutor suppression in exercises mode */
+#floating-tutor-container.exercises-hidden {
+  display: none !important;
+}
+
+/* Gemini-style AI Tutor header bar */
+.gemini-header-bar {
+  background: linear-gradient(135deg, #1e1e29 0%, #161621 100%);
+  border-bottom: 1px solid #3a3a4f;
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.gemini-header-bar .header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gemini-header-bar .header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 12px;
+}
+
+.gemini-header-bar .header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Collapsible advanced settings drawer */
+#tutor-advanced-settings {
+  position: absolute;
+  top: 56px;
+  right: 0;
+  width: 320px;
+  max-width: 280px;
+  background: #1e1e29;
+  border: 1px solid #3a3a4f;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  z-index: 100;
+  font-size: 13px;
+}
+
+#tutor-advanced-settings.hidden {
+  display: none;
+}
+
+/* Soft rounded preset pills for Gemini aesthetic */
+.preset-pill {
+  background: #2e2e3a;
+  color: #c9c9d1;
+  border: 1px solid #3a3a4f;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-pill:hover {
+  background: #3a3a4f;
+  color: #ffffff;
+}
+
+.preset-pill.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+/* Soft AI chip buttons */
+.ai-chip-btn {
+  background: #2e2e3a;
+  color: #e5e7eb;
+  border: 1px solid #3a3a4f;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-chip-btn:hover {
+  background: #3a3a4f;
+  color: #ffffff;
+}
+
+/* Responsive adjustments for high-density layout */
+@media (max-width: 1024px) {
+  #code-editor-textarea {
+    font-size: 12px !important;
+    line-height: 1.3rem !important;
+  }
+  
+  .vscode-gutter {
+    width: 32px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* Smooth transitions for sidebar toggle */
+#exercise-sidebar-col,
+#exercise-main-col {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Tutor mode pills - Gemini aesthetic */
+.tutor-mode-pill {
+  background: #2e2e3a;
+  color: #d1d5db;
+  border: 1px solid #3a3a4f;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tutor-mode-pill:hover {
+  background: #3a3a4f;
+  color: #ffffff;
+}
+
+.tutor-mode-pill.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+/* Tutor drawer tabs */
+.tutor-drawer-tab {
+  background: #252526;
+  color: #a0a0b0;
+  border: 1px solid #3a3a4f;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tutor-drawer-tab:hover {
+  background: #3a3a4f;
+  color: #ffffff;
+}
+
+.tutor-drawer-tab.active {
+  background: #007acc;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+/* Gemini sparkle icon animation */
+.gemini-sparkle-icon {
+  width: 28px;
+  height: 28px;
+  background: radial-gradient(circle at 30% 30%, #6366f1 0%, #8b5cf6 70%);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.gemini-sparkle-icon::before {
+  content: '✨';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  color: #ffffff;
+  animation: sparkle-pulse 2s infinite;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.6; }
+}
+
+/* Gemini gradient text */
+.gemini-gradient-text {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Tutor mode pills - Gemini aesthetic */
+.tutor-mode-pill {
+  background: #2e2e3a;
+  color: #d1d5db;
+  border: 1px solid #3a3a4f;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tutor-mode-pill:hover {
+  background: #3a3a4f;
+  color: #ffffff;
+}
+
+.tutor-mode-pill.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+/* Tutor drawer tabs */
+.tutor-drawer-tab {
+  background: #252526;
+  color: #a0a0b0;
+  border: 1px solid #3a3a4f;
+  border-radius: 8px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tutor-drawer-tab:hover {
+  background: #3a3a4f;
+  color: #ffffff;
+}
+
+.tutor-drawer-tab.active {
+  background: #007acc;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+/* Gemini sparkle icon animation */
+.gemini-sparkle-icon {
+  width: 28px;
+  height: 28px;
+  background: radial-gradient(circle at 30% 30%, #6366f1 0%, #8b5cf6 70%);
+  border-radius: 50%;
+  position: relative;
+  overflow: hidden;
+}
+
+.gemini-sparkle-icon::before {
+  content: '✨';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 14px;
+  color: #ffffff;
+  animation: sparkle-pulse 2s infinite;
+}
+
+@keyframes sparkle-pulse {
+  0%, 100% { opacity: 0.9; }
+  50% { opacity: 0.6; }
+}
+
+/* Gemini gradient text */
+.gemini-gradient-text {
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ========================================================
+   ENHANCED VS CODE IDE LAYOUT
+   ======================================================== */
+
+/* Slim Explorer sidebar (220px instead of 320px) */
+#vscode-sidebar-pane {
+  width: 220px !important;
+  max-width: 220px !important;
+}
+
+/* Compact VS Code gutter - tighter line spacing for 30+ lines visible */
+.vscode-gutter {
+  width: 36px !important;
+  font-size: 11.5px !important;
+  line-height: 1.25rem !important;
+  padding: 8px 6px 8px 0 !important;
+}
+
+/* High-density code editor - 12.5px font, 1.35rem line-height for 30+ lines */
+#code-editor-textarea {
+  font-size: 12.5px !important;
+  line-height: 1.35rem !important;
+  tab-size: 4 !important;
+  white-space: pre !important;
+  overflow-x: auto !important;
+  padding: 8px 12px !important;
+}
+
+/* Ensure code wraps naturally without breaking line numbers */
+.vscode-gutter-lines,
+#code-editor-textarea {
+  font-family: 'Cascadia Code', Consolas, 'Fira Code', 'Courier New', monospace !important;
+}
+
+/* Single-row toolbar - condensed layout */
+.vscode-run-toolbar {
+  flex-wrap: nowrap !important;
+  gap: 1rem !important;
+  padding: 1rem 1.5rem !important;
+  font-size: 12px !important;
+}
+
+.vscode-run-toolbar > div {
+  flex-shrink: 0;
+}
+
+/* Floating tutor suppression in exercises mode */
+#floating-tutor-container.exercises-hidden {
+  display: none !important;
+}
+
+/* Gemini-style AI Tutor header bar */
+.gemini-header-bar {
+  background: linear-gradient(135deg, #1e1e29 0%, #161621 100%);
+  border-bottom: 1px solid #3a3a4f;
+  padding: 0 16px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.gemini-header-bar .header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.gemini-header-bar .header-center {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 0 12px;
+}
+
+.gemini-header-bar .header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Collapsible advanced settings drawer */
+#tutor-advanced-settings {
+  position: absolute;
+  top: 56px;
+  right: 0;
+  width: 320px;
+  max-width: 280px;
+  background: #1e1e29;
+  border: 1px solid #3a3a4f;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  padding: 12px;
+  z-index: 100;
+  font-size: 13px;
+}
+
+#tutor-advanced-settings.hidden {
+  display: none;
+}
+
+/* Soft rounded preset pills for Gemini aesthetic */
+.preset-pill {
+  background: #2e2e3a;
+  color: #c9c9d1;
+  border: 1px solid #3a3a4f;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.preset-pill:hover {
+  background: #3a3a4f;
+  color: #ffffff;
+}
+
+.preset-pill.active {
+  background: #3b82f6;
+  color: #ffffff;
+  border-color: #60a5fa;
+}
+
+/* Soft AI chip buttons */
+.ai-chip-btn {
+  background: #2e2e3a;
+  color: #e5e7eb;
+  border: 1px solid #3a3a4f;
+  border-radius: 16px;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ai-chip-btn:hover {
+  background: #3a3a4f;
+  color: #ffffff;
+}
+
+/* Responsive adjustments for high-density layout */
+@media (max-width: 1024px) {
+  #code-editor-textarea {
+    font-size: 12px !important;
+    line-height: 1.3rem !important;
+  }
+  
+  .vscode-gutter {
+    width: 32px !important;
+    font-size: 11px !important;
+  }
+}
+
+/* Smooth transitions for sidebar toggle */
+#exercise-sidebar-col,
+#exercise-main-col {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
