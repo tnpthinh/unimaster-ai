@@ -69,7 +69,7 @@ def http_ok(url: str, timeout: float = 5.0) -> bool:
 
 
 def router_is_healthy() -> bool:
-    return http_ok(f"{ROUTER_BASE_URL}/v1/models")
+    return http_ok(f"{ROUTER_BASE_URL}/v1/models", timeout=10.0)
 
 
 def load_router_key() -> str:
@@ -209,7 +209,7 @@ def start_proxy(secret: str, router_key: str = "") -> ThreadingHTTPServer:
 
 
 # ------------------------------------------------------------------ cloudflare tunnel
-def start_tunnel() -> str:
+def start_tunnel() -> tuple[str, subprocess.Popen]:
     if not os.path.exists(CLOUDFLARED_EXE):
         raise RuntimeError(
             f"Không tìm thấy {CLOUDFLARED_EXE}. Hãy chạy start_online.py một lần để tải cloudflared."
@@ -221,7 +221,7 @@ def start_tunnel() -> str:
             getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0x00000200)
             | getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000)
         )
-    subprocess.Popen(
+    proc = subprocess.Popen(
         [CLOUDFLARED_EXE, "tunnel", "--url", f"http://127.0.0.1:{GATEWAY_PORT}", "--no-autoupdate"],
         cwd=ROOT,
         stdout=log,
@@ -233,20 +233,46 @@ def start_tunnel() -> str:
     pattern = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com", re.IGNORECASE)
     deadline = time.time() + 40
     while time.time() < deadline:
+        if proc.poll() is not None:
+            break
         try:
             content = open(LOG_FILE, encoding="utf-8", errors="replace").read()
             found = pattern.search(content)
             if found:
-                return found.group(0)
+                return found.group(0), proc
         except FileNotFoundError:
             pass
         time.sleep(0.4)
+    try:
+        proc.terminate()
+    except Exception:
+        pass
     raise RuntimeError(f"Không lấy được URL Cloudflare. Xem log: {LOG_FILE}")
+
+
+def _save_tunnel_state(public_url: str) -> None:
+    with open(STATE_FILE, "w", encoding="utf-8") as file:
+        json.dump(
+            {"public_url": public_url, "discovery_url": DISCOVERY_URL, "updated_at": time.time()},
+            file,
+            indent=2,
+        )
+
+
+def _tunnel_public_healthy(timeout: float = 6.0) -> bool:
+    try:
+        state = json.load(open(STATE_FILE, encoding="utf-8"))
+        pub = (state.get("public_url") or "").strip().rstrip("/")
+        if pub.startswith("https://"):
+            return http_ok(f"{pub}/healthz", timeout=timeout)
+    except Exception:
+        pass
+    return False
 
 
 # --------------------------------------------------------------------------- chạy nền
 def run_child() -> int:
-    """Tiến trình nền thật sự: giữ proxy + tunnel sống tới khi bị tắt."""
+    """Tiến trình nền thật sự: giữ proxy + tự hồi sinh tunnel Cloudflare khi rớt."""
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
     if gateway_is_healthy():
         print("Gateway đã chạy sẵn, không khởi động trùng.")
@@ -262,21 +288,51 @@ def run_child() -> int:
         print("🔑 Gateway tự chèn API key 9Router — không cần nhập key trên Render.")
     else:
         print("⚠ Không tìm thấy API key 9Router. Hãy tạo key trong 9Router > API Keys.")
-    public_url = start_tunnel()
+    public_url, tunnel_proc = start_tunnel()
     publish_gateway(public_url)
-    with open(STATE_FILE, "w", encoding="utf-8") as file:
-        json.dump(
-            {"public_url": public_url, "discovery_url": DISCOVERY_URL, "updated_at": time.time()},
-            file,
-            indent=2,
-        )
+    _save_tunnel_state(public_url)
     with open(PID_FILE, "w", encoding="utf-8") as file:
         file.write(str(os.getpid()))
     print(f"✅ Tunnel AI online: {public_url}")
+    fail_streak = 0
+    last_probe = time.time()
     try:
         while True:
-            time.sleep(3600)
+            time.sleep(30)
+            proc_dead = tunnel_proc is None or tunnel_proc.poll() is not None
+            need_restart = proc_dead
+            if not proc_dead and (time.time() - last_probe) >= 120:
+                last_probe = time.time()
+                if http_ok(f"{public_url}/healthz", timeout=8.0):
+                    fail_streak = 0
+                else:
+                    fail_streak += 1
+                    print(f"⚠ Tunnel không phản hồi /healthz (lần {fail_streak}/2)")
+                    if fail_streak >= 2:
+                        need_restart = True
+            if need_restart:
+                print("🔄 Tunnel Cloudflare bị rớt — đang khởi động lại tự động...")
+                try:
+                    if tunnel_proc and tunnel_proc.poll() is None:
+                        tunnel_proc.terminate()
+                        tunnel_proc.wait(timeout=5)
+                except Exception:
+                    pass
+                try:
+                    public_url, tunnel_proc = start_tunnel()
+                    publish_gateway(public_url)
+                    _save_tunnel_state(public_url)
+                    fail_streak = 0
+                    last_probe = time.time()
+                    print(f"✅ Tunnel AI đã hồi phục: {public_url}")
+                except Exception as exc:
+                    print(f"⚠ Chưa khởi động lại được tunnel: {exc}")
     except KeyboardInterrupt:
+        try:
+            if tunnel_proc and tunnel_proc.poll() is None:
+                tunnel_proc.terminate()
+        except Exception:
+            pass
         return 0
 
 
@@ -378,12 +434,17 @@ def main() -> int:
     if "--foreground" in args:
         return run_child()
 
+    if gateway_is_healthy() and not _tunnel_public_healthy(timeout=6.0):
+        print("🔄 Gateway local đang bật nhưng tunnel Cloudflare đã rớt — khởi động lại...")
+        stop_gateway()
+        time.sleep(0.5)
+
     if not gateway_is_healthy():
         print("⏳ Đang khởi động gateway chạy nền (proxy + Cloudflare Tunnel)...")
         if spawn_detached() != 0:
             return 1
     else:
-        print("ℹ Gateway đang chạy sẵn — bỏ qua bước khởi động.")
+        print("ℹ Gateway và Cloudflare Tunnel đang hoạt động bình thường.")
 
     secret = ensure_secret()
     try:

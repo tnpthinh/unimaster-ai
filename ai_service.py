@@ -697,7 +697,7 @@ OPENAI_MODELS = [
 
 # Model alias do 9Router cung cấp. `All` tự chọn model khả dụng; `Coding-Pro`
 # ưu tiên model chuyên lập trình. Chúng dùng giao thức OpenAI-compatible.
-ROUTER_MODELS = ["All", "Coding-Pro"]
+ROUTER_MODELS = ["All", "deepseek-chat", "gpt-reserve", "Coding-Pro"]
 
 # Dòng mô hình FOSTA Codex AI thế hệ 6:
 # gpt-6-astra: Mô hình mạnh nhất thế hệ 6 • Lý luận & tư duy sâu
@@ -1247,7 +1247,7 @@ async def _call_openai_chatgpt_meta(
                                 "masked_key": mask_key(key),
                                 "latency_ms": latency_ms,
                             }
-                elif resp.status in (400, 401, 403, 404, 429, 500, 502, 503):
+                elif resp.status in (400, 401, 403, 404, 429, 500, 502, 503, 530):
                     err_text = _sanitize_error_text(await resp.text(), key)
                     print(f"[AI Service] Router/OpenAI HTTP {resp.status} ({model}): {err_text[:140]}")
                     ROUTER_TELEMETRY.update({
@@ -1255,6 +1255,13 @@ async def _call_openai_chatgpt_meta(
                         "last_error": f"HTTP {resp.status}: {err_text[:120]}",
                         "last_checked_at": _utc_now_iso(),
                     })
+                    if resp.status in (502, 503, 530) and gateway_route and not gateway_retried:
+                        gateway_retried = True
+                        invalidate_gateway_cache()
+                        base_url = await resolve_gateway_base_url(norm_cfg_url, force=True)
+                        endpoint = f"{base_url}/chat/completions"
+                        print(f"[AI Service] Gateway HTTP {resp.status}, thử dò lại tunnel: {base_url}")
+                        continue
                     if resp.status == 400 and any(k in err_text for k in ["max_tokens", "max_completion_tokens", "temperature"]):
                         fallback_content = (
                             f"{system_instruction}\n\n{prompt}" if system_instruction else prompt
@@ -1385,7 +1392,7 @@ async def test_openai_key(key: str = None, base_url: str = None, model: str = No
     session = await _get_http_session()
     available_models = []
     try:
-        async with session.get(f"{target_url}/models", headers=headers, timeout=aiohttp.ClientTimeout(total=6)) as m_resp:
+        async with session.get(f"{target_url}/models", headers=headers, timeout=aiohttp.ClientTimeout(total=12)) as m_resp:
             if m_resp.status == 200:
                 m_data = await m_resp.json()
                 raw_list = m_data.get("data", []) if isinstance(m_data, dict) else []
@@ -1412,7 +1419,7 @@ async def test_openai_key(key: str = None, base_url: str = None, model: str = No
     endpoint = f"{target_url}/chat/completions"
     t0 = time.perf_counter()
     try:
-        async with session.post(endpoint, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=20)) as resp:
+        async with session.post(endpoint, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=30)) as resp:
             latency_ms = int((time.perf_counter() - t0) * 1000)
             if resp.status == 200:
                 data = await _parse_openai_response_payload(resp)
@@ -1437,15 +1444,28 @@ async def test_openai_key(key: str = None, base_url: str = None, model: str = No
                     "message": f"Kết nối thành công tới {provider_title} ({returned_model}) trong {latency_ms}ms",
                 }
 
-            txt = _sanitize_error_text(await resp.text(), target_key)
+            raw_txt = await resp.text()
+            txt = _sanitize_error_text(raw_txt, target_key)
+            low_txt = raw_txt.lower()
+            is_cf_tunnel_err = resp.status == 530 or "cloudflare tunnel error" in low_txt or "error code: 1033" in low_txt
+            err_summary = (
+                "HTTP 530 (Cloudflare Tunnel offline / lỗi 1033)"
+                if is_cf_tunnel_err
+                else f"HTTP {resp.status}: {txt[:120]}"
+            )
             ROUTER_TELEMETRY.update({
                 "status": "error",
                 "latency_ms": latency_ms,
-                "last_error": f"HTTP {resp.status}: {txt[:120]}",
+                "last_error": err_summary,
                 "last_checked_at": _utc_now_iso(),
                 "available_models": available_models,
             })
-            if resp.status == 401 and "api.openai.com" in target_url.lower():
+            if is_cf_tunnel_err:
+                msg = (
+                    f"HTTP 530: Đường hầm Cloudflare Tunnel ({target_url}) hiện đang offline (lỗi 1033). "
+                    "Hãy kiểm tra app 9Router trên PC đã bật Tunnel chưa hoặc chạy start_ai_gateway.py."
+                )
+            elif resp.status == 401 and "api.openai.com" in target_url.lower():
                 msg = f"HTTP 401 (Sai API Key hoặc cần đổi Base URL sang 9Router/FOSTA): {txt[:120]}"
             else:
                 msg = f"Mã lỗi HTTP {resp.status}: {txt[:120]}"
@@ -1463,8 +1483,9 @@ async def test_openai_key(key: str = None, base_url: str = None, model: str = No
     except Exception as e:
         latency_ms = int((time.perf_counter() - t0) * 1000)
         raw_err = _sanitize_error_text(str(e), target_key)
+        is_timeout = isinstance(e, (asyncio.TimeoutError, TimeoutError))
         if not raw_err:
-            raw_err = "Quá thời gian chờ phản hồi (Timeout)" if isinstance(e, (asyncio.TimeoutError, TimeoutError)) else type(e).__name__
+            raw_err = "Quá thời gian chờ phản hồi (Timeout)" if is_timeout else type(e).__name__
         ROUTER_TELEMETRY.update({
             "status": "error",
             "latency_ms": latency_ms,
@@ -1472,8 +1493,20 @@ async def test_openai_key(key: str = None, base_url: str = None, model: str = No
             "last_checked_at": _utc_now_iso(),
             "available_models": available_models,
         })
-        if available_models and isinstance(e, (asyncio.TimeoutError, TimeoutError)):
-            msg_out = f"Đã kết nối {target_url}/models ({len(available_models)} model), nhưng upstream {target_model} phản hồi quá 20s ({raw_err})."
+        if is_timeout and provider_type == "9router" and target_model.lower() == "all":
+            if available_models:
+                msg_out = (
+                    f"Đã kết nối được tới {target_url}/models ({len(available_models)} model), "
+                    f"nhưng model 'All' dò qua nhiều provider chậm nên vượt quá 30s ({raw_err}). "
+                    "Hãy đổi Model sang 'deepseek-chat' hoặc 'gpt-reserve' rồi kiểm tra lại."
+                )
+            else:
+                msg_out = (
+                    f"Quá thời gian chờ (Timeout) khi gọi {target_url} với model 'All'. "
+                    "Hãy kiểm tra 9Router trên PC còn bật Tunnel không và thử đổi Model sang 'deepseek-chat' hoặc 'gpt-reserve'."
+                )
+        elif available_models and is_timeout:
+            msg_out = f"Đã kết nối {target_url}/models ({len(available_models)} model), nhưng upstream {target_model} phản hồi quá 30s ({raw_err})."
         else:
             msg_out = f"Lỗi kết nối tới {target_url}: {raw_err[:150]}"
         return {

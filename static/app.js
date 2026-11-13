@@ -13060,12 +13060,43 @@ function applyRouterGatewayPreset(preset) {
 }
 window.applyRouterGatewayPreset = applyRouterGatewayPreset;
 
-function routerGatewaySetupHint() {
+function _isLocalRouterUrlInput(url) {
+  const raw = String(url || '').trim();
+  if (!raw) return true;
+  try {
+    const parsed = new URL(raw.includes('://') ? raw : `http://${raw}`);
+    const h = (parsed.hostname || '').toLowerCase();
+    return h === 'localhost' || h === '127.0.0.1' || h === '0.0.0.0' || h === '::1' || h === '[::1]';
+  } catch (_) {
+    return /^(https?:\/\/)?(127\.0\.0\.1|localhost|0\.0\.0\.0|\[?::1\]?)/i.test(raw);
+  }
+}
+
+function routerGatewaySetupHint(baseUrl = '', errMsg = '') {
   const isCloud = !isRunningOnLocalHost();
+  const cleanUrl = String(baseUrl || '').trim();
+  const errLow = String(errMsg || '').toLowerCase();
+
   if (!isCloud) {
+    if (errLow.includes('timeout') || errLow.includes('25s') || errLow.includes('30s') || errLow.includes('quá thời gian')) {
+      return 'Mẹo: Nếu 9Router đang bật trên máy nhưng model <code>All</code> phản hồi chậm, hãy thử đổi Model sang <code>deepseek-chat</code> hoặc <code>gpt-reserve</code> rồi kiểm tra lại.';
+    }
     return 'Mẹo: Mở 9Router trên máy này → tạo API Key → điền <code>http://127.0.0.1:20128/v1</code> và dán key vào ô phía trên.';
   }
-  return 'Mẹo: trang này đang chạy trên Render nên <code>127.0.0.1:20128</code> không trỏ tới máy bạn. Hãy bật <code>start_ai_gateway.py</code> (Cloudflare Tunnel) hoặc chọn FOSTA Codex.';
+
+  if (_isLocalRouterUrlInput(cleanUrl)) {
+    return 'Mẹo: trang này đang chạy trên Render nên <code>127.0.0.1:20128</code> không trỏ tới máy bạn (trừ khi đã bật <code>start_ai_gateway.py</code>). Hãy bật <code>start_ai_gateway.py</code> trên PC, dùng FOSTA Codex hoặc ưu tiên dàn Gemini.';
+  }
+
+  if (errLow.includes('530') || errLow.includes('1033') || errLow.includes('cloudflare tunnel')) {
+    return `Mẹo: Đường hầm <code>${escapeHtml(cleanUrl)}</code> hiện đang offline (HTTP 530). Kiểm tra lại app 9Router trên PC đã bật Tunnel chưa, hoặc chạy <code>start_ai_gateway.py</code> để cấp tunnel mới.`;
+  }
+
+  if (errLow.includes('timeout') || errLow.includes('25s') || errLow.includes('30s') || errLow.includes('quá thời gian')) {
+    return `Mẹo: Không nhận được phản hồi kịp từ <code>${escapeHtml(cleanUrl)}</code>. Thử đổi ô Model từ <code>All</code> sang <code>deepseek-chat</code> hoặc <code>gpt-reserve</code> (nhanh hơn), kiểm tra PC đang chạy 9Router còn thức/bật Tunnel hay không, hoặc chọn FOSTA Codex / dàn Gemini.`;
+  }
+
+  return `Mẹo: Kiểm tra lại API Key, Base URL <code>${escapeHtml(cleanUrl)}</code> (kết thúc bằng <code>/v1</code>) và tên Model tương ứng trên gateway.`;
 }
 
 function _populateRouterModelDatalist(models) {
@@ -13116,7 +13147,7 @@ async function testOpenAiKeyUI() {
       await checkApiKeyStatus();
     } else {
       fb.className = 'text-xs p-3 rounded-xl font-bold badge-rose';
-      fb.innerHTML = `✘ ${escapeHtml(res.message || 'Lỗi kết nối Gateway')}. <br/><span class="font-normal opacity-90 mt-1 block">${routerGatewaySetupHint()}</span>`;
+      fb.innerHTML = `✘ ${escapeHtml(res.message || 'Lỗi kết nối Gateway')}. <br/><span class="font-normal opacity-90 mt-1 block">${routerGatewaySetupHint(base_url, res.message || '')}</span>`;
       showToast('Kiểm tra 9Router: ' + (res.message || 'Lỗi'), 'warning');
       if (typeof playSound === 'function') playSound('error');
     }
