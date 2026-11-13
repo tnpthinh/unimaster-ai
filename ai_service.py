@@ -906,7 +906,13 @@ def _detect_router_provider_type(base_url: str, model: str = "") -> str:
     low_url = (base_url or "").lower()
     if "fosta" in low_url:
         return "fosta"
-    if _is_local_url(base_url) or "9router" in low_url or (model or "").strip() in ROUTER_MODELS:
+    if (
+        _is_local_url(base_url)
+        or "9router" in low_url
+        or "abc-tunnel" in low_url
+        or "trycloudflare" in low_url
+        or (model or "").strip() in ROUTER_MODELS
+    ):
         return "9router"
     return "openai"
 
