@@ -358,6 +358,25 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tutor_chats_account ON tutor_chats(account_id, id DESC)")
 
     conn.commit()
+
+    # ---------------------------------------------------------------------
+    # Vá dữ liệu 11 bài "Thực Hành Code" bị sinh sai từ script seed cũ.
+    #
+    # Vì sao phải vá Ở ĐÂY (trong init_db) mà không chỉ sửa file seed:
+    #   Trên cloud, `data/unimaster.db` đã tồn tại từ lần deploy đầu tiên.
+    #   `database.py` chỉ COPY seed -> data KHI file data CHƯA có. Nghĩa là
+    #   sửa `seed/unimaster_seed.db` sẽ KHÔNG ảnh hưởng gì tới bản đang chạy.
+    #   Vì vậy phải có một bước migration chạy mỗi lần khởi động, tự sửa
+    #   dữ liệu đã nằm trong DB thật.
+    # ---------------------------------------------------------------------
+    try:
+        import coding_exercise_fixes
+        fixed = coding_exercise_fixes.repair_coding_exercises(conn)
+        if fixed:
+            print(f"[init_db] Đã vá {fixed} bài Thực Hành Code bị lỗi dữ liệu.")
+    except Exception as _e:
+        print(f"[init_db] Bỏ qua bước vá bài tập: {_e}")
+
     conn.close()
 
 

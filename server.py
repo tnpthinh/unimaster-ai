@@ -982,6 +982,17 @@ async def get_exam_detail(request):
 
 
 def _inject_playground_exercise(exercises, sid):
+    """Them bai Playground ao (id=9999) vao danh sach bai tap.
+
+    LUU Y: chi them cho 2 mon co ho tro chay code that su:
+      - Mon 5  : Lap trinh huong doi tuong (C#)
+      - Mon 22 : Nhap mon lap trinh (Python)
+    Truoc day ham nay them Playground Python vao BAT KY mon nao khac 5
+    (vi du mon 21, mon 50...), khien sinh vien thay bai "Playground" khong lien quan.
+    """
+    if sid not in (5, 22):
+        return exercises
+
     has_play = any(e.get("id") == 9999 or "[TỰ DO]" in str(e.get("title", "")) for e in exercises)
     if not has_play:
         lang = "csharp" if sid == 5 else "python"
@@ -2969,7 +2980,12 @@ async def api_code_test(request):
         ex_id = int(data.get("exercise_id", 0))
         lang = data.get("language", "cpp")
         code = data.get("code", "")
-        res = await code_engine.test_code_against_cases(ex_id, lang, code)
+        raw_sid = data.get("subject_id")
+        try:
+            sid = int(raw_sid) if raw_sid is not None else None
+        except (TypeError, ValueError):
+            sid = None
+        res = await code_engine.test_code_against_cases(ex_id, lang, code, subject_id=sid)
         return json_resp(res)
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -2991,8 +3007,11 @@ async def api_code_fix_and_upgrade(request):
         data = await safe_get_json(request)
         code = data.get("code", "")
         lang = data.get("language", "csharp")
-        title = data.get("title", "")
-        error = data.get("error", "")
+        # Frontend gui "problem_title" (khong phai "title") -> phai doc ca 2 key.
+        title = data.get("problem_title") or data.get("title", "")
+        # Frontend gui "current_error" -> truoc day server chi doc "error",
+        # nen AI KHONG BAO GIO nhan duoc loi compile/test can sua.
+        error = data.get("current_error") or data.get("error", "")
         res = await code_engine.fix_and_upgrade_code(code, lang, problem_title=title, current_error=error)
         return json_resp(res)
     except Exception as e:

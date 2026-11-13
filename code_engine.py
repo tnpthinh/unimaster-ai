@@ -13,10 +13,14 @@ import sys
 import json
 import time
 import re
+import base64
+import asyncio
 import tempfile
 import subprocess
 import shutil
-from typing import Dict, Any, List
+import urllib.error
+import urllib.request
+from typing import Dict, Any, List, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import database as db
@@ -28,6 +32,32 @@ DOTNET_EXEC = shutil.which("dotnet")
 GCC_EXEC = shutil.which("gcc")
 GPP_EXEC = shutil.which("g++")
 JAVAC_EXEC = shutil.which("javac")
+JAVA_EXEC = shutil.which("java")
+
+# ---------------------------------------------------------------------------
+# REMOTE SANDBOX (Judge0 CE) - Trinh bien dich du phong tren may chu Cloud
+# ---------------------------------------------------------------------------
+# Ly do: Docker image python:3.12-slim KHONG co dotnet / g++ / javac, nen tren
+# Render moi bai C#/C++/Java truoc day roi vao "AI sandbox" va tra ve ket qua
+# gia. Nay ta goi API Judge0 CE (mien phi, khong can API key) de thuc thi THAT.
+JUDGE0_BASE_URL = os.environ.get("JUDGE0_BASE_URL", "https://ce.judge0.com").rstrip("/")
+JUDGE0_API_KEY = (os.environ.get("JUDGE0_API_KEY") or "").strip()
+JUDGE0_ENABLED = (os.environ.get("JUDGE0_ENABLED", "1").strip() != "0")
+
+# Judge0 CE language_id tuong ung (da kiem thu thuc te 4/4 ngon ngu)
+JUDGE0_LANG_IDS = {
+    "python": 71, "py": 71,
+    "c": 50,
+    "cpp": 54, "c++": 54,
+    "java": 62,
+    "csharp": 51, "c#": 51, "cs": 51,
+}
+
+# C# native tren Windows dung chung 1 project -> phai khoa de tranh race condition
+_CSHARP_LOCK = asyncio.Lock()
+
+# Luu ly do that bai gan nhat cua Judge0 (de bao loi ro rang cho nguoi dung)
+_JUDGE0_LAST_ERROR = ""
 
 # =========================================================================
 # 1. CODE EXECUTION RUNNER
@@ -40,193 +70,504 @@ def _normalize_output(text: str) -> str:
     lines = [line.rstrip() for line in text.replace("\r\n", "\n").split("\n")]
     return "\n".join(lines).strip()
 
-async def execute_code(language: str, code: str, input_data: str = "") -> Dict[str, Any]:
-    lang = (language or "cpp").lower().strip()
-    start_time = time.time()
+# ---------------------------------------------------------------------------
+# REMOTE EXECUTOR: Judge0 CE (dung cho C# / C++ / C / Java khi may khong co compiler)
+# ---------------------------------------------------------------------------
 
-    # 1. Native Python Execution
-    if lang in ["python", "py"]:
-        try:
-            with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
-                f.write(code)
-                temp_path = f.name
-
-            proc = subprocess.run(
-                [PYTHON_EXEC, temp_path],
-                input=input_data,
-                capture_output=True,
-                text=True,
-                timeout=4.0,
-                encoding="utf-8",
-                errors="replace"
-            )
-            elapsed_ms = int((time.time() - start_time) * 1000)
-            try:
-                os.remove(temp_path)
-            except Exception:
-                pass
-
-            return {
-                "success": proc.returncode == 0,
-                "stdout": proc.stdout,
-                "stderr": proc.stderr,
-                "runtime_ms": elapsed_ms,
-                "compile_error": proc.stderr if proc.returncode != 0 else "",
-                "memory_leak_warning": ""
-            }
-        except subprocess.TimeoutExpired:
-            return {
-                "success": False,
-                "stdout": "",
-                "stderr": "Time Limit Exceeded (Quá giới hạn 4.0 giây)",
-                "runtime_ms": 4000,
-                "compile_error": "",
-                "memory_leak_warning": "Phát hiện vòng lặp vô tận (Infinite Loop) hoặc độ phức tạp quá lớn."
-            }
-        except Exception as e:
-            return {
-                "success": False,
-                "stdout": "",
-                "stderr": str(e),
-                "runtime_ms": 0,
-                "compile_error": str(e),
-                "memory_leak_warning": ""
-            }
-
-    # 2. Native C++ if g++ is installed
-    if lang in ["cpp", "c++", "c"] and (GPP_EXEC or GCC_EXEC):
-        compiler = GPP_EXEC if lang in ["cpp", "c++"] else GCC_EXEC
-        try:
-            suffix = ".cpp" if lang in ["cpp", "c++"] else ".c"
-            with tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False, encoding="utf-8") as f:
-                f.write(code)
-                src_path = f.name
-            exe_path = src_path + ".exe"
-
-            compile_proc = subprocess.run(
-                [compiler, "-O2", "-std=c++17" if "++" in lang else "-std=c11", src_path, "-o", exe_path],
-                capture_output=True,
-                text=True,
-                timeout=5.0,
-                encoding="utf-8",
-                errors="replace"
-            )
-            if compile_proc.returncode != 0:
-                os.remove(src_path)
-                return {
-                    "success": False,
-                    "stdout": "",
-                    "stderr": compile_proc.stderr,
-                    "compile_error": compile_proc.stderr,
-                    "runtime_ms": 0,
-                    "memory_leak_warning": ""
-                }
-
-            run_proc = subprocess.run(
-                [exe_path],
-                input=input_data,
-                capture_output=True,
-                text=True,
-                timeout=3.0,
-                encoding="utf-8",
-                errors="replace"
-            )
-            elapsed_ms = int((time.time() - start_time) * 1000)
-
-            for p in [src_path, exe_path]:
-                try:
-                    if os.path.exists(p): os.remove(p)
-                except Exception:
-                    pass
-
-            return {
-                "success": run_proc.returncode == 0,
-                "stdout": run_proc.stdout,
-                "stderr": run_proc.stderr,
-                "runtime_ms": elapsed_ms,
-                "compile_error": "",
-                "memory_leak_warning": ""
-            }
-        except Exception as e:
-            pass  # Fallback to AI sandbox below
-
-    # 3. Native C# (.NET) if dotnet SDK / runtime is available
-    if lang in ["csharp", "c#", "cs"] and DOTNET_EXEC:
-        try:
-            cs_res = await _execute_native_csharp(code, input_data, start_time)
-            if cs_res is not None:
-                return cs_res
-        except Exception:
-            pass  # Fallback to AI sandbox below
-
-    # 4. AI Smart Compiler & Sandbox Runner (C++, Java, C#, C without native toolchain)
-    return await _ai_simulate_execution(lang, code, input_data)
+def _judge0_headers() -> Dict[str, str]:
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "UniMaster/1.0 (+https://unimaster-ai.onrender.com)",
+    }
+    if JUDGE0_API_KEY:
+        headers["X-RapidAPI-Key"] = JUDGE0_API_KEY
+        headers["X-RapidAPI-Host"] = "judge0-ce.p.rapidapi.com"
+    return headers
 
 
-async def _execute_native_csharp(code: str, input_data: str, start_time: float):
-    """Compile and execute C# natively via dotnet run using a cached runner project."""
-    runner_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".csharp_runner")
-    os.makedirs(runner_dir, exist_ok=True)
-    csproj_path = os.path.join(runner_dir, "Runner.csproj")
-    if not os.path.exists(csproj_path):
-        with open(csproj_path, "w", encoding="utf-8") as f:
-            f.write(
-                '<Project Sdk="Microsoft.NET.Sdk">\n'
-                '  <PropertyGroup>\n'
-                '    <OutputType>Exe</OutputType>\n'
-                '    <TargetFramework>net8.0</TargetFramework>\n'
-                '    <ImplicitUsings>enable</ImplicitUsings>\n'
-                '    <Nullable>enable</Nullable>\n'
-                '  </PropertyGroup>\n'
-                '</Project>\n'
-            )
+def _j0_b64(text: str) -> str:
+    """Ma hoa base64 cho payload gui len Judge0.
 
-    program_cs = os.path.join(runner_dir, "Program.cs")
-    with open(program_cs, "w", encoding="utf-8") as f:
-        f.write(code)
+    Vi sao phai lam viec nay: Judge0 CE tu choi (HTTP 400) moi payload chua
+    ky tu ngoai ASCII khi base64_encoded=false. De bai cua sinh vien gan nhu
+    luon co tieng Viet ("Xin chào", "Nhập vào"...) va emoji -> phai base64.
+    """
+    return base64.b64encode((text or "").encode("utf-8")).decode("ascii")
 
+
+def _j0_unb64(value: Any) -> str:
+    """Giai ma base64 tu ket qua Judge0 tra ve (tra ve '' neu rong/None)."""
+    if not value:
+        return ""
+    if not isinstance(value, str):
+        return str(value)
     try:
+        return base64.b64decode(value.encode("ascii")).decode("utf-8", "replace")
+    except Exception:
+        # Mot so endpoint tra ve text thuong -> giu nguyen
+        return value
+
+
+def _judge0_post_sync(payload: Dict[str, Any], timeout: float = 30.0) -> Dict[str, Any]:
+    """Goi Judge0 CE dong bo. Ham nay duoc chay trong thread rieng (asyncio.to_thread).
+
+    Dung base64_encoded=true de an toan tuyet doi voi Unicode/emoji.
+    """
+    url = f"{JUDGE0_BASE_URL}/submissions?base64_encoded=true&wait=true"
+    body = json.dumps(payload).encode("utf-8")
+    req = urllib.request.Request(url, data=body, headers=_judge0_headers(), method="POST")
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            raw = resp.read().decode("utf-8", "replace")
+    except urllib.error.HTTPError as e:
+        # Doc body loi de biet CHINH XAC Judge0 phan nan cai gi
+        try:
+            detail = e.read().decode("utf-8", "replace")[:400]
+        except Exception:
+            detail = ""
+        raise RuntimeError(f"HTTP {e.code} {e.reason} {detail}".strip()) from None
+    return json.loads(raw)
+
+
+async def _execute_via_judge0(language: str, code: str, input_data: str) -> Optional[Dict[str, Any]]:
+    """Bien dich & thuc thi THAT qua Judge0 CE.
+
+    Tra ve dict ket qua neu goi duoc, hoac None neu dich vu khong dung duoc
+    (mat mang, bi chan, chua ho tro ngon ngu) de tang tren tiep tuc xu ly.
+    """
+    # Khai bao global: neu thieu dong nay, phep gan _JUDGE0_LAST_ERROR ben duoi
+    # se tao ra MOT BIEN CUC BO va bien toan cuc khong bao gio duoc cap nhat.
+    global _JUDGE0_LAST_ERROR
+    if not JUDGE0_ENABLED:
+        return None
+    lang_id = JUDGE0_LANG_IDS.get((language or "").lower().strip())
+    if not lang_id or not (code or "").strip():
+        return None
+
+    start_t = time.time()
+
+    payload = {
+        "source_code": _j0_b64(code),
+        "language_id": lang_id,
+        "stdin": _j0_b64(input_data or ""),
+        "cpu_time_limit": 5,
+        "cpu_extra_time": 1,
+        "wall_time_limit": 12,
+        "memory_limit": 262144,
+    }
+
+    # Thu toi da 2 lan: Judge0 CE mien phi thinh thoang tra 429/503 khi tai cao
+    obj: Any = None
+    last_err = ""
+    for attempt in range(2):
+        try:
+            obj = await asyncio.to_thread(_judge0_post_sync, payload, 30.0)
+            if isinstance(obj, dict) and obj.get("status"):
+                break
+            last_err = f"Phan hoi khong hop le: {str(obj)[:200]}"
+            obj = None
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {e}"
+            obj = None
+        if attempt == 0:
+            await asyncio.sleep(0.8)
+
+    if obj is None:
+        # Gan ly do that bai de tang tren (AI simulator) co the bao cao chinh xac
+        _JUDGE0_LAST_ERROR = last_err
+        return None
+
+    status_id = (obj.get("status") or {}).get("id")
+    status_desc = (obj.get("status") or {}).get("description") or ""
+    # Ket qua tra ve cung o dang base64 -> phai giai ma truoc khi so sanh
+    compile_out = _j0_unb64(obj.get("compile_output"))
+    stderr = _j0_unb64(obj.get("stderr"))
+    stdout = _j0_unb64(obj.get("stdout"))
+    message = _j0_unb64(obj.get("message"))
+    elapsed_ms = int((time.time() - start_t) * 1000)
+
+    # 6 = Compilation Error
+    if status_id == 6:
+        detail = compile_out or stderr or status_desc or "Loi bien dich khong ro nguyen nhan"
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": detail,
+            "compile_error": detail,
+            "runtime_ms": elapsed_ms,
+            "memory_leak_warning": "",
+            "executor": "judge0",
+        }
+
+    # 5 = Time Limit Exceeded
+    if status_id == 5:
+        return {
+            "success": False,
+            "stdout": stdout,
+            "stderr": "Time Limit Exceeded (Quá giới hạn 5 giây)",
+            "compile_error": "",
+            "runtime_ms": 5000,
+            "memory_leak_warning": "Phát hiện vòng lặp vô tận (Infinite Loop) hoặc độ phức tạp quá lớn.",
+            "executor": "judge0",
+        }
+
+    # 7..14 = Runtime Error (SIGSEGV, SIGABRT, ...) / Internal Error
+    if status_id is not None and status_id >= 7:
+        detail = stderr or message or status_desc or "Runtime Error"
+        return {
+            "success": False,
+            "stdout": stdout,
+            "stderr": detail,
+            "compile_error": "",
+            "runtime_ms": elapsed_ms,
+            "memory_leak_warning": "",
+            "executor": "judge0",
+        }
+
+    # 1..4 = In Queue / Processing / Accepted
+    try:
+        runtime_ms = int(float(obj.get("time")) * 1000)
+    except Exception:
+        runtime_ms = elapsed_ms
+
+    return {
+        "success": status_id == 3,
+        "stdout": stdout,
+        "stderr": stderr or message,
+        "compile_error": "",
+        "runtime_ms": runtime_ms,
+        "memory_leak_warning": "",
+        "executor": "judge0",
+    }
+
+
+# ---------------------------------------------------------------------------
+# NATIVE EXECUTORS (chay tren may co cai san compiler - thuong la may local)
+# ---------------------------------------------------------------------------
+
+def _execute_native_python(code: str, input_data: str, start_time: float) -> Dict[str, Any]:
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
+            f.write(code)
+            temp_path = f.name
+
         proc = subprocess.run(
-            [DOTNET_EXEC, "run", "--project", csproj_path, "--no-restore"],
+            [PYTHON_EXEC, temp_path],
             input=input_data,
             capture_output=True,
             text=True,
-            timeout=6.0,
+            timeout=4.0,
             encoding="utf-8",
             errors="replace",
-            cwd=runner_dir
         )
         elapsed_ms = int((time.time() - start_time) * 1000)
-
-        compile_err = ""
-        if proc.returncode != 0:
-            lines = (proc.stdout + "\n" + proc.stderr).splitlines()
-            err_lines = [l for l in lines if ": error CS" in l or "error :" in l]
-            compile_err = "\n".join(err_lines) if err_lines else (proc.stderr or proc.stdout)
-
         return {
             "success": proc.returncode == 0,
-            "stdout": proc.stdout if proc.returncode == 0 else "",
+            "stdout": proc.stdout,
             "stderr": proc.stderr,
             "runtime_ms": elapsed_ms,
-            "compile_error": compile_err,
-            "memory_leak_warning": ""
+            "compile_error": proc.stderr if proc.returncode != 0 else "",
+            "memory_leak_warning": "",
+            "executor": "native-python",
         }
     except subprocess.TimeoutExpired:
         return {
             "success": False,
             "stdout": "",
-            "stderr": "Time Limit Exceeded (Quá giới hạn 6.0 giây thực thi C#)",
-            "runtime_ms": 6000,
+            "stderr": "Time Limit Exceeded (Quá giới hạn 4.0 giây)",
+            "runtime_ms": 4000,
             "compile_error": "",
-            "memory_leak_warning": "Phát hiện vòng lặp vô tận (Infinite Loop) hoặc thao tác blocking."
+            "memory_leak_warning": "Phát hiện vòng lặp vô tận (Infinite Loop) hoặc độ phức tạp quá lớn.",
+            "executor": "native-python",
+        }
+    finally:
+        if temp_path:
+            try:
+                os.remove(temp_path)
+            except Exception:
+                pass
+
+
+def _execute_native_c_cpp(lang: str, code: str, input_data: str, start_time: float) -> Optional[Dict[str, Any]]:
+    compiler = GPP_EXEC if lang in ["cpp", "c++"] else GCC_EXEC
+    if not compiler:
+        return None
+
+    src_path = exe_path = None
+    try:
+        suffix = ".cpp" if lang in ["cpp", "c++"] else ".c"
+        with tempfile.NamedTemporaryFile("w", suffix=suffix, delete=False, encoding="utf-8") as f:
+            f.write(code)
+            src_path = f.name
+        exe_path = src_path + (".exe" if os.name == "nt" else ".out")
+
+        std_flag = "-std=c++17" if lang in ["cpp", "c++"] else "-std=c11"
+        try:
+            compile_proc = subprocess.run(
+                [compiler, "-O2", std_flag, src_path, "-o", exe_path],
+                capture_output=True, text=True, timeout=8.0,
+                encoding="utf-8", errors="replace",
+            )
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False, "stdout": "",
+                "stderr": "Biên dịch quá lâu (>8 giây) - Timeout.",
+                "compile_error": "Compilation Timeout (>8s)",
+                "runtime_ms": int((time.time() - start_time) * 1000),
+                "memory_leak_warning": "",
+                "executor": "native-cc",
+            }
+
+        if compile_proc.returncode != 0:
+            return {
+                "success": False, "stdout": "",
+                "stderr": compile_proc.stderr,
+                "compile_error": compile_proc.stderr,
+                "runtime_ms": int((time.time() - start_time) * 1000),
+                "memory_leak_warning": "",
+                "executor": "native-cc",
+            }
+
+        try:
+            run_proc = subprocess.run(
+                [exe_path], input=input_data, capture_output=True, text=True,
+                timeout=3.0, encoding="utf-8", errors="replace",
+            )
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False, "stdout": "",
+                "stderr": "Time Limit Exceeded (Quá giới hạn 3.0 giây)",
+                "compile_error": "",
+                "runtime_ms": 3000,
+                "memory_leak_warning": "Phát hiện vòng lặp vô tận (Infinite Loop).",
+                "executor": "native-cc",
+            }
+
+        return {
+            "success": run_proc.returncode == 0,
+            "stdout": run_proc.stdout,
+            "stderr": run_proc.stderr,
+            "runtime_ms": int((time.time() - start_time) * 1000),
+            "compile_error": "",
+            "memory_leak_warning": "",
+            "executor": "native-cc",
         }
     except Exception:
         return None
+    finally:
+        for p in (src_path, exe_path):
+            if p:
+                try:
+                    if os.path.exists(p):
+                        os.remove(p)
+                except Exception:
+                    pass
+
+
+async def _execute_native_csharp(code: str, input_data: str, start_time: float) -> Optional[Dict[str, Any]]:
+    """Bien dich & chay C# bang dotnet (chi khi may co .NET SDK).
+
+    Dung asyncio.Lock vi tat ca request dung chung 1 thu muc .csharp_runner/Program.cs
+    -> neu 2 sinh vien bam Cham Test cung luc se ghi de code cua nhau.
+    """
+    if not DOTNET_EXEC:
+        return None
+
+    runner_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".csharp_runner")
+    csproj_path = os.path.join(runner_dir, "Runner.csproj")
+    assets_path = os.path.join(runner_dir, "obj", "project.assets.json")
+
+    async with _CSHARP_LOCK:
+        try:
+            os.makedirs(runner_dir, exist_ok=True)
+            if not os.path.exists(csproj_path):
+                with open(csproj_path, "w", encoding="utf-8") as f:
+                    f.write(
+                        '<Project Sdk="Microsoft.NET.Sdk">\n'
+                        '  <PropertyGroup>\n'
+                        '    <OutputType>Exe</OutputType>\n'
+                        '    <TargetFramework>net8.0</TargetFramework>\n'
+                        '    <ImplicitUsings>enable</ImplicitUsings>\n'
+                        '    <Nullable>disable</Nullable>\n'
+                        '    <AssemblyName>Runner</AssemblyName>\n'
+                        '    <RootNamespace>Runner</RootNamespace>\n'
+                        '    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>\n'
+                        '    <WarningLevel>0</WarningLevel>\n'
+                        '  </PropertyGroup>\n'
+                        '</Project>\n'
+                    )
+
+            with open(os.path.join(runner_dir, "Program.cs"), "w", encoding="utf-8") as f:
+                f.write(code)
+
+            # Lan dau tien chua co obj/project.assets.json -> KHONG duoc dung --no-restore
+            cmd = [DOTNET_EXEC, "run", "--project", csproj_path]
+            if os.path.exists(assets_path):
+                cmd.append("--no-restore")
+
+            try:
+                proc = await asyncio.to_thread(
+                    subprocess.run, cmd,
+                    input=input_data, capture_output=True, text=True,
+                    timeout=45.0, encoding="utf-8", errors="replace", cwd=runner_dir,
+                )
+            except subprocess.TimeoutExpired:
+                return {
+                    "success": False, "stdout": "",
+                    "stderr": "Time Limit Exceeded (Quá giới hạn 45 giây biên dịch C#)",
+                    "compile_error": "",
+                    "runtime_ms": 45000,
+                    "memory_leak_warning": "Biên dịch C# quá lâu. Hãy kiểm tra lại mã nguồn.",
+                    "executor": "native-csharp",
+                }
+
+            combined = (proc.stdout or "") + "\n" + (proc.stderr or "")
+            err_lines = [l for l in combined.splitlines() if ": error CS" in l or "error CS" in l]
+            compile_err = "\n".join(err_lines) if err_lines else ""
+
+            # dotnet run tra ve exit code != 0 ca khi loi bien dich lan khi chuong trinh crash
+            success = proc.returncode == 0 and not compile_err
+            if not compile_err and not success and "Unhandled exception" in combined:
+                compile_err = ""
+
+            return {
+                "success": success,
+                "stdout": (proc.stdout or "") if success else "",
+                "stderr": (proc.stderr or "") if not success else "",
+                "runtime_ms": int((time.time() - start_time) * 1000),
+                "compile_error": compile_err,
+                "memory_leak_warning": "",
+                "executor": "native-csharp",
+            }
+        except Exception:
+            return None
+
+
+# ---------------------------------------------------------------------------
+# DIEU PHOI: chon executor phu hop
+# ---------------------------------------------------------------------------
+
+async def execute_code(language: str, code: str, input_data: str = "") -> Dict[str, Any]:
+    lang = (language or "cpp").lower().strip()
+    start_time = time.time()
+
+    if not (code or "").strip():
+        return {
+            "success": False,
+            "stdout": "",
+            "stderr": "Mã nguồn rỗng.",
+            "runtime_ms": 0,
+            "compile_error": "Mã nguồn rỗng - không có gì để biên dịch.",
+            "memory_leak_warning": "",
+            "executor": "none",
+        }
+
+    # 1) Python: uu tien native (nhanh, dung dung phien ban Python cua may)
+    if lang in ["python", "py"]:
+        res = await asyncio.to_thread(_execute_native_python, code, input_data, start_time)
+        if res is not None:
+            return res
+
+    # 2) C / C++: uu tien native neu co g++/gcc
+    if lang in ["cpp", "c++", "c"]:
+        res = await asyncio.to_thread(_execute_native_c_cpp, lang, code, input_data, start_time)
+        if res is not None:
+            return res
+
+    # 3) C#: uu tien native neu co dotnet
+    if lang in ["csharp", "c#", "cs"]:
+        res = await _execute_native_csharp(code, input_data, start_time)
+        if res is not None:
+            return res
+
+    # 4) Java: uu tien native neu co javac + java
+    if lang in ["java"] and JAVAC_EXEC and JAVA_EXEC:
+        res = await asyncio.to_thread(_execute_native_java, code, input_data, start_time)
+        if res is not None:
+            return res
+
+    # 5) MAY KHONG CO COMPILER (vi du Docker python:3.12-slim tren Render)
+    #    -> goi Judge0 CE de bien dich & chay THAT, khong con ket qua gia.
+    res = await _execute_via_judge0(lang, code, input_data)
+    if res is not None:
+        return res
+
+    # 6) Cuoi cung: AI mo phong (chi khi khong co mang). Khong bao gio tra "success" gia.
+    return await _ai_simulate_execution(lang, code, input_data)
+
+
+def _execute_native_java(code: str, input_data: str, start_time: float) -> Optional[Dict[str, Any]]:
+    tmpdir = None
+    try:
+        tmpdir = tempfile.mkdtemp(prefix="um_java_")
+        # Java bat buoc class public phai ten Main.java
+        match = re.search(r"public\s+class\s+(\w+)", code)
+        class_name = match.group(1) if match else "Main"
+        src = os.path.join(tmpdir, class_name + ".java")
+        with open(src, "w", encoding="utf-8") as f:
+            f.write(code)
+
+        try:
+            cp = subprocess.run(
+                [JAVAC_EXEC, "-encoding", "UTF-8", src],
+                capture_output=True, text=True, timeout=15.0,
+                encoding="utf-8", errors="replace",
+            )
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False, "stdout": "",
+                "stderr": "Biên dịch Java quá lâu (>15s).",
+                "compile_error": "Compilation Timeout (>15s)",
+                "runtime_ms": int((time.time() - start_time) * 1000),
+                "memory_leak_warning": "", "executor": "native-java",
+            }
+
+        if cp.returncode != 0:
+            return {
+                "success": False, "stdout": "",
+                "stderr": cp.stderr, "compile_error": cp.stderr,
+                "runtime_ms": int((time.time() - start_time) * 1000),
+                "memory_leak_warning": "", "executor": "native-java",
+            }
+
+        try:
+            rp = subprocess.run(
+                [JAVA_EXEC, "-cp", tmpdir, class_name],
+                input=input_data, capture_output=True, text=True, timeout=4.0,
+                encoding="utf-8", errors="replace",
+            )
+        except subprocess.TimeoutExpired:
+            return {
+                "success": False, "stdout": "",
+                "stderr": "Time Limit Exceeded (Quá giới hạn 4.0 giây)",
+                "compile_error": "", "runtime_ms": 4000,
+                "memory_leak_warning": "Phát hiện vòng lặp vô tận (Infinite Loop).",
+                "executor": "native-java",
+            }
+
+        return {
+            "success": rp.returncode == 0,
+            "stdout": rp.stdout, "stderr": rp.stderr,
+            "runtime_ms": int((time.time() - start_time) * 1000),
+            "compile_error": "", "memory_leak_warning": "",
+            "executor": "native-java",
+        }
+    except Exception:
+        return None
+    finally:
+        if tmpdir:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 async def _ai_simulate_execution(language: str, code: str, input_data: str) -> Dict[str, Any]:
-    prompt = f"""Bạn là một Trình Biên Dịch & Chấm Thi Ảo (High-Speed Compiler & Virtual Sandbox) cho trường đại học.
+    """Phuong an cuoi cung khi KHONG con cach nao chay code that.
+
+    Luu y: neu AI cung khong tra loi duoc, ta tra success=False kem thong bao
+    ro rang (thay vi truoc day tra success=True voi chuoi rac lam moi test fail).
+    """
+    prompt = f"""Bạn là một Trình Biên Dịch & Chấm Thi Ảo (Virtual Sandbox) cho trường đại học.
 Nhiệm vụ: Phân tích mã nguồn sinh viên ({language}), kiểm tra lỗi biên dịch, mô phỏng thực thi chuẩn xác với dữ liệu đầu vào (stdin), phát hiện rò rỉ bộ nhớ (memory leaks, thiếu delete/free, thiếu virtual destructor), và xuất kết quả.
 
 MÃ NGUỒN ({language}):
@@ -246,7 +587,7 @@ Hãy phân tích cực kỳ chính xác và trả về DUY NHẤT một chuỗi 
   "stdout": "kết quả chính xác xuất ra màn hình console",
   "stderr": "",
   "runtime_ms": 15,
-  "memory_leak_warning": "Cảnh báo nếu có rò rỉ bộ nhớ (ví dụ: cấp phát new[] nhưng không delete[], thiếu virtual ~Base(), hoặc con trỏ lơ lửng), nếu an toàn để chuỗi rỗng"
+  "memory_leak_warning": "Cảnh báo nếu có rò rỉ bộ nhớ, nếu an toàn để chuỗi rỗng"
 }}"""
 
     start_t = time.time()
@@ -257,32 +598,40 @@ Hãy phân tích cực kỳ chính xác và trả về DUY NHẤT một chuỗi 
             cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", reply.strip())
             s, e = cleaned.find("{"), cleaned.rfind("}")
             if s != -1 and e != -1:
-                obj = json.loads(cleaned[s:e+1])
-                return {
-                    "success": bool(obj.get("compile_success", True) and not obj.get("compile_error")),
-                    "stdout": str(obj.get("stdout", "")),
-                    "stderr": str(obj.get("stderr", "")),
-                    "compile_error": str(obj.get("compile_error", "")),
-                    "runtime_ms": max(12, elapsed_ms),
-                    "memory_leak_warning": str(obj.get("memory_leak_warning", ""))
-                }
-    except Exception as e:
+                obj = json.loads(cleaned[s:e + 1])
+                if isinstance(obj.get("stdout"), str):
+                    return {
+                        "success": bool(obj.get("compile_success", True) and not obj.get("compile_error")),
+                        "stdout": str(obj.get("stdout", "")),
+                        "stderr": str(obj.get("stderr", "")),
+                        "compile_error": str(obj.get("compile_error", "")),
+                        "runtime_ms": max(12, elapsed_ms),
+                        "memory_leak_warning": str(obj.get("memory_leak_warning", "")),
+                        "executor": "ai-simulated",
+                    }
+    except Exception:
         pass
 
-    # Heuristic fallback if AI is offline
+    # Khong the chay va AI cung khong phan hoi -> bao loi ro rang, KHONG gia lap thanh cong
     mem_warn = ""
-    if "new " in code and "delete" not in code:
-        mem_warn = "⚠️ Cảnh báo: Mã nguồn có cấp phát toán tử `new` nhưng không tìm thấy lệnh `delete` giải phóng vùng nhớ."
+    if re.search(r"\bnew\b", code) and "delete" not in code:
+        mem_warn = "⚠️ Cảnh báo: Mã nguồn có cấp phát `new` nhưng không tìm thấy lệnh `delete` giải phóng vùng nhớ."
     if "malloc(" in code and "free(" not in code:
         mem_warn = "⚠️ Cảnh báo: Mã nguồn có cấp phát `malloc()` nhưng không gọi `free()`."
 
     return {
-        "success": True,
-        "stdout": "[Hệ thống Sandbox AI đã nhận diện cú pháp hợp lệ]",
-        "stderr": "",
+        "success": False,
+        "stdout": "",
+        "stderr": (
+            f"Không thể thực thi mã {language}: máy chủ chưa có trình biên dịch cho ngôn ngữ này "
+            "và dịch vụ sandbox dự phòng (Judge0) không phản hồi"
+            + (f" [{_JUDGE0_LAST_ERROR[:160]}]" if _JUDGE0_LAST_ERROR else "")
+            + ". Vui lòng thử lại sau ít phút."
+        ),
         "compile_error": "",
-        "runtime_ms": 20,
-        "memory_leak_warning": mem_warn
+        "runtime_ms": int((time.time() - start_t) * 1000),
+        "memory_leak_warning": mem_warn,
+        "executor": "unavailable",
     }
 
 
@@ -290,77 +639,211 @@ Hãy phân tích cực kỳ chính xác và trả về DUY NHẤT một chuỗi 
 # 2. AUTOMATED UNIT TEST RUNNER
 # =========================================================================
 
-async def test_code_against_cases(exercise_id: int, language: str, code: str) -> Dict[str, Any]:
-    conn = db.get_connection()
-    c = conn.cursor()
-    c.execute("SELECT id, title, problem, test_cases_json, solution_code FROM exercises WHERE id = ?", (exercise_id,))
-    row = c.fetchone()
-    conn.close()
+# ID bai "Playground" la bai ao do server tu sinh, KHONG co trong DB.
+PLAYGROUND_ID = 9999
 
-    if not row:
-        return {"success": False, "error": f"Không tìm thấy bài tập #{exercise_id}"}
+# Gioi han tong thoi gian cham 1 bai (tranh treo request khi mang cham)
+TOTAL_TEST_BUDGET_SEC = 120.0
 
-    ex_title = row["title"]
-    try:
-        cases = json.loads(row["test_cases_json"] or "[]")
-    except Exception:
+
+def get_playground_test_cases(subject_id: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Tra ve test case cho bai Playground ao (id 9999).
+
+    Truoc day /api/code/test voi exercise_id=9999 luon tra
+    "Khong tim thay bai tap #9999" -> frontend hien "Dat undefined/undefined".
+    """
+    if subject_id == 5:
+        return [{
+            "input": "UniMaster",
+            "expected_output": (
+                "=== UniMaster C# Sandbox ===\n"
+                "Xin chào, UniMaster! Môi trường C# .NET đang thực thi hoàn hảo."
+            ),
+            "is_hidden": False,
+        }]
+    return [{
+        "input": "UniMaster",
+        "expected_output": (
+            "=== UniMaster Python Sandbox ===\n"
+            "Xin chào, UniMaster! Môi trường Python 3 sẵn sàng thực thi."
+        ),
+        "is_hidden": False,
+    }]
+
+
+def _empty_result_payload(
+    exercise_id: int,
+    title: str,
+    total: int = 0,
+    passed: int = 0,
+    results: Optional[List[Dict[str, Any]]] = None,
+    feedback: str = "",
+    memory_warnings: Optional[List[str]] = None,
+    fatal_error: str = "",
+    success: bool = True,
+) -> Dict[str, Any]:
+    unique_mem = list({w for w in (memory_warnings or []) if w})
+    total = total or 0
+    executed = len(results or [])
+    return {
+        # success = "he thong da cham duoc binh thuong".
+        # Khi code loi bien dich (khong cham duoc bai) -> success=False de
+        # frontend hien banner do thay vi bao "Dat 0/5" nhu truoc.
+        "success": success,
+        "exercise_id": exercise_id,
+        "exercise_title": title,
+        "total_tests": total,
+        "executed_tests": executed,
+        "passed_tests": passed,
+        "all_passed": bool(total) and passed == total and executed == total,
+        "results": results or [],
+        "feedback": feedback,
+        "memory_leak_warning": "\n".join(unique_mem),
+        "fatal_error": fatal_error,
+    }
+
+
+async def test_code_against_cases(
+    exercise_id: int,
+    language: str,
+    code: str,
+    subject_id: Optional[int] = None,
+) -> Dict[str, Any]:
+    """Cham code voi toan bo test case cua bai tap.
+
+    - Ho tro bai Playground ao id=9999 (khong co trong DB).
+    - Dung cham dut ngay khi gap loi bien dich (khong chay lai 5 lan vo ich).
+    - Co ngan sach thoi gian tong, tranh treo request tren cloud.
+    """
+    ex_title = f"Bài tập #{exercise_id}"
+    cases: List[Dict[str, Any]] = []
+
+    if exercise_id == PLAYGROUND_ID:
+        # Suy ra mon hoc tu ngon ngu neu client khong gui subject_id
+        if subject_id is None:
+            subject_id = 5 if (language or "").lower() in ("csharp", "c#", "cs") else 22
+        cases = get_playground_test_cases(subject_id)
+        ex_title = "🚀 [TỰ DO] Playground Lập Trình"
+    else:
+        conn = db.get_connection()
+        c = conn.cursor()
+        c.execute(
+            "SELECT id, title, problem, test_cases_json, solution_code FROM exercises WHERE id = ?",
+            (exercise_id,),
+        )
+        row = c.fetchone()
+        conn.close()
+
+        if not row:
+            return {
+                "success": False,
+                "error": (
+                    f"Không tìm thấy bài tập #{exercise_id} trong hệ thống. "
+                    "Hãy tải lại trang (F5) rồi chọn lại bài."
+                ),
+            }
+
+        ex_title = row["title"]
+        try:
+            cases = json.loads(row["test_cases_json"] or "[]")
+        except Exception:
+            cases = []
+
+    if not isinstance(cases, list):
         cases = []
-
     if not cases:
-        # Default fallback test case
         cases = [{"input": "", "expected_output": "", "is_hidden": False}]
 
-    results = []
+    results: List[Dict[str, Any]] = []
     passed_count = 0
     total_count = len(cases)
-    memory_warnings = []
+    memory_warnings: List[str] = []
+    fatal_error = ""
+    compile_error_seen = ""
+    deadline = time.time() + TOTAL_TEST_BUDGET_SEC
 
     for idx, tc in enumerate(cases):
-        inp = tc.get("input", "")
-        exp = _normalize_output(tc.get("expected_output", ""))
-        is_hidden = tc.get("is_hidden", False)
+        if time.time() > deadline:
+            fatal_error = (
+                f"Đã vượt quá thời gian chấm cho phép ({int(TOTAL_TEST_BUDGET_SEC)}s) "
+                f"tại test {idx + 1}/{total_count}."
+            )
+            break
 
-        run_res = await execute_code(language, code, inp)
+        inp = str(tc.get("input", "") or "")
+        exp = _normalize_output(str(tc.get("expected_output", "") or ""))
+        is_hidden = bool(tc.get("is_hidden", False))
+
+        run_res = await execute_code(language or "python", code, inp)
         act = _normalize_output(run_res.get("stdout", ""))
-        is_passed = (act == exp) and run_res.get("success", False)
+        compile_err = run_res.get("compile_error", "") or ""
+        is_passed = (act == exp) and bool(run_res.get("success", False))
 
         if is_passed:
             passed_count += 1
 
-        if run_res.get("memory_leak_warning"):
-            memory_warnings.append(run_res["memory_leak_warning"])
+        mem_warn = run_res.get("memory_leak_warning") or ""
+        if mem_warn:
+            memory_warnings.append(mem_warn)
+
+        if is_hidden:
+            shown_actual = "[Passed]" if is_passed else "[Failed - Sai Kết Quả]"
+            shown_input = "[Test Case Ẩn]"
+            shown_expected = "[Đáp án chuẩn ẩn]"
+        else:
+            shown_actual = act if act else "(không có output)"
+            shown_input = inp
+            shown_expected = exp
 
         results.append({
             "test_idx": idx + 1,
-            "input": inp if not is_hidden else "[Test Case Ẩn]",
-            "expected": exp if not is_hidden else "[Đáp án chuẩn ẩn]",
-            "actual": act if not is_hidden else ("[Passed]" if is_passed else "[Failed - Sai Kết Quả]"),
+            "input": shown_input,
+            "expected": shown_expected,
+            "actual": shown_actual,
             "passed": is_passed,
             "runtime_ms": run_res.get("runtime_ms", 0),
-            "compile_error": run_res.get("compile_error", ""),
-            "is_hidden": is_hidden
+            "compile_error": compile_err,
+            "stderr": run_res.get("stderr", ""),
+            "executor": run_res.get("executor", ""),
+            "is_hidden": is_hidden,
         })
 
-    all_passed = (passed_count == total_count)
-    summary_feedback = (
-        f"🎉 Xuất sắc! Vượt qua {passed_count}/{total_count} test case (100%)."
-        if all_passed
-        else f"⚠️ Đạt {passed_count}/{total_count} test case. Hãy kiểm tra các trường hợp biên hoặc lỗi ngầm."
+        # Loi bien dich: dung ngay, khong chay cac test con lai (vo nghia & ton 120s)
+        if compile_err and not is_passed:
+            fatal_error = compile_err
+            compile_error_seen = compile_err
+            break
+
+    executed = len(results)
+    all_passed = executed > 0 and passed_count == total_count and executed == total_count
+
+    if fatal_error and compile_error_seen and not passed_count:
+        summary_feedback = "❌ Không thể biên dịch mã nguồn. Hãy xem chi tiết lỗi bên dưới."
+    elif all_passed:
+        summary_feedback = f"🎉 Xuất sắc! Vượt qua {passed_count}/{total_count} test case (100%)."
+    elif fatal_error:
+        summary_feedback = f"⚠️ Chỉ chấm được {executed}/{total_count} test case. {fatal_error}"
+    else:
+        summary_feedback = (
+            f"⚠️ Đạt {passed_count}/{total_count} test case. "
+            "Hãy kiểm tra các trường hợp biên hoặc lỗi ngầm."
+        )
+
+    # success = False khi KHONG the cham bai (loi bien dich ngay test dau tien).
+    # Day chinh la truong hop truoc day bi bao nham "Dat undefined/undefined".
+    cannot_grade = bool(fatal_error) and passed_count == 0 and executed <= 1
+
+    return _empty_result_payload(
+        exercise_id=exercise_id,
+        title=ex_title,
+        total=total_count,
+        passed=passed_count,
+        results=results,
+        feedback=summary_feedback,
+        memory_warnings=memory_warnings,
+        fatal_error=fatal_error,
+        success=not cannot_grade,
     )
-
-    unique_mem = list(set([w for w in memory_warnings if w]))
-
-    return {
-        "success": True,
-        "exercise_id": exercise_id,
-        "exercise_title": ex_title,
-        "total_tests": total_count,
-        "passed_tests": passed_count,
-        "all_passed": all_passed,
-        "results": results,
-        "feedback": summary_feedback,
-        "memory_leak_warning": "\n".join(unique_mem) if unique_mem else ""
-    }
 
 
 # =========================================================================

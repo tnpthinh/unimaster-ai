@@ -10939,13 +10939,102 @@ function selectActiveSubject(subjectId, notify = true) {
 // UNIMASTER v14.0 MODULE 1: CHẤM THỰC HÀNH LẬP TRÌNH TỰ ĐỘNG (OOP & NNLT 1)
 // =========================================================================
 if (!STATE.exercises) {
-  STATE.exercises = { list: [], selectedIndex: 0, showCode: false, userCode: {}, testResults: {}, aiReviews: {}, currentConsoleTab: 'testcases' };
+  STATE.exercises = { list: [], selectedIndex: 0, showCode: false, userCode: {}, testResults: {}, aiReviews: {}, currentConsoleTab: 'testcases', subjectId: 5 };
 }
 if (!STATE.exercises.userCode) STATE.exercises.userCode = {};
 if (!STATE.exercises.testResults) STATE.exercises.testResults = {};
 if (!STATE.exercises.aiReviews) STATE.exercises.aiReviews = {};
 if (!STATE.exercises.currentConsoleTab) STATE.exercises.currentConsoleTab = 'testcases';
 if (!STATE.exercises.aiUpgrades) STATE.exercises.aiUpgrades = {};
+if (!STATE.exercises.subjectId) STATE.exercises.subjectId = 5;
+// Ngon ngu nguoi dung tu chon cho tung bai (dropdown truoc day doi khong co tac dung gi)
+const LANG_STORAGE_KEY = 'unimaster_lang_by_exercise_v1';
+
+function loadLangByExerciseFromStorage() {
+  try {
+    const raw = localStorage.getItem(LANG_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function persistLangByExercise() {
+  try {
+    localStorage.setItem(LANG_STORAGE_KEY, JSON.stringify(STATE.exercises.langByExercise || {}));
+  } catch (_) {}
+}
+
+if (!STATE.exercises.langByExercise || !Object.keys(STATE.exercises.langByExercise).length) {
+  STATE.exercises.langByExercise = loadLangByExerciseFromStorage();
+}
+
+function onVscodeLanguageChange(newLang) {
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  if (!ex) return;
+  STATE.exercises.langByExercise[ex.id] = newLang;
+  // Luu xuong localStorage: neu khong luu, F5 se quay ve ngon ngu goc cua bai
+  // trong khi code nguoi dung van la code C#/Python -> cham sai ngon ngu.
+  persistLangByExercise();
+
+  // Doi ngon ngu thi ket qua cham cu khong con y nghia -> xoa de tranh hieu nham
+  delete STATE.exercises.testResults[ex.id];
+
+  const langNameMap = { cpp: 'C++', c: 'C', python: 'Python', csharp: 'C#', java: 'Java' };
+  const label = langNameMap[newLang] || newLang;
+
+  // Chi doi TEN FILE hien thi, KHONG xoa code nguoi dung da viet.
+  renderExerciseDetail();
+  showToast(`Đã chuyển sang ${label}. Code hiện tại được giữ nguyên.`, 'info');
+}
+
+// ---------------------------------------------------------------------------
+// LUU CODE XUONG localStorage
+// Truoc day: giao dien ghi "● Tự động lưu" nhung code chi nam trong RAM.
+// F5 / dong tab / doi bai la mat sach -> sinh vien mat bai lam.
+// ---------------------------------------------------------------------------
+const USER_CODE_STORAGE_KEY = 'unimaster_user_code_v1';
+
+function loadUserCodeFromStorage() {
+  try {
+    const raw = localStorage.getItem(USER_CODE_STORAGE_KEY);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch (_) {
+    return {};
+  }
+}
+
+function persistUserCodeToStorage() {
+  try {
+    localStorage.setItem(USER_CODE_STORAGE_KEY, JSON.stringify(STATE.exercises.userCode || {}));
+  } catch (_) {
+    // localStorage day / bi chan (che do an danh) -> bo qua, khong lam vo app
+  }
+}
+
+STATE.exercises.userCode = loadUserCodeFromStorage();
+
+// Ghi nhan moi thay doi code ngay lap tuc (khong cho debounce)
+function syncCodeFromEditorToState() {
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  const editor = document.getElementById('code-editor-textarea');
+  if (ex && editor) {
+    STATE.exercises.userCode[ex.id] = editor.value;
+    return editor.value;
+  }
+  return ex ? (STATE.exercises.userCode[ex.id] || ex.sample_code || '') : '';
+}
+
+// Doc ngon ngu THAT SU dang chon trong dropdown, khong doan theo ex.language
+function getCurrentEditorLanguage(ex) {
+  const langSel = document.getElementById('code-lang-select');
+  if (langSel && langSel.value) return langSel.value;
+  return (ex && ex.language) || 'cpp';
+}
 
 async function loadExercisesView() {
   const sel = document.getElementById('exercise-subject-select');
@@ -10959,13 +11048,40 @@ async function loadExercisesView() {
   try {
     let res = await apiFetch(`/api/subjects/${sid}/exercises`);
     let list = res && res.exercises ? res.exercises : [];
-    if (!list.length) {
+    if (!list.length && sid !== 5) {
       // Fallback: try OOP
+      sid = 5;
       res = await apiFetch('/api/subjects/5/exercises');
       list = res && res.exercises ? res.exercises : [];
     }
+
+    // --- QUAN TRONG: bai Playground (id 9999) ton tai o CA 2 mon (5 va 22)
+    // nhung noi dung test case KHAC NHAU. Neu khong don trang thai cu:
+    //   - ket qua cham C# hien sang tab Test Case cua mon Python
+    //   - code C# nam trong editor nhung lai chon ngon ngu Python
+    // -> cham ra ket qua vo nghia. Vi vay khi DOI MON, xoa sach state cua 9999.
+    const prevSid = STATE.exercises.subjectId;
+    if (prevSid !== undefined && String(prevSid) !== String(sid)) {
+      delete STATE.exercises.testResults[9999];
+      delete STATE.exercises.aiReviews[9999];
+      delete STATE.exercises.aiUpgrades[9999];
+      delete STATE.exercises.userCode[9999];
+      if (STATE.exercises.langByExercise) delete STATE.exercises.langByExercise[9999];
+      persistUserCodeToStorage();
+      persistLangByExercise();
+    }
+
     STATE.exercises.list = list;
     STATE.exercises.selectedIndex = 0;
+    // Ghi nho mon dang hoc: /api/code/test can subject_id de biet bai Playground
+    // (id 9999) thuoc mon nao va cham bang bo test case nao.
+    STATE.exercises.subjectId = sid;
+
+    // Doi mon/doi danh sach -> dong thanh tra dong dang mo (no tro toi bai cu)
+    vscodeLastInspectedLine = null;
+    const staleInspector = document.getElementById('vscode-line-inspector');
+    if (staleInspector) staleInspector.classList.add('hidden');
+
     renderExerciseList();
     renderExerciseDetail();
   } catch (err) {
@@ -11044,8 +11160,19 @@ function selectExercise(idx) {
   const curEx = STATE.exercises.list[STATE.exercises.selectedIndex];
   if (curEx) {
     const editor = document.getElementById('code-editor-textarea');
-    if (editor) STATE.exercises.userCode[curEx.id] = editor.value;
+    if (editor) {
+      STATE.exercises.userCode[curEx.id] = editor.value;
+      // Luu NGAY xuong localStorage (khong cho debounce 400ms).
+      // Truoc day chi gan vao RAM: doi bai trong vong <400ms la mat phan vua go.
+      persistUserCodeToStorage();
+    }
   }
+
+  // Sang bai khac: thanh "thanh tra dong" phai dong lai, neu khong no van
+  // tro toi so dong cua BAI CU va "Hoi AI dong nay" se gui sai dong.
+  vscodeLastInspectedLine = null;
+  const staleInspector = document.getElementById('vscode-line-inspector');
+  if (staleInspector) staleInspector.classList.add('hidden');
 
   STATE.exercises.selectedIndex = idx;
   renderExerciseList();
@@ -11071,7 +11198,8 @@ function renderExerciseDetail() {
 
   const langExtMap = { cpp: 'cpp', c: 'c', python: 'py', csharp: 'cs', java: 'java' };
   const langNameMap = { cpp: 'C++', c: 'C', python: 'Python', csharp: 'C#', java: 'Java' };
-  const currentLang = ex.language || 'cpp';
+  // Ngon ngu do nguoi dung chon (luu theo tung bai), fallback ve ngon ngu goc cua bai
+  const currentLang = (STATE.exercises.langByExercise && STATE.exercises.langByExercise[ex.id]) || ex.language || 'cpp';
   const fileExt = langExtMap[currentLang] || 'cpp';
   const displayLang = langNameMap[currentLang] || currentLang.toUpperCase();
   const fileName = `solution.${fileExt}`;
@@ -11087,7 +11215,7 @@ function renderExerciseDetail() {
         <div class="flex items-center gap-2">
           <!-- macOS / VS Code window dots -->
           <div class="flex items-center gap-1.5 mr-2">
-            <span class="w-3 h-3 rounded-full bg-[#ff5f56] inline-block shadow-sm cursor-pointer" title="Close" onclick="resetExerciseCode()"></span>
+            <span class="w-3 h-3 rounded-full bg-[#ff5f56] inline-block shadow-sm cursor-pointer" title="Xóa code đang viết (có xác nhận)" onclick="closeVscodeEditorWithConfirm()"></span>
             <span class="w-3 h-3 rounded-full bg-[#ffbd2e] inline-block shadow-sm cursor-pointer" title="Minimize" onclick="toggleVscodeSidebar()"></span>
             <span class="w-3 h-3 rounded-full bg-[#27c93f] inline-block shadow-sm cursor-pointer" title="Toggle Fullscreen" onclick="toggleVscodeFullscreen()"></span>
           </div>
@@ -11213,7 +11341,7 @@ function renderExerciseDetail() {
             <!-- Language Selector on Tabs Bar -->
             <div class="flex items-center gap-2 pr-2">
               <label class="text-[11px] text-[#858585] font-mono hidden md:inline">Language:</label>
-              <select id="code-lang-select" class="bg-[#3c3c3c] text-white text-[11px] font-mono px-2 py-1 rounded border border-[#555555] outline-none cursor-pointer">
+              <select id="code-lang-select" onchange="onVscodeLanguageChange(this.value)" class="bg-[#3c3c3c] text-white text-[11px] font-mono px-2 py-1 rounded border border-[#555555] outline-none cursor-pointer" title="Chọn ngôn ngữ sẽ dùng khi Chạy / Chấm bài">
                 <option value="cpp" ${currentLang === 'cpp' ? 'selected' : ''}>C++ (GCC C++17)</option>
                 <option value="c" ${currentLang === 'c' ? 'selected' : ''}>C (GCC C11)</option>
                 <option value="python" ${currentLang === 'python' ? 'selected' : ''}>Python 3</option>
@@ -11334,7 +11462,7 @@ function renderExerciseDetail() {
               <div class="flex items-center h-full gap-3 font-mono text-[11px] font-bold">
                 <button type="button" id="vstab-testcases" onclick="switchConsoleTab('testcases')"
                   class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'testcases' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
-                  <span>🧪 TEST CASES</span> ${testRes ? `<span class="px-1.5 py-0.2 rounded text-[10px] bg-[#007acc] text-white">${testRes.passed_tests}/${testRes.total_tests}</span>` : ''}
+                  <span>🧪 TEST CASES</span> ${testRes ? `<span class="px-1.5 py-0.2 rounded text-[10px] bg-[#007acc] text-white">${Number(testRes.passed_tests) || 0}/${Number(testRes.total_tests) || 0}</span>` : ''}
                 </button>
                 <button type="button" id="vstab-console" onclick="switchConsoleTab('console')"
                   class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'console' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
@@ -11355,9 +11483,10 @@ function renderExerciseDetail() {
                 <button type="button" onclick="openAiFullscreenForCurrentTab()" class="px-2.5 py-1 rounded bg-[#333333] hover:bg-[#444444] text-cyan-300 hover:text-white flex items-center gap-1.5 text-[11px] font-mono transition-colors shadow-sm" title="Mở rộng toàn màn hình phần AI trả lời">
                   <span>⛶</span> Toàn Màn Hình AI
                 </button>
-              <!-- Console Status Indicator -->
-              <div id="console-status-indicator" class="text-[11px] font-bold text-[#858585] font-mono">
-                ${testRes ? (testRes.all_passed ? '<span class="text-emerald-400">● 100% Passed</span>' : '<span class="text-amber-400">▲ Có lỗi test case</span>') : '● Ready'}
+                <!-- Console Status Indicator -->
+                <div id="console-status-indicator" class="text-[11px] font-bold text-[#858585] font-mono">
+                  ${testRes ? (testRes.all_passed ? '<span class="text-emerald-400">● 100% Passed</span>' : '<span class="text-amber-400">▲ Có lỗi test case</span>') : '● Ready'}
+                </div>
               </div>
             </div>
 
@@ -11451,22 +11580,39 @@ function renderTestCasesPane(ex, testRes) {
   }
 
   const results = testRes.results || [];
+  // Khong cham duoc bai (loi bien dich, timeout, mat ket noi executor...)
+  const isFatal = testRes.success === false && !testRes.all_passed;
+  const summaryBorder = testRes.all_passed
+    ? 'bg-emerald-500/10 border-emerald-500/30'
+    : (isFatal ? 'bg-rose-500/10 border-rose-500/40' : 'bg-amber-500/10 border-amber-500/30');
+  const summaryTextColor = testRes.all_passed
+    ? 'text-emerald-400'
+    : (isFatal ? 'text-rose-300' : 'text-amber-400');
+
   return `
     <div class="space-y-3">
       <!-- Summary Bar -->
-      <div class="flex items-center justify-between p-3 rounded-xl border ${
-        testRes.all_passed ? 'bg-emerald-500/10 border-emerald-500/30' : 'bg-amber-500/10 border-amber-500/30'
-      }">
+      <div class="flex items-center justify-between p-3 rounded-xl border ${summaryBorder}">
         <div class="flex items-center gap-2">
-          <span class="text-lg">${testRes.all_passed ? '🎉' : '⚠️'}</span>
-          <span class="text-xs font-extrabold ${testRes.all_passed ? 'text-emerald-400' : 'text-amber-400'}">
+          <span class="text-lg">${testRes.all_passed ? '🎉' : (isFatal ? '❌' : '⚠️')}</span>
+          <span class="text-xs font-extrabold ${summaryTextColor}">
             ${escapeHtml(testRes.feedback || '')}
           </span>
         </div>
         <span class="badge-subtle text-xs px-2.5 py-1 rounded font-mono font-bold">
-          ${testRes.passed_tests} / ${testRes.total_tests} Passed
+          ${testRes.passed_tests || 0} / ${testRes.total_tests || 0} Passed
         </span>
       </div>
+
+      <!-- Fatal error banner (loi bien dich / khong the cham) -->
+      ${
+        isFatal && testRes.fatal_error
+          ? `<div class="p-3 rounded-xl border border-rose-500/40 bg-rose-500/10 space-y-1.5">
+              <div class="text-xs font-bold text-rose-300">❌ KHÔNG CHẤM ĐƯỢC BÀI</div>
+              <pre class="text-[11px] font-mono text-rose-200 whitespace-pre-wrap max-h-40 overflow-y-auto">${escapeHtml(String(testRes.fatal_error))}</pre>
+            </div>`
+          : ''
+      }
 
       <!-- Memory leak warning banner -->
       ${
@@ -11598,6 +11744,8 @@ function saveCurrentCodeDebounced() {
     const editor = document.getElementById('code-editor-textarea');
     if (ex && editor) {
       STATE.exercises.userCode[ex.id] = editor.value;
+      // Truoc day chi luu vao RAM -> F5 la mat bai. Nay luu ca localStorage.
+      persistUserCodeToStorage();
     }
   }, 400);
 }
@@ -11606,11 +11754,41 @@ function resetExerciseCode() {
   const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
   if (!ex) return;
   const editor = document.getElementById('code-editor-textarea');
-  if (editor) {
-    editor.value = ex.sample_code || '';
-    STATE.exercises.userCode[ex.id] = editor.value;
-    showToast('Đã khôi phục lại code mẫu', 'info');
+  if (!editor) return;
+
+  if (editor.value === (ex.sample_code || '')) {
+    showToast('Code đang đúng là code mẫu ban đầu', 'info');
+    return;
   }
+  if (!window.confirm('Khôi phục code về mẫu ban đầu?\nToàn bộ code bạn đã viết cho bài này sẽ bị xóa.')) {
+    return;
+  }
+  editor.value = ex.sample_code || '';
+  STATE.exercises.userCode[ex.id] = editor.value;
+  persistUserCodeToStorage();
+  updateVscodeLineNumbers();
+  showToast('Đã khôi phục lại code mẫu', 'info');
+}
+
+// Nut tron do (macOS close): truoc day goi thang resetExerciseCode() -> xoa code
+// cua sinh vien ma KHONG hoi. Nay doi thanh hanh vi rieng, co xac nhan ro rang.
+function closeVscodeEditorWithConfirm() {
+  const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
+  const editor = document.getElementById('code-editor-textarea');
+  if (!ex || !editor) return;
+
+  if (!editor.value.trim()) {
+    showToast('Editor đang trống.', 'info');
+    return;
+  }
+  if (!window.confirm('Xóa toàn bộ code trong editor của bài này?\n(Bạn vẫn có thể khôi phục bằng nút “Reset Code”.)')) {
+    return;
+  }
+  editor.value = '';
+  STATE.exercises.userCode[ex.id] = '';
+  persistUserCodeToStorage();
+  updateVscodeLineNumbers();
+  showToast('Đã xóa code trong editor', 'info');
 }
 
 function toggleSampleCode() {
@@ -11625,30 +11803,49 @@ function copySolutionToEditor() {
   if (editor) {
     editor.value = ex.solution_code;
     STATE.exercises.userCode[ex.id] = editor.value;
+    persistUserCodeToStorage();
+    updateVscodeLineNumbers();
     showToast('Đã dán code mẫu vào editor', 'success');
   }
 }
 
 async function runCodeCustomInput() {
   const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
-  const editor = document.getElementById('code-editor-textarea');
-  const langSel = document.getElementById('code-lang-select');
-  const stdinEl = document.getElementById('custom-stdin-input');
   const stdoutEl = document.getElementById('custom-stdout-output');
-  if (!editor) return;
+  const stdinEl = document.getElementById('custom-stdin-input');
+  if (!ex) return;
 
-  const code = editor.value;
-  const lang = langSel ? langSel.value : (ex.language || 'cpp');
+  // Lay code TRUC TIEP tu editor (dong bo lai state) de khong bao gio cham/ chay
+  // phai ban code cu do debounce 400ms chua kip luu.
+  const code = syncCodeFromEditorToState();
+  const lang = getCurrentEditorLanguage(ex);
   const inp = stdinEl ? stdinEl.value : '';
 
+  if (!String(code || '').trim()) {
+    showToast('Mã nguồn đang rỗng. Hãy viết code trước khi chạy.', 'warning');
+    return;
+  }
+
   switchConsoleTab('console');
-  if (stdoutEl) stdoutEl.textContent = '⏳ Đang biên dịch và thực thi...';
+  if (stdoutEl) {
+    stdoutEl.textContent = '⏳ Đang biên dịch và thực thi...';
+    stdoutEl.className = 'p-2.5 rounded-xl border font-mono text-xs text-cyan-300 h-28 overflow-y-auto';
+  }
 
   try {
     const res = await apiFetch('/api/code/run', {
       method: 'POST',
       body: JSON.stringify({ language: lang, code: code, input_data: inp })
     });
+
+    if (res && res.error) {
+      if (stdoutEl) {
+        stdoutEl.textContent = '❌ ' + res.error;
+        stdoutEl.className = 'p-2.5 rounded-xl border font-mono text-xs text-rose-400 h-28 overflow-y-auto';
+      }
+      showToast('Không chạy được code', 'error');
+      return;
+    }
 
     if (stdoutEl) {
       if (res.compile_error) {
@@ -11657,26 +11854,36 @@ async function runCodeCustomInput() {
         if (typeof triggerRubberDuckOnFailure === 'function') {
           triggerRubberDuckOnFailure(code, lang, res.compile_error);
         }
+      } else if (res.success === false && res.stderr) {
+        stdoutEl.textContent = '⚠️ LỖI THỰC THI (Runtime Error):\n' + res.stderr;
+        stdoutEl.className = 'p-2.5 rounded-xl border font-mono text-xs text-rose-400 h-28 overflow-y-auto';
       } else {
-        stdoutEl.textContent = res.stdout || res.stderr || '(Không có output)';
+        stdoutEl.textContent = res.stdout || '(Không có output)';
         stdoutEl.className = 'p-2.5 rounded-xl border font-mono text-xs text-emerald-400 h-28 overflow-y-auto';
       }
     }
     showToast(`Chạy xong trong ${res.runtime_ms || 15}ms`, 'success');
   } catch (err) {
-    if (stdoutEl) stdoutEl.textContent = `Lỗi thực thi: ${err.message}`;
+    if (stdoutEl) {
+      stdoutEl.textContent = `Lỗi thực thi: ${err.message}`;
+      stdoutEl.className = 'p-2.5 rounded-xl border font-mono text-xs text-rose-400 h-28 overflow-y-auto';
+    }
     showToast('Lỗi chạy code', 'error');
   }
 }
 
 async function submitCodeTestCases() {
   const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
-  const editor = document.getElementById('code-editor-textarea');
-  const langSel = document.getElementById('code-lang-select');
-  if (!ex || !editor) return;
+  if (!ex) return;
 
-  const code = editor.value;
-  const lang = langSel ? langSel.value : (ex.language || 'cpp');
+  // Dong bo code moi nhat truoc khi cham (tranh mat ky tu vua go)
+  const code = syncCodeFromEditorToState();
+  const lang = getCurrentEditorLanguage(ex);
+
+  if (!String(code || '').trim()) {
+    showToast('Mã nguồn đang rỗng. Hãy viết code trước khi chấm.', 'warning');
+    return;
+  }
 
   switchConsoleTab('testcases');
   showToast('Đang chấm test case tự động...', 'info');
@@ -11684,8 +11891,35 @@ async function submitCodeTestCases() {
   try {
     const res = await apiFetch('/api/code/test', {
       method: 'POST',
-      body: JSON.stringify({ exercise_id: ex.id, language: lang, code: code })
+      body: JSON.stringify({
+        exercise_id: ex.id,
+        language: lang,
+        code: code,
+        // subject_id: can cho bai Playground (id 9999) de biet cham bang bo test case nao
+        subject_id: STATE.exercises.subjectId
+      })
     });
+
+    // Server bao loi (khong tim thay bai, thieu tham so...) -> hien thi ro rang.
+    // Truoc day app bo qua res.error va in ra "Dat undefined/undefined".
+    if (!res || res.error) {
+      const msg = (res && res.error) ? res.error : 'Máy chủ không trả về kết quả chấm.';
+      STATE.exercises.testResults[ex.id] = {
+        success: false,
+        all_passed: false,
+        passed_tests: 0,
+        total_tests: 0,
+        results: [],
+        feedback: '❌ ' + msg,
+        fatal_error: msg,
+        memory_leak_warning: ''
+      };
+      renderExerciseDetail();
+      renderExerciseList();
+      playSound('error');
+      showToast(msg, 'error');
+      return;
+    }
 
     STATE.exercises.testResults[ex.id] = res;
     renderExerciseDetail();
@@ -11697,12 +11931,30 @@ async function submitCodeTestCases() {
       if (typeof confetti === 'function') {
         confetti({ particleCount: 70, spread: 60, origin: { y: 0.7 } });
       }
-    } else {
-      playSound('error');
-      showToast(`Đạt ${res.passed_tests}/${res.total_tests} Test Case.`, 'warning');
+      return;
+    }
+
+    playSound('error');
+
+    // Khong the cham duoc (loi bien dich / het thoi gian / het ngan sach)
+    if (res.success === false) {
+      const fatal = res.fatal_error || res.feedback || 'Không thể chấm bài.';
+      showToast('Không thể chấm bài: kiểm tra lỗi biên dịch bên dưới.', 'error');
       if (typeof triggerRubberDuckOnFailure === 'function') {
-        triggerRubberDuckOnFailure(code, lang, res.memory_leak_warning || `Chỉ đạt ${res.passed_tests}/${res.total_tests} test cases.`);
+        triggerRubberDuckOnFailure(code, lang, fatal);
       }
+      return;
+    }
+
+    const passed = Number(res.passed_tests) || 0;
+    const total = Number(res.total_tests) || 0;
+    showToast(`Đạt ${passed}/${total} Test Case.`, 'warning');
+    if (typeof triggerRubberDuckOnFailure === 'function') {
+      triggerRubberDuckOnFailure(
+        code,
+        lang,
+        res.memory_leak_warning || res.fatal_error || `Chỉ đạt ${passed}/${total} test cases.`
+      );
     }
   } catch (err) {
     showToast('Lỗi khi chấm test case: ' + err.message, 'error');
@@ -11711,12 +11963,15 @@ async function submitCodeTestCases() {
 
 async function aiReviewCurrentCode() {
   const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
-  const editor = document.getElementById('code-editor-textarea');
-  const langSel = document.getElementById('code-lang-select');
-  if (!ex || !editor) return;
+  if (!ex) return;
 
-  const code = editor.value;
-  const lang = langSel ? langSel.value : (ex.language || 'cpp');
+  const code = syncCodeFromEditorToState();
+  const lang = getCurrentEditorLanguage(ex);
+
+  if (!String(code || '').trim()) {
+    showToast('Mã nguồn đang rỗng. Hãy viết code trước khi nhờ AI review.', 'warning');
+    return;
+  }
 
   switchConsoleTab('aireview');
   showToast('AI Tech Lead đang soi code & rò rỉ bộ nhớ...', 'info');
@@ -11727,10 +11982,17 @@ async function aiReviewCurrentCode() {
       body: JSON.stringify({ title: ex.title, problem: ex.problem, code: code, language: lang })
     });
 
-    if (res.review) {
+    if (res && res.error) {
+      showToast('AI review lỗi: ' + res.error, 'error');
+      return;
+    }
+
+    if (res && res.review) {
       STATE.exercises.aiReviews[ex.id] = res.review;
       renderExerciseDetail();
       showToast('Đã có đánh giá từ AI Tech Lead!', 'success');
+    } else {
+      showToast('AI không trả về nội dung đánh giá. Thử lại sau.', 'warning');
     }
   } catch (err) {
     showToast('Lỗi gọi AI Review: ' + err.message, 'error');
@@ -18286,12 +18548,16 @@ function renderAiFixPane(upgradeData, ex) {
 
 async function fixAndUpgradeCurrentCode() {
   const ex = STATE.exercises.list[STATE.exercises.selectedIndex];
-  const editor = document.getElementById('code-editor-textarea');
-  const langSel = document.getElementById('code-lang-select');
-  if (!ex || !editor) return;
+  if (!ex) return;
 
-  const code = editor.value;
-  const lang = langSel ? langSel.value : (ex.language || 'csharp');
+  // Dong bo tu editor de khong gui code cu do debounce chua kip luu
+  const code = syncCodeFromEditorToState();
+  const lang = getCurrentEditorLanguage(ex);
+
+  if (!String(code || '').trim()) {
+    showToast('Mã nguồn đang rỗng. Hãy viết code trước khi nhờ AI nâng cấp.', 'warning');
+    return;
+  }
 
   switchConsoleTab('aifix');
   showToast('AI Senior Architect đang chẩn đoán & nâng cấp code...', 'info');
@@ -18299,11 +18565,13 @@ async function fixAndUpgradeCurrentCode() {
   let currentError = '';
   const recentTest = STATE.exercises.testResults[ex.id];
   if (recentTest && !recentTest.all_passed) {
-    currentError = recentTest.feedback || '';
+    currentError = recentTest.fatal_error || recentTest.feedback || '';
     if (recentTest.results) {
       const failed = recentTest.results.filter(r => !r.passed);
       if (failed.length) {
-        currentError += '\n' + failed.map(f => `Test: Input=${f.input} | Expected=${f.expected} | Actual=${f.actual || f.error}`).join('\n');
+        currentError += '\n' + failed
+          .map(f => `Test #${f.test_idx}: Input=${f.input} | Expected=${f.expected} | Actual=${f.actual} | Stderr=${f.stderr || ''}`)
+          .join('\n');
       }
     }
   }
@@ -18319,12 +18587,19 @@ async function fixAndUpgradeCurrentCode() {
       })
     });
 
-    if (res) {
-      const upgradeData = (res.data !== undefined) ? res.data : res;
+    if (res && res.error) {
+      showToast('AI không xử lý được: ' + res.error, 'error');
+      return;
+    }
+
+    const upgradeData = res && (res.data !== undefined) ? res.data : res;
+    if (upgradeData && (upgradeData.upgraded_code || upgradeData.explanation || upgradeData.diagnosis)) {
       if (!STATE.exercises.aiUpgrades) STATE.exercises.aiUpgrades = {};
       STATE.exercises.aiUpgrades[ex.id] = upgradeData;
       renderExerciseDetail();
       showToast('Đã phân tích & nâng cấp code thành công! ✨', 'success');
+    } else {
+      showToast('AI không trả về nội dung nâng cấp. Thử lại sau.', 'warning');
     }
   } catch (err) {
     showToast('Lỗi khi nâng cấp code: ' + err.message, 'error');
@@ -18342,9 +18617,10 @@ function applyUpgradedCodeToEditor(exId) {
   const editor = document.getElementById('code-editor-textarea');
   if (editor) {
     editor.value = upgraded;
+    updateVscodeLineNumbers();
   }
   STATE.exercises.userCode[targetId] = upgraded;
-  saveCurrentCodeDebounced();
+  persistUserCodeToStorage();
   showToast('Đã dán mã nguồn nâng cấp chuẩn vào Editor! 🚀', 'success');
 }
 
@@ -18355,6 +18631,8 @@ function applyUpgradedCodeToEditor(exId) {
 let vscodeActiveLine = 1;
 let vscodeCopilotSuggestion = '';
 let vscodeCopilotTimer = null;
+// Co dang cho phan hoi copilot khong -> tranh ban trung lap khi sinh vien go lien tuc
+let vscodeCopilotInFlight = false;
 let vscodeLastInspectedLine = null;
 
 function updateVscodeLineNumbers() {
@@ -18454,11 +18732,21 @@ function handleVscodeCodeInput() {
   updateVscodeLineNumbers();
   updateVscodeCursorPosition();
 
-  // Trigger Copilot suggestion with debounce (650ms)
+  // KHONG tu dong goi AI sau moi 650ms nua: moi ky tu go vao deu ban 1 request
+  // -> spam API, ton quota va lam giat UI. Gio chi goi khi:
+  //   - nguoi dung chu dong: Alt+\ hoac Ctrl+Space
+  //   - hoac ho dung 2.5s va dong hien tai trong nhu sap viet tiep (ket thuc
+  //     bang '{', ':', '(', ';', hoac la dong trong)
   if (vscodeCopilotTimer) clearTimeout(vscodeCopilotTimer);
   vscodeCopilotTimer = setTimeout(() => {
-    triggerVscodeCopilotSuggest();
-  }, 650);
+    const ta = document.getElementById('code-editor-textarea');
+    if (!ta) return;
+    const before = (ta.value || '').substring(0, ta.selectionStart || 0);
+    const curLine = before.split('\n').pop() || '';
+    const tail = curLine.trim().slice(-1);
+    const looksOpen = curLine.trim() === '' || ['{', ':', '(', ',', ';'].includes(tail);
+    if (looksOpen) triggerVscodeCopilotSuggest();
+  }, 2500);
 }
 
 function handleVscodeEditorKeydown(e) {
@@ -18526,6 +18814,10 @@ async function triggerVscodeCopilotSuggest(force = false) {
   const code = textarea.value || '';
   if (!force && code.trim().length < 8) return;
 
+  // Dang co 1 request copilot bay giua duong -> khong ban them (chong spam API)
+  if (vscodeCopilotInFlight) return;
+  vscodeCopilotInFlight = true;
+
   const selStart = textarea.selectionStart || 0;
   const textBefore = code.substring(0, selStart);
   const lines = textBefore.split('\n');
@@ -18538,7 +18830,8 @@ async function triggerVscodeCopilotSuggest(force = false) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code: code,
-        language: ex.language || 'cpp',
+        // Truoc day lay ex.language -> sai khi sinh vien doi ngon ngu trong dropdown
+        language: getCurrentEditorLanguage(ex),
         line: lineNum,
         column: colNum,
         problem_title: ex.title || ''
@@ -18553,6 +18846,8 @@ async function triggerVscodeCopilotSuggest(force = false) {
   } catch (err) {
     console.warn('Copilot error:', err);
     dismissVscodeCopilotSuggestion();
+  } finally {
+    vscodeCopilotInFlight = false;
   }
 }
 
@@ -18611,9 +18906,23 @@ async function callAiLineInspector(lineNum, action) {
 
   const code = textarea.value || '';
   const testRes = STATE.exercises.testResults[ex.id];
-  const currentError = (testRes && !testRes.all_passed)
-    ? (testRes.compile_error || (testRes.results && testRes.results.find(r => !r.passed)?.output) || '')
-    : '';
+
+  // Truoc day doc testRes.results[...].output -> field nay KHONG ton tai
+  // (backend tra ve 'actual' / 'stderr'), nen currentError luon la ''.
+  // Nay gom loi bien dich, loi thoi gian chay va test sai dau tien.
+  let currentError = '';
+  if (testRes && !testRes.all_passed) {
+    if (testRes.fatal_error) {
+      currentError = String(testRes.fatal_error);
+    } else {
+      const failed = (testRes.results || []).find((r) => !r.passed);
+      if (failed) {
+        currentError =
+          failed.compile_error || failed.stderr ||
+          `Test #${failed.test_idx}: input=[${failed.input}] expected=[${failed.expected}] actual=[${failed.actual}]`;
+      }
+    }
+  }
 
   showToast(`Đang gửi yêu cầu phân tích dòng ${lineNum} tới AI... 🧠`, 'info');
 
@@ -18623,7 +18932,7 @@ async function callAiLineInspector(lineNum, action) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code: code,
-        language: ex.language || 'cpp',
+        language: getCurrentEditorLanguage(ex),
         line: lineNum,
         action: action,
         problem_title: ex.title || '',
@@ -18756,9 +19065,16 @@ function renderAiFullscreenInspectorResult(data, sourceCode, targetLine, action)
             <div class="flex items-center gap-2 text-xs font-bold text-purple-300 uppercase tracking-wider mb-1.5">
               <span>🎓</span> Bài học cốt lõi cần nhớ:
             </div>
-            <p class="text-xs text-slate-300 leading-relaxed">
-              Khi viết code thuật toán, hãy luôn kiểm tra điều kiện biên, giới hạn của biến chỉ số mảng, và đảm bảo mọi biến được khởi tạo trước khi truy xuất bộ nhớ.
-            </p>
+            ${
+              // Truoc day khoi nay HARD-CODE 1 cau chung chung, bo qua hoan toan
+              // learning_points / quick_tip ma backend da tra ve -> sinh vien
+              // khong bao gio doc duoc bai hoc that su cua dong code minh viet.
+              (Array.isArray(data.learning_points) && data.learning_points.length)
+                ? `<ul class="space-y-1.5 text-xs text-slate-300 leading-relaxed">
+                     ${data.learning_points.map((p) => `<li class="flex items-start gap-2"><span class="text-purple-400">▸</span><span>${escapeHtml(String(p))}</span></li>`).join('')}
+                   </ul>`
+                : `<p class="text-xs text-slate-300 leading-relaxed">${escapeHtml(data.quick_tip || 'Hãy kiểm tra điều kiện biên, giới hạn chỉ số mảng và đảm bảo mọi biến được khởi tạo trước khi truy xuất.')}</p>`
+            }
           </div>
         </div>
       </div>
@@ -18800,7 +19116,9 @@ function applyAiFullscreenFixedCode() {
   if (textarea && ex) {
     textarea.value = window.__LAST_PATCHED_CODE;
     STATE.exercises.userCode[ex.id] = window.__LAST_PATCHED_CODE;
-    saveCurrentCodeDebounced();
+    // Luu NGAY xuong localStorage thay vi cho debounce 400ms: neu nguoi dung
+    // F5 ngay sau khi ap dung code sua -> mat toan bo phan vua ap dung.
+    persistUserCodeToStorage();
     updateVscodeLineNumbers();
     updateVscodeCursorPosition();
     showToast('Đã áp dụng toàn bộ code sửa vào Editor! 🚀', 'success');
@@ -18885,11 +19203,19 @@ function toggleVscodeSidebar() {
 function toggleVscodeFullscreen() {
   const ide = document.getElementById('vscode-ide-root');
   if (!ide) return;
+  // requestFullscreen() tra ve Promise: neu bi trinh duyet tu choi (khong phai
+  // hanh dong nguoi dung, hoac iframe thieu allowfullscreen) se sinh
+  // "Uncaught (in promise) TypeError" lam nghen console. Phai bat loi.
   if (!document.fullscreenElement) {
-    if (ide.requestFullscreen) ide.requestFullscreen();
-    else if (ide.webkitRequestFullscreen) ide.webkitRequestFullscreen();
+    const req = ide.requestFullscreen
+      ? ide.requestFullscreen()
+      : (ide.webkitRequestFullscreen ? ide.webkitRequestFullscreen() : null);
+    if (req && typeof req.catch === 'function') {
+      req.catch(() => showToast('Trình duyệt không cho phép toàn màn hình ở khung này.', 'warning'));
+    }
   } else {
-    if (document.exitFullscreen) document.exitFullscreen();
+    const exit = document.exitFullscreen ? document.exitFullscreen() : null;
+    if (exit && typeof exit.catch === 'function') exit.catch(() => {});
   }
 }
 
