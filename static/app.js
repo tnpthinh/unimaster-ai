@@ -4806,7 +4806,7 @@ function renderCurrentExamQuestion() {
       topNextBtn.onclick = () => nextQuestion();
     }
     if (stageNextBtn) {
-      stageNextBtn.innerHTML = `<span id="btn-next-q-top-text">Câu Tiếp Theo</span> <span class="text-xs font-bold">➔</span>`;
+      stageNextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="btn-next-q-top-text">Câu Tiếp Theo</span>`;
       stageNextBtn.onclick = () => nextQuestion();
     }
     if (topNextLabel) topNextLabel.textContent = 'Câu Tiếp Theo';
@@ -12638,6 +12638,7 @@ function renderTimedExamQuestion(idx) {
   } else {
     if (timedTopNextBtn) {
       timedTopNextBtn.onclick = () => nextTimedQuestion();
+      timedTopNextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="timed-top-next-btn-text">Câu Tiếp Theo</span>`;
     }
     if (timedTopNextText) timedTopNextText.textContent = 'Câu Tiếp Theo';
     if (timedBottomNext) {
