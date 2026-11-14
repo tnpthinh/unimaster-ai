@@ -462,7 +462,7 @@ async def auth_login_api(request):
 
     data = await safe_get_json(request)
     username = str(data.get("username", "")).strip().lower()
-    pw = str(data.get("password", "")).strip()
+    pw = str(data.get("password") or data.get("code") or "").strip()
 
     user = None
     # Quick Admin access: if username is 'admin' or blank
@@ -2977,11 +2977,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v39';
+    const CACHE_NAME = 'unimaster-pwa-v40';
     const CORE_ASSETS = [
-      '/static/style.css?v=39.0',
+      '/static/style.css?v=40.0',
       '/static/minimal.css?v=3.0',
-      '/static/app.js?v=39.0',
+      '/static/app.js?v=40.0',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -3111,7 +3111,18 @@ async def api_code_inspect_line(request):
         data = await safe_get_json(request)
         code = data.get("code", "")
         lang = data.get("language", "csharp")
-        line = int(data.get("line", data.get("line_number", 1)))
+        raw_line_num = data.get("line_number")
+        raw_line = data.get("line")
+        line = 1
+        if raw_line_num is not None and str(raw_line_num).strip().lstrip("-").isdigit():
+            line = max(1, int(str(raw_line_num).strip()))
+            if isinstance(raw_line, str) and not raw_line.strip().isdigit() and not code.strip():
+                code = raw_line
+        elif raw_line is not None and str(raw_line).strip().lstrip("-").isdigit():
+            line = max(1, int(str(raw_line).strip()))
+        elif isinstance(raw_line, str) and raw_line.strip() and not code.strip():
+            code = raw_line
+            line = 1
         action = data.get("action", "explain")
         title = data.get("problem_title", data.get("title", ""))
         error = data.get("current_error", data.get("error", ""))

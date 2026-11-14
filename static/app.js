@@ -485,19 +485,19 @@ function buildTutorMessageHtml(msg, compact = false) {
         </div>
 
         <div class="gemini-action-bar">
-          <button type="button" onclick="copyAiReply('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Sao chép câu trả lời">
+          <button type="button" onclick="copyAiReply(${escapeJsString(msgId)})" class="gemini-action-pill" title="Sao chép câu trả lời">
             <span>📋</span><span>Sao chép</span>
           </button>
-          <button type="button" onclick="speakAiReply('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Đọc bài giảng bằng giọng nói AI">
+          <button type="button" onclick="speakAiReply(${escapeJsString(msgId)})" class="gemini-action-pill" title="Đọc bài giảng bằng giọng nói AI">
             <span>🔊</span><span>Đọc giải thích</span>
           </button>
-          <button type="button" onclick="saveAiReplyToNotebook('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Lưu vào Sổ tay câu hỏi trọng tâm">
+          <button type="button" onclick="saveAiReplyToNotebook(${escapeJsString(msgId)})" class="gemini-action-pill" title="Lưu vào Sổ tay câu hỏi trọng tâm">
             <span>📌</span><span>Lưu sổ tay</span>
           </button>
-          <button type="button" onclick="saveAiReplyAsFlashcard('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Tự động tạo Flashcard thông minh">
+          <button type="button" onclick="saveAiReplyAsFlashcard(${escapeJsString(msgId)})" class="gemini-action-pill" title="Tự động tạo Flashcard thông minh">
             <span>🃏</span><span>Đúc thẻ ôn</span>
           </button>
-          <button type="button" onclick="askFollowUpOnAiReply('${escapeHtml(msgId)}')" class="gemini-action-pill" title="Yêu cầu AI phân tích sâu hơn nữa">
+          <button type="button" onclick="askFollowUpOnAiReply(${escapeJsString(msgId)})" class="gemini-action-pill" title="Yêu cầu AI phân tích sâu hơn nữa">
             <span>💡</span><span>Hỏi đào sâu</span>
           </button>
         </div>
@@ -2073,7 +2073,7 @@ function askCustomConfirm({
 
     actionsEl.innerHTML = actions
       .map(
-        (act) => `<button type="button" onclick="resolveCustomConfirm('${escapeHtml(act.id)}')" class="${act.cls || 'btn-soft px-4 py-2.5 text-xs'}">
+        (act) => `<button type="button" onclick="resolveCustomConfirm(${escapeJsString(act.id)})" class="${act.cls || 'btn-soft px-4 py-2.5 text-xs'}">
           ${escapeHtml(act.label)}
         </button>`
       )
@@ -3156,7 +3156,7 @@ function buildCodeWindowHtml(rawCode, title = 'Program.cs', lang = 'csharp') {
           <span class="font-mono font-bold text-[11px] txt-sub">${escapeHtml(title)}</span>
         </div>
         <div class="flex items-center gap-1.5">
-          <button type="button" onclick="askAiAboutWholeCodeSnippet('${uid}', '${escapeHtml(title)}', '${lang}')" class="btn-soft !py-0.5 !px-2 text-[10px] font-black text-indigo-400 hover:text-indigo-300 flex items-center gap-1 border border-indigo-500/40">
+          <button type="button" onclick="askAiAboutWholeCodeSnippet(${escapeJsString(uid)}, ${escapeJsString(title)}, ${escapeJsString(lang)})" class="btn-soft !py-0.5 !px-2 text-[10px] font-black text-indigo-400 hover:text-indigo-300 flex items-center gap-1 border border-indigo-500/40">
             <span>🤖</span> <span>Hỏi AI Cả Đoạn Code</span>
           </button>
           <button type="button" onclick="toggleCodeWrap('${uid}', this)" class="btn-soft px-2 py-0.5 text-[11px]">↵ Xuống dòng</button>
@@ -5811,7 +5811,7 @@ function filterResultReview(mode) {
             fullQ.image_url || d.image_url
               ? `<div class="my-2">
                   <img src="${escapeHtml(fullQ.image_url || d.image_url)}"
-                       onclick="openImageLightbox('${escapeHtml(fullQ.image_url || d.image_url)}', 'Hình ảnh câu hỏi')"
+                       onclick="openImageLightbox(${escapeJsString(fullQ.image_url || d.image_url)}, 'Hình ảnh câu hỏi')"
                        class="max-h-56 w-auto rounded-xl cursor-zoom-in object-contain"
                        style="border: 1px solid var(--border); background-color: var(--bg-subtle);" />
                  </div>`
@@ -6050,7 +6050,7 @@ async function triggerExamEvaluation(isAuto = false) {
             <span class="text-base">🧠</span>
             <span class="font-extrabold text-xs sm:text-sm text-indigo-400">AI Chẩn Đoán & Kế Hoạch Ôn 3 Ngày</span>
           </div>
-          <button onclick="navigator.clipboard.writeText(document.getElementById('ai-eval-content').innerText); showToast('Đã copy kế hoạch ôn tập!');"
+          <button onclick="navigator.clipboard.writeText(document.getElementById('ai-eval-content')?.innerText || ''); showToast('Đã copy kế hoạch ôn tập!');"
                   class="btn-soft !py-1 !px-2.5 !text-[11px] font-bold flex items-center gap-1">
             <span>📋</span> Copy Kế Hoạch
           </button>
@@ -6237,7 +6237,7 @@ function renderCurrentFlashcard() {
     const imgHtml = c.image_url
       ? `<div class="mb-3 flex justify-center">
            <img src="${escapeHtml(c.image_url)}"
-                onclick="event.stopPropagation();openImageLightbox('${escapeHtml(c.image_url)}', 'Thẻ nhớ hình ảnh / Tiêu bản')"
+                onclick="event.stopPropagation();openImageLightbox(${escapeJsString(c.image_url)}, 'Thẻ nhớ hình ảnh / Tiêu bản')"
                 class="max-h-44 w-auto rounded-xl object-contain cursor-zoom-in shadow-sm"
                 style="border: 1px solid var(--border); background-color: var(--bg-subtle);" />
          </div>`
@@ -6425,7 +6425,7 @@ function renderBankList(reset = false) {
               q.image_url && String(q.image_url).trim()
                 ? `<div class="my-2">
                      <img src="${escapeHtml(q.image_url)}"
-                          onclick="openImageLightbox('${escapeHtml(q.image_url)}', '${escapeHtml(parsed.topic || 'Tiêu bản / Hình ảnh')}')"
+                          onclick="openImageLightbox(${escapeJsString(q.image_url)}, ${escapeJsString(parsed.topic || 'Tiêu bản / Hình ảnh')})"
                           class="max-h-56 w-auto rounded-xl cursor-zoom-in object-contain"
                           style="border: 1px solid var(--border); background-color: var(--bg-subtle);"
                           loading="lazy" />
@@ -7502,16 +7502,16 @@ function renderExtractedDocPanels() {
         .map(
           (im, idx) => `
           <div class="p-2.5 rounded-xl space-y-2 flex flex-col justify-between" style="background-color: var(--bg-surface); border: 1px solid var(--border);">
-            <div class="relative group cursor-zoom-in overflow-hidden rounded-lg" onclick="openImageLightbox('${escapeHtml(im.url)}', '${escapeHtml(im.label || 'Ảnh trích xuất')}')">
+            <div class="relative group cursor-zoom-in overflow-hidden rounded-lg" onclick="openImageLightbox(${escapeJsString(im.url)}, ${escapeJsString(im.label || 'Ảnh trích xuất')})">
               <img src="${escapeHtml(im.url)}" alt="${escapeHtml(im.label || '')}" class="h-28 w-full object-contain mx-auto" style="background-color: var(--bg-subtle);" loading="lazy" />
               <span class="absolute top-1.5 left-1.5 badge-brand text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">#${idx + 1}</span>
             </div>
             <div class="text-[11px] font-bold txt-main truncate" title="${escapeHtml(im.label || '')}">${escapeHtml(im.label || 'Ảnh ' + (idx + 1))}</div>
             <div class="flex flex-wrap gap-1">
-              <button type="button" onclick="aiGenerateSingleImageQuestion('${escapeHtml(im.url)}', '${escapeHtml(im.label || '')}')" class="btn-primary flex-1 py-1.5 px-2 text-[11px]">
+              <button type="button" onclick="aiGenerateSingleImageQuestion(${escapeJsString(im.url)}, ${escapeJsString(im.label || '')})" class="btn-primary flex-1 py-1.5 px-2 text-[11px]">
                 ✨ AI Tạo câu hỏi
               </button>
-              <button type="button" onclick="openAddQuestionWithImage('${escapeHtml(im.url)}')" class="btn-soft py-1.5 px-2 text-[11px]" title="Tự soạn câu hỏi với ảnh này">
+              <button type="button" onclick="openAddQuestionWithImage(${escapeJsString(im.url)})" class="btn-soft py-1.5 px-2 text-[11px]" title="Tự soạn câu hỏi với ảnh này">
                 ✍️
               </button>
             </div>
@@ -8097,7 +8097,7 @@ function renderCurrentBattleRound() {
   const qEl = document.getElementById('battle-q-text');
   if (qEl) {
     const imgHtml = q.image_url
-      ? `<div class="mb-2"><img src="${escapeHtml(q.image_url)}" onclick="openImageLightbox('${escapeHtml(q.image_url)}', 'Tiêu bản Đấu trường')" class="max-h-48 w-auto mx-auto rounded-xl object-contain cursor-zoom-in" style="border: 1px solid var(--border);" /></div>`
+      ? `<div class="mb-2"><img src="${escapeHtml(q.image_url)}" onclick="openImageLightbox(${escapeJsString(q.image_url)}, 'Tiêu bản Đấu trường')" class="max-h-48 w-auto mx-auto rounded-xl object-contain cursor-zoom-in" style="border: 1px solid var(--border);" /></div>`
       : '';
     qEl.innerHTML = `${imgHtml}${formatRichText(parsed.body)}`;
   }
@@ -9341,7 +9341,7 @@ function renderOsceStation() {
   const chosen = osceState.answers[osceState.stationIdx];
   const imgHtml = st.image
     ? `<div class="p-3 rounded-2xl flex flex-col items-center justify-center" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
-         <img src="${resolveStationImageSrc(st.image)}" alt="${escapeHtml(st.title)}" onclick="openImageLightbox(this.src, '${escapeHtml(st.title)}')"
+         <img src="${resolveStationImageSrc(st.image)}" alt="${escapeHtml(st.title)}" onclick="openImageLightbox(this.src, ${escapeJsString(st.title)})"
            class="max-h-56 rounded-xl object-contain cursor-zoom-in shadow-md hover:scale-[1.02] transition-transform" />
          <span class="text-[11px] font-bold txt-muted mt-2 flex items-center gap-1">🔍 Bấm vào ảnh để phóng to tiêu bản vi trường</span>
        </div>`
@@ -9470,7 +9470,7 @@ async function askAiAboutOsceStation(stationIdx) {
         <div class="p-4 rounded-xl text-xs space-y-2 border" style="background-color: var(--bg-surface); border-color: var(--brand);">
           <div class="font-extrabold text-sm txt-brand flex items-center justify-between">
             <span class="flex items-center gap-1.5">🤖 AI Gia Sư Phân Tích • Trạm ${stationIdx + 1}</span>
-            <button type="button" onclick="document.getElementById('osce-ai-explanation-box').classList.add('hidden')" class="btn-soft p-1 text-xs">✕</button>
+            <button type="button" onclick="document.getElementById('osce-ai-explanation-box')?.classList.add('hidden')" class="btn-soft p-1 text-xs">✕</button>
           </div>
           <div class="leading-relaxed txt-sub prose prose-sm max-w-none">
             ${renderAcademicText(data.reply || 'Không nhận được phân tích từ AI.')}
@@ -10826,7 +10826,7 @@ async function loadAdminUsersList() {
           </div>
           <div>
             ${u.role !== 'admin' ? `
-              <button type="button" onclick="deleteUserAccount(${u.id}, '${escapeHtml(u.username)}')" class="btn-soft px-2.5 py-1 text-rose-400 hover:bg-rose-500/20 text-[11px] font-bold">
+              <button type="button" onclick="deleteUserAccount(${u.id}, ${escapeJsString(u.username)})" class="btn-soft px-2.5 py-1 text-rose-400 hover:bg-rose-500/20 text-[11px] font-bold">
                 Xóa
               </button>
             ` : '<span class="text-[11px] text-amber-400 font-bold">Chủ sở hữu</span>'}
@@ -11474,7 +11474,7 @@ function renderExerciseDetail() {
                 <button type="button" onclick="fixAiCurrentLine()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 transition-colors" title="Nhờ AI chẩn đoán và tự sửa lỗi dòng này">
                   <span>⚡</span> Sửa lỗi dòng này
                 </button>
-                <button type="button" onclick="document.getElementById('vscode-line-inspector').classList.add('hidden')" class="text-slate-400 hover:text-white px-1.5">✕</button>
+                <button type="button" onclick="document.getElementById('vscode-line-inspector')?.classList.add('hidden')" class="text-slate-400 hover:text-white px-1.5">✕</button>
               </div>
             </div>
 
@@ -12048,10 +12048,12 @@ function openOutputModal(title, output, error, executor, runtimeMs, isSuccess) {
  * Chuyen tab trong output modal
  */
 function switchOutputTab(tab) {
-  document.getElementById('outtab-output').className = 'flex-1 py-2.5 text-xs font-mono border-b-2 ' + (tab === 'output' ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200') + ' transition-colors';
-  document.getElementById('outtab-error').className = 'flex-1 py-2.5 text-xs font-mono border-b-2 ' + (tab === 'error' ? 'border-rose-400 text-rose-400' : 'border-transparent text-slate-400 hover:text-slate-200') + ' transition-colors';
-  document.getElementById('outpane-output').classList.toggle('hidden', tab !== 'output');
-  document.getElementById('outpane-error').classList.toggle('hidden', tab !== 'error');
+  const outTab = document.getElementById('outtab-output');
+  const errTab = document.getElementById('outtab-error');
+  if (outTab) outTab.className = 'flex-1 py-2.5 text-xs font-mono border-b-2 ' + (tab === 'output' ? 'border-emerald-400 text-emerald-400' : 'border-transparent text-slate-400 hover:text-slate-200') + ' transition-colors';
+  if (errTab) errTab.className = 'flex-1 py-2.5 text-xs font-mono border-b-2 ' + (tab === 'error' ? 'border-rose-400 text-rose-400' : 'border-transparent text-slate-400 hover:text-slate-200') + ' transition-colors';
+  document.getElementById('outpane-output')?.classList.toggle('hidden', tab !== 'output');
+  document.getElementById('outpane-error')?.classList.toggle('hidden', tab !== 'error');
 }
 
 /**
@@ -12806,7 +12808,7 @@ function renderTimedExamReport(res) {
       </div>
 
       <div class="flex items-center justify-center gap-3 pt-2">
-        <button onclick="document.getElementById('modal-timed-exam').classList.add('hidden'); switchTab('dashboard');" class="btn-primary px-5 py-2.5 text-xs font-bold">
+        <button onclick="document.getElementById('modal-timed-exam')?.classList.add('hidden'); switchTab('dashboard');" class="btn-primary px-5 py-2.5 text-xs font-bold">
           Quay Về Trang Chủ
         </button>
         <button onclick="startTimedExamForSubject(${window.TIMED_EXAM.subjectId}, 60, 40)" class="btn-soft px-5 py-2.5 text-xs font-bold">
@@ -13401,7 +13403,8 @@ function clickBugLine(lineNum) {
       `;
     }
   }
-  document.getElementById('bughunter-score').textContent = `Điểm: ${window.BUG_HUNTER_STATE.score} đ • Combo: ${window.BUG_HUNTER_STATE.combo}x`;
+  const scoreEl = document.getElementById('bughunter-score');
+  if (scoreEl) scoreEl.textContent = `Điểm: ${window.BUG_HUNTER_STATE.score} đ • Combo: ${window.BUG_HUNTER_STATE.combo}x`;
 }
 
 function handleBugTimeout() {
@@ -14986,7 +14989,7 @@ function renderTutorSessionsDrawer(overrideList = null) {
     return `
       <div class="tutor-session-item ${isCurrent ? 'active' : ''} space-y-1.5">
         <div class="flex items-start justify-between gap-2">
-          <button type="button" onclick="openTutorSession('${escapeHtml(s.session_id)}', { restoreIfArchived: true })" class="text-left flex-1 min-w-0">
+          <button type="button" onclick="openTutorSession(${escapeJsString(s.session_id)}, { restoreIfArchived: true })" class="text-left flex-1 min-w-0">
             <div class="font-extrabold txt-main text-xs truncate">${escapeHtml(s.title || 'Phiên Gia Sư AI')}</div>
             <div class="text-[10px] txt-muted flex items-center gap-1.5 flex-wrap mt-0.5">
               <span class="txt-brand font-bold">${escapeHtml(s.subject_name || 'Đại học')}</span>
@@ -15000,11 +15003,11 @@ function renderTutorSessionsDrawer(overrideList = null) {
         </div>
         ${preview ? `<div class="text-[11px] txt-sub line-clamp-2">${escapeHtml(preview.slice(0, 120))}</div>` : ''}
         <div class="flex items-center gap-1.5 pt-1 flex-wrap">
-          <button type="button" onclick="openTutorSession('${escapeHtml(s.session_id)}', { restoreIfArchived: true })" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-brand">📂 Mở</button>
+          <button type="button" onclick="openTutorSession(${escapeJsString(s.session_id)}, { restoreIfArchived: true })" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-brand">📂 Mở</button>
           ${s.is_archived
-            ? `<button type="button" onclick="restoreTutorSession('${escapeHtml(s.session_id)}', false)" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-emerald">🔄 Khôi phục</button>
-               <button type="button" onclick="deleteTutorSessionForever('${escapeHtml(s.session_id)}')" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-rose">🗑️ Xóa hẳn</button>`
-            : `<button type="button" onclick="archiveTutorSession('${escapeHtml(s.session_id)}')" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-amber">📦 Cất vào Kho</button>`}
+            ? `<button type="button" onclick="restoreTutorSession(${escapeJsString(s.session_id)}, false)" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-emerald">🔄 Khôi phục</button>
+               <button type="button" onclick="deleteTutorSessionForever(${escapeJsString(s.session_id)})" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-rose">🗑️ Xóa hẳn</button>`
+            : `<button type="button" onclick="archiveTutorSession(${escapeJsString(s.session_id)})" class="btn-soft px-2 py-0.5 text-[10px] font-bold txt-amber">📦 Cất vào Kho</button>`}
         </div>
       </div>
     `;
@@ -15062,13 +15065,13 @@ function renderTutorHistoryModal(filteredSessions = null) {
             </div>
           </div>
           <div class="flex items-center gap-1.5 flex-wrap shrink-0">
-            <button type="button" onclick="openTutorSession('${escapeHtml(s.session_id)}', { restoreIfArchived: true })" class="btn-primary px-2.5 py-1 text-[11px] font-bold">
+            <button type="button" onclick="openTutorSession(${escapeJsString(s.session_id)}, { restoreIfArchived: true })" class="btn-primary px-2.5 py-1 text-[11px] font-bold">
               📂 Mở lại hội thoại
             </button>
             ${isArchive
-              ? `<button type="button" onclick="restoreTutorSession('${escapeHtml(s.session_id)}', false)" class="btn-soft px-2.5 py-1 text-[11px] font-bold txt-emerald">🔄 Khôi phục</button>
-                 <button type="button" onclick="deleteTutorSessionForever('${escapeHtml(s.session_id)}')" class="btn-soft px-2.5 py-1 text-[11px] font-bold txt-rose">🗑️ Xóa vĩnh viễn</button>`
-              : `<button type="button" onclick="archiveTutorSession('${escapeHtml(s.session_id)}')" class="btn-soft px-2.5 py-1 text-[11px] font-bold txt-amber">📦 Cất vào Kho</button>`}
+              ? `<button type="button" onclick="restoreTutorSession(${escapeJsString(s.session_id)}, false)" class="btn-soft px-2.5 py-1 text-[11px] font-bold txt-emerald">🔄 Khôi phục</button>
+                 <button type="button" onclick="deleteTutorSessionForever(${escapeJsString(s.session_id)})" class="btn-soft px-2.5 py-1 text-[11px] font-bold txt-rose">🗑️ Xóa vĩnh viễn</button>`
+              : `<button type="button" onclick="archiveTutorSession(${escapeJsString(s.session_id)})" class="btn-soft px-2.5 py-1 text-[11px] font-bold txt-amber">📦 Cất vào Kho</button>`}
           </div>
         </div>
         ${lastTwo.map((m) => `
@@ -15227,14 +15230,23 @@ function setupTextSelectionAiListener() {
 }
 
 function askAiAboutCurrentEssay() {
-  const promptTitle = document.getElementById('essay-prompt-title')?.textContent?.trim() || 'Bài tự luận hiện tại';
+  const activePrompt = (STATE.essay?.prompts || []).find((p) => p.id === STATE.essay?.currentPromptId);
+  const promptTitle =
+    document.getElementById('essay-title-display')?.textContent?.trim() ||
+    document.getElementById('essay-prompt-title')?.textContent?.trim() ||
+    activePrompt?.title ||
+    'Bài tự luận hiện tại';
+  const promptQuestion =
+    document.getElementById('essay-question-text')?.textContent?.trim() ||
+    activePrompt?.question_text ||
+    '';
   const draft = document.getElementById('essay-student-input')?.value?.trim() || '';
   const sub = typeof getActiveSubjectInfoForTutor === 'function' ? getActiveSubjectInfoForTutor() : { name: 'Tự luận' };
 
   attachContextToTutor({
     kind: 'essay',
     shortTitle: `Tự luận: ${promptTitle.slice(0, 42)}`,
-    fullTitle: `${promptTitle}${draft ? `\n\nBài viết nháp của sinh viên:\n${draft.slice(0, 1200)}` : ''}`,
+    fullTitle: `${promptTitle}${promptQuestion ? `\nĐề bài: ${promptQuestion}` : ''}${draft ? `\n\nBài viết nháp của sinh viên:\n${draft.slice(0, 1200)}` : ''}`,
     subjectName: sub.name
   }, { mode: 'socratic', open: true });
   sendTutorChatUnified(
@@ -18361,7 +18373,7 @@ document.addEventListener('keydown', (e) => {
           : '';
         const deleteBtn = isOffline
           ? `<button type="button" onclick="removeApiKeyFromPool(${idx})" class="btn-soft px-2 py-0.5 text-[10px] txt-rose font-bold" title="Xóa Key offline này">🗑️</button>`
-          : `<button type="button" onclick="deleteServerGeminiKey(${indexNum}, '${escapeHtml(maskedRaw)}')" class="btn-soft px-2 py-0.5 text-[10px] txt-rose font-bold" title="Gỡ Key này khỏi Server">🗑️</button>`;
+          : `<button type="button" onclick="deleteServerGeminiKey(${indexNum}, ${escapeJsString(maskedRaw)})" class="btn-soft px-2 py-0.5 text-[10px] txt-rose font-bold" title="Gỡ Key này khỏi Server">🗑️</button>`;
 
         return `
           <div class="p-2.5 rounded-xl border flex flex-col gap-1.5" style="background-color: var(--bg-subtle); border-color: var(--border); opacity: ${isDisabled ? '0.68' : '1'};">
@@ -19298,7 +19310,7 @@ function renderAiFullscreenInspectorResult(data, sourceCode, targetLine, action)
             <span>🚀</span> Áp Dụng Toàn Bộ Code Sửa
           </button>
         ` : ''}
-        <button type="button" onclick="document.getElementById('ai-fullscreen-inspector-overlay').remove()" class="px-3 py-2 rounded-lg bg-[#2a2a2a] hover:bg-[#383838] text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors">
+        <button type="button" onclick="document.getElementById('ai-fullscreen-inspector-overlay')?.remove()" class="px-3 py-2 rounded-lg bg-[#2a2a2a] hover:bg-[#383838] text-slate-300 hover:text-white text-xs font-bold flex items-center gap-1.5 transition-colors">
           <span>✕</span> Đóng Toàn Màn Hình
         </button>
       </div>
@@ -19480,7 +19492,7 @@ function openAiFullscreenForCurrentTab() {
           <p class="text-xs text-slate-400">Bài tập: ${escapeHtml(ex.title)}</p>
         </div>
       </div>
-      <button type="button" onclick="document.getElementById('ai-fullscreen-reader-overlay').remove()" class="px-3 py-1.5 rounded-lg bg-[#2a2a2a] hover:bg-[#383838] text-slate-300 hover:text-white text-xs font-bold transition-colors">
+      <button type="button" onclick="document.getElementById('ai-fullscreen-reader-overlay')?.remove()" class="px-3 py-1.5 rounded-lg bg-[#2a2a2a] hover:bg-[#383838] text-slate-300 hover:text-white text-xs font-bold transition-colors">
         ✕ Thoát Toàn Màn Hình
       </button>
     </div>
