@@ -73,6 +73,9 @@ async def _get_http_session() -> aiohttp.ClientSession:
     """Reuse a pooled aiohttp.ClientSession per running event loop to cut TLS latency."""
     loop = asyncio.get_running_loop()
     lid = id(loop)
+    for old_lid, old_sess in list(_HTTP_SESSIONS.items()):
+        if old_lid != lid and (old_sess is None or old_sess.closed or old_sess._loop.is_closed()):
+            _HTTP_SESSIONS.pop(old_lid, None)
     sess = _HTTP_SESSIONS.get(lid)
     if sess is not None and not sess.closed:
         return sess

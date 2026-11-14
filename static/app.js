@@ -4157,8 +4157,6 @@ async function onExamSubjectChange() {
         const num = parseInt(chap.match(/Chương\s+(\d+)/i)?.[1] || '1', 10);
         const icon = chapIcons[num] || '📖';
         const key = 'chap_' + num;
-        const safeChapJs = String(chap).replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-
         html += `
           <div class="chapter-card-item col-span-full p-2.5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 hover:border-indigo-500/40 transition-all" data-chapter-tag="${escapeHtml(chap)}" data-subject-id="${sid}" data-range-key="${key}">
             <div class="font-bold text-xs txt-main flex items-center gap-1.5 flex-wrap min-w-0 flex-1">
@@ -4170,7 +4168,7 @@ async function onExamSubjectChange() {
               <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-14 px-1.5 py-1 text-xs text-center font-bold" />
               <span class="text-xs txt-muted">–</span>
               <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-14 px-1.5 py-1 text-xs text-center font-bold" />
-              <button type="button" data-orig-chap-btn="1" onclick="startCustomLessonRange('${safeChapJs}', ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
+              <button type="button" data-orig-chap-btn="1" onclick="startCustomLessonRange(${escapeJsString(chap)}, ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
                 Luyện tập →
               </button>
             </div>
@@ -4257,7 +4255,7 @@ async function onExamSubjectChange() {
                 <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
                 <span class="text-xs txt-muted">–</span>
                 <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
-                <button type="button" onclick="startCustomLessonRange('${escapeHtml(topicName)}', ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
+                <button type="button" onclick="startCustomLessonRange(${escapeJsString(topicName)}, ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
                   Luyện tập →
                 </button>
               </div>
@@ -4764,7 +4762,7 @@ function renderCurrentExamQuestion() {
     const found = knownTerms.filter(t => new RegExp(`\\b${t}\\b`, 'i').test(qStr));
     if (found.length) {
       keyRow.innerHTML = `<span class="text-[11px] font-bold txt-muted mr-1">🔍 Bấm từ để hỏi AI:</span>` +
-        found.slice(0, 5).map(t => `<button type="button" onclick="askAiFromTermChip(${JSON.stringify(t)})" class="q-concept-chip"><span>✨</span> ${t} <span class="text-[10px] opacity-75">🤖 Hỏi</span></button>`).join(' ');
+        found.slice(0, 5).map(t => `<button type="button" onclick="askAiFromTermChip(${escapeJsString(t)})" class="q-concept-chip"><span>✨</span> ${escapeHtml(t)} <span class="text-[10px] opacity-75">🤖 Hỏi</span></button>`).join(' ');
       keyRow.classList.remove('hidden');
     } else {
       keyRow.classList.add('hidden');
@@ -6710,7 +6708,8 @@ async function handleDocFilesSelected(fileList) {
     const fd = new FormData();
     files.forEach((f) => fd.append('file', f, f.name));
 
-    const resp = await fetch('/api/upload-document', { method: 'POST', body: fd });
+    const resp = await fetch('/api/upload-document', { method: 'POST', credentials: 'same-origin', body: fd });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     if (!data.success) {
       showToast(data.error || 'Lỗi đọc tệp tin', 'error');
@@ -7461,7 +7460,8 @@ async function uploadImageForAddQuestion(inputEl) {
   fd.append('file', file, file.name);
   showToast('⏳ Đang tải ảnh lên...', 'info');
   try {
-    const resp = await fetch('/api/upload-document', { method: 'POST', body: fd });
+    const resp = await fetch('/api/upload-document', { method: 'POST', credentials: 'same-origin', body: fd });
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     const firstImg = data?.extracted_images?.[0]?.url;
     if (firstImg) {
@@ -10226,7 +10226,8 @@ const VP_STATE = {
 
 async function initVirtualPatientView() {
   try {
-    const res = await fetch('/api/virtual-patient/cases');
+    const res = await fetch('/api/virtual-patient/cases', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
     if (data.success && data.cases) {
       VP_STATE.cases = data.cases;
@@ -10668,6 +10669,42 @@ function openAccountModal() {
   playSound('click');
 }
 
+async function downloadCurrentDb() {
+  try {
+    const res = await fetch('/api/admin/backup/download', { credentials: 'same-origin' });
+    if (!res.ok) throw new Error('Không tải được file DB');
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'unimaster-backup.db';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  } catch (err) {
+    showToast('Lỗi: ' + err.message, 'error');
+  }
+}
+window.downloadCurrentDb = downloadCurrentDb;
+
+async function uploadNewDb(inputEl) {
+  const file = inputEl?.files?.[0];
+  if (!file) return;
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    const res = await fetch('/api/admin/backup/upload', { method: 'POST', credentials: 'same-origin', body: formData });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    if (!data.success) throw new Error(data.error || 'Không thể tải lên file DB');
+    showToast('🎉 Đã tải lên và khôi phục DB thành công!', 'success');
+  } catch (err) {
+    showToast('Lỗi: ' + err.message, 'error');
+  }
+}
+window.uploadNewDb = uploadNewDb;
+
 function switchAccountTab(tab) {
   document.getElementById('acc-panel-switch')?.classList.toggle('hidden', tab !== 'switch');
   document.getElementById('acc-panel-profile')?.classList.toggle('hidden', tab !== 'profile');
@@ -10681,38 +10718,6 @@ function switchAccountTab(tab) {
   if (tab === 'admin') {
     loadAdminUsersList();
     loadAdminLoginEvents();
-    window.downloadCurrentDb = async function() {
-      try {
-        const res = await fetch('/api/admin/backup/download');
-        if (!res.ok) throw new Error('Không tải được file DB');
-        const blob = await res.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'unimaster-backup.db';
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-      } catch (err) {
-        showToast('Lỗi: ' + err.message, 'error');
-      }
-    };
-
-    window.uploadNewDb = async function(inputEl) {
-      const file = inputEl?.files?.[0];
-      if (!file) return;
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await fetch('/api/admin/backup/upload', { method: 'POST', body: formData });
-        const data = await res.json();
-        if (!data.success) throw new Error(data.error || 'Không thể tải lên file DB');
-        showToast('🎉 Đã tải lên và khôi phục DB thành công!', 'success');
-      } catch (err) {
-        showToast('Lỗi: ' + err.message, 'error');
-      }
-    };
   }
 }
 
@@ -19113,6 +19118,7 @@ async function triggerVscodeCopilotSuggest(force = false) {
   try {
     const res = await fetch('/api/code/suggest', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code: code,
@@ -19222,6 +19228,7 @@ async function callAiLineInspector(lineNum, action) {
   try {
     const res = await fetch('/api/code/inspect-line', {
       method: 'POST',
+      credentials: 'same-origin',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         code: code,
@@ -19379,8 +19386,7 @@ function renderAiFullscreenInspectorResult(data, sourceCode, targetLine, action)
 }
 
 function escapeJsString(str) {
-  if (!str) return '""';
-  return JSON.stringify(str);
+  return JSON.stringify(String(str ?? '')).replace(/"/g, '"');
 }
 
 function applySingleLineFix(lineNum, newLineText) {

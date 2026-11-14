@@ -1308,13 +1308,55 @@ async def api_network_qr_info(request):
 
 
 async def api_battle_leaderboard(request):
-    """GET /api/battle/leaderboard — stub; ponytail: real-time arena qua WebSocket."""
-    return json_resp({"success": True, "leaderboard": []})
+    """GET /api/battle/leaderboard — bảng xếp hạng đấu trường từ lịch sử thi & người dùng."""
+    try:
+        conn = db.get_connection()
+        rows = conn.execute(
+            """
+            SELECT u.username, u.full_name, u.avatar_emoji,
+                   COUNT(e.id) AS exams_count,
+                   ROUND(AVG(e.score), 2) AS avg_score,
+                   SUM(e.correct_count) AS total_correct
+            FROM users u
+            LEFT JOIN exam_history e ON e.user_id = u.id
+            GROUP BY u.id
+            ORDER BY total_correct DESC, avg_score DESC
+            LIMIT 20
+            """
+        ).fetchall()
+        conn.close()
+        leaderboard = [
+            {
+                "rank": idx + 1,
+                "username": r["username"],
+                "name": r["full_name"] or r["username"],
+                "avatar": r["avatar_emoji"] or "🎓",
+                "exams_count": int(r["exams_count"] or 0),
+                "avg_score": float(r["avg_score"] or 0.0),
+                "score": int(r["total_correct"] or 0) * 100,
+            }
+            for idx, r in enumerate(rows)
+        ]
+        return json_resp({"success": True, "leaderboard": leaderboard})
+    except Exception:
+        return json_resp({"success": True, "leaderboard": []})
 
 
 async def api_stem_reference(request):
-    """GET /api/stem/reference — stub; ponytail: tích hợp STEM reference DB sau."""
-    return json_resp({"success": True, "references": []})
+    """GET /api/stem/reference — bảng giá trị tham chiếu Y khoa & STEM chuẩn."""
+    items = [
+        {"category": "Hóa sinh máu", "name": "Glucose máu lúc đói", "normal_range": "3.9 – 5.6 mmol/L (70 – 100 mg/dL)", "clinical_note": "≥ 7.0 mmol/L (126 mg/dL) gợi ý Đái tháo đường"},
+        {"category": "Hóa sinh máu", "name": "HbA1c", "normal_range": "4.0 – 5.6 %", "clinical_note": "≥ 6.5% chẩn đoán Đái tháo đường; 5.7 – 6.4% tiền ĐTĐ"},
+        {"category": "Chức năng thận", "name": "Creatinin huyết thanh", "normal_range": "Nam: 62 – 115 µmol/L | Nữ: 53 – 97 µmol/L", "clinical_note": "Tăng trong suy thận cấp/mạn; dùng tính eGFR / CrCl"},
+        {"category": "Chức năng thận", "name": "Ure huyết (BUN)", "normal_range": "2.5 – 7.5 mmol/L", "clinical_note": "Tăng trước thận (mất nước, XHTH), tại thận, sau thận"},
+        {"category": "Chức năng thận", "name": "Acid Uric máu", "normal_range": "Nam: 210 – 420 µmol/L | Nữ: 150 – 350 µmol/L", "clinical_note": "Tăng trong bệnh Gout, suy thận, hội chứng ly giải u"},
+        {"category": "Gan mật", "name": "AST (GOT) & ALT (GPT)", "normal_range": "< 35 – 40 U/L (ở 37°C)", "clinical_note": "Tăng cao trong hoại tử tế bào gan cấp; De Ritis (AST/ALT) > 2 gợi ý viêm gan rượu"},
+        {"category": "Gan mật", "name": "Bilirubin toàn phần", "normal_range": "3.4 – 17.1 µmol/L (0.2 – 1.0 mg/dL)", "clinical_note": "> 34 µmol/L (2 mg/dL) biểu hiện vàng da trên lâm sàng"},
+        {"category": "Mỡ máu (Lipid)", "name": "Cholesterol toàn phần", "normal_range": "< 5.2 mmol/L (< 200 mg/dL)", "clinical_note": "Công thức Friedewald: LDL-C = TC - HDL-C - (TG / 2.2) mmol/L (khi TG < 4.5 mmol/L)"},
+        {"category": "Lập trình C# OOP", "name": "4 Tính chất OOP", "normal_range": "Đóng gói, Kế thừa, Đa hình, Trừu tượng", "clinical_note": "virtual/override dùng cho đa hình động (Runtime Polymorphism)"},
+        {"category": "Lập trình Python", "name": "Độ phức tạp cấu trúc dữ liệu", "normal_range": "dict/set lookup: O(1) | list sort: O(n log n)", "clinical_note": "Sử dụng list comprehension và generator để tối ưu bộ nhớ"}
+    ]
+    return json_resp({"success": True, "references": items, "items": items})
 
 
 async def api_exam_ctump_parts(request):
@@ -2916,12 +2958,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v36';
+    const CACHE_NAME = 'unimaster-pwa-v37';
     const CORE_ASSETS = [
-      '/',
-      '/static/index.html',
-      '/static/style.css?v=36.0',
-      '/static/app.js?v=36.0',
+      '/static/style.css?v=37.0',
+      '/static/minimal.css?v=3.0',
+      '/static/app.js?v=37.0',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -2940,16 +2981,20 @@ async def pwa_sw(request):
     });
     self.addEventListener('fetch', (e) => {
       if (e.request.method !== 'GET') return;
+      const url = new URL(e.request.url);
+      if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/ws/') || url.pathname === '/login' || url.pathname === '/logout') {
+        return;
+      }
       e.respondWith(
         fetch(e.request)
           .then((resp) => {
-            if (resp && resp.status === 200 && (e.request.url.includes('/static/') || e.request.mode === 'navigate')) {
+            if (resp && resp.status === 200 && url.pathname.startsWith('/static/')) {
               const clone = resp.clone();
               caches.open(CACHE_NAME).then((c) => c.put(e.request, clone)).catch(() => {});
             }
             return resp;
           })
-          .catch(() => caches.match(e.request).then((r) => r || caches.match('/')))
+          .catch(() => caches.match(e.request))
       );
     });
     """
@@ -2968,8 +3013,10 @@ async def api_code_run(request):
         data = await safe_get_json(request)
         lang = data.get("language", "cpp")
         code = data.get("code", "")
-        inp = data.get("input_data", "")
-        res = await code_engine.execute_code(lang, code, inp)
+        inp = data.get("input_data")
+        if inp is None:
+            inp = data.get("input", data.get("stdin", ""))
+        res = await code_engine.execute_code(lang, code, str(inp or ""))
         return json_resp(res)
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)

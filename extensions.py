@@ -106,6 +106,42 @@ DRUG_DATABASE = [
         "crcl_severe": "eGFR < 30 ml/phút/1.73m²: CHỐNG CHỈ ĐỊNH TUYỆT ĐỐI!",
         "hd_dose": "Chống chỉ định tuyệt đối ở bệnh nhân lọc máu chu kỳ",
         "warning": "Nguy cơ nhiễm toan Lactic máu (Lactic Acidosis) đe dọa tính mạng khi dùng ở bệnh nhân suy thận nặng hoặc thiếu oxy mô."
+    },
+    {
+        "id": "levofloxacin",
+        "name": "Levofloxacin",
+        "group": "Kháng sinh Fluoroquinolon hô hấp",
+        "indication": "Viêm phổi mắc phải cộng đồng (CAP), đợt cấp COPD, nhiễm khuẩn tiết niệu phức tạp",
+        "std_dose": "500 – 750 mg uống hoặc IV mỗi 24 giờ",
+        "crcl_normal": "CrCl ≥ 50 ml/phút: 500 – 750 mg mỗi 24 giờ",
+        "crcl_mod": "CrCl 20 – 49 ml/phút: Liều nạp 750 mg, sau đó 750 mg mỗi 48 giờ (hoặc nạp 500 mg, duy trì 250 mg mỗi 24 giờ)",
+        "crcl_severe": "CrCl < 20 ml/phút: Liều nạp 750 mg, sau đó 500 mg mỗi 48 giờ (hoặc nạp 500 mg, duy trì 250 mg mỗi 48 giờ)",
+        "hd_dose": "Lọc máu / CAPD: Liều như CrCl < 20 ml/phút, không cần bổ sung liều sau lọc máu",
+        "warning": "Nguy cơ kéo dài khoảng QT, xoắn đỉnh, viêm gân gót Achilles và rối loạn đường huyết ở bệnh nhân đái tháo đường."
+    },
+    {
+        "id": "ceftriaxone",
+        "name": "Ceftriaxone",
+        "group": "Kháng sinh Cephalosporin thế hệ 3",
+        "indication": "Viêm màng não mủ, viêm phổi, nhiễm khuẩn huyết, lậu cầu, thương hàn",
+        "std_dose": "1 – 2 g IV/IM mỗi 24 giờ (viêm màng não: 2 g mỗi 12 giờ)",
+        "crcl_normal": "CrCl ≥ 50 ml/phút: 1 – 2 g mỗi 24 giờ (thải trừ kép qua cả mật và thận)",
+        "crcl_mod": "CrCl 10 – 49 ml/phút: Không cần chỉnh liều chuẩn (tối đa 2 g/ngày nếu suy cả gan và thận)",
+        "crcl_severe": "CrCl < 10 ml/phút: Không vượt quá 2 g/24 giờ",
+        "hd_dose": "Lọc máu: Không thẩm phân qua màng lọc, không cần bổ sung liều sau HD",
+        "warning": "TUYỆT ĐỐI KHÔNG pha chung hoặc truyền cùng đường truyền chứa Calcium (Ringer Lactate, Calcium gluconate) đặc biệt ở trẻ sơ sinh do kết tủa Ceftriaxone-Calci tại phổi và thận!"
+    },
+    {
+        "id": "digoxin",
+        "name": "Digoxin",
+        "group": "Glycosid trợ tim",
+        "indication": "Suy tim phân suất tống máu giảm (HFrEF), kiểm soát tần số thất trong rung nhĩ",
+        "std_dose": "0,125 – 0,25 mg/ngày uống 1 lần",
+        "crcl_normal": "CrCl ≥ 50 ml/phút: 0,125 – 0,25 mg mỗi 24 giờ",
+        "crcl_mod": "CrCl 10 – 49 ml/phút: 0,0625 – 0,125 mg mỗi 24 giờ (hoặc 0,125 mg cách ngày)",
+        "crcl_severe": "CrCl < 10 ml/phút: 0,0625 mg mỗi 48 giờ; theo dõi nồng độ thuốc trong máu (0,5 – 0,9 ng/mL)",
+        "hd_dose": "Lọc máu: Không bị loại bỏ qua lọc máu, dùng 0,0625 mg mỗi 48 giờ",
+        "warning": "Cửa sổ điều trị cực hẹp! Hạ Kali máu, hạ Magie máu hoặc tăng Calci máu làm tăng mạnh nguy cơ ngộ độc Digoxin (loạn nhịp thất, nhìn mờ sắc vàng-xanh)."
     }
 ]
 
