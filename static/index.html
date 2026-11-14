@@ -76,7 +76,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=41.0" />
+  <link rel="stylesheet" href="/static/style.css?v=42.0" />
   <link rel="stylesheet" href="/static/minimal.css?v=3.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
@@ -151,30 +151,36 @@
         </button>
       </nav>
 
-      <!-- Right: User Account Menu & Quick Action Cluster -->
+      <!-- Right: User Account Menu & Unified Smart Studio Cluster (v42.0 UI Optimized) -->
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        <!-- Command Palette Ctrl+K Omnisearch Pill -->
-        <button onclick="openCommandPaletteModal()" title="Tìm kiếm toàn hệ thống & Lệnh nhanh (Ctrl+K)"
-          class="btn-soft px-2.5 h-8 sm:h-9 text-xs font-bold flex items-center gap-1.5 rounded-xl border shadow-sm hover:border-indigo-500 transition-all"
-          style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <span>🔍</span>
-          <span class="hidden md:inline txt-main font-extrabold">Tìm nhanh</span>
-          <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-black rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Ctrl+K</kbd>
-        </button>
-        <!-- Quick Viva Voce Oral Exam Button -->
-        <button onclick="openVivaSimulatorModal()" title="Phòng Thi Vấn Đáp 1-1 với Hội đồng Giám khảo AI"
-          class="hidden sm:flex btn-soft px-2.5 h-8 sm:h-9 text-xs font-extrabold items-center gap-1 rounded-xl border shadow-sm hover:border-rose-500 transition-all text-rose-400"
-          style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <span>🎙️</span>
-          <span class="hidden xl:inline">Vấn Đáp AI</span>
-        </button>
-        <!-- Quick Mindmap & Feynman Studio Button -->
-        <button onclick="openMindmapFeynmanModal()" title="Sơ Đồ Tư Duy Tương Tác & Phương Pháp Feynman"
-          class="hidden sm:flex btn-soft px-2.5 h-8 sm:h-9 text-xs font-extrabold items-center gap-1 rounded-xl border shadow-sm hover:border-emerald-500 transition-all text-emerald-400"
-          style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <span>🧠</span>
-          <span class="hidden xl:inline">Mindmap</span>
-        </button>
+        <div class="flex items-center gap-1 p-0.5 rounded-xl border shadow-sm" style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <!-- Command Palette Ctrl+K Omnisearch Pill -->
+          <button id="header-cmdk-btn" onclick="openCommandPaletteModal()" title="Tìm kiếm toàn hệ thống & Lệnh nhanh (Ctrl+K)"
+            class="px-2 h-7 sm:h-8 text-xs font-bold flex items-center gap-1.5 rounded-lg hover:bg-indigo-500/15 transition-all">
+            <span>🔍</span>
+            <span class="hidden xl:inline txt-main font-extrabold">Tìm nhanh</span>
+            <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-black rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Ctrl+K</kbd>
+          </button>
+          <span class="hidden sm:inline-block w-px h-4 bg-slate-700/60"></span>
+          <!-- Quick Viva Voce Oral Exam Button -->
+          <button id="header-viva-btn" onclick="openVivaSimulatorModal()" title="Phòng Thi Vấn Đáp 1-1 với Hội đồng Giám khảo AI"
+            class="hidden sm:flex px-2 h-7 sm:h-8 text-xs font-extrabold items-center gap-1 rounded-lg hover:bg-rose-500/15 transition-all text-rose-400">
+            <span>🎙️</span>
+            <span class="hidden 2xl:inline">Vấn Đáp</span>
+          </button>
+          <!-- Quick Devil's Advocate Button -->
+          <button id="header-da-btn" onclick="openDevilsAdvocateModal()" title="Đấu Trường Phản Biện Học Thuật Ngược Với AI (Săn Ngụy Biện)"
+            class="hidden md:flex px-2 h-7 sm:h-8 text-xs font-extrabold items-center gap-1 rounded-lg hover:bg-amber-500/15 transition-all text-amber-400">
+            <span>⚔️</span>
+            <span class="hidden 2xl:inline">Phản Biện</span>
+          </button>
+          <!-- Quick Zen Binaural Soundscape Button -->
+          <button id="header-zen-audio-btn" onclick="openZenBinauralModal()" title="Sóng Não Binaural Alpha/Beta & Đồng Hồ Tập Trung Pomodoro"
+            class="hidden sm:flex px-2 h-7 sm:h-8 text-xs font-extrabold items-center gap-1 rounded-lg hover:bg-cyan-500/15 transition-all text-cyan-400">
+            <span>🎧</span>
+            <span class="hidden 2xl:inline">Sóng Não</span>
+          </button>
+        </div>
         <!-- Header Quick Zoom Pill: A- / 100% / A+ điều chỉnh tức thời cỡ chữ -->
         <div class="hidden xl:flex items-center border rounded-xl p-0.5 shadow-sm text-xs" style="background-color: var(--bg-subtle); border-color: var(--border);" title="Phóng to / Thu nhỏ nhanh giao diện (Phím tắt: [ và ])">
           <button onclick="quickStepZoom(-10)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 font-black text-xs transition-colors" title="Thu nhỏ chữ ([)">A-</button>
@@ -344,13 +350,13 @@
             </h3>
           </div>
 
-          <!-- Quick Action Buttons -->
+          <!-- Streamlined Urgent Exam Action Buttons (Zero Duplication, Clean Hierarchy) -->
           <div class="flex flex-wrap items-center gap-2 shrink-0">
-            <button onclick="switchTab('exercises'); activateAntiCheat(true);" class="btn-primary !bg-gradient-to-r !from-rose-600 !to-amber-600 px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-md hover:scale-105 transition-all">
-              <span>💻</span> Code 60m (15/11)
+            <button onclick="switchTab('exercises'); activateAntiCheat(true);" class="btn-primary !bg-gradient-to-r !from-rose-600 !to-amber-600 px-3.5 py-1.5 text-xs font-extrabold flex items-center gap-1.5 shadow-md hover:-translate-y-0.5 transition-all">
+              <span>💻</span> Thi Code 60p (15/11)
             </button>
-            <button onclick="startTimedExamForSubject(21, 60, 40)" class="btn-primary !bg-gradient-to-r !from-indigo-600 !to-cyan-600 px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 shadow-md hover:scale-105 transition-all">
-              <span>⚡</span> Đề Giải Thuật 60m (16/11)
+            <button onclick="startTimedExamForSubject(21, 60, 40)" class="btn-primary !bg-gradient-to-r !from-indigo-600 !to-cyan-600 px-3.5 py-1.5 text-xs font-extrabold flex items-center gap-1.5 shadow-md hover:-translate-y-0.5 transition-all">
+              <span>⚡</span> Đề Giải Thuật 60p (16/11)
             </button>
             <button onclick="switchTab('essay')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
               <span>📝</span> Tự Luận
@@ -364,62 +370,122 @@
             <button onclick="openCheatSheetModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1">
               <span>🖨️</span> Phao A4
             </button>
-            <button onclick="openVivaSimulatorModal()" class="btn-primary !bg-gradient-to-r !from-purple-600 !to-pink-600 px-3 py-1.5 text-xs font-bold flex items-center gap-1 shadow-md hover:scale-105 transition-all">
-              <span>🎙️</span> Thi Vấn Đáp AI
-            </button>
-            <button onclick="openMindmapFeynmanModal()" class="btn-primary !bg-gradient-to-r !from-emerald-600 !to-teal-600 px-3 py-1.5 text-xs font-bold flex items-center gap-1 shadow-md hover:scale-105 transition-all">
-              <span>🧠</span> Mindmap & Feynman
-            </button>
-            <button onclick="openCommandPaletteModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1 border-indigo-500/40">
-              <span>⌘</span> Lệnh Nhanh (Ctrl+K)
-            </button>
           </div>
         </div>
 
-        <!-- UniMaster v41.0 Super-Suite Banner & Daily Quests Bar -->
-        <div id="dashboard-v41-hub" class="mt-3 pt-3 border-t grid grid-cols-1 lg:grid-cols-12 gap-3" style="border-color: var(--border);">
-          <div class="lg:col-span-7 p-3.5 rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-slate-900/50 space-y-2.5">
+        <!-- UniMaster v42.0 Ultra-UX Bento Hub & Ebbinghaus + Daily Quests -->
+        <div id="dashboard-v41-hub" class="mt-3.5 pt-3.5 border-t grid grid-cols-1 lg:grid-cols-12 gap-3.5" style="border-color: var(--border);">
+          <!-- Left 8-Tile Bento Studio Grid -->
+          <div class="lg:col-span-7 p-4 rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/45 via-purple-950/30 to-slate-900/60 space-y-3 shadow-inner">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="flex items-center gap-2">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow">MỚI v41.0</span>
-                <h3 class="text-xs sm:text-sm font-extrabold txt-main">🚀 Bộ Công Cụ Học Thuật Lượng Tử & Mô Phỏng Chuyên Sâu</h3>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow">SIÊU CẤP v42.0</span>
+                <h3 class="text-xs sm:text-sm font-extrabold txt-main">✨ Trung Tâm Công Cụ Học Thuật Đa Giác Quan & Phản Biện AI</h3>
               </div>
               <span id="v41-xp-badge" class="badge-brand px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black">Level 1 • 0 XP</span>
             </div>
+
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <button onclick="openVivaSimulatorModal()" class="p-2.5 rounded-xl border border-pink-500/30 bg-pink-500/10 hover:bg-pink-500/20 text-left transition-all group">
-                <div class="text-base mb-0.5 group-hover:scale-110 transition-transform">🎙️</div>
+              <button onclick="openVivaSimulatorModal()" class="bento-tool-tile p-2.5 rounded-xl border border-pink-500/30 bg-pink-500/10 hover:bg-pink-500/20 text-left transition-all group">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-base group-hover:scale-110 transition-transform">🎙️</span>
+                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-pink-500/20 text-pink-300">VOICE AI</span>
+                </div>
                 <div class="font-extrabold text-[11px] txt-main">Vấn Đáp 1-1 AI</div>
-                <div class="text-[10px] txt-muted truncate">Chấm Rubric + Giọng nói</div>
+                <div class="text-[10px] txt-muted truncate">Chấm Rubric 4 chiều</div>
               </button>
-              <button onclick="openMindmapFeynmanModal()" class="p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all group">
-                <div class="text-base mb-0.5 group-hover:scale-110 transition-transform">🧠</div>
+
+              <button onclick="openDevilsAdvocateModal()" class="bento-tool-tile p-2.5 rounded-xl border border-amber-500/35 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all group">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-base group-hover:scale-110 transition-transform">⚔️</span>
+                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">MỚI v42</span>
+                </div>
+                <div class="font-extrabold text-[11px] txt-main">Phản Biện Ngược</div>
+                <div class="text-[10px] txt-muted truncate">Bắt lỗi ngụy biện AI</div>
+              </button>
+
+              <button onclick="openEbbinghausModal()" class="bento-tool-tile p-2.5 rounded-xl border border-violet-500/35 bg-violet-500/10 hover:bg-violet-500/20 text-left transition-all group">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-base group-hover:scale-110 transition-transform">📉</span>
+                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300">DỰ BÁO</span>
+                </div>
+                <div class="font-extrabold text-[11px] txt-main">Đường Cong Nhớ</div>
+                <div class="text-[10px] txt-muted truncate">Ebbinghaus & Điểm thi</div>
+              </button>
+
+              <button onclick="openPolyglotModal()" class="bento-tool-tile p-2.5 rounded-xl border border-blue-500/35 bg-blue-500/10 hover:bg-blue-500/20 text-left transition-all group">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-base group-hover:scale-110 transition-transform">🔄</span>
+                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300">C# ↔ PY</span>
+                </div>
+                <div class="font-extrabold text-[11px] txt-main">Dịch Đa Ngôn Ngữ</div>
+                <div class="text-[10px] txt-muted truncate">So sánh Code & Big-O</div>
+              </button>
+
+              <button onclick="openZenBinauralModal()" class="bento-tool-tile p-2.5 rounded-xl border border-teal-500/35 bg-teal-500/10 hover:bg-teal-500/20 text-left transition-all group">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-base group-hover:scale-110 transition-transform">🎧</span>
+                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300">40Hz / 10Hz</span>
+                </div>
+                <div class="font-extrabold text-[11px] txt-main">Sóng Não Binaural</div>
+                <div class="text-[10px] txt-muted truncate">WebAudio + Pomodoro</div>
+              </button>
+
+              <button onclick="openMindmapFeynmanModal()" class="bento-tool-tile p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all group">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-base group-hover:scale-110 transition-transform">🧠</span>
+                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">SVG MAP</span>
+                </div>
                 <div class="font-extrabold text-[11px] txt-main">Mindmap & Feynman</div>
-                <div class="text-[10px] txt-muted truncate">Sơ đồ SVG & Giải thích</div>
+                <div class="text-[10px] txt-muted truncate">Sơ đồ & Giải thích</div>
               </button>
-              <button onclick="switchTab('lab'); switchLabSubTab('kinetics');" class="p-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-left transition-all group">
-                <div class="text-base mb-0.5 group-hover:scale-110 transition-transform">🧬</div>
+
+              <button onclick="switchTab('lab'); switchLabSubTab('kinetics');" class="bento-tool-tile p-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-left transition-all group">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-base group-hover:scale-110 transition-transform">🧬</span>
+                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">LAB #10</span>
+                </div>
                 <div class="font-extrabold text-[11px] txt-main">Động Học Enzyme</div>
                 <div class="text-[10px] txt-muted truncate">Michaelis-Menten & Km</div>
               </button>
-              <button onclick="switchTab('lab'); switchLabSubTab('graphtheory');" class="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all group">
-                <div class="text-base mb-0.5 group-hover:scale-110 transition-transform">🕸️</div>
+
+              <button onclick="switchTab('lab'); switchLabSubTab('graphtheory');" class="bento-tool-tile p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-left transition-all group">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="text-base group-hover:scale-110 transition-transform">🕸️</span>
+                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300">LAB #11</span>
+                </div>
                 <div class="font-extrabold text-[11px] txt-main">Đồ Thị Dijkstra</div>
                 <div class="text-[10px] txt-muted truncate">Bảng Trace từng bước</div>
               </button>
             </div>
           </div>
 
-          <!-- Daily Quests Progress -->
-          <div class="lg:col-span-5 p-3.5 rounded-2xl border space-y-2" style="background-color: var(--bg-subtle); border-color: var(--border);">
-            <div class="flex items-center justify-between">
-              <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
-                <span>🎯</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
+          <!-- Right: Exam Score Predictor Strip + Daily Quests Progress -->
+          <div class="lg:col-span-5 p-4 rounded-2xl border flex flex-col justify-between gap-2.5" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <!-- Mini Exam Predictor & Retention Bar -->
+            <div onclick="openEbbinghausModal()" class="cursor-pointer p-2.5 rounded-xl border border-violet-500/30 bg-gradient-to-r from-violet-950/40 to-indigo-950/30 hover:border-violet-400 transition-all flex items-center justify-between gap-3">
+              <div class="space-y-0.5">
+                <div class="text-[10px] font-extrabold uppercase tracking-wider text-violet-300 flex items-center gap-1">
+                  <span>🔮</span> Dự Báo Điểm Thi Cuối Kỳ (95% CI)
+                </div>
+                <div class="text-[11px] txt-muted">Bấm để xem Đường cong quên lãng Ebbinghaus</div>
               </div>
-              <button onclick="loadDailyQuestsWidget()" class="text-[10px] font-bold text-indigo-400 hover:underline">Làm mới</button>
+              <div class="text-right shrink-0">
+                <div id="mini-predicted-score" class="text-base sm:text-lg font-mono font-black text-emerald-400">8.2 ± 0.5</div>
+                <div id="mini-retention-badge" class="text-[10px] font-mono font-bold text-violet-300">Độ bền S = 3.1</div>
+              </div>
             </div>
-            <div id="daily-quests-list" class="space-y-1.5 max-h-[120px] overflow-y-auto pr-1 text-xs">
-              <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
+
+            <div class="space-y-1.5">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
+                  <span>🎯</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
+                </div>
+                <button onclick="loadDailyQuestsWidget()" class="text-[10px] font-bold text-indigo-400 hover:underline">Làm mới</button>
+              </div>
+              <div id="daily-quests-list" class="space-y-1.5 max-h-[115px] overflow-y-auto pr-1 text-xs">
+                <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
+              </div>
             </div>
           </div>
         </div>
@@ -1356,6 +1422,9 @@
           </button>
           <button onclick="openUmlMemoryModal()" class="btn-primary !bg-gradient-to-r !from-violet-600 !to-cyan-600 px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Tự động vẽ Sơ đồ lớp UML & Mô phỏng Bộ nhớ Stack/Heap">
             <span>🔬</span> Sơ Đồ UML & Stack/Heap
+          </button>
+          <button onclick="openPolyglotModal(true)" class="btn-primary !bg-gradient-to-r !from-blue-600 !to-indigo-600 px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Đối chiếu song song C# ↔ Python ↔ SQL & Đồ thị Big-O">
+            <span>🔄</span> C# ↔ Python & Big-O
           </button>
         </div>
       </div>
@@ -5939,6 +6008,254 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=41.0"></script>
+  <!-- ---------------------------------------------------------------------
+       FLOATING ZEN POMODORO & WEBAUDIO BINAURAL DOCK (v42.0 ULTRA-UX)
+       --------------------------------------------------------------------- -->
+  <div id="floating-zen-dock" class="fixed bottom-16 lg:bottom-5 right-4 z-[75] flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-2xl backdrop-blur-xl transition-all duration-300 hover:scale-[1.02]"
+    style="background: rgba(15, 23, 42, 0.88); border-color: rgba(56, 189, 248, 0.35);">
+    <button type="button" onclick="toggleBinauralAudioQuick()" id="dock-audio-toggle-btn"
+      class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 text-white flex items-center justify-center text-sm font-black shadow-md"
+      title="Bật/Tắt nhanh Sóng não Binaural Tập trung (WebAudio)">
+      🎧
+    </button>
+    <div onclick="openZenBinauralModal()" class="cursor-pointer pr-1">
+      <div class="flex items-center gap-1.5">
+        <span id="dock-pomo-timer" class="font-mono font-black text-xs text-white tabular-nums">25:00</span>
+        <span id="dock-wave-indicator" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">Tắt âm</span>
+      </div>
+      <div class="text-[9px] text-slate-400 font-bold">Zen Focus & Sóng Não</div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------------
+       MODAL v42.0 #1: AI DEVIL'S ADVOCATE ARENA (ĐẤU TRƯỜNG PHẢN BIỆN NGƯỢC)
+       --------------------------------------------------------------------- -->
+  <div id="modal-devils-advocate" class="hidden fixed inset-0 z-[92] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-devils-advocate')">
+    <div class="uni-card w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-amber-500/45">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-rose-600 text-white flex items-center justify-center text-lg shadow-md">⚔️</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              Đấu Trường Phản Biện Học Thuật Ngược (AI Devil's Advocate)
+              <span class="badge-amber text-[10px] px-2 py-0.5 rounded-full font-mono">Fallacy Hunter</span>
+            </h3>
+            <p class="text-[11px] txt-muted">AI cố tình đưa ra một nhận định nghe rất hợp lý nhưng SAI BẢN CHẤT — Hãy tìm ra điểm ngụy biện và phản biện lại!</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-devils-advocate')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <label class="text-xs font-extrabold txt-main">Lĩnh vực săn ngụy biện:</label>
+            <select id="da-domain-select" onchange="loadDevilsAdvocateChallenge('challenge')" class="uni-input px-3 py-1.5 text-xs font-bold">
+              <option value="biochem">🔬 Hóa Sinh Lâm Sàng & Chuyển Hóa (CTUMP)</option>
+              <option value="csharp_oop">💻 Lập Trình Hướng Đối Tượng C# (.NET CLR)</option>
+              <option value="discrete_math">🕸️ Toán Rời Rạc & Lý Thuyết Đồ Thị</option>
+              <option value="python">🐍 Ngôn Ngữ Lập Trình Python Chuyên Sâu</option>
+            </select>
+          </div>
+          <button type="button" onclick="loadDevilsAdvocateChallenge('next')" class="btn-soft px-3 py-1.5 text-xs font-extrabold flex items-center gap-1.5">
+            <span>🎲</span> Đổi Luận Điểm Ngụy Biện Khác
+          </button>
+        </div>
+
+        <!-- Fallacy Statement Card -->
+        <div class="p-4 rounded-2xl border-2 border-amber-500/40 bg-gradient-to-r from-amber-950/35 via-rose-950/25 to-slate-900/70 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span id="da-topic-badge" class="badge-amber px-2.5 py-0.5 rounded-full text-[11px] font-extrabold">Chủ đề...</span>
+            <span id="da-trap-badge" class="text-[11px] font-mono font-bold text-rose-300">Loại bẫy tư duy...</span>
+          </div>
+          <div class="text-xs font-bold text-amber-300 uppercase tracking-wider">😈 Lập luận ngụy biện của AI (Chứa lỗi sai cố ý):</div>
+          <blockquote id="da-fallacy-claim" class="text-sm sm:text-base font-extrabold text-white leading-relaxed pl-3 border-l-4 border-amber-500">
+            Đang tải nhận định...
+          </blockquote>
+        </div>
+
+        <!-- Student Rebuttal Area -->
+        <div class="space-y-2">
+          <label class="text-xs font-extrabold txt-main">🛡️ Lập luận phản biện của bạn (Chỉ rõ nhận định trên sai ở đâu và giải thích cơ chế đúng):</label>
+          <textarea id="da-rebuttal-input" rows="4"
+            placeholder="Ví dụ: Nhận định trên SAI hoàn toàn! Bởi vì mặc dù glucose ngoại bào cao nhưng thiếu insulin nên tế bào bị đói năng lượng nội bào..."
+            class="uni-input w-full p-3 text-xs sm:text-sm leading-relaxed"></textarea>
+          <div class="flex justify-end">
+            <button type="button" onclick="submitDevilsAdvocateRebuttal()" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-rose-600 px-5 py-2.5 text-xs font-black shadow-lg flex items-center gap-2">
+              <span>⚔️</span> Tung Đòn Phản Biện & Chấm Điểm Tư Duy
+            </button>
+          </div>
+        </div>
+
+        <!-- Evaluation Result -->
+        <div id="da-eval-result" class="hidden space-y-3 pt-3 border-t" style="border-color: var(--border);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------------
+       MODAL v42.0 #2: EBBINGHAUS FORGETTING CURVE & EXAM SCORE PREDICTOR
+       --------------------------------------------------------------------- -->
+  <div id="modal-ebbinghaus-predictor" class="hidden fixed inset-0 z-[92] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-ebbinghaus-predictor')">
+    <div class="uni-card w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-violet-500/45">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white flex items-center justify-center text-lg shadow-md">📉</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main">Mô Phỏng Đường Cong Quên Lãng Ebbinghaus & Dự Báo Điểm Thi Cuối Kỳ</h3>
+            <p class="text-[11px] txt-muted">Mô hình toán học $R(t) = e^{-t/S}$ đối chiếu học vẹt 1 lần vs. Ôn tập ngắt quãng Spaced Repetition (SM-2)</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-ebbinghaus-predictor')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div id="ebbinghaus-modal-body" class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+        <div class="text-xs txt-muted">Đang phân tích dữ liệu trí nhớ...</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------------
+       MODAL v42.0 #3: POLYGLOT CODE TRANSPILER (C# ↔ PYTHON ↔ SQL) & BIG-O
+       --------------------------------------------------------------------- -->
+  <div id="modal-polyglot-transpiler" class="hidden fixed inset-0 z-[92] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-polyglot-transpiler')">
+    <div class="uni-card w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-blue-500/45">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-cyan-500 text-white flex items-center justify-center text-lg shadow-md">🔄</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main">Trợ Lý Dịch Ngược Đa Ngôn Ngữ (C# ↔ Python ↔ SQL/Mã Giả) & Đồ Thị Big-O</h3>
+            <p class="text-[11px] txt-muted">Chuyển đổi tư duy liền mạch giữa C# (.NET OOP/LINQ), Python 3 và Giải thuật kèm đồ thị tốc độ tăng trưởng Big-O</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-polyglot-transpiler')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <label class="text-xs font-extrabold txt-main">Mẫu đối chiếu kinh điển:</label>
+          <select id="polyglot-preset-select" onchange="loadPolyglotComparison(this.value)" class="uni-input px-3 py-2 text-xs font-bold flex-1 min-w-[240px]">
+            <option value="linq_filter">1. Lọc, Sắp xếp & Ánh xạ (C# LINQ vs Python List Comprehension vs SQL)</option>
+            <option value="hash_lookup">2. Đếm tần suất Bảng băm O(N) (C# Dictionary vs Python Counter vs SQL GROUP BY)</option>
+            <option value="binary_search">3. Tìm kiếm nhị phân O(log N) & Chống tràn số nguyên 32-bit</option>
+            <option value="oop_polymorphism">4. Kế thừa, Lớp trừu tượng & Đa hình (C# virtual/override vs Python ABC)</option>
+          </select>
+          <button type="button" onclick="transpileCurrentEditorCode()" class="btn-primary !bg-gradient-to-r !from-blue-600 !to-cyan-600 px-4 py-2 text-xs font-extrabold">
+            ⚡ Dịch Mã Nguồn Từ Editor Hiện Tại
+          </button>
+        </div>
+
+        <div id="polyglot-comparison-body" class="space-y-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------------
+       MODAL v42.0 #4: ZEN FOCUS POMODORO & WEBAUDIO BINAURAL SYNTHESIZER
+       --------------------------------------------------------------------- -->
+  <div id="modal-zen-binaural" class="hidden fixed inset-0 z-[92] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-zen-binaural')">
+    <div class="uni-card w-full max-w-3xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-cyan-500/45">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-md">🎧</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main">Phòng Tự Học Đa Giác Quan: Sóng Não Binaural WebAudio & Pomodoro</h3>
+            <p class="text-[11px] txt-muted">Tổng hợp sóng âm thời gian thực bằng Web Audio API (Không cần tải MP3, hoạt động 100% Offline)</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-zen-binaural')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Thu nhỏ xuống góc màn hình</button>
+      </div>
+
+      <div class="p-4 sm:p-6 overflow-y-auto flex-1 space-y-5">
+        <!-- Top: Pomodoro Clock & Controls -->
+        <div class="grid grid-cols-1 md:grid-cols-12 gap-4 items-center p-4 rounded-2xl border border-cyan-500/30 bg-gradient-to-r from-slate-900 via-cyan-950/30 to-indigo-950/30">
+          <div class="md:col-span-6 text-center md:text-left space-y-1">
+            <div id="zen-pomo-phase-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+              🔥 PHIÊN TẬP TRUNG SÂU (DEEP WORK)
+            </div>
+            <div id="zen-pomo-display" class="font-mono font-black text-4xl sm:text-5xl text-white tracking-tight tabular-nums">25:00</div>
+            <div class="text-[11px] txt-muted">Hoàn thành mỗi phiên 25 phút nhận ngay <strong class="text-emerald-400">+100 XP</strong></div>
+          </div>
+          <div class="md:col-span-6 flex flex-wrap items-center justify-center md:justify-end gap-2">
+            <button type="button" id="zen-pomo-start-btn" onclick="toggleZenPomodoroTimer()" class="btn-primary !bg-gradient-to-r !from-cyan-500 !to-blue-600 px-4 py-2.5 text-xs font-black shadow-lg">
+              ▶️ Bắt Đầu Pomodoro
+            </button>
+            <button type="button" onclick="setZenPomodoroMinutes(25, '🔥 PHIÊN TẬP TRUNG SÂU (25 PHÚT)')" class="btn-soft px-3 py-2 text-xs font-bold">25p Học</button>
+            <button type="button" onclick="setZenPomodoroMinutes(50, '⚡ PHIÊN CÀY ĐỀ SÂU (50 PHÚT)')" class="btn-soft px-3 py-2 text-xs font-bold">50p Cày Đề</button>
+            <button type="button" onclick="setZenPomodoroMinutes(5, '🌿 NGHỈ GIẢI LAO (5 PHÚT)')" class="btn-soft px-3 py-2 text-xs font-bold">5p Nghỉ</button>
+          </div>
+        </div>
+
+        <!-- Brainwave Mode Selector -->
+        <div class="space-y-2.5">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-extrabold txt-main">🧠 Chọn Chế Độ Tổng Hợp Sóng Não (WebAudio Oscillator + Noise Filter):</label>
+            <div class="flex items-center gap-2">
+              <span class="text-[11px] txt-muted font-bold">Âm lượng:</span>
+              <input id="zen-audio-volume" type="range" min="5" max="80" value="25" oninput="updateZenAudioVolume(this.value)" class="w-24 accent-cyan-400" />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <button type="button" onclick="selectBinauralPreset('alpha_10hz')" id="binaural-btn-alpha_10hz"
+              class="p-3.5 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 text-left space-y-1 transition-all">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-cyan-300">🌊 Sóng Alpha 10 Hz (Siêu Ghi Nhớ)</span>
+                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-200">L:200Hz • R:210Hz</span>
+              </div>
+              <p class="text-[11px] txt-muted leading-relaxed">Đồng bộ bán cầu não ở tần số chênh lệch 10Hz, lý tưởng khi học thuộc lòng Hóa Sinh, Giải Phẫu và Flashcards.</p>
+            </button>
+
+            <button type="button" onclick="selectBinauralPreset('beta_18hz')" id="binaural-btn-beta_18hz"
+              class="p-3.5 rounded-2xl border border-indigo-500/30 bg-slate-900/60 text-left space-y-1 transition-all">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-indigo-300">⚡ Sóng Beta 18 Hz (Giải Thuật & Code)</span>
+                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-200">L:240Hz • R:258Hz</span>
+              </div>
+              <p class="text-[11px] txt-muted leading-relaxed">Kích hoạt vùng vỏ não trước trán xử lý logic tốc độ cao, chống buồn ngủ khi code C# / Python và giải Toán Rời Rạc.</p>
+            </button>
+
+            <button type="button" onclick="selectBinauralPreset('gamma_40hz')" id="binaural-btn-gamma_40hz"
+              class="p-3.5 rounded-2xl border border-purple-500/30 bg-slate-900/60 text-left space-y-1 transition-all">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-purple-300">🔮 Sóng Gamma 40 Hz (Thi Thực Chiến)</span>
+                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-200">L:220Hz • R:260Hz</span>
+              </div>
+              <p class="text-[11px] txt-muted leading-relaxed">Tần số nhận thức đỉnh cao 40Hz (nghiên cứu MIT) tăng cường liên kết nơ-ron và tốc độ phản xạ trắc nghiệm.</p>
+            </button>
+
+            <button type="button" onclick="selectBinauralPreset('brown_rain')" id="binaural-btn-brown_rain"
+              class="p-3.5 rounded-2xl border border-emerald-500/30 bg-slate-900/60 text-left space-y-1 transition-all">
+              <div class="flex items-center justify-between">
+                <span class="font-extrabold text-emerald-300">🌧️ Tiếng Mưa Đêm & Brown Noise</span>
+                <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-200">Low-pass 420Hz</span>
+              </div>
+              <p class="text-[11px] txt-muted leading-relaxed">Nhiễu nâu lọc thông thấp ấm áp, triệt tiêu hoàn toàn tạp âm môi trường xung quanh mà không cần tai nghe.</p>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live SVG Audio Waveform & Action Bar -->
+        <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <button type="button" id="zen-audio-master-btn" onclick="toggleBinauralAudioQuick()" class="btn-primary !bg-gradient-to-r !from-emerald-500 !to-teal-600 px-5 py-2.5 text-xs font-black shadow-lg">
+              🔊 Phát Sóng Âm Ngay
+            </button>
+            <div id="zen-audio-status-text" class="text-xs font-bold text-slate-300">Đang tắt • Chọn chế độ để phát</div>
+          </div>
+          <div id="zen-waveform-bars" class="flex items-end gap-1 h-8 px-2">
+            <span class="w-1.5 h-3 bg-cyan-500/40 rounded-full"></span>
+            <span class="w-1.5 h-5 bg-cyan-500/40 rounded-full"></span>
+            <span class="w-1.5 h-7 bg-cyan-500/40 rounded-full"></span>
+            <span class="w-1.5 h-4 bg-cyan-500/40 rounded-full"></span>
+            <span class="w-1.5 h-6 bg-cyan-500/40 rounded-full"></span>
+            <span class="w-1.5 h-3 bg-cyan-500/40 rounded-full"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=42.0"></script>
 </body>
 </html>

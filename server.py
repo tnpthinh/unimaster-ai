@@ -3998,6 +3998,559 @@ async def api_gamification_quests_handler(request):
     })
 
 
+# ----------------------------------------------------------------------------
+# UNIMASTER AI v42.0: DEVIL'S ADVOCATE ARENA, EBBINGHAUS CURVE & POLYGLOT CODE
+# ----------------------------------------------------------------------------
+
+DEVILS_ADVOCATE_BANK = {
+    "biochem": [
+        {
+            "id": "da_bio_1",
+            "topic": "Đái tháo đường Tuýp 1 & Tân tạo đường (Gluconeogenesis)",
+            "fallacy_claim": "Ở bệnh nhân Đái tháo đường tuýp 1 không điều trị, nồng độ Glucose trong máu đang cực kỳ cao (hyperglycemia), nên tế bào gan nhận thấy cơ thể đã dư thừa đường và sẽ Tắt hoàn toàn quá trình Tân tạo đường (Gluconeogenesis) cũng như Phân giải Glycogen.",
+            "trap_type": "Ngụy biện Ngoại suy Trực giác (Nồng độ ngoại bào vs Tín hiệu nội bào)",
+            "keywords": ["insulin", "glucagon", "nội bào", "tăng tân tạo đường", "cơ chất", "Fructose-2,6-bisphosphate", "nhiễm toan ceton"],
+            "truth_explanation": "NHẬN ĐỊNH TRÊN HOÀN TOÀN SAI! Dù Glucose trong máu (ngoại bào) rất cao, nhưng do thiếu hụt tuyệt đối Insulin và tăng cao tỷ lệ Glucagon/Insulin, các mô phụ thuộc GLUT4 (cơ vân, mô mỡ) không đưa được glucose vào trong tế bào ('đói giữa biển đường'). Tại gan, tỷ lệ Glucagon/Insulin cao làm giảm Fructose-2,6-bisphosphate, kích hoạt mạnh mẽ các enzyme tân tạo đường (PEPCK, Fructose-1,6-bisphosphatase, Glucose-6-phosphatase) và phân giải glycogen, khiến gan tiếp tục bơm thêm Glucose vào máu làm đường huyết càng tăng kịch trần kèm sinh thể ceton.",
+            "challenge_followup": "Tại sao ở bệnh nhân này, nồng độ Malonyl-CoA trong tế bào chất của gan lại giảm mạnh và điều đó ảnh hưởng thế nào đến enzyme CPT-I (Carnitine Palmitoyltransferase I)?"
+        },
+        {
+            "id": "da_bio_2",
+            "topic": "Ngộ độc Cyanide (CN-) / CO và Thuốc giải ghép cặp DNP",
+            "fallacy_claim": "Khi bệnh nhân bị ngộ độc Cyanide (CN-) làm khóa chặt Phức hợp IV (Cytochrome c oxidase) khiến chuỗi hô hấp ngừng tạo ATP, ta có thể truyền chất giải ghép cặp 2,4-Dinitrophenol (DNP) để mở đường vòng cho proton H+ đi qua màng trong ty thể nhằm khôi phục lại quá trình tổng hợp ATP!",
+            "trap_type": "Ngụy biện Cơ chế Hóa thẩm (Chemiosmotic Coupling Fallacy)",
+            "keywords": ["gradient proton", "F0F1-ATP synthase", "tỏa nhiệt", "ức chế phức hợp IV", "NADH", "giải ghép cặp"],
+            "truth_explanation": "SAI LẦM CHẾT NGƯỜI! Thứ nhất, DNP là chất giải ghép cặp (uncoupler) làm rò rỉ H+ qua màng trong ty thể, làm TRIỆT TIÊU chênh lệch điện hóa proton (proton-motive force) nên năng lượng chỉ giải phóng dưới dạng NHIỆT chứ hoàn toàn KHÔNG đi qua F0F1-ATP synthase để tạo ATP. Thứ hai, khi Phức hợp IV đã bị CN- khóa chặt, dòng vận chuyển điện tử bị tắc nghẽn ở cuối nguồn nên các phức hợp I, III cũng không thể bơm H+ ra khoảng gian màng.",
+            "challenge_followup": "Phác đồ hóa sinh đúng đắn để cấp cứu ngộ độc Cyanide bằng Amyl nitrite / Sodium nitrite + Sodium thiosulfate hoạt động dựa trên sự chuyển dạng nào của Hemoglobin?"
+        }
+    ],
+    "csharp_oop": [
+        {
+            "id": "da_cs_1",
+            "topic": "Struct (Value Type) & Thực thi Interface trong C#",
+            "fallacy_claim": "Trong C# (.NET), vì `struct` là kiểu giá trị (Value Type) nằm trên vùng nhớ Stack chứ không phải trên Managed Heap như `class`, nên `struct` tuyệt đối KHÔNG BAO GIỜ có thể thực thi (implement) một `interface` như `IComparable` hay `IDisposable`.",
+            "trap_type": "Ngụy biện Đồng nhất Kế thừa Lớp với Thực thi Hợp đồng Interface",
+            "keywords": ["implement interface", "boxing", "IComparable", "IDisposable", "không kế thừa class", "ValueType"],
+            "truth_explanation": "SAI HOÀN TOÀN! Trong C#, `struct` không thể kế thừa từ một `class` hay `struct` khác (vì bản thân nó đã ngầm kế thừa `System.ValueType`), nhưng `struct` HOÀN TOÀN CÓ THỂ thực thi bất kỳ số lượng `interface` nào (ví dụ `int` là `System.Int32` struct thực thi `IComparable<int>`, `IEquatable<int>`). Tuy nhiên cần lưu ý: khi ép kiểu một biến `struct` sang kiểu tham chiếu `interface` (như `IComparable c = myStruct;`), CLR sẽ thực hiện **Boxing** (đóng gói bản sao của struct lên Managed Heap) trừ khi dùng Generic có ràng buộc `where T : IComparable<T>`!",
+            "challenge_followup": "Tại sao sử dụng phương thức Generic `void Sort<T>(T item) where T : IComparable<T>` với `struct` lại giúp tránh hoàn toàn hiện tượng Boxing?"
+        },
+        {
+            "id": "da_cs_2",
+            "topic": "Từ khóa `readonly` với Kiểu Tham Chiếu (Reference Type)",
+            "fallacy_claim": "Khi khai báo `public readonly List<string> DanhSach = new List<string>();` trong một lớp C#, từ khóa `readonly` biến danh sách này thành bất biến tuyệt đối (Immutable), nên mọi lệnh gọi `DanhSach.Add(\"SV01\")` bên ngoài constructor đều sẽ báo lỗi biên dịch!",
+            "trap_type": "Ngụy biện Bất biến Tham chiếu (Reference Immutability) vs Bất biến Trạng thái Đối tượng (Object Mutability)",
+            "keywords": ["con trỏ", "tham chiếu", "Add", "mutate", "new List", "IReadOnlyList", "bất biến"],
+            "truth_explanation": "SAI! Với kiểu tham chiếu (Reference Type), từ khóa `readonly` chỉ khóa chặt **địa chỉ con trỏ trên biến trường** (nghĩa là ngoài constructor bạn không thể gán lại `DanhSach = new List<string>();` sang vùng nhớ mới), nhưng đối tượng `List<string>` nằm trên Heap mà nó trỏ tới vẫn hoàn toàn CÓ THỂ bị thay đổi nội dung bên trong bằng `DanhSach.Add(...)` hoặc `DanhSach.Clear()`! Để bảo vệ dữ liệu thực sự, phải trả về `IReadOnlyList<string>` hoặc `AsReadOnly()`.",
+            "challenge_followup": "Sự khác biệt cốt lõi giữa hằng số biên dịch `const` và trường chỉ đọc `readonly` trong C# là gì?"
+        }
+    ],
+    "discrete_math": [
+        {
+            "id": "da_dm_1",
+            "topic": "Thuật toán Dijkstra với Trọng số Âm bằng Phép Cộng Hằng Số",
+            "fallacy_claim": "Nếu đồ thị có cạnh trọng số âm (nhưng không có chu trình âm), ví dụ cạnh nhỏ nhất là -5, ta chỉ cần cộng thêm +6 vào TẤT CẢ các cạnh của đồ thị để mọi cạnh đều dương (> 0), sau đó chạy thuật toán Dijkstra thì chắc chắn tìm được đúng đường đi ngắn nhất của đồ thị ban đầu!",
+            "trap_type": "Ngụy biện Bảo toàn Thứ tự Đường đi khi Dịch chuyển Trọng số Cạnh",
+            "keywords": ["số cạnh", "đường đi nhiều cạnh", "Bellman-Ford", "cộng thêm k*C", "không bảo toàn"],
+            "truth_explanation": r"BẪY KINH ĐIỂN TRONG ĐỀ THI GIẢI THUẬT! Khi cộng hằng số dương $C$ vào mỗi cạnh, một đường đi gồm $k$ cạnh sẽ bị cộng thêm $k \cdot C$ chứ không phải một hằng số cố định! Do đó, đường đi $P_1$ có ít cạnh hơn (ví dụ 1 cạnh trọng số 5 $\to 5 + 6 = 11$) sẽ được thiên vị bất công so với đường đi $P_2$ có nhiều cạnh hơn nhưng tổng ban đầu nhỏ hơn (ví dụ 3 cạnh tổng $2 + 2 + (-5) = -1$, sau khi cộng $+6$ mỗi cạnh lại biến thành $8 + 8 + 1 = 17 > 11$). Để xử lý cạnh âm đúng chuẩn phải dùng **Bellman-Ford** hoặc **Thuật toán Johnson** (trọng số lại bằng hàm thế vị $w'(u,v) = w(u,v) + h(u) - h(v)$).",
+            "challenge_followup": "Tại sao phép biến đổi trọng số của thuật toán Johnson $w'(u,v) = w(u,v) + h(u) - h(v)$ lại bảo toàn chính xác thứ tự mọi đường đi ngắn nhất giữa hai đỉnh $s$ và $t$?"
+        }
+    ],
+    "python": [
+        {
+            "id": "da_py_1",
+            "topic": "Tham số Mặc định Khả biến (Mutable Default Arguments) trong Python",
+            "fallacy_claim": "Trong Python, khi định nghĩa hàm `def them_sinh_vien(ten, ds=[]): ds.append(ten); return ds`, mỗi lần ta gọi `them_sinh_vien('An')` rồi `them_sinh_vien('Bình')` mà không truyền tham số thứ hai, Python sẽ tự động tạo mới một danh sách rỗng `[]` cho từng lần gọi hàm.",
+            "trap_type": "Ngụy biện Thời điểm Khởi tạo Tham số Mặc định (Definition-time vs Call-time Evaluation)",
+            "keywords": ["def", "một lần duy nhất", "None", "__defaults__", "chia sẻ cùng đối tượng", "mutable"],
+            "truth_explanation": "SAI! Trong Python, giá trị mặc định của tham số hàm (`ds=[]`) chỉ được khởi tạo **ĐÚNG MỘT LẦN DUY NHẤT** tại thời điểm câu lệnh `def` được biên dịch (lưu trong thuộc tính `them_sinh_vien.__defaults__`), chứ KHÔNG tạo lại mỗi khi gọi hàm! Vì vậy lần gọi thứ hai `them_sinh_vien('Bình')` sẽ nối tiếp vào chính danh sách cũ và trả về `['An', 'Bình']`. Cách viết chuẩn Pythonic bắt buộc là `def them_sinh_vien(ten, ds=None): if ds is None: ds = []`.",
+            "challenge_followup": "Tương tự, điều gì xảy ra khi bạn khởi tạo ma trận 2 chiều bằng cú pháp `matrix = [[0] * 3] * 3` rồi gán `matrix[0][0] = 99`?"
+        }
+    ]
+}
+
+
+async def api_devils_advocate_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    action = data.get("action", "challenge")
+    domain = data.get("domain", "biochem")
+    challenge_id = data.get("challenge_id", "")
+
+    domain_alias = {"csharp": "csharp_oop", "discrete": "discrete_math"}.get(domain, domain)
+    bank = DEVILS_ADVOCATE_BANK.get(domain_alias, DEVILS_ADVOCATE_BANK["biochem"])
+
+    if action in ("challenge", "next", "next_challenge"):
+        import random
+        candidates = [item for item in bank if item["id"] != challenge_id] or bank
+        chosen = random.choice(candidates)
+        return web.json_response({
+            "ok": True,
+            "challenge_id": chosen["id"],
+            "topic": chosen["topic"],
+            "ai_claim": chosen["fallacy_claim"],
+            "fallacy_claim": chosen["fallacy_claim"],
+            "trap_type": chosen["trap_type"],
+            "hint": f"Loại bẫy: {chosen['trap_type']}. Hãy chú ý các từ khóa: {', '.join(chosen['keywords'][:3])}...",
+            "hint_keywords_count": len(chosen["keywords"])
+        })
+
+    rebuttal = (data.get("rebuttal") or "").strip()
+    if not rebuttal:
+        return web.json_response({"ok": False, "error": "Hãy nhập lập luận phản biện của bạn để bóc trần lỗi sai của AI!"}, status=400)
+
+    matched = next((item for item in bank if item["id"] == challenge_id), bank[0])
+    reb_lower = rebuttal.lower()
+    keywords = matched.get("keywords", [])
+    hit_kw = [kw for kw in keywords if kw.lower() in reb_lower]
+    missed_kw = [kw for kw in keywords if kw.lower() not in reb_lower]
+
+    has_refutation_tone = any(w in reb_lower for w in ["sai", "không đúng", "ngược lại", "bởi vì", "thực tế", "tuy nhiên", "nhầm", "vì"])
+    word_count = len(rebuttal.split())
+    kw_ratio = len(hit_kw) / max(1, len(keywords))
+    len_ratio = min(1.0, word_count / 30.0)
+
+    critical_score = min(100, int(round((kw_ratio * 0.65 + len_ratio * 0.25 + (0.10 if has_refutation_tone else 0)) * 100)))
+    critical_score = max(45 if has_refutation_tone else 30, critical_score)
+
+    badge = (
+        "🏆 Đại Kiện Tướng Phản Biện (S-Rank)" if critical_score >= 85
+        else ("⚔️ Thợ Săn Ngụy Biện (A-Rank)" if critical_score >= 70
+        else ("🛡️ Người Gác Đền Tư Duy (B-Rank)" if critical_score >= 55
+        else "🔍 Cần Sắc Bén Hơn (C-Rank)"))
+    )
+
+    ai_verdict = (
+        f"Bạn đã bóc tách trúng {len(hit_kw)}/{len(keywords)} luận điểm cốt lõi ({', '.join(hit_kw) if hit_kw else 'chưa điểm trúng tử huyệt cơ chế'}). "
+        f"Loại bẫy ngụy biện của câu này là: {matched['trap_type']}."
+    )
+
+    try:
+        if ai.has_active_key():
+            prompt = (
+                f"Trong trò chơi Phản biện Học thuật (Devil's Advocate), AI đưa ra nhận định sai có chủ đích:\n'{matched['fallacy_claim']}'\n"
+                f"Sinh viên phản biện lại:\n'{rebuttal}'\n"
+                f"Sự thật khoa học: '{matched['truth_explanation']}'\n"
+                f"Hãy nhận xét ngắn gọn, hào hứng (3 câu tiếng Việt) xem sinh viên đã bắt trúng chỗ sai chưa và khen/góp ý điểm nào."
+            )
+            ai_text = await asyncio.wait_for(ai._call_gemini_text(prompt, temperature=0.35), timeout=8.0)
+            if ai_text and len(ai_text.strip()) > 20:
+                ai_verdict = ai_text.strip()
+    except Exception:
+        pass
+
+    return web.json_response({
+        "ok": True,
+        "score": critical_score,
+        "critical_score": critical_score,
+        "rank": badge,
+        "badge": badge,
+        "trap_type": matched["trap_type"],
+        "hit_keywords": hit_kw,
+        "missed_keywords": missed_kw,
+        "missing_keywords": missed_kw,
+        "ai_response": ai_verdict,
+        "ai_verdict": ai_verdict,
+        "fallacy_exposed": f"[{matched['trap_type']}] Câu hỏi mở rộng: {matched['challenge_followup']}",
+        "scientific_truth": matched["truth_explanation"],
+        "truth_explanation": matched["truth_explanation"],
+        "challenge_followup": matched["challenge_followup"]
+    })
+
+
+async def api_forgetting_curve_handler(request):
+    import math
+    exam_count = 0
+    avg_score = 7.2
+    card_count = 0
+    reviewed_cards = 0
+    try:
+        conn = db.get_connection()
+        c = conn.cursor()
+        try:
+            row = c.execute("SELECT COUNT(*), AVG(score) FROM exam_results").fetchone()
+            exam_count = int(row[0] or 0)
+            if row[1] is not None:
+                avg_score = float(row[1])
+        except Exception:
+            pass
+        try:
+            card_count = int(c.execute("SELECT COUNT(*) FROM flashcards").fetchone()[0] or 0)
+            reviewed_cards = int(c.execute("SELECT COUNT(*) FROM flashcards WHERE repetitions > 0").fetchone()[0] or 0)
+        except Exception:
+            pass
+        conn.close()
+    except Exception:
+        pass
+
+    base_stability = 2.6 + min(4.5, exam_count * 0.25 + reviewed_cards * 0.05)
+    days = list(range(0, 15))
+    unreviewed_curve = []
+    spaced_curve = []
+
+    current_s = base_stability
+    last_review_day = 0
+    review_checkpoints = {1, 3, 7, 14}
+
+    for d in days:
+        r_unrev = round(100.0 * math.exp(-d / 2.5), 1)
+        unreviewed_curve.append({"day": d, "retention": r_unrev})
+
+        if d == 0:
+            spaced_curve.append({"day": 0, "retention": 100.0, "is_review": True})
+        elif d in review_checkpoints:
+            current_s *= 1.85
+            last_review_day = d
+            spaced_curve.append({"day": d, "retention": 98.0, "is_review": True})
+        else:
+            dt = d - last_review_day
+            r_sp = round(98.0 * math.exp(-dt / current_s), 1)
+            spaced_curve.append({"day": d, "retention": max(45.0, r_sp), "is_review": False})
+
+    predicted_score = round(min(9.8, max(5.5, avg_score * 0.7 + min(3.0, (exam_count * 0.15 + 1.8)))), 1)
+    ci_margin = round(max(0.2, 0.85 - min(0.55, exam_count * 0.04)), 1)
+    readiness_pct = min(98, max(42, int(round(predicted_score * 10))))
+
+    combined_curve = []
+    for idx, d in enumerate(days):
+        combined_curve.append({
+            "day": d,
+            "label": f"D{d}",
+            "natural_retention": unreviewed_curve[idx]["retention"],
+            "spaced_retention": spaced_curve[idx]["retention"],
+            "is_review_checkpoint": spaced_curve[idx]["is_review"]
+        })
+
+    advice_text = (
+        f"Với độ bền trí nhớ S = {round(base_stability, 2)}, nếu không ôn ngắt quãng, sau 7 ngày bạn sẽ quên {round(100 - unreviewed_curve[7]['retention'], 1)}% kiến thức. "
+        f"Hãy kích hoạt 4 mốc ôn tập Vàng (Ngày 1 - Ngày 3 - Ngày 7 - Ngày 14) để giữ tỷ lệ nhớ trên 91% vào ngày thi!"
+    )
+
+    return web.json_response({
+        "ok": True,
+        "exam_count": exam_count,
+        "exam_attempts": exam_count,
+        "avg_exam_pct": round(avg_score * 10, 1),
+        "card_count": card_count,
+        "total_flashcards": card_count,
+        "reviewed_cards": reviewed_cards,
+        "due_flashcards": max(0, card_count - reviewed_cards),
+        "stability_index": round(base_stability, 2),
+        "memory_strength_s": round(base_stability, 2),
+        "predicted_score": predicted_score,
+        "predicted_exam_score_10": predicted_score,
+        "confidence_interval": f"{predicted_score} ± {ci_margin}",
+        "confidence_interval_95": [round(max(0.0, predicted_score - ci_margin), 1), round(min(10.0, predicted_score + ci_margin), 1)],
+        "readiness_pct": readiness_pct,
+        "current_retention_pct": readiness_pct,
+        "curve": combined_curve,
+        "unreviewed_curve": unreviewed_curve,
+        "spaced_curve": spaced_curve,
+        "review_days": sorted(list(review_checkpoints)),
+        "recommendation": advice_text,
+        "strategy_advice": advice_text
+    })
+
+
+POLYGLOT_PRESETS = {
+    "linq_filter": {
+        "title": "Lọc, Sắp xếp & Ánh xạ Dữ liệu (LINQ vs List Comprehension vs SQL)",
+        "time_complexity": "O(N log N)",
+        "space_complexity": "O(N)",
+        "active_curve": "nlogn",
+        "csharp": (
+            "// C# (.NET LINQ Method & Query Syntax)\n"
+            "var topStudents = students\n"
+            "    .Where(s => s.Gpa >= 8.0 && s.IsActive)\n"
+            "    .OrderByDescending(s => s.Gpa)\n"
+            "    .Select(s => new { s.Id, s.FullName, Rank = \"Giỏi\" })\n"
+            "    .ToList();"
+        ),
+        "python": (
+            "# Python 3 (List Comprehension + sorted key lambda)\n"
+            "filtered = [s for s in students if s.gpa >= 8.0 and s.is_active]\n"
+            "filtered.sort(key=lambda s: s.gpa, reverse=True)\n"
+            "top_students = [\n"
+            "    {\"id\": s.id, \"full_name\": s.full_name, \"rank\": \"Giỏi\"}\n"
+            "    for s in filtered\n"
+            "]"
+        ),
+        "sql_pseudo": (
+            "-- SQL Tương đương & Bản chất Giải thuật\n"
+            "SELECT id, full_name, 'Giỏi' AS rank\n"
+            "FROM students\n"
+            "WHERE gpa >= 8.0 AND is_active = 1\n"
+            "ORDER BY gpa DESC;\n"
+            "-- Độ phức tạp: Lọc tuyến tính O(N) + TimSort/QuickSort O(N log N)"
+        ),
+        "notes": "Trong C#, LINQ sử dụng cơ chế **Deferred Execution** (trì hoãn thực thi) cho đến khi gọi `.ToList()` hoặc duyệt `foreach`. Trong Python, List Comprehension thực thi tức thời (Eager), còn nếu dùng `(s for s in ...)` sẽ tạo Generator tương đương với `IEnumerable<T>` của C#!"
+    },
+    "hash_lookup": {
+        "title": "Đếm Tần Suất & Tra cứu Bảng Băm O(1) (Dictionary vs dict/Counter)",
+        "time_complexity": "O(N)",
+        "space_complexity": "O(U) (U là số phần tử phân biệt)",
+        "active_curve": "n",
+        "csharp": (
+            "// C# (Dictionary<TKey, TValue> - Hash Table O(1) Lookup)\n"
+            "var freq = new Dictionary<string, int>();\n"
+            "foreach (string word in words)\n"
+            "{\n"
+            "    freq[word] = freq.GetValueOrDefault(word, 0) + 1;\n"
+            "}"
+        ),
+        "python": (
+            "# Python 3 (collections.Counter hoặc dict.get)\n"
+            "from collections import Counter\n"
+            "freq = Counter(words)\n"
+            "# Hoặc thủ công:\n"
+            "# freq = {}\n"
+            "# for w in words: freq[w] = freq.get(w, 0) + 1"
+        ),
+        "sql_pseudo": (
+            "-- SQL Aggregation / Mã giả Bảng băm\n"
+            "SELECT word, COUNT(*) AS freq\n"
+            "FROM word_list\n"
+            "GROUP BY word;\n"
+            "-- Thay vì 2 vòng lặp lồng nhau O(N^2), Bảng băm giảm thời gian xuống O(N)!"
+        ),
+        "notes": "Nếu dùng 2 vòng lặp `for` lồng nhau để đếm tần suất hoặc tìm cặp tổng bằng $K$ (Two-Sum), độ phức tạp là $O(N^2)$. Khi thay bằng `Dictionary<K,V>` (C#) hoặc `dict`/`set` (Python), mỗi phép tra cứu `ContainsKey` / `in` chỉ tốn $O(1)$ trung bình nên toàn bộ thuật toán giảm xuống $O(N)$!"
+    },
+    "binary_search": {
+        "title": "Tìm Kiếm Nhị Phân Chia Để Trị (Binary Search O(log N))",
+        "time_complexity": "O(log N)",
+        "space_complexity": "O(1)",
+        "active_curve": "logn",
+        "csharp": (
+            "// C# (Chống tràn số nguyên với left + (right - left) / 2)\n"
+            "int BinarySearch(int[] arr, int target)\n"
+            "{\n"
+            "    int left = 0, right = arr.Length - 1;\n"
+            "    while (left <= right)\n"
+            "    {\n"
+            "        int mid = left + (right - left) / 2;\n"
+            "        if (arr[mid] == target) return mid;\n"
+            "        if (arr[mid] < target) left = mid + 1;\n"
+            "        else right = mid - 1;\n"
+            "    }\n"
+            "    return -1;\n"
+            "}"
+        ),
+        "python": (
+            "# Python 3 (Module chuẩn bisect hoặc cài đặt 2 con trỏ)\n"
+            "def binary_search(arr: list[int], target: int) -> int:\n"
+            "    left, right = 0, len(arr) - 1\n"
+            "    while left <= right:\n"
+            "        mid = (left + right) // 2\n"
+            "        if arr[mid] == target:\n"
+            "            return mid\n"
+            "        elif arr[mid] < target:\n"
+            "            left = mid + 1\n"
+            "        else:\n"
+            "            right = mid - 1\n"
+            "    return -1"
+        ),
+        "sql_pseudo": (
+            "-- Hệ thức truy hồi Master Theorem:\n"
+            "T(N) = T(N / 2) + O(1)  ===>  T(N) = O(log2(N))\n"
+            "-- Với N = 1,000,000 phần tử đã sắp xếp:\n"
+            "-- Duyệt tuần tự O(N) mất tối đa 1,000,000 bước.\n"
+            "-- Tìm kiếm nhị phân O(log N) chỉ mất tối đa 20 bước!"
+        ),
+        "notes": "Trong C#/Java/C++, công thức `(left + right) / 2` có thể gây **tràn số nguyên 32-bit (Integer Overflow)** nếu `left + right > 2,147,483,647`. Công thức an toàn tuyệt đối là `left + (right - left) / 2`. Trong Python, kiểu `int` có độ lớn tùy ý (Arbitrary-precision) nên không bao giờ tràn số!"
+    },
+    "oop_polymorphism": {
+        "title": "Kế Thừa, Lớp Trừu Tượng & Đa Hình (C# OOP vs Python ABC)",
+        "time_complexity": "O(1) (Tra cứu V-Table)",
+        "space_complexity": "O(1)",
+        "active_curve": "const",
+        "csharp": (
+            "// C# (abstract class + virtual/override)\n"
+            "public abstract class NhanVien\n"
+            "{\n"
+            "    public string HoTen { get; set; }\n"
+            "    protected NhanVien(string ten) => HoTen = ten;\n"
+            "    public abstract double TinhLuong();\n"
+            "}\n"
+            "public class BacSi : NhanVien\n"
+            "{\n"
+            "    public int SoCaTruc { get; set; }\n"
+            "    public BacSi(string ten, int ca) : base(ten) => SoCaTruc = ca;\n"
+            "    public override double TinhLuong() => 15000000 + SoCaTruc * 500000;\n"
+            "}"
+        ),
+        "python": (
+            "# Python 3 (abc.ABC + @abstractmethod + super())\n"
+            "from abc import ABC, abstractmethod\n\n"
+            "class NhanVien(ABC):\n"
+            "    def __init__(self, ho_ten: str):\n"
+            "        self.ho_ten = ho_ten\n"
+            "    @abstractmethod\n"
+            "    def tinh_luong(self) -> float:\n"
+            "        pass\n\n"
+            "class BacSi(NhanVien):\n"
+            "    def __init__(self, ten: str, so_ca_truc: int):\n"
+            "        super().__init__(ten)\n"
+            "        self.so_ca_truc = so_ca_truc\n"
+            "    def tinh_luong(self) -> float:\n"
+            "        return 15_000_000 + self.so_ca_truc * 500_000"
+        ),
+        "sql_pseudo": (
+            "-- So sánh Cơ chế Liên kết Động (Dynamic Dispatch):\n"
+            "C# (.NET): Mặc định phương thức là NON-VIRTUAL. Muốn đa hình phải khai báo\n"
+            "           rõ từ khóa `virtual`/`abstract` ở lớp cha và `override` ở lớp con.\n"
+            "Python:    MỌI phương thức đều là `virtual` (Duck Typing & Dynamic Lookup)."
+        ),
+        "notes": "Điểm khác biệt hay hỏi thi nhất giữa C# và Python/Java: Trong C#, nếu không có từ khóa `virtual`/`override`, lời gọi hàm được gắn cứng lúc biên dịch (**Early Binding**). Trong Python, mọi lời gọi phương thức đều được phân giải động lúc chạy theo thứ tự **MRO (Method Resolution Order)**."
+    },
+    "dijkstra_pq": {
+        "title": "Thuật toán Dijkstra với Hàng Đợi Ưu Tiên (PriorityQueue / heapq)",
+        "time_complexity": "O((V + E) log V)",
+        "space_complexity": "O(V + E)",
+        "active_curve": "O(N log N)",
+        "csharp": (
+            "// C# (.NET 6+ PriorityQueue<TElement, TPriority>)\n"
+            "var dist = Enumerable.Repeat(int.MaxValue, n).ToArray();\n"
+            "var pq = new PriorityQueue<int, int>();\n"
+            "dist[src] = 0;\n"
+            "pq.Enqueue(src, 0);\n"
+            "while (pq.TryDequeue(out int u, out int d))\n"
+            "{\n"
+            "    if (d > dist[u]) continue;\n"
+            "    foreach (var (v, w) in adj[u])\n"
+            "        if (dist[u] + w < dist[v])\n"
+            "            pq.Enqueue(v, dist[v] = dist[u] + w);\n"
+            "}"
+        ),
+        "python": (
+            "# Python 3 (heapq Min-Heap Priority Queue)\n"
+            "import heapq\n"
+            "dist = [float('inf')] * n\n"
+            "dist[src] = 0\n"
+            "pq = [(0, src)]\n"
+            "while pq:\n"
+            "    d, u = heapq.heappop(pq)\n"
+            "    if d > dist[u]: continue\n"
+            "    for v, w in adj[u]:\n"
+            "        if dist[u] + w < dist[v]:\n"
+            "            dist[v] = dist[u] + w\n"
+            "            heapq.heappush(pq, (dist[v], v))"
+        ),
+        "sql_pseudo": (
+            "-- Mã giả Chuẩn Giáo trình Lý thuyết Đồ thị:\n"
+            "1. Khởi tạo d[s] = 0, d[v] = ∞ (v ≠ s), Min-Heap Q = {(0, s)}\n"
+            "2. Lặp khi Q ≠ Ø: Lấy đỉnh u có d[u] nhỏ nhất (O(log V))\n"
+            "3. Nới lỏng (Relax) mọi cạnh kề (u, v): nếu d[u] + w(u,v) < d[v]\n"
+            "   thì cập nhật d[v] và đẩy vào Min-Heap."
+        ),
+        "notes": "Sử dụng Binary Min-Heap (`PriorityQueue` trong C# hoặc `heapq` trong Python) giúp giảm thời gian tìm đỉnh có khoảng cách nhỏ nhất từ $O(V^2)$ xuống $O((V + E) \\log V)$!"
+    },
+    "dp_knapsack": {
+        "title": "Quy Hoạch Động: Bài Toán Balo 0/1 (0/1 Knapsack DP)",
+        "time_complexity": "O(N * W)",
+        "space_complexity": "O(W)",
+        "active_curve": "O(N^2)",
+        "csharp": (
+            "// C# (Quy hoạch động mảng 1 chiều tối ưu bộ nhớ O(W))\n"
+            "int[] dp = new int[W + 1];\n"
+            "for (int i = 0; i < n; i++)\n"
+            "    for (int w = W; w >= weights[i]; w--)\n"
+            "        dp[w] = Math.Max(dp[w], dp[w - weights[i]] + values[i]);\n"
+            "return dp[W];"
+        ),
+        "python": (
+            "# Python 3 (1D Dynamic Programming duyệt ngược trọng lượng)\n"
+            "dp = [0] * (W + 1)\n"
+            "for w_i, v_i in zip(weights, values):\n"
+            "    for w in range(W, w_i - 1, -1):\n"
+            "        dp[w] = max(dp[w], dp[w - w_i] + v_i)\n"
+            "return dp[W]"
+        ),
+        "sql_pseudo": (
+            "-- Công thức Truy hồi Bellman:\n"
+            "dp[i][w] = max( dp[i-1][w], dp[i-1][w - weight[i]] + value[i] )\n"
+            "-- Mẹo tối ưu không gian từ O(N*W) xuống O(W):\n"
+            "Duyệt w giảm dần từ W về weight[i] để không ghi đè trạng thái hàng i-1!"
+        ),
+        "notes": "Tại sao phải duyệt `w` lùi từ `W` về `weights[i]`? Vì nếu duyệt tiến từ nhỏ đến lớn, cùng một đồ vật thứ `i` sẽ bị chọn nhiều lần (biến thành bài toán **Unbounded Knapsack**)."
+    },
+    "two_sum_hash": {
+        "title": "Truy Vấn Cặp Phần Tử & Bảng Băm O(N) (C# Dictionary / LINQ vs Python Dict)",
+        "time_complexity": "O(N)",
+        "space_complexity": "O(N)",
+        "active_curve": "O(N)",
+        "csharp": (
+            "// C# (Dictionary<int, int> tra cứu phần bù O(1))\n"
+            "var seen = new Dictionary<int, int>();\n"
+            "for (int i = 0; i < nums.Length; i++)\n"
+            "{\n"
+            "    int comp = target - nums[i];\n"
+            "    if (seen.TryGetValue(comp, out int idx)) return new[] { idx, i };\n"
+            "    seen[nums[i]] = i;\n"
+            "}"
+        ),
+        "python": (
+            "# Python 3 (dict hash table O(1) average lookup)\n"
+            "seen: dict[int, int] = {}\n"
+            "for i, x in enumerate(nums):\n"
+            "    if (target - x) in seen:\n"
+            "        return [seen[target - x], i]\n"
+            "    seen[x] = i"
+        ),
+        "sql_pseudo": (
+            "-- SQL Self-Join vs Hash Join:\n"
+            "SELECT a.idx, b.idx\n"
+            "FROM nums a JOIN nums b ON a.val + b.val = :target AND a.idx < b.idx;\n"
+            "-- Hash Table giảm từ O(N^2) vét cạn xuống O(N) duyệt 1 lần!"
+        ),
+        "notes": "Sử dụng `TryGetValue` trong C# chỉ băm khóa (hash key) **đúng 1 lần**, nhanh gấp đôi so với việc gọi `ContainsKey(k)` rồi lại truy cập `seen[k]`."
+    }
+}
+
+
+async def api_polyglot_transpile_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    preset_key = (data.get("preset") or "binary_search").strip()
+    custom_code = (data.get("custom_code") or "").strip()
+
+    item = POLYGLOT_PRESETS.get(preset_key) or POLYGLOT_PRESETS["binary_search"]
+    custom_analysis = None
+
+    if custom_code:
+        for_count = len(re.findall(r"\b(for|foreach|while)\b", custom_code))
+        has_sort = any(w in custom_code.lower() for w in [".sort", "orderby", "sorted("])
+        if for_count >= 2:
+            est_comp = "O(N^2)"
+        elif has_sort:
+            est_comp = "O(N log N)"
+        elif for_count == 1:
+            est_comp = "O(N)"
+        else:
+            est_comp = "O(1)"
+        custom_analysis = {
+            "detected_loops": for_count,
+            "estimated_complexity": est_comp
+        }
+
+    return web.json_response({
+        "ok": True,
+        "title": item["title"],
+        "time_complexity": item["time_complexity"],
+        "space_complexity": item["space_complexity"],
+        "active_curve": item["active_curve"],
+        "csharp": item["csharp"],
+        "python": item["python"],
+        "sql_or_pseudo": item["sql_pseudo"],
+        "complexity_note": item["notes"],
+        "custom_analysis": custom_analysis,
+        "result": item
+    })
+
+
 def create_app():
     db.init_db()
     # Always repair the catalog first: cloud volumes can start with an empty DB
@@ -4160,12 +4713,15 @@ def create_app():
     app.router.add_get("/api/stem/reference", api_stem_reference)
     app.router.add_get("/api/exam/ctump-parts", api_exam_ctump_parts)
 
-    # UniMaster AI v41.0 Super-Suite Routes
+    # UniMaster AI v41.0 & v42.0 Super-Suite Routes
     app.router.add_post("/api/ai/viva-simulator", api_viva_simulator_handler)
     app.router.add_post("/api/ai/feynman-evaluate", api_feynman_evaluate_handler)
     app.router.add_post("/api/ai/mindmap-generate", api_mindmap_generate_handler)
     app.router.add_post("/api/code/uml-memory-analyzer", api_code_uml_memory_analyzer)
     app.router.add_get("/api/gamification/quests", api_gamification_quests_handler)
+    app.router.add_post("/api/ai/devils-advocate", api_devils_advocate_handler)
+    app.router.add_get("/api/analytics/forgetting-curve", api_forgetting_curve_handler)
+    app.router.add_post("/api/code/polyglot-transpile", api_polyglot_transpile_handler)
 
     # Route URLs (/exam/practical, /exam/essay, etc.)
     app.router.add_get("/exam/practical", index_handler)

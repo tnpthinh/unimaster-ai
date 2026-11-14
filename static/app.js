@@ -20130,10 +20130,14 @@ function buildCommandPaletteCatalog(query) {
   const q = (query || '').trim().toLowerCase();
   const items = [];
 
-  // Core System & v41.0 Actions
+  // Core System, v41.0 & v42.0 Actions
   const coreCommands = [
-    { icon: '🎙️', title: 'Phòng Thi Vấn Đáp 1-1 AI (Viva Voce Simulator)', sub: 'Chấm điểm Rubric 4 tiêu chí & Nhận diện giọng nói', badge: 'MỚI v41', action: () => openVivaSimulatorModal() },
-    { icon: '🧠', title: 'Sơ Đồ Tư Duy SVG & Phương Pháp Feynman', sub: 'Vẽ Mindmap tương tác & Chấm điểm giải thích Feynman', badge: 'MỚI v41', action: () => openMindmapFeynmanModal() },
+    { icon: '⚔️', title: 'Đấu Trường Săn Ngụy Biện AI (Devil\'s Advocate Arena)', sub: 'Bắt lỗi lập luận sai của AI để rèn tư duy phản biện Socratic', badge: 'MỚI v42', action: () => openDevilsAdvocateModal() },
+    { icon: '📈', title: 'Đường Cong Quên Lãng Ebbinghaus & Dự Báo Điểm Thi', sub: 'Mô hình toán học R(t)=e^(-t/S) & Khoảng tin cậy 95%', badge: 'MỚI v42', action: () => openEbbinghausModal() },
+    { icon: '🔄', title: 'Đối Chiếu Code C# ↔ Python ↔ SQL & Đồ Thị Big-O', sub: 'Chuyển đổi song ngữ thuật toán và vẽ đường cong độ phức tạp', badge: 'MỚI v42', action: () => openPolyglotModal(false) },
+    { icon: '🎧', title: 'Sóng Não Binaural Beats (Alpha/Beta/Gamma) & Brown Noise', sub: 'Tổng hợp âm thanh tập trung sâu WebAudio API + Đồng hồ Pomodoro', badge: 'MỚI v42', action: () => openZenBinauralModal() },
+    { icon: '🎙️', title: 'Phòng Thi Vấn Đáp 1-1 AI (Viva Voce Simulator)', sub: 'Chấm điểm Rubric 4 tiêu chí & Nhận diện giọng nói', badge: 'HOT v41', action: () => openVivaSimulatorModal() },
+    { icon: '🧠', title: 'Sơ Đồ Tư Duy SVG & Phương Pháp Feynman', sub: 'Vẽ Mindmap tương tác & Chấm điểm giải thích Feynman', badge: 'HOT v41', action: () => openMindmapFeynmanModal() },
     { icon: '🔬', title: 'Phân Tích Sơ Đồ Lớp UML & Bộ Nhớ Stack/Heap', sub: 'Mở IDE C#/Python và trực quan hóa con trỏ vùng nhớ', badge: 'IDE v41', action: () => { switchTab('exercises'); setTimeout(() => openUmlMemoryModal(), 250); } },
     { icon: '🧬', title: 'Phòng Lab Động Học Enzyme Michaelis-Menten & Lineweaver-Burk', sub: 'Mô phỏng Km, Vmax và 4 loại chất ức chế enzyme', badge: 'LAB #10', action: () => { switchTab('lab'); switchLabSubTab('kinetics'); } },
     { icon: '🕸️', title: 'Phòng Lab Lý Thuyết Đồ Thị: Dijkstra, BFS, DFS & MST', sub: 'Chạy từng bước bảng Trace & Ma trận kề chuẩn giáo trình', badge: 'LAB #11', action: () => { switchTab('lab'); switchLabSubTab('graphtheory'); } },
@@ -21315,8 +21319,558 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
+/* ============================================================================
+   UNIMASTER AI v42.0 ULTRA-UX & COGNITIVE STUDIO MODULES
+   1. AI Devil's Advocate Arena (Fallacy Hunter)
+   2. Ebbinghaus Forgetting Curve & Exam Score Predictor (SVG)
+   3. Polyglot Code Transpiler (C# <-> Python <-> SQL) & Big-O Curve (SVG)
+   4. Web Audio API Binaural Beats & Brown Noise Synthesizer + Floating Zen Dock
+   ============================================================================ */
+
+const V42_STATE = {
+  daChallenge: null,
+  ebbData: null,
+  audioCtx: null,
+  leftOsc: null,
+  rightOsc: null,
+  binauralGain: null,
+  noiseNode: null,
+  noiseGain: null,
+  isAudioPlaying: false,
+  wavePreset: 'alpha',
+  pomoSeconds: 25 * 60,
+  pomoRunning: false,
+  pomoTimerId: null
+};
+
+/* --- 1. AI DEVIL'S ADVOCATE ARENA (ĐẤU TRƯỜNG SĂN NGỤY BIỆN AI) --- */
+async function openDevilsAdvocateModal() {
+  const modal = document.getElementById('modal-devils-advocate');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  await requestNextDevilsAdvocateChallenge();
+}
+
+function closeDevilsAdvocateModal() {
+  const modal = document.getElementById('modal-devils-advocate');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function requestNextDevilsAdvocateChallenge() {
+  const domain = document.getElementById('da-domain-select')?.value || 'biochem';
+  const claimEl = document.getElementById('da-claim-text');
+  const topicEl = document.getElementById('da-topic-badge');
+  const hintBox = document.getElementById('da-hint-box');
+  const evalBox = document.getElementById('da-evaluation-box');
+  const inputEl = document.getElementById('da-rebuttal-input');
+
+  if (hintBox) hintBox.classList.add('hidden');
+  if (evalBox) evalBox.classList.add('hidden');
+  if (inputEl) inputEl.value = '';
+  if (claimEl) claimEl.textContent = 'Đang tạo lập luận chứa bẫy học thuật...';
+
+  try {
+    const res = await fetch('/api/ai/devils-advocate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'next_challenge',
+        domain,
+        challenge_id: V42_STATE.daChallenge?.challenge_id || ''
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      V42_STATE.daChallenge = data;
+      if (topicEl) topicEl.textContent = `Chủ đề: ${data.topic}`;
+      if (claimEl) claimEl.textContent = `"${data.ai_claim}"`;
+      if (hintBox) hintBox.innerHTML = `💡 <strong>Gợi ý Socratic:</strong> ${escapeHtml(data.hint || '')}`;
+      renderAllMathOnPage();
+    }
+  } catch (e) {
+    if (claimEl) claimEl.textContent = '"Trong ức chế cạnh tranh, Vmax giảm mạnh vì chất ức chế chiếm mất trung tâm hoạt động của enzyme."';
+  }
+}
+
+function revealDevilsAdvocateHint() {
+  const hintBox = document.getElementById('da-hint-box');
+  if (!hintBox) return;
+  hintBox.classList.toggle('hidden');
+}
+
+async function submitDevilsAdvocateRebuttal() {
+  const domain = document.getElementById('da-domain-select')?.value || 'biochem';
+  const rebuttal = (document.getElementById('da-rebuttal-input')?.value || '').trim();
+  const evalBox = document.getElementById('da-evaluation-box');
+
+  if (!rebuttal) {
+    showToast('Hãy nhập lập luận phản biện của bạn để bóc trần lỗi sai của AI!', 'warning');
+    return;
+  }
+
+  if (evalBox) {
+    evalBox.classList.remove('hidden');
+    evalBox.innerHTML = `<div class="p-4 text-xs font-bold text-rose-300 animate-pulse">⚔️ Đang phân tích lập luận phản biện của bạn...</div>`;
+  }
+
+  try {
+    const res = await fetch('/api/ai/devils-advocate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'evaluate_rebuttal',
+        domain,
+        challenge_id: V42_STATE.daChallenge?.challenge_id || '',
+        rebuttal
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) return;
+
+    const hits = (data.hit_keywords || []).map(k => `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✔ ${escapeHtml(k)}</span>`).join(' ');
+    const misses = (data.missed_keywords || []).map(k => `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">+ ${escapeHtml(k)}</span>`).join(' ');
+
+    if (evalBox) {
+      evalBox.innerHTML = `
+        <div class="p-4 rounded-2xl border border-rose-500/40 bg-slate-950/95 space-y-3">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+              <span class="text-2xl font-black text-rose-400">${data.score}/100</span>
+              <span class="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-rose-500/20 text-rose-300 border border-rose-500/30">${escapeHtml(data.rank)}</span>
+            </div>
+            <span class="text-[11px] font-mono text-slate-400">Điểm Tư Duy Phản Biện</span>
+          </div>
+
+          <p class="text-xs text-slate-200 leading-relaxed">${escapeHtml(data.ai_response)}</p>
+
+          <div class="space-y-1 text-xs">
+            <div class="font-bold text-slate-300">🎯 Từ khóa phản biện phát hiện:</div>
+            <div class="flex flex-wrap gap-1.5">${hits || '<span class="text-slate-500">Chưa trúng từ khóa cốt lõi</span>'} ${misses}</div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs space-y-1">
+            <div class="font-extrabold text-rose-300">🚨 Vạch Trần Lỗi Ngụy Biện Của AI:</div>
+            <div class="text-slate-200 leading-relaxed">${escapeHtml(data.fallacy_exposed)}</div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-xs space-y-1">
+            <div class="font-extrabold text-emerald-300">✅ Chân Lý Khoa Học Chuẩn Xác:</div>
+            <div class="text-slate-200 leading-relaxed">${escapeHtml(data.scientific_truth)}</div>
+          </div>
+        </div>
+      `;
+      renderAllMathOnPage();
+    }
+  } catch (e) {
+    if (evalBox) evalBox.innerHTML = `<div class="p-3 text-xs text-rose-400">Không thể chấm phản biện lúc này.</div>`;
+  }
+}
+
+/* --- 2. EBBINGHAUS FORGETTING CURVE & EXAM SCORE PREDICTOR --- */
+async function openEbbinghausModal() {
+  const modal = document.getElementById('modal-ebbinghaus-predictor');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  await loadEbbinghausPredictorData(true);
+}
+
+function closeEbbinghausModal() {
+  const modal = document.getElementById('modal-ebbinghaus-predictor');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function loadEbbinghausPredictorData(renderModalChart = false) {
+  try {
+    const res = await fetch('/api/analytics/forgetting-curve');
+    const data = await res.json();
+    if (!data.ok) return;
+    V42_STATE.ebbData = data;
+
+    // Update Mini Dashboard Card
+    const miniScore = document.getElementById('mini-predicted-score');
+    const miniRet = document.getElementById('mini-retention-badge');
+    if (miniScore) miniScore.textContent = `${data.predicted_exam_score_10.toFixed(1)} / 10`;
+    if (miniRet) miniRet.textContent = `Nhớ: ${data.current_retention_pct}%`;
+
+    if (!renderModalChart) return;
+
+    setText('ebb-predicted-score', `${data.predicted_exam_score_10.toFixed(1)} / 10`);
+    setText('ebb-ci95-badge', `95% CI: ${data.confidence_interval_95[0]} - ${data.confidence_interval_95[1]}`);
+    setText('ebb-current-retention', `${data.current_retention_pct}%`);
+    setText('ebb-memory-s', `${data.memory_strength_s} ngày`);
+    setText('ebb-due-cards', `${data.due_flashcards} / ${data.total_flashcards}`);
+
+    const recBox = document.getElementById('ebb-recommendation-box');
+    if (recBox) {
+      recBox.innerHTML = `💡 <strong>Chiến lược tối ưu từ AI:</strong> ${escapeHtml(data.recommendation)} (Dựa trên ${data.exam_attempts} lượt làm đề với điểm trung bình ${data.avg_exam_pct}%).`;
+    }
+
+    renderEbbinghausSvgChart(data.curve || []);
+  } catch (e) {}
+}
+
+function renderEbbinghausSvgChart(curve) {
+  const box = document.getElementById('ebbinghaus-svg-canvas');
+  if (!box || !curve.length) return;
+
+  const w = 680, h = 230, padL = 44, padR = 24, padT = 22, padB = 34;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const xOf = (day) => padL + (day / 14) * plotW;
+  const yOf = (pct) => padT + ((100 - pct) / 100) * plotH;
+
+  let naturalPts = [];
+  let spacedPts = [];
+  let circlesHtml = '';
+  let xLabelsHtml = '';
+
+  curve.forEach((pt) => {
+    const x = xOf(pt.day);
+    const yNat = yOf(pt.natural_retention);
+    const ySpc = yOf(pt.spaced_retention);
+    naturalPts.push(`${x.toFixed(1)},${yNat.toFixed(1)}`);
+    spacedPts.push(`${x.toFixed(1)},${ySpc.toFixed(1)}`);
+
+    if (pt.day % 2 === 0 || pt.is_review_checkpoint) {
+      xLabelsHtml += `<text x="${x.toFixed(1)}" y="${h - 10}" text-anchor="middle" fill="${pt.is_review_checkpoint ? '#34d399' : '#94a3b8'}" font-size="10" font-family="monospace">${pt.label}</text>`;
+    }
+
+    circlesHtml += `
+      <circle cx="${x.toFixed(1)}" cy="${yNat.toFixed(1)}" r="3.5" fill="#fb7185" stroke="#0f172a" stroke-width="1.5">
+        <title>Ngày ${pt.day} (Không ôn): Nhớ ${pt.natural_retention}%</title>
+      </circle>
+      <circle cx="${x.toFixed(1)}" cy="${ySpc.toFixed(1)}" r="${pt.is_review_checkpoint ? '5.5' : '3.8'}" fill="${pt.is_review_checkpoint ? '#10b981' : '#34d399'}" stroke="#0f172a" stroke-width="1.5">
+        <title>Ngày ${pt.day} (Ôn SM-2): Nhớ ${pt.spaced_retention}%${pt.is_review_checkpoint ? ' (Mốc Ôn Tập!)' : ''}</title>
+      </circle>
+    `;
+  });
+
+  const gridLines = [20, 40, 60, 80, 100].map(pct => {
+    const y = yOf(pct).toFixed(1);
+    return `
+      <line x1="${padL}" y1="${y}" x2="${w - padR}" y2="${y}" stroke="#1e293b" stroke-dasharray="3,3" />
+      <text x="${padL - 8}" y="${Number(y) + 3}" text-anchor="end" fill="#64748b" font-size="10" font-family="monospace">${pct}%</text>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" class="w-full h-auto select-none">
+      ${gridLines}
+      <polyline fill="none" stroke="#fb7185" stroke-width="2.5" stroke-dasharray="6,4" points="${naturalPts.join(' ')}" />
+      <polyline fill="none" stroke="#10b981" stroke-width="3" points="${spacedPts.join(' ')}" />
+      ${circlesHtml}
+      ${xLabelsHtml}
+    </svg>
+  `;
+}
+
+/* --- 3. POLYGLOT CODE TRANSPILER & BIG-O CURVE VISUALIZER --- */
+async function openPolyglotModal(useEditorCode = false) {
+  const modal = document.getElementById('modal-polyglot-transpiler');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  await loadPolyglotAlgorithm(useEditorCode);
+}
+
+function closePolyglotModal() {
+  const modal = document.getElementById('modal-polyglot-transpiler');
+  if (modal) modal.classList.add('hidden');
+}
+
+async function loadPolyglotAlgorithm(useEditorCode = false) {
+  const preset = document.getElementById('polyglot-preset-select')?.value || 'binary_search';
+  const editorCode = useEditorCode ? (document.getElementById('code-editor-textarea')?.value || '') : '';
+
+  try {
+    const res = await fetch('/api/code/polyglot-transpile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset, custom_code: editorCode })
+    });
+    const data = await res.json();
+    if (!data.ok) return;
+
+    setText('poly-time-badge', `Time: ${data.time_complexity}`);
+    setText('poly-space-badge', `Space: ${data.space_complexity}`);
+    setText('poly-code-csharp', data.csharp || '');
+    setText('poly-code-python', data.python || '');
+    setText('poly-code-sql', data.sql_or_pseudo || '');
+
+    const insightBox = document.getElementById('poly-insight-box');
+    if (insightBox) {
+      const customNote = data.custom_analysis
+        ? `<div class="mt-1 text-emerald-300 font-mono text-[11px]">🔍 Phân tích mã IDE của bạn: Phát hiện ${data.custom_analysis.detected_loops} vòng lặp, độ phức tạp ước tính ${data.custom_analysis.estimated_complexity}.</div>`
+        : '';
+      insightBox.innerHTML = `💡 <strong>Bản chất Thuật toán (${escapeHtml(data.title)}):</strong> ${escapeHtml(data.complexity_note)}${customNote}`;
+    }
+
+    renderPolyglotBigOSvgChart(data.active_curve || 'O(log N)');
+  } catch (e) {}
+}
+
+function renderPolyglotBigOSvgChart(activeCurve) {
+  const box = document.getElementById('polyglot-bigo-svg-canvas');
+  if (!box) return;
+
+  const w = 680, h = 185, padL = 44, padR = 95, padT = 18, padB = 26;
+  const plotW = w - padL - padR;
+  const plotH = h - padT - padB;
+
+  const curves = [
+    { name: 'O(1)', color: '#10b981', fn: () => 0.08 },
+    { name: 'O(log N)', color: '#38bdf8', fn: (t) => Math.log2(1 + t * 15) / 14 },
+    { name: 'O(N)', color: '#facc15', fn: (t) => t * 0.55 },
+    { name: 'O(N log N)', color: '#fb923c', fn: (t) => Math.min(1, t * Math.log2(1 + t * 7) * 0.34) },
+    { name: 'O(N^2)', color: '#f43f5e', fn: (t) => Math.min(1, t * t * 1.05) }
+  ];
+
+  const pathsHtml = curves.map(c => {
+    const isSelected = activeCurve.toLowerCase().includes(c.name.toLowerCase()) ||
+      (c.name === 'O(N log N)' && activeCurve.includes('log V'));
+    let pts = [];
+    for (let i = 0; i <= 25; i++) {
+      const t = i / 25;
+      const x = padL + t * plotW;
+      const y = padT + (1 - c.fn(t)) * plotH;
+      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    const lastPt = pts[pts.length - 1].split(',');
+    return `
+      <polyline fill="none" stroke="${c.color}" stroke-width="${isSelected ? '3.6' : '1.6'}" stroke-opacity="${isSelected ? '1' : '0.45'}" points="${pts.join(' ')}" />
+      <text x="${Number(lastPt[0]) + 6}" y="${Number(lastPt[1]) + 3}" fill="${c.color}" font-size="${isSelected ? '11' : '9.5'}" font-weight="${isSelected ? 'bold' : 'normal'}" font-family="monospace">
+        ${c.name}${isSelected ? ' ★' : ''}
+      </text>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <svg viewBox="0 0 ${w} ${h}" class="w-full h-auto select-none">
+      <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h - padB}" stroke="#334155" stroke-width="1.5" />
+      <line x1="${padL}" y1="${h - padB}" x2="${w - padR}" y2="${h - padB}" stroke="#334155" stroke-width="1.5" />
+      <text x="${padL - 8}" y="${padT + 8}" text-anchor="end" fill="#64748b" font-size="9" font-family="monospace">Ops</text>
+      <text x="${w - padR}" y="${h - 8}" text-anchor="end" fill="#64748b" font-size="9" font-family="monospace">Kích thước dữ liệu (N) →</text>
+      ${pathsHtml}
+    </svg>
+  `;
+}
+
+/* --- 4. WEB AUDIO API BINAURAL BEATS & BROWN NOISE + FLOATING POMODORO DOCK --- */
+function openZenBinauralModal() {
+  const modal = document.getElementById('modal-zen-binaural');
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeZenBinauralModal() {
+  const modal = document.getElementById('modal-zen-binaural');
+  if (modal) modal.classList.add('hidden');
+}
+
+function _getWaveFrequencies(preset) {
+  if (preset === 'beta') return { left: 210, right: 228, label: 'Sóng Beta 18Hz (210Hz L / 228Hz R)' };
+  if (preset === 'gamma') return { left: 220, right: 260, label: 'Sóng Gamma 40Hz (220Hz L / 260Hz R)' };
+  return { left: 200, right: 210, label: 'Sóng Alpha 10Hz (200Hz L / 210Hz R)' };
+}
+
+function selectBinauralWave(preset) {
+  V42_STATE.wavePreset = preset;
+  ['alpha', 'beta', 'gamma'].forEach(k => {
+    const btn = document.getElementById(`zen-wave-${k}`);
+    if (!btn) return;
+    if (k === preset) {
+      btn.className = 'p-3.5 rounded-2xl border-2 border-teal-500 bg-teal-500/15 text-left space-y-1 transition-all';
+    } else {
+      btn.className = 'p-3.5 rounded-2xl border text-left space-y-1 transition-all hover:border-teal-500/50';
+      btn.style.backgroundColor = 'var(--bg-subtle)';
+      btn.style.borderColor = 'var(--border)';
+    }
+  });
+
+  const freqInfo = _getWaveFrequencies(preset);
+  setText('zen-freq-readout', `${freqInfo.label} + Brown Noise`);
+
+  if (V42_STATE.isAudioPlaying && V42_STATE.leftOsc && V42_STATE.rightOsc && V42_STATE.audioCtx) {
+    const now = V42_STATE.audioCtx.currentTime;
+    V42_STATE.leftOsc.frequency.setTargetAtTime(freqInfo.left, now, 0.08);
+    V42_STATE.rightOsc.frequency.setTargetAtTime(freqInfo.right, now, 0.08);
+  }
+}
+
+function _initWebAudioSynthesizer() {
+  const AudioCtx = window.AudioContext || window.webkitAudioContext;
+  if (!AudioCtx) {
+    showToast('Trình duyệt của bạn không hỗ trợ Web Audio API.', 'error');
+    return false;
+  }
+
+  if (!V42_STATE.audioCtx) {
+    const ctx = new AudioCtx();
+    V42_STATE.audioCtx = ctx;
+
+    const freqInfo = _getWaveFrequencies(V42_STATE.wavePreset);
+    const binGain = ctx.createGain();
+    const binVol = parseFloat(document.getElementById('zen-binaural-vol')?.value || '25') / 100;
+    binGain.gain.value = binVol * 0.25;
+
+    const leftOsc = ctx.createOscillator();
+    const rightOsc = ctx.createOscillator();
+    leftOsc.type = 'sine';
+    rightOsc.type = 'sine';
+    leftOsc.frequency.value = freqInfo.left;
+    rightOsc.frequency.value = freqInfo.right;
+
+    if (typeof ctx.createStereoPanner === 'function') {
+      const leftPan = ctx.createStereoPanner();
+      const rightPan = ctx.createStereoPanner();
+      leftPan.pan.value = -0.85;
+      rightPan.pan.value = 0.85;
+      leftOsc.connect(leftPan).connect(binGain);
+      rightOsc.connect(rightPan).connect(binGain);
+    } else {
+      leftOsc.connect(binGain);
+      rightOsc.connect(binGain);
+    }
+    binGain.connect(ctx.destination);
+    leftOsc.start();
+    rightOsc.start();
+
+    // Synthesize Warm Brown Noise Buffer (2 seconds loop)
+    const bufferSize = ctx.sampleRate * 2;
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    let lastOut = 0.0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      output[i] = (lastOut + (0.02 * white)) / 1.02;
+      lastOut = output[i];
+      output[i] *= 3.2;
+    }
+
+    const whiteNoise = ctx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+    whiteNoise.loop = true;
+
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 420;
+
+    const noiseGain = ctx.createGain();
+    const noiseVol = parseFloat(document.getElementById('zen-noise-vol')?.value || '35') / 100;
+    noiseGain.gain.value = noiseVol * 0.35;
+
+    whiteNoise.connect(filter).connect(noiseGain).connect(ctx.destination);
+    whiteNoise.start();
+
+    V42_STATE.leftOsc = leftOsc;
+    V42_STATE.rightOsc = rightOsc;
+    V42_STATE.binauralGain = binGain;
+    V42_STATE.noiseNode = whiteNoise;
+    V42_STATE.noiseGain = noiseGain;
+  }
+  return true;
+}
+
+function toggleBinauralAudioQuick() {
+  if (!V42_STATE.isAudioPlaying) {
+    if (!_initWebAudioSynthesizer()) return;
+    if (V42_STATE.audioCtx.state === 'suspended') {
+      V42_STATE.audioCtx.resume();
+    }
+    V42_STATE.isAudioPlaying = true;
+    updateBinauralAudioUI(true);
+    showToast('🎧 Đã bật Sóng Não Binaural + Brown Noise tập trung cao độ!', 'success');
+  } else {
+    if (V42_STATE.audioCtx && V42_STATE.audioCtx.state === 'running') {
+      V42_STATE.audioCtx.suspend();
+    }
+    V42_STATE.isAudioPlaying = false;
+    updateBinauralAudioUI(false);
+    showToast('⏸ Đã tạm dừng Sóng Não Binaural.', 'info');
+  }
+}
+
+function updateBinauralAudioUI(playing) {
+  const playBtn = document.getElementById('zen-audio-play-btn');
+  const dot = document.getElementById('zen-dock-wave-dot');
+  const modalCard = document.getElementById('modal-zen-binaural');
+
+  if (playBtn) {
+    playBtn.textContent = playing ? '⏸ Tạm dừng Sóng Não' : '▶ Bật Sóng Não';
+    playBtn.className = playing
+      ? 'px-4 py-2 rounded-xl text-xs font-extrabold bg-rose-600 hover:bg-rose-500 text-white shadow-lg transition-all'
+      : 'px-4 py-2 rounded-xl text-xs font-extrabold bg-teal-600 hover:bg-teal-500 text-white shadow-lg transition-all';
+  }
+  if (dot) {
+    dot.className = playing
+      ? 'w-2 h-2 rounded-full bg-teal-400 animate-ping'
+      : 'w-2 h-2 rounded-full bg-slate-500';
+  }
+  if (modalCard) {
+    modalCard.classList.toggle('binaural-playing', playing);
+  }
+}
+
+function updateBinauralVolumes() {
+  const binVol = parseFloat(document.getElementById('zen-binaural-vol')?.value || '25');
+  const noiseVol = parseFloat(document.getElementById('zen-noise-vol')?.value || '35');
+  setText('zen-binaural-vol-label', `${binVol}%`);
+  setText('zen-noise-vol-label', `${noiseVol}%`);
+
+  if (V42_STATE.binauralGain && V42_STATE.audioCtx) {
+    V42_STATE.binauralGain.gain.setTargetAtTime((binVol / 100) * 0.25, V42_STATE.audioCtx.currentTime, 0.05);
+  }
+  if (V42_STATE.noiseGain && V42_STATE.audioCtx) {
+    V42_STATE.noiseGain.gain.setTargetAtTime((noiseVol / 100) * 0.35, V42_STATE.audioCtx.currentTime, 0.05);
+  }
+}
+
+function _formatPomoMMSS(sec) {
+  const m = Math.floor(sec / 60);
+  const s = sec % 60;
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+}
+
+function toggleZenPomodoroTimer() {
+  const btn = document.getElementById('zen-pomo-start-btn');
+  if (V42_STATE.pomoRunning) {
+    clearInterval(V42_STATE.pomoTimerId);
+    V42_STATE.pomoRunning = false;
+    if (btn) btn.textContent = '▶ Tiếp tục';
+    return;
+  }
+
+  V42_STATE.pomoRunning = true;
+  if (btn) btn.textContent = '⏸ Tạm dừng';
+  V42_STATE.pomoTimerId = setInterval(() => {
+    if (V42_STATE.pomoSeconds > 0) {
+      V42_STATE.pomoSeconds--;
+      const txt = _formatPomoMMSS(V42_STATE.pomoSeconds);
+      setText('zen-pomo-display', txt);
+      setText('zen-dock-timer', txt);
+    } else {
+      clearInterval(V42_STATE.pomoTimerId);
+      V42_STATE.pomoRunning = false;
+      if (btn) btn.textContent = '▶ Bắt đầu 25p';
+      showToast('🎉 Hoàn thành phiên Pomodoro 25 phút tập trung sâu! Bạn nhận +25 XP!', 'success');
+      if (typeof playSound === 'function') playSound('success');
+    }
+  }, 1000);
+}
+
+function resetZenPomodoroTimer(minutes = 25) {
+  if (V42_STATE.pomoTimerId) clearInterval(V42_STATE.pomoTimerId);
+  V42_STATE.pomoRunning = false;
+  V42_STATE.pomoSeconds = minutes * 60;
+  const txt = _formatPomoMMSS(V42_STATE.pomoSeconds);
+  setText('zen-pomo-display', txt);
+  setText('zen-dock-timer', txt);
+  const btn = document.getElementById('zen-pomo-start-btn');
+  if (btn) btn.textContent = `▶ Bắt đầu ${minutes}p`;
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     loadDailyQuestsWidget();
+    loadEbbinghausPredictorData(false);
   }, 600);
 });
