@@ -4857,6 +4857,9 @@ function renderCurrentExamQuestion() {
 }
 
 function renderQuestionAnswerArea(q) {
+  if (typeof syncConfidenceBarForQuestion === 'function') {
+    syncConfidenceBarForQuestion(q);
+  }
   const area = document.getElementById('q-answer-area');
   if (!area) return;
 
@@ -5762,6 +5765,9 @@ function renderExamResultScreen(res) {
     setTimeout(() => {
       triggerExamEvaluation(true);
     }, 1200);
+  }
+  if (typeof renderMetacognitionMatrix === 'function') {
+    renderMetacognitionMatrix(res);
   }
   filterResultReview('all');
   window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -8910,7 +8916,7 @@ function initLabHubView() {
 }
 
 function switchLabSubTab(subKey) {
-  const subs = ['spectro', 'osce', 'handwritten', 'graph', 'calc', 'patient', 'dosing', 'biostat', 'export'];
+  const subs = ['spectro', 'osce', 'handwritten', 'graph', 'calc', 'patient', 'dosing', 'biostat', 'export', 'kinetics', 'graphtheory'];
   subs.forEach((k) => {
     document.getElementById(`lab-sub-${k}`)?.classList.toggle('hidden', k !== subKey);
   });
@@ -8935,6 +8941,8 @@ function switchLabSubTab(subKey) {
   if (subKey === 'dosing') runRenalDoseCalculation();
   if (subKey === 'biostat') runBiostatCalculations();
   if (subKey === 'export') initExportView();
+  if (subKey === 'kinetics' && typeof renderEnzymeKineticsLab === 'function') renderEnzymeKineticsLab();
+  if (subKey === 'graphtheory' && typeof initGraphTheoryLab === 'function') initGraphTheoryLab();
   playSound('click');
 }
 
@@ -20070,3 +20078,1245 @@ function insertCSharpTemplate(index) {
 
   showToast(`Đã chèn mẫu "${t.name}" vào Editor!`, 'success');
 }
+
+/* --------------------------------------------------------------------------
+   UNIMASTER AI v41.0 SUPER-SUITE:
+   1. Command Palette & Omnisearch (Ctrl+K)
+   2. AI Viva Voce & Oral Defense Simulator (Web Speech STT/TTS + 4-Rubric)
+   3. Interactive SVG Mindmap & Feynman Technique Evaluator
+   4. Auto UML Class Diagram & Stack/Heap Memory Visualizer
+   5. Enzyme Kinetics Michaelis-Menten & Lineweaver-Burk Plotter
+   6. Interactive Graph Theory & Dijkstra/MST Sandbox
+   7. Daily Quests & XP Progression Widget
+   8. Metacognition 4-Quadrant Confidence & Telemetry Matrix
+   -------------------------------------------------------------------------- */
+
+const V41_STATE = {
+  cmdPaletteIndex: 0,
+  cmdPaletteItems: [],
+  vivaCurrentQuestion: null,
+  vivaRecognition: null,
+  vivaIsListening: false,
+  mindmapData: null,
+  mindmapSelectedBranchId: null,
+  confidenceMap: {},
+  telemetryMap: {},
+  questionEnteredAt: Date.now(),
+  telemetryInterval: null,
+  graphInitialized: false,
+  graphNodes: [],
+  graphEdges: []
+};
+
+/* --- 1. COMMAND PALETTE & OMNISEARCH (Ctrl+K) --- */
+function openCommandPaletteModal() {
+  const modal = document.getElementById('modal-command-palette');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  const input = document.getElementById('cmd-palette-input');
+  if (input) {
+    input.value = '';
+    setTimeout(() => input.focus(), 40);
+  }
+  V41_STATE.cmdPaletteIndex = 0;
+  renderCommandPaletteResults();
+}
+
+function closeCommandPaletteModal() {
+  document.getElementById('modal-command-palette')?.classList.add('hidden');
+}
+
+function buildCommandPaletteCatalog(query) {
+  const q = (query || '').trim().toLowerCase();
+  const items = [];
+
+  // Core System & v41.0 Actions
+  const coreCommands = [
+    { icon: '🎙️', title: 'Phòng Thi Vấn Đáp 1-1 AI (Viva Voce Simulator)', sub: 'Chấm điểm Rubric 4 tiêu chí & Nhận diện giọng nói', badge: 'MỚI v41', action: () => openVivaSimulatorModal() },
+    { icon: '🧠', title: 'Sơ Đồ Tư Duy SVG & Phương Pháp Feynman', sub: 'Vẽ Mindmap tương tác & Chấm điểm giải thích Feynman', badge: 'MỚI v41', action: () => openMindmapFeynmanModal() },
+    { icon: '🔬', title: 'Phân Tích Sơ Đồ Lớp UML & Bộ Nhớ Stack/Heap', sub: 'Mở IDE C#/Python và trực quan hóa con trỏ vùng nhớ', badge: 'IDE v41', action: () => { switchTab('exercises'); setTimeout(() => openUmlMemoryModal(), 250); } },
+    { icon: '🧬', title: 'Phòng Lab Động Học Enzyme Michaelis-Menten & Lineweaver-Burk', sub: 'Mô phỏng Km, Vmax và 4 loại chất ức chế enzyme', badge: 'LAB #10', action: () => { switchTab('lab'); switchLabSubTab('kinetics'); } },
+    { icon: '🕸️', title: 'Phòng Lab Lý Thuyết Đồ Thị: Dijkstra, BFS, DFS & MST', sub: 'Chạy từng bước bảng Trace & Ma trận kề chuẩn giáo trình', badge: 'LAB #11', action: () => { switchTab('lab'); switchLabSubTab('graphtheory'); } },
+    { icon: '⚡', title: 'Vào Phòng Thi Thông Minh (Smart Exam Room)', sub: 'Luyện đề trắc nghiệm, Thi thực chiến, Blitz 3 Mạng', badge: 'PHÍM 2', action: () => switchTab('exam') },
+    { icon: '💻', title: 'Mở Trình Biên Dịch Code C# (.NET) & Python', sub: '20 bài thực hành OOP & Giải thuật có chấm Unit Test', badge: 'PHÍM 3', action: () => switchTab('exercises') },
+    { icon: '📝', title: 'Chấm Tự Luận Toán Rời Rạc & Giải Thuật AI', sub: 'Xem trước công thức LaTeX & Chấm từng bước chứng minh', badge: 'PHÍM 4', action: () => switchTab('essay') },
+    { icon: '🃏', title: 'Ôn Tập Thẻ Nhớ 3D Flashcards (Thuật toán SM-2)', sub: 'Lặp lại ngắt quãng chống quên kiến thức', badge: 'PHÍM 5', action: () => switchTab('flashcards') },
+    { icon: '🤖', title: 'Hỏi Đáp Gia Sư AI 1-1 (Gemini Pro Tutor)', sub: 'Giải đáp chuyên sâu mọi bài tập & cơ chế y sinh', badge: 'PHÍM 8', action: () => switchTab('tutor') },
+    { icon: '🌓', title: 'Chuyển Đổi Giao Diện Sáng / Đen OLED / Sepia', sub: 'Tối ưu thị lực khi học đêm', badge: 'THEME', action: () => quickCycleDarkLight() }
+  ];
+
+  coreCommands.forEach((c) => {
+    if (!q || c.title.toLowerCase().includes(q) || c.sub.toLowerCase().includes(q) || c.badge.toLowerCase().includes(q)) {
+      items.push(c);
+    }
+  });
+
+  // Subjects from STATE
+  if (Array.isArray(STATE.subjects)) {
+    STATE.subjects.forEach((s) => {
+      const name = s.name || '';
+      if (!q || name.toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q)) {
+        items.push({
+          icon: s.icon || '📚',
+          title: `Môn học: ${name}`,
+          sub: `${s.question_count || 0} câu hỏi • Bấm để chọn môn và vào Phòng Thi`,
+          badge: 'MÔN HỌC',
+          action: () => {
+            if (typeof selectGlobalSubject === 'function') selectGlobalSubject(s.id);
+            switchTab('exam');
+          }
+        });
+      }
+    });
+  }
+
+  // Coding Exercises from STATE
+  if (STATE.exercises && Array.isArray(STATE.exercises.list)) {
+    STATE.exercises.list.forEach((ex, idx) => {
+      const title = ex.title || '';
+      if (q && (title.toLowerCase().includes(q) || (ex.description || '').toLowerCase().includes(q))) {
+        items.push({
+          icon: '💻',
+          title: `Bài tập Code: ${title}`,
+          sub: `Độ khó: ${ex.difficulty || 'Medium'} • Nhảy thẳng vào trình soạn thảo IDE`,
+          badge: 'CODE IDE',
+          action: () => {
+            switchTab('exercises');
+            setTimeout(() => {
+              if (typeof selectExercise === 'function') selectExercise(idx);
+            }, 150);
+          }
+        });
+      }
+    });
+  }
+
+  return items.slice(0, 14);
+}
+
+function renderCommandPaletteResults() {
+  const input = document.getElementById('cmd-palette-input');
+  const box = document.getElementById('cmd-palette-results');
+  if (!box) return;
+
+  const list = buildCommandPaletteCatalog(input ? input.value : '');
+  V41_STATE.cmdPaletteItems = list;
+  if (V41_STATE.cmdPaletteIndex >= list.length) V41_STATE.cmdPaletteIndex = 0;
+
+  if (!list.length) {
+    box.innerHTML = `<div class="p-6 text-center text-xs txt-muted">Không tìm thấy lệnh hoặc môn học phù hợp. Hãy thử từ khóa khác!</div>`;
+    return;
+  }
+
+  box.innerHTML = list.map((item, idx) => {
+    const active = idx === V41_STATE.cmdPaletteIndex;
+    return `
+      <div onclick="executeCommandPaletteItem(${idx})"
+        onmouseenter="V41_STATE.cmdPaletteIndex=${idx}"
+        class="p-2.5 px-3 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all ${active ? 'bg-indigo-600/25 border border-indigo-500/50' : 'hover:bg-white/5 border border-transparent'}">
+        <div class="flex items-center gap-3 min-w-0">
+          <span class="text-lg shrink-0">${item.icon}</span>
+          <div class="min-w-0">
+            <div class="text-xs font-extrabold txt-main truncate">${escapeHtml(item.title)}</div>
+            <div class="text-[11px] txt-muted truncate">${escapeHtml(item.sub)}</div>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-indigo-500/20 text-indigo-300 shrink-0">${escapeHtml(item.badge)}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+function handleCommandPaletteKeydown(e) {
+  const len = V41_STATE.cmdPaletteItems.length;
+  if (!len) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    V41_STATE.cmdPaletteIndex = (V41_STATE.cmdPaletteIndex + 1) % len;
+    renderCommandPaletteResults();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    V41_STATE.cmdPaletteIndex = (V41_STATE.cmdPaletteIndex - 1 + len) % len;
+    renderCommandPaletteResults();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    executeCommandPaletteItem(V41_STATE.cmdPaletteIndex);
+  } else if (e.key === 'Escape') {
+    e.preventDefault();
+    closeCommandPaletteModal();
+  }
+}
+
+function executeCommandPaletteItem(idx) {
+  const item = V41_STATE.cmdPaletteItems[idx];
+  closeCommandPaletteModal();
+  if (item && typeof item.action === 'function') {
+    item.action();
+  }
+}
+
+/* --- 2. AI VIVA VOCE & ORAL DEFENSE SIMULATOR --- */
+async function openVivaSimulatorModal() {
+  const modal = document.getElementById('modal-viva-simulator');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  await requestNextVivaQuestion();
+}
+
+async function requestNextVivaQuestion() {
+  const domain = document.getElementById('viva-domain-select')?.value || 'biochem';
+  const persona = document.getElementById('viva-persona-select')?.value || 'strict_prof';
+  const qEl = document.getElementById('viva-question-text');
+  const introEl = document.getElementById('viva-persona-intro');
+  const topicEl = document.getElementById('viva-topic-badge');
+  const evalBox = document.getElementById('viva-evaluation-box');
+  const ansInput = document.getElementById('viva-answer-input');
+
+  if (evalBox) evalBox.classList.add('hidden');
+  if (ansInput) ansInput.value = '';
+  if (qEl) qEl.textContent = 'Đang chuẩn bị câu hỏi vấn đáp từ Hội đồng...';
+
+  try {
+    const res = await fetch('/api/ai/viva-simulator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'next_question',
+        domain,
+        persona,
+        question_id: V41_STATE.vivaCurrentQuestion?.question_id || ''
+      })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      V41_STATE.vivaCurrentQuestion = data;
+      if (topicEl) topicEl.textContent = `Chủ đề: ${data.topic}`;
+      if (introEl) introEl.textContent = data.persona_intro || '';
+      if (qEl) qEl.textContent = data.question;
+      renderAllMathOnPage();
+    }
+  } catch (err) {
+    if (qEl) qEl.textContent = 'Hãy phân biệt cơ chế chất ức chế enzyme cạnh tranh và không cạnh tranh dựa trên Km và Vmax.';
+  }
+}
+
+function speakVivaQuestion() {
+  const text = document.getElementById('viva-question-text')?.textContent || '';
+  if (!text || !('speechSynthesis' in window)) {
+    showToast('Trình duyệt không hỗ trợ đọc giọng nói TTS.', 'warning');
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'vi-VN';
+  utter.rate = 1.02;
+  window.speechSynthesis.speak(utter);
+  showToast('🔊 Giám khảo AI đang đọc câu hỏi...', 'info');
+}
+
+function toggleVivaVoiceInput() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showToast('Trình duyệt của bạn chưa hỗ trợ nhận diện giọng nói (Hãy dùng Chrome/Edge).', 'warning');
+    return;
+  }
+  const label = document.getElementById('viva-mic-label');
+  const input = document.getElementById('viva-answer-input');
+
+  if (V41_STATE.vivaIsListening && V41_STATE.vivaRecognition) {
+    V41_STATE.vivaRecognition.stop();
+    V41_STATE.vivaIsListening = false;
+    if (label) label.textContent = 'Bấm để Nói (Voice STT)';
+    return;
+  }
+
+  const rec = new SpeechRecognition();
+  rec.lang = 'vi-VN';
+  rec.interimResults = false;
+  rec.continuous = false;
+
+  rec.onstart = () => {
+    V41_STATE.vivaIsListening = true;
+    if (label) label.textContent = '🔴 Đang nghe bạn trả lời... (Bấm để dừng)';
+  };
+  rec.onresult = (event) => {
+    const transcript = event.results?.[0]?.[0]?.transcript || '';
+    if (input && transcript) {
+      input.value = (input.value ? input.value + ' ' : '') + transcript;
+    }
+  };
+  rec.onend = () => {
+    V41_STATE.vivaIsListening = false;
+    if (label) label.textContent = 'Bấm để Nói (Voice STT)';
+  };
+  V41_STATE.vivaRecognition = rec;
+  rec.start();
+}
+
+async function submitVivaAnswer() {
+  const domain = document.getElementById('viva-domain-select')?.value || 'biochem';
+  const persona = document.getElementById('viva-persona-select')?.value || 'strict_prof';
+  const answer = (document.getElementById('viva-answer-input')?.value || '').trim();
+  const question = document.getElementById('viva-question-text')?.textContent || '';
+  const evalBox = document.getElementById('viva-evaluation-box');
+
+  if (!answer) {
+    showToast('Hãy nhập hoặc nói câu trả lời của bạn trước khi nộp chấm!', 'warning');
+    return;
+  }
+
+  if (evalBox) {
+    evalBox.classList.remove('hidden');
+    evalBox.innerHTML = `<div class="p-4 text-xs font-bold text-pink-300 animate-pulse">🧠 Hội đồng Giám khảo AI đang chấm điểm theo 4 tiêu chí Rubric...</div>`;
+  }
+
+  try {
+    const res = await fetch('/api/ai/viva-simulator', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'evaluate',
+        domain,
+        persona,
+        question_id: V41_STATE.vivaCurrentQuestion?.question_id || '',
+        question,
+        answer
+      })
+    });
+    const data = await res.json();
+    if (!data.ok) {
+      if (evalBox) evalBox.innerHTML = `<div class="p-3 text-xs text-rose-400">${escapeHtml(data.error || 'Lỗi chấm điểm')}</div>`;
+      return;
+    }
+
+    const r = data.rubric || {};
+    const hitHtml = (data.hit_keywords || []).map(k => `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">✔ ${escapeHtml(k)}</span>`).join(' ');
+    const missHtml = (data.missing_keywords || []).map(k => `<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/30">+ ${escapeHtml(k)}</span>`).join(' ');
+
+    evalBox.innerHTML = `
+      <div class="p-4 rounded-2xl border border-pink-500/40 bg-slate-950/90 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl font-black text-pink-400">${data.total_score}/100</span>
+            <span class="badge-brand px-2.5 py-0.5 rounded-full text-xs font-extrabold">${escapeHtml(data.grade_rank)}</span>
+          </div>
+          <span class="text-[11px] font-mono text-slate-400">Rubric Hội Đồng Vấn Đáp</span>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center text-xs">
+          <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+            <div class="text-[10px] txt-muted">Chính xác chuyên môn</div>
+            <div class="text-sm font-black text-emerald-400">${r.accuracy || 0}%</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+            <div class="text-[10px] txt-muted">Chiều sâu cơ chế</div>
+            <div class="text-sm font-black text-cyan-400">${r.depth || 0}%</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+            <div class="text-[10px] txt-muted">Thuật ngữ chuẩn</div>
+            <div class="text-sm font-black text-amber-400">${r.terminology || 0}%</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-white/5 border border-white/10">
+            <div class="text-[10px] txt-muted">Mạch lạc lập luận</div>
+            <div class="text-sm font-black text-purple-400">${r.clarity || 0}%</div>
+          </div>
+        </div>
+
+        <div class="space-y-1.5 text-xs">
+          <div class="font-bold text-slate-300">🔍 Từ khóa chuyên ngành phát hiện:</div>
+          <div class="flex flex-wrap gap-1.5">${hitHtml || '<span class="text-slate-500">Chưa khớp từ khóa trọng tâm</span>'} ${missHtml}</div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-indigo-950/40 border border-indigo-500/30 text-xs leading-relaxed text-slate-200">
+          <div class="font-extrabold text-indigo-300 mb-1">👨‍🏫 Nhận xét của Giám khảo:</div>
+          <div>${escapeHtml(data.feedback)}</div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-xs leading-relaxed text-slate-200">
+          <div class="font-extrabold text-emerald-400 mb-1">🏆 Đáp án chuẩn điểm 10/10 trước Hội đồng:</div>
+          <div class="whitespace-pre-line">${escapeHtml(data.model_answer)}</div>
+        </div>
+
+        ${data.follow_up_question ? `
+        <div class="p-3 rounded-xl bg-amber-950/30 border border-amber-500/40 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div>
+            <div class="font-extrabold text-amber-400">🔥 Câu hỏi xoáy thêm từ Hội đồng (Follow-up):</div>
+            <div class="text-slate-200 mt-0.5">${escapeHtml(data.follow_up_question)}</div>
+          </div>
+          <button type="button" onclick="useVivaFollowUpQuestion()" class="btn-primary px-3 py-1.5 text-[11px] font-bold shrink-0">Trả lời câu xoáy này</button>
+        </div>` : ''}
+      </div>
+    `;
+    renderAllMathOnPage();
+  } catch (err) {
+    if (evalBox) evalBox.innerHTML = `<div class="p-3 text-xs text-rose-400">Không thể kết nối máy chủ chấm điểm vấn đáp.</div>`;
+  }
+}
+
+function useVivaFollowUpQuestion() {
+  if (!V41_STATE.vivaCurrentQuestion) return;
+  const evalBox = document.getElementById('viva-evaluation-box');
+  const qEl = document.getElementById('viva-question-text');
+  const ansInput = document.getElementById('viva-answer-input');
+  const followText = evalBox?.querySelector('.text-amber-400')?.nextElementSibling?.textContent;
+  if (followText && qEl) {
+    qEl.textContent = followText;
+    if (ansInput) {
+      ansInput.value = '';
+      ansInput.focus();
+    }
+    evalBox.classList.add('hidden');
+  }
+}
+
+/* --- 3. INTERACTIVE SVG MINDMAP & FEYNMAN STUDIO --- */
+function openMindmapFeynmanModal(defaultTab = 'mindmap') {
+  const modal = document.getElementById('modal-mindmap-feynman');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  switchMindmapFeynmanTab(defaultTab);
+  if (!V41_STATE.mindmapData) {
+    loadMindmapStudio('krebs');
+  }
+}
+
+function switchMindmapFeynmanTab(tab) {
+  const isMindmap = tab === 'mindmap';
+  document.getElementById('subview-mindmap-studio')?.classList.toggle('hidden', !isMindmap);
+  document.getElementById('subview-feynman-studio')?.classList.toggle('hidden', isMindmap);
+  document.getElementById('tab-btn-mindmap-mode')?.classList.toggle('active', isMindmap);
+  document.getElementById('tab-btn-feynman-mode')?.classList.toggle('active', !isMindmap);
+}
+
+async function loadMindmapStudio(presetKey) {
+  try {
+    const res = await fetch('/api/ai/mindmap-generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset: presetKey })
+    });
+    const data = await res.json();
+    if (data.ok && data.mindmap) {
+      V41_STATE.mindmapData = data.mindmap;
+      renderMindmapSvg(data.mindmap);
+      if (data.mindmap.branches?.length) {
+        selectMindmapBranch(data.mindmap.branches[0].id);
+      }
+    }
+  } catch (e) {}
+}
+
+async function generateCustomMindmap() {
+  const topic = (document.getElementById('mindmap-custom-input')?.value || '').trim();
+  if (!topic) {
+    showToast('Hãy nhập tên chủ đề cần vẽ Sơ đồ tư duy!', 'warning');
+    return;
+  }
+  const res = await fetch('/api/ai/mindmap-generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ topic })
+  });
+  const data = await res.json();
+  if (data.ok && data.mindmap) {
+    V41_STATE.mindmapData = data.mindmap;
+    renderMindmapSvg(data.mindmap);
+    if (data.mindmap.branches?.length) {
+      selectMindmapBranch(data.mindmap.branches[0].id);
+    }
+    showToast(`Đã tạo Sơ đồ tư duy cho "${topic}"!`, 'success');
+  }
+}
+
+function renderMindmapSvg(mm) {
+  const box = document.getElementById('mindmap-svg-container');
+  if (!box || !mm) return;
+  const branches = mm.branches || [];
+  const positions = [
+    { x: 130, y: 75 },
+    { x: 510, y: 75 },
+    { x: 130, y: 245 },
+    { x: 510, y: 245 }
+  ];
+
+  let pathsSvg = '';
+  let nodesSvg = '';
+  const cx = 320, cy = 160;
+
+  branches.forEach((b, idx) => {
+    const pos = positions[idx % positions.length];
+    const isSel = V41_STATE.mindmapSelectedBranchId === b.id || (!V41_STATE.mindmapSelectedBranchId && idx === 0);
+    const midX = (cx + pos.x) / 2;
+    pathsSvg += `<path d="M ${cx} ${cy} C ${midX} ${cy}, ${midX} ${pos.y}, ${pos.x} ${pos.y}" fill="none" stroke="${b.color}" stroke-width="${isSel ? 4 : 2.5}" stroke-dasharray="${isSel ? 'none' : '5,3'}" opacity="0.85"/>`;
+
+    nodesSvg += `
+      <g onclick="selectMindmapBranch('${b.id}')" style="cursor:pointer;">
+        <rect x="${pos.x - 115}" y="${pos.y - 32}" width="230" height="64" rx="14"
+          fill="#0f172a" stroke="${b.color}" stroke-width="${isSel ? 3.2 : 1.8}" />
+        <text x="${pos.x}" y="${pos.y - 6}" text-anchor="middle" fill="#f8fafc" font-size="11" font-weight="800">${escapeHtml(b.title.slice(0, 30))}</text>
+        <text x="${pos.x}" y="${pos.y + 14}" text-anchor="middle" fill="${b.color}" font-size="9.5" font-weight="700">Bấm xem công thức & bẫy thi</text>
+      </g>
+    `;
+  });
+
+  box.innerHTML = `
+    <svg viewBox="0 0 640 320" class="w-full h-auto max-h-[340px] select-none">
+      <defs>
+        <radialGradient id="mmCenterGrad" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#6366f1"/>
+          <stop offset="100%" stop-color="#ec4899"/>
+        </radialGradient>
+      </defs>
+      ${pathsSvg}
+      <g>
+        <rect x="${cx - 105}" y="${cy - 34}" width="210" height="68" rx="18" fill="url(#mmCenterGrad)" stroke="#ffffff" stroke-width="2"/>
+        <text x="${cx}" y="${cy - 4}" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="900">${escapeHtml((mm.root || '').slice(0, 28))}</text>
+        <text x="${cx}" y="${cy + 15}" text-anchor="middle" fill="#e0e7ff" font-size="9.5" font-weight="600">TRUNG TÂM KIẾN THỨC</text>
+      </g>
+      ${nodesSvg}
+    </svg>
+  `;
+}
+
+function selectMindmapBranch(branchId) {
+  const mm = V41_STATE.mindmapData;
+  if (!mm) return;
+  V41_STATE.mindmapSelectedBranchId = branchId;
+  renderMindmapSvg(mm);
+
+  const b = (mm.branches || []).find(x => x.id === branchId) || mm.branches?.[0];
+  const inspector = document.getElementById('mindmap-node-inspector');
+  if (!inspector || !b) return;
+
+  const subs = (b.subnodes || []).map(s => `<li class="flex items-center gap-1.5"><span style="color:${b.color}">●</span> <span>${escapeHtml(s)}</span></li>`).join('');
+
+  inspector.innerHTML = `
+    <div class="flex items-center justify-between">
+      <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black text-white" style="background:${b.color}">NHÁNH TRỌNG TÂM</span>
+      <span class="text-[11px] font-mono txt-muted">${escapeHtml(mm.root)}</span>
+    </div>
+    <h4 class="text-sm sm:text-base font-extrabold txt-main">${escapeHtml(b.title)}</h4>
+    <p class="text-xs txt-sub leading-relaxed">${escapeHtml(b.summary)}</p>
+    <div class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-xs text-cyan-300">
+      📐 ${escapeHtml(b.formula)}
+    </div>
+    <div class="p-3 rounded-xl border border-rose-500/40 bg-rose-500/10 text-xs text-rose-300 font-bold">
+      ⚠️ ${escapeHtml(b.exam_trap)}
+    </div>
+    <div class="space-y-1 text-xs">
+      <div class="font-extrabold txt-main">Các ý cốt lõi cần nhớ:</div>
+      <ul class="space-y-1 txt-sub">${subs}</ul>
+    </div>
+  `;
+}
+
+async function evaluateFeynmanExplanation() {
+  const concept = (document.getElementById('feynman-concept-input')?.value || '').trim();
+  const explanation = (document.getElementById('feynman-explanation-input')?.value || '').trim();
+  const box = document.getElementById('feynman-result-box');
+
+  if (!concept || !explanation) {
+    showToast('Vui lòng nhập khái niệm và lời giải thích theo ý hiểu của bạn!', 'warning');
+    return;
+  }
+  if (box) {
+    box.classList.remove('hidden');
+    box.innerHTML = `<div class="p-3 text-xs font-bold text-emerald-400 animate-pulse">🧠 Đang phân tích mức độ dễ hiểu và tìm lỗ hổng kiến thức theo chuẩn Richard Feynman...</div>`;
+  }
+
+  try {
+    const res = await fetch('/api/ai/feynman-evaluate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ concept, explanation })
+    });
+    const data = await res.json();
+    if (!data.ok) return;
+
+    const gapsHtml = (data.knowledge_gaps || []).map(g => `<li class="flex items-start gap-1.5"><span class="text-amber-400">▸</span><span>${escapeHtml(g)}</span></li>`).join('');
+    box.innerHTML = `
+      <div class="p-4 rounded-2xl bg-slate-950 border border-emerald-500/40 space-y-3 text-xs">
+        <div class="grid grid-cols-3 gap-2 text-center">
+          <div class="p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+            <div class="text-[10px] txt-muted">Điểm Feynman tổng</div>
+            <div class="text-lg font-black text-emerald-400">${data.clarity_score}/100</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+            <div class="text-[10px] txt-muted">Độ giản dị & Ẩn dụ</div>
+            <div class="text-lg font-black text-cyan-400">${data.simplicity_score}%</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-purple-500/10 border border-purple-500/30">
+            <div class="text-[10px] txt-muted">Chính xác bản chất</div>
+            <div class="text-lg font-black text-purple-400">${data.accuracy_score}%</div>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <div class="font-extrabold text-amber-400">🔍 Điểm cần bổ sung để giải thích mượt hơn:</div>
+          <ul class="space-y-1 text-slate-300">${gapsHtml}</ul>
+        </div>
+
+        <div class="p-3 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-slate-200 leading-relaxed">
+          <div class="font-extrabold text-emerald-400 mb-1">✨ Bản giải thích mẫu Feynman (Kèm ẩn dụ ghi nhớ 5 giây):</div>
+          <div>${escapeHtml(data.feynman_rewrite)}</div>
+        </div>
+
+        <div class="p-3 rounded-xl bg-indigo-950/30 border border-indigo-500/30 text-indigo-200">
+          <div class="font-extrabold text-indigo-400 mb-0.5">🧒 Câu hỏi phản biện của "Học sinh 12 tuổi":</div>
+          <div>${escapeHtml(data.child_question)}</div>
+        </div>
+      </div>
+    `;
+  } catch (e) {}
+}
+
+/* --- 4. AUTO UML CLASS DIAGRAM & STACK/HEAP MEMORY VISUALIZER --- */
+async function openUmlMemoryModal() {
+  const modal = document.getElementById('modal-uml-memory');
+  const body = document.getElementById('uml-memory-body');
+  if (!modal || !body) return;
+
+  modal.classList.remove('hidden');
+  body.innerHTML = `<div class="p-6 text-center text-xs font-bold text-cyan-400 animate-pulse">🔬 Đang phân tích AST mã nguồn, dựng Sơ đồ lớp UML và mô phỏng vùng nhớ Stack / Managed Heap...</div>`;
+
+  const editor = document.getElementById('code-editor-textarea');
+  const subjId = Number(document.getElementById('exercise-subject-select')?.value || 5);
+  const language = subjId === 22 ? 'python' : 'csharp';
+  const defaultSample = `using System;\npublic abstract class HinhHoc {\n    public string Ten { get; set; }\n    public abstract double TinhDienTich();\n}\npublic class HinhTron : HinhHoc {\n    public double BanKinh { get; set; }\n    public HinhTron(double r) { BanKinh = r; }\n    public override double TinhDienTich() { return 3.14 * BanKinh * BanKinh; }\n}\npublic class Program {\n    public static void Main() {\n        int soLuong = 2;\n        HinhHoc h1 = new HinhTron(5.0);\n    }\n}`;
+  const code = (editor && editor.value.trim()) ? editor.value : defaultSample;
+
+  try {
+    const res = await fetch('/api/code/uml-memory-analyzer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, language })
+    });
+    const data = await res.json();
+    if (!data.ok) return;
+
+    const classesHtml = (data.classes || []).map(cls => {
+      const parentsBadge = (cls.parents && cls.parents.length)
+        ? `<div class="text-[10px] font-mono text-amber-300 mt-0.5">◁── Kế thừa / Thực thi: ${escapeHtml(cls.parents.join(', '))}</div>`
+        : '';
+      const fieldsList = (cls.fields && cls.fields.length)
+        ? cls.fields.map(f => `<div class="font-mono text-[11px] text-cyan-300 truncate">${escapeHtml(f)}</div>`).join('')
+        : `<div class="text-[10px] text-slate-500 italic">(Không có thuộc tính riêng)</div>`;
+      const methodsList = (cls.methods && cls.methods.length)
+        ? cls.methods.map(m => `<div class="font-mono text-[11px] text-emerald-300 truncate">${escapeHtml(m)}</div>`).join('')
+        : `<div class="text-[10px] text-slate-500 italic">(Mặc định)</div>`;
+
+      return `
+        <div class="rounded-2xl border-2 border-violet-500/50 bg-slate-950 overflow-hidden shadow-lg">
+          <div class="px-3.5 py-2 bg-violet-600/25 border-b border-violet-500/40 text-center">
+            <div class="text-[10px] font-mono text-violet-300">${escapeHtml(cls.stereotype)}</div>
+            <div class="text-sm font-black text-white">${escapeHtml(cls.name)}</div>
+            ${parentsBadge}
+          </div>
+          <div class="p-3 border-b border-slate-800 space-y-1">
+            <div class="text-[10px] font-bold uppercase text-slate-400">Thuộc tính (Fields / Properties)</div>
+            ${fieldsList}
+          </div>
+          <div class="p-3 space-y-1">
+            <div class="text-[10px] font-bold uppercase text-slate-400">Phương thức (Methods)</div>
+            ${methodsList}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const stackHtml = (data.stack_frames || []).map(sf => `
+      <div class="p-2.5 rounded-xl border ${sf.target_addr ? 'border-cyan-500/40 bg-cyan-950/20' : 'border-amber-500/40 bg-amber-950/20'} flex items-center justify-between gap-2 text-xs">
+        <div>
+          <span class="font-mono font-black text-white">${escapeHtml(sf.name)}</span>
+          <span class="text-[10px] font-mono text-slate-400"> (${escapeHtml(sf.declared_type)})</span>
+          <div class="text-[10px] text-slate-400">${escapeHtml(sf.kind)}</div>
+        </div>
+        <span class="px-2 py-1 rounded font-mono font-bold text-[11px] ${sf.target_addr ? 'bg-cyan-500/20 text-cyan-300' : 'bg-amber-500/20 text-amber-300'}">${escapeHtml(sf.value)}</span>
+      </div>
+    `).join('') || `<div class="text-xs text-slate-400">Chưa có biến cục bộ nào trong hàm Main().</div>`;
+
+    const heapHtml = (data.heap_objects || []).map(ho => `
+      <div class="p-3 rounded-xl border ${ho.polymorphic ? 'border-pink-500/50 bg-pink-950/25' : 'border-emerald-500/40 bg-emerald-950/20'} space-y-1 text-xs">
+        <div class="flex items-center justify-between">
+          <span class="px-2 py-0.5 rounded font-mono font-black text-[11px] bg-emerald-500/20 text-emerald-300">${escapeHtml(ho.address)}</span>
+          <span class="font-mono font-extrabold text-white">new ${escapeHtml(ho.type)}(${escapeHtml(ho.args)})</span>
+        </div>
+        <div class="text-[11px] ${ho.polymorphic ? 'text-pink-300 font-bold' : 'text-slate-300'}">${escapeHtml(ho.note)}</div>
+      </div>
+    `).join('') || `<div class="text-xs text-slate-400">Chưa có cấp phát đối tượng \`new\` nào trên Managed Heap.</div>`;
+
+    body.innerHTML = `
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <h4 class="text-xs sm:text-sm font-extrabold txt-main">📐 1. Sơ Đồ Lớp UML Tự Động (Auto UML Class Diagram)</h4>
+          <span class="text-[11px] font-mono text-violet-400">Ký hiệu: + public | - private | # protected</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${classesHtml}</div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-2 border-t" style="border-color: var(--border);">
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs sm:text-sm font-extrabold text-amber-400">📚 2. Vùng Nhớ Ngăn Xếp (Call Stack Frame)</h4>
+            <span class="text-[10px] font-mono text-slate-400">Cấp phát & Thu hồi tức thời LIFO</span>
+          </div>
+          <div class="space-y-2">${stackHtml}</div>
+        </div>
+
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs sm:text-sm font-extrabold text-emerald-400">🌐 3. Vùng Nhớ Đối Tượng (Managed Heap & V-Table)</h4>
+            <span class="text-[10px] font-mono text-slate-400">Quản lý bởi Garbage Collector (GC)</span>
+          </div>
+          <div class="space-y-2">${heapHtml}</div>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    body.innerHTML = `<div class="p-4 text-xs text-rose-400">Lỗi khi phân tích sơ đồ UML & Bộ nhớ.</div>`;
+  }
+}
+
+/* --- 5. ENZYME KINETICS MICHAELIS-MENTEN & LINEWEAVER-BURK SIMULATOR --- */
+function renderEnzymeKineticsLab() {
+  const mode = document.getElementById('enz-inhibition-type')?.value || 'none';
+  const vmax = parseFloat(document.getElementById('enz-vmax-slider')?.value || '100');
+  const km = parseFloat(document.getElementById('enz-km-slider')?.value || '2.0');
+  const alpha = parseFloat(document.getElementById('enz-alpha-slider')?.value || '2.0');
+  const sCur = parseFloat(document.getElementById('enz-s-slider')?.value || '4.0');
+
+  setText('enz-vmax-val', `${vmax.toFixed(0)} μmol/p`);
+  setText('enz-km-val', `${km.toFixed(1)} mM`);
+  setText('enz-alpha-val', `${alpha.toFixed(1)}x`);
+  setText('enz-s-val', `${sCur.toFixed(1)} mM`);
+
+  let vmaxApp = vmax;
+  let kmApp = km;
+  let mechText = 'Enzyme hoạt động bình thường không có chất ức chế.';
+
+  if (mode === 'competitive') {
+    kmApp = km * alpha;
+    vmaxApp = vmax;
+    mechText = `Ức chế CẠNH TRANH: Chất ức chế tranh chấp trung tâm hoạt động với cơ chất -> Km biểu kiến TĂNG lên ${kmApp.toFixed(2)} mM (giảm ái lực), nhưng Vmax KHÔNG ĐỔI (${vmaxApp.toFixed(0)}). Cắt nhau trên trục tung 1/Vmax!`;
+  } else if (mode === 'noncompetitive') {
+    kmApp = km;
+    vmaxApp = vmax / alpha;
+    mechText = `Ức chế KHÔNG CẠNH TRANH: Gắn vào vị trí dị lập thể trên cả E và ES -> Km KHÔNG ĐỔI (${kmApp.toFixed(2)} mM), nhưng Vmax biểu kiến GIẢM còn ${vmaxApp.toFixed(1)}. Cắt nhau trên trục hoành -1/Km!`;
+  } else if (mode === 'uncompetitive') {
+    kmApp = km / alpha;
+    vmaxApp = vmax / alpha;
+    mechText = `Ức chế PHI CẠNH TRANH: Chỉ gắn vào phức hợp ES -> Cả Km biểu kiến (${kmApp.toFixed(2)} mM) và Vmax biểu kiến (${vmaxApp.toFixed(1)}) đều GIẢM cùng tỷ lệ α. Tạo 2 đường thẳng SONG SONG trên đồ thị Lineweaver-Burk!`;
+  }
+
+  const v0Normal = (vmax * sCur) / (km + sCur);
+  const v0Inhib = (vmaxApp * sCur) / (kmApp + sCur);
+
+  const readout = document.getElementById('enz-kinetics-readout');
+  if (readout) {
+    readout.innerHTML = `
+      <div class="grid grid-cols-2 gap-2 font-mono">
+        <div>• $V_{\\max}$ biểu kiến: <strong class="text-cyan-300">${vmaxApp.toFixed(1)}</strong> (Gốc: ${vmax})</div>
+        <div>• $K_m$ biểu kiến: <strong class="text-emerald-300">${kmApp.toFixed(2)} mM</strong> (Gốc: ${km.toFixed(1)})</div>
+        <div>• $v_0$ chuẩn tại $[S]=${sCur}$: <strong class="text-white">${v0Normal.toFixed(1)}</strong></div>
+        <div>• $v_0$ có chất ức chế: <strong class="text-rose-400">${v0Inhib.toFixed(1)}</strong></div>
+      </div>
+      <div class="pt-1 text-amber-300 font-semibold">${escapeHtml(mechText)}</div>
+    `;
+  }
+
+  // 1. Render Michaelis-Menten SVG
+  const mmBox = document.getElementById('enz-mm-svg-box');
+  if (mmBox) {
+    const w = 520, h = 230, padL = 45, padB = 30, padT = 20, padR = 20;
+    const plotW = w - padL - padR, plotH = h - padT - padB;
+    const maxS = 12.0, maxV = 165.0;
+    const sx = (s) => padL + (s / maxS) * plotW;
+    const sy = (v) => padT + plotH - (v / maxV) * plotH;
+
+    let pathNorm = '', pathInh = '';
+    for (let i = 0; i <= 60; i++) {
+      const s = (i / 60) * maxS;
+      const vn = (vmax * s) / (km + s);
+      const vi = (vmaxApp * s) / (kmApp + s);
+      pathNorm += `${i === 0 ? 'M' : 'L'} ${sx(s).toFixed(1)} ${sy(vn).toFixed(1)} `;
+      pathInh += `${i === 0 ? 'M' : 'L'} ${sx(s).toFixed(1)} ${sy(vi).toFixed(1)} `;
+    }
+
+    mmBox.innerHTML = `
+      <svg viewBox="0 0 ${w} ${h}" class="w-full h-auto">
+        <line x1="${padL}" y1="${padT}" x2="${padL}" y2="${h - padB}" stroke="#475569" stroke-width="1.5"/>
+        <line x1="${padL}" y1="${h - padB}" x2="${w - padR}" y2="${h - padB}" stroke="#475569" stroke-width="1.5"/>
+        <line x1="${padL}" y1="${sy(vmax)}" x2="${w - padR}" y2="${sy(vmax)}" stroke="#22d3ee" stroke-dasharray="4,4" stroke-width="1"/>
+        <text x="${w - padR - 4}" y="${sy(vmax) - 4}" text-anchor="end" fill="#22d3ee" font-size="9.5" font-family="monospace">Vmax = ${vmax}</text>
+        <path d="${pathNorm}" fill="none" stroke="#10b981" stroke-width="2.8"/>
+        ${mode !== 'none' ? `<path d="${pathInh}" fill="none" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="6,4"/>` : ''}
+        <circle cx="${sx(sCur)}" cy="${sy(v0Normal)}" r="4.5" fill="#10b981" stroke="#fff" stroke-width="1.5"/>
+        ${mode !== 'none' ? `<circle cx="${sx(sCur)}" cy="${sy(v0Inhib)}" r="4.5" fill="#f43f5e" stroke="#fff" stroke-width="1.5"/>` : ''}
+        <text x="${w / 2}" y="${h - 6}" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="bold">Nồng độ cơ chất [S] (mM)</text>
+        <text x="14" y="${h / 2}" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="bold" transform="rotate(-90 14 ${h / 2})">Tốc độ v0</text>
+      </svg>
+    `;
+  }
+
+  // 2. Render Lineweaver-Burk SVG
+  const lbBox = document.getElementById('enz-lb-svg-box');
+  if (lbBox) {
+    const w = 520, h = 230;
+    const originX = 230, originY = 185;
+    const scaleX = 110; // for 1/[S]
+    const scaleY = 4800; // for 1/v0
+
+    const x1 = -1 / km;
+    const x2 = 1.6;
+    const yNorm = (invS) => (km / vmax) * invS + (1 / vmax);
+    const yInh = (invS) => (kmApp / vmaxApp) * invS + (1 / vmaxApp);
+
+    const px = (invS) => originX + invS * scaleX;
+    const py = (invV) => originY - invV * scaleY;
+
+    const x1Inh = -1 / kmApp;
+
+    lbBox.innerHTML = `
+      <svg viewBox="0 0 ${w} ${h}" class="w-full h-auto">
+        <line x1="25" y1="${originY}" x2="${w - 20}" y2="${originY}" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="${originX}" y1="15" x2="${originX}" y2="${h - 15}" stroke="#64748b" stroke-width="1.5"/>
+        <line x1="${px(x1)}" y1="${py(0)}" x2="${px(x2)}" y2="${py(yNorm(x2))}" stroke="#10b981" stroke-width="2.8"/>
+        ${mode !== 'none' ? `<line x1="${px(x1Inh)}" y1="${py(0)}" x2="${px(x2)}" y2="${py(yInh(x2))}" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="6,4"/>` : ''}
+        <circle cx="${px(0)}" cy="${py(1 / vmax)}" r="4" fill="#10b981"/>
+        <circle cx="${px(-1 / km)}" cy="${py(0)}" r="4" fill="#10b981"/>
+        ${mode !== 'none' ? `<circle cx="${px(0)}" cy="${py(1 / vmaxApp)}" r="4" fill="#f43f5e"/><circle cx="${px(-1 / kmApp)}" cy="${py(0)}" r="4" fill="#f43f5e"/>` : ''}
+        <text x="${px(-1 / km)}" y="${originY + 15}" text-anchor="middle" fill="#10b981" font-size="9.5" font-family="monospace">-1/Km</text>
+        <text x="${originX - 8}" y="${py(1 / vmax)}" text-anchor="end" fill="#10b981" font-size="9.5" font-family="monospace">1/Vmax</text>
+        <text x="${w - 25}" y="${originY - 6}" text-anchor="end" fill="#94a3b8" font-size="10" font-weight="bold">1 / [S]</text>
+        <text x="${originX + 8}" y="26" fill="#94a3b8" font-size="10" font-weight="bold">1 / v0</text>
+      </svg>
+    `;
+  }
+}
+
+/* --- 6. INTERACTIVE GRAPH THEORY & DIJKSTRA/MST SANDBOX --- */
+const GRAPH_PRESETS = {
+  dijkstra_exam: {
+    nodes: [
+      { id: 'A', x: 70, y: 125 },
+      { id: 'B', x: 200, y: 45 },
+      { id: 'C', x: 200, y: 205 },
+      { id: 'D', x: 350, y: 45 },
+      { id: 'E', x: 350, y: 205 },
+      { id: 'F', x: 470, y: 125 }
+    ],
+    edges: [
+      { u: 'A', v: 'B', w: 4 },
+      { u: 'A', v: 'C', w: 2 },
+      { u: 'B', v: 'C', w: 1 },
+      { u: 'B', v: 'D', w: 5 },
+      { u: 'C', v: 'D', w: 8 },
+      { u: 'C', v: 'E', w: 10 },
+      { u: 'D', v: 'E', w: 2 },
+      { u: 'D', v: 'F', w: 6 },
+      { u: 'E', v: 'F', w: 3 }
+    ]
+  },
+  mst_network: {
+    nodes: [
+      { id: 'A', x: 75, y: 65 },
+      { id: 'B', x: 265, y: 40 },
+      { id: 'C', x: 455, y: 65 },
+      { id: 'D', x: 75, y: 200 },
+      { id: 'E', x: 265, y: 215 },
+      { id: 'F', x: 455, y: 200 }
+    ],
+    edges: [
+      { u: 'A', v: 'B', w: 3 },
+      { u: 'A', v: 'D', w: 4 },
+      { u: 'B', v: 'C', w: 5 },
+      { u: 'B', v: 'D', w: 2 },
+      { u: 'B', v: 'E', w: 6 },
+      { u: 'C', v: 'E', w: 4 },
+      { u: 'C', v: 'F', w: 7 },
+      { u: 'D', v: 'E', w: 5 },
+      { u: 'E', v: 'F', w: 2 }
+    ]
+  },
+  euler_bridge: {
+    nodes: [
+      { id: 'A', x: 90, y: 125 },
+      { id: 'B', x: 220, y: 45 },
+      { id: 'C', x: 220, y: 205 },
+      { id: 'D', x: 350, y: 125 },
+      { id: 'E', x: 470, y: 55 },
+      { id: 'F', x: 470, y: 195 }
+    ],
+    edges: [
+      { u: 'A', v: 'B', w: 2 },
+      { u: 'A', v: 'C', w: 2 },
+      { u: 'B', v: 'D', w: 3 },
+      { u: 'C', v: 'D', w: 3 },
+      { u: 'D', v: 'E', w: 4 },
+      { u: 'D', v: 'F', w: 4 },
+      { u: 'E', v: 'F', w: 1 }
+    ]
+  }
+};
+
+function initGraphTheoryLab() {
+  if (!V41_STATE.graphInitialized) {
+    V41_STATE.graphInitialized = true;
+    loadGraphTheoryPreset();
+  } else {
+    runGraphTheorySimulation();
+  }
+}
+
+function loadGraphTheoryPreset() {
+  const key = document.getElementById('gt-preset-select')?.value || 'dijkstra_exam';
+  const preset = GRAPH_PRESETS[key] || GRAPH_PRESETS.dijkstra_exam;
+  V41_STATE.graphNodes = JSON.parse(JSON.stringify(preset.nodes));
+  V41_STATE.graphEdges = JSON.parse(JSON.stringify(preset.edges));
+  runGraphTheorySimulation();
+}
+
+function upsertGraphTheoryEdge() {
+  const u = (document.getElementById('gt-edge-u')?.value || '').trim().toUpperCase();
+  const v = (document.getElementById('gt-edge-v')?.value || '').trim().toUpperCase();
+  const w = parseInt(document.getElementById('gt-edge-w')?.value || '1', 10);
+  if (!u || !v || u === v || isNaN(w) || w <= 0) {
+    showToast('Vui lòng nhập 2 đỉnh khác nhau (A-F) và trọng số dương!', 'warning');
+    return;
+  }
+  const hasU = V41_STATE.graphNodes.some(n => n.id === u);
+  const hasV = V41_STATE.graphNodes.some(n => n.id === v);
+  if (!hasU || !hasV) {
+    showToast('Đỉnh phải nằm trong tập đỉnh hiện tại (A, B, C, D, E, F)!', 'warning');
+    return;
+  }
+  const existing = V41_STATE.graphEdges.find(e => (e.u === u && e.v === v) || (e.u === v && e.v === u));
+  if (existing) {
+    existing.w = w;
+  } else {
+    V41_STATE.graphEdges.push({ u, v, w });
+  }
+  runGraphTheorySimulation();
+  showToast(`Đã cập nhật cạnh (${u}, ${v}) với trọng số w = ${w}`, 'success');
+}
+
+function runGraphTheorySimulation() {
+  const algo = document.getElementById('gt-algo-select')?.value || 'dijkstra';
+  const nodes = V41_STATE.graphNodes;
+  const edges = V41_STATE.graphEdges;
+  if (!nodes.length) return;
+
+  const adj = {};
+  nodes.forEach(n => { adj[n.id] = []; });
+  edges.forEach(e => {
+    adj[e.u]?.push({ to: e.v, w: e.w });
+    adj[e.v]?.push({ to: e.u, w: e.w });
+  });
+  Object.values(adj).forEach(list => list.sort((a, b) => a.to.localeCompare(b.to)));
+
+  const activeEdgeKeys = new Set();
+  const traceLines = [];
+  let totalWeight = 0;
+  const edgeKey = (a, b) => [a, b].sort().join('-');
+
+  if (algo === 'dijkstra') {
+    const dist = {};
+    const prev = {};
+    const visited = new Set();
+    nodes.forEach(n => { dist[n.id] = Infinity; prev[n.id] = null; });
+    dist['A'] = 0;
+
+    traceLines.push(`⚡ Khởi tạo Dijkstra từ đỉnh A: d[A]=0, các đỉnh khác = ∞`);
+    for (let step = 1; step <= nodes.length; step++) {
+      let u = null;
+      nodes.forEach(n => {
+        if (!visited.has(n.id) && (u === null || dist[n.id] < dist[u])) u = n.id;
+      });
+      if (!u || dist[u] === Infinity) break;
+      visited.add(u);
+      (adj[u] || []).forEach(nb => {
+        if (!visited.has(nb.to) && dist[u] + nb.w < dist[nb.to]) {
+          dist[nb.to] = dist[u] + nb.w;
+          prev[nb.to] = u;
+        }
+      });
+      const snap = nodes.map(n => `${n.id}:(${dist[n.id] === Infinity ? '∞' : dist[n.id]},${prev[n.id] || '-'})`).join(' | ');
+      traceLines.push(`Bước ${step} [Chốt ${u}]: ${snap}`);
+    }
+    nodes.forEach(n => {
+      if (prev[n.id]) {
+        activeEdgeKeys.add(edgeKey(n.id, prev[n.id]));
+      }
+    });
+    totalWeight = dist['F'] !== undefined && dist['F'] !== Infinity ? dist['F'] : 0;
+    traceLines.push(`🎯 Kết luận: Đường đi ngắn nhất A → F có tổng trọng số = ${totalWeight}`);
+  } else if (algo === 'prim') {
+    const inMST = new Set(['A']);
+    traceLines.push(`🌲 Khởi tạo Cây khung nhỏ nhất (Prim) bắt đầu từ đỉnh A:`);
+    let step = 1;
+    while (inMST.size < nodes.length) {
+      let best = null;
+      edges.forEach(e => {
+        const uIn = inMST.has(e.u), vIn = inMST.has(e.v);
+        if ((uIn && !vIn) || (!uIn && vIn)) {
+          if (!best || e.w < best.w) best = e;
+        }
+      });
+      if (!best) break;
+      inMST.add(best.u);
+      inMST.add(best.v);
+      activeEdgeKeys.add(edgeKey(best.u, best.v));
+      totalWeight += best.w;
+      traceLines.push(`Bước ${step++}: Chọn cạnh (${best.u}, ${best.v}) trọng số w = ${best.w} → Tổng MST = ${totalWeight}`);
+    }
+  } else if (algo === 'bfs') {
+    const visited = new Set(['A']);
+    const queue = ['A'];
+    const order = [];
+    while (queue.length) {
+      const u = queue.shift();
+      order.push(u);
+      (adj[u] || []).forEach(nb => {
+        if (!visited.has(nb.to)) {
+          visited.add(nb.to);
+          queue.push(nb.to);
+          activeEdgeKeys.add(edgeKey(u, nb.to));
+          totalWeight += nb.w;
+        }
+      });
+      traceLines.push(`🌊 Duyệt đỉnh ${u} | Hàng đợi Queue: [${queue.join(', ')}]`);
+    }
+    traceLines.push(`🎯 Thứ tự duyệt BFS: ${order.join(' → ')}`);
+  } else {
+    const visited = new Set();
+    const order = [];
+    function dfs(u) {
+      visited.add(u);
+      order.push(u);
+      (adj[u] || []).forEach(nb => {
+        if (!visited.has(nb.to)) {
+          activeEdgeKeys.add(edgeKey(u, nb.to));
+          totalWeight += nb.w;
+          traceLines.push(`🧭 Đi sâu cạnh (${u} → ${nb.to}) trọng số ${nb.w}`);
+          dfs(nb.to);
+        }
+      });
+    }
+    dfs('A');
+    traceLines.push(`🎯 Thứ tự duyệt DFS: ${order.join(' → ')}`);
+  }
+
+  setText('gt-summary-badge', `Tổng trọng số: ${totalWeight}`);
+  const traceEl = document.getElementById('gt-trace-output');
+  if (traceEl) {
+    traceEl.innerHTML = traceLines.map(l => `<div class="py-0.5 border-b border-slate-800/70">${escapeHtml(l)}</div>`).join('');
+  }
+
+  // Render SVG Graph
+  const svgBox = document.getElementById('gt-svg-canvas');
+  if (svgBox) {
+    const nodeMap = {};
+    nodes.forEach(n => { nodeMap[n.id] = n; });
+
+    const edgesSvg = edges.map(e => {
+      const n1 = nodeMap[e.u], n2 = nodeMap[e.v];
+      if (!n1 || !n2) return '';
+      const active = activeEdgeKeys.has(edgeKey(e.u, e.v));
+      const mx = (n1.x + n2.x) / 2, my = (n1.y + n2.y) / 2;
+      return `
+        <g>
+          <line x1="${n1.x}" y1="${n1.y}" x2="${n2.x}" y2="${n2.y}"
+            stroke="${active ? '#10b981' : '#334155'}" stroke-width="${active ? 4 : 2}"/>
+          <rect x="${mx - 12}" y="${my - 10}" width="24" height="20" rx="6" fill="#0f172a" stroke="${active ? '#10b981' : '#475569'}" stroke-width="1.2"/>
+          <text x="${mx}" y="${my + 4}" text-anchor="middle" fill="${active ? '#34d399' : '#cbd5e1'}" font-size="11" font-family="monospace" font-weight="800">${e.w}</text>
+        </g>
+      `;
+    }).join('');
+
+    const nodesSvg = nodes.map(n => `
+      <g>
+        <circle cx="${n.x}" cy="${n.y}" r="20" fill="${n.id === 'A' ? '#4f46e5' : '#1e293b'}" stroke="#38bdf8" stroke-width="2.5"/>
+        <text x="${n.x}" y="${n.y + 5}" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="900">${n.id}</text>
+      </g>
+    `).join('');
+
+    svgBox.innerHTML = `<svg viewBox="0 0 540 250" class="w-full max-w-[560px] h-auto">${edgesSvg}${nodesSvg}</svg>`;
+  }
+
+  // Render Adjacency Matrix
+  const matBox = document.getElementById('gt-matrix-box');
+  if (matBox) {
+    const headerCols = nodes.map(n => `<th class="p-1.5 border border-slate-700 text-cyan-400">${n.id}</th>`).join('');
+    const rowsHtml = nodes.map(r => {
+      const deg = (adj[r.id] || []).length;
+      const cells = nodes.map(c => {
+        if (r.id === c.id) return `<td class="p-1.5 border border-slate-800 text-slate-600 text-center">0</td>`;
+        const ed = edges.find(e => (e.u === r.id && e.v === c.id) || (e.u === c.id && e.v === r.id));
+        return `<td class="p-1.5 border border-slate-800 text-center ${ed ? 'text-emerald-400 font-bold bg-emerald-500/5' : 'text-slate-600'}">${ed ? ed.w : '∞'}</td>`;
+      }).join('');
+      return `<tr><th class="p-1.5 border border-slate-700 text-cyan-400">${r.id}</th>${cells}<td class="p-1.5 border border-slate-700 text-center text-amber-300 font-bold">${deg}</td></tr>`;
+    }).join('');
+    matBox.innerHTML = `
+      <table class="w-full border-collapse text-xs">
+        <thead><tr><th class="p-1.5 border border-slate-700 text-slate-400">Đỉnh</th>${headerCols}<th class="p-1.5 border border-slate-700 text-amber-400">deg(v)</th></tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
+    `;
+  }
+}
+
+/* --- 7. DAILY QUESTS & XP PROGRESSION WIDGET --- */
+async function loadDailyQuestsWidget() {
+  const listEl = document.getElementById('daily-quests-list');
+  const xpEl = document.getElementById('v41-xp-badge');
+  if (!listEl) return;
+
+  try {
+    const res = await fetch('/api/gamification/quests');
+    const data = await res.json();
+    if (!data.ok) return;
+
+    if (xpEl) {
+      xpEl.textContent = `Level ${data.level} • ${data.total_xp} / ${data.next_level_xp} XP`;
+    }
+    listEl.innerHTML = (data.quests || []).map(q => {
+      const done = q.progress >= q.target;
+      const actionCall = q.action_view === 'viva'
+        ? 'openVivaSimulatorModal()'
+        : `switchTab('${q.action_view}')`;
+      return `
+        <div onclick="${actionCall}" class="p-2 rounded-xl border flex items-center justify-between gap-2 cursor-pointer transition-all hover:border-indigo-500/50" style="background-color: var(--bg-surface); border-color: var(--border);">
+          <div class="flex items-center gap-2 min-w-0">
+            <span class="text-sm shrink-0">${q.icon}</span>
+            <div class="min-w-0">
+              <div class="text-[11px] font-extrabold txt-main truncate">${escapeHtml(q.title)}</div>
+              <div class="text-[10px] txt-muted truncate">${escapeHtml(q.desc)}</div>
+            </div>
+          </div>
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold shrink-0 ${done ? 'bg-emerald-500/20 text-emerald-400' : 'bg-indigo-500/15 text-indigo-300'}">
+            ${done ? '✔ Hoàn thành' : `+${q.xp} XP`}
+          </span>
+        </div>
+      `;
+    }).join('');
+  } catch (e) {}
+}
+
+/* --- 8. METACOGNITION CONFIDENCE & TELEMETRY MATRIX --- */
+function syncConfidenceBarForQuestion(q) {
+  if (!q) return;
+  const now = Date.now();
+  const prevQ = STATE.exam?.questions?.[STATE.exam?.currentIndex];
+  V41_STATE.questionEnteredAt = now;
+
+  if (V41_STATE.telemetryInterval) clearInterval(V41_STATE.telemetryInterval);
+  V41_STATE.telemetryInterval = setInterval(() => {
+    const elapsed = Math.floor((Date.now() - V41_STATE.questionEnteredAt) / 1000);
+    const total = (V41_STATE.telemetryMap[q.id] || 0) + elapsed;
+    const badge = document.getElementById('q-telemetry-timer');
+    if (badge) badge.textContent = `${total}s`;
+  }, 1000);
+
+  updateConfidenceButtonsUI(V41_STATE.confidenceMap[q.id] || '');
+}
+
+function setQuestionConfidence(level) {
+  const q = STATE.exam?.questions?.[STATE.exam?.currentIndex];
+  if (!q) return;
+  const elapsed = Math.max(1, Math.round((Date.now() - V41_STATE.questionEnteredAt) / 1000));
+  V41_STATE.telemetryMap[q.id] = (V41_STATE.telemetryMap[q.id] || 0) + elapsed;
+  V41_STATE.questionEnteredAt = Date.now();
+  V41_STATE.confidenceMap[q.id] = level;
+  updateConfidenceButtonsUI(level);
+}
+
+function updateConfidenceButtonsUI(activeLevel) {
+  const map = {
+    sure: { id: 'conf-btn-sure', cls: 'bg-emerald-500/20 border-emerald-500 text-emerald-300' },
+    hesitant: { id: 'conf-btn-hesitant', cls: 'bg-amber-500/20 border-amber-500 text-amber-300' },
+    guess: { id: 'conf-btn-guess', cls: 'bg-rose-500/20 border-rose-500 text-rose-300' }
+  };
+  Object.entries(map).forEach(([k, info]) => {
+    const el = document.getElementById(info.id);
+    if (!el) return;
+    el.className = `px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all ${k === activeLevel ? info.cls : 'opacity-75 hover:opacity-100'}`;
+  });
+}
+
+function renderMetacognitionMatrix(res) {
+  const grid = document.getElementById('res-metacognition-grid');
+  const avgBadge = document.getElementById('res-avg-time-badge');
+  if (!grid || !res) return;
+
+  const questions = STATE.exam?.questions || [];
+  let mastery = 0, lucky = 0, illusion = 0, blindspot = 0;
+  let totalSec = 0;
+
+  questions.forEach(q => {
+    const userAns = STATE.exam?.answers?.[q.id] || '';
+    const isCorrect = userAns && String(userAns).toUpperCase() === String(q.correct_answer || '').toUpperCase();
+    const conf = V41_STATE.confidenceMap[q.id] || 'sure';
+    totalSec += (V41_STATE.telemetryMap[q.id] || 6);
+
+    if (isCorrect && conf === 'sure') mastery++;
+    else if (isCorrect && (conf === 'hesitant' || conf === 'guess')) lucky++;
+    else if (!isCorrect && conf === 'sure') illusion++;
+    else blindspot++;
+  });
+
+  const avgSec = questions.length ? (totalSec / questions.length).toFixed(1) : '0.0';
+  if (avgBadge) avgBadge.textContent = `Phản xạ TB: ${avgSec}s / câu`;
+
+  grid.innerHTML = `
+    <div class="p-3.5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="font-extrabold text-emerald-400">🟢 Thực Lực Vững Vàng</span>
+        <span class="text-lg font-black text-emerald-300">${mastery} câu</span>
+      </div>
+      <p class="text-[11px] txt-muted">Tự tin & Chọn đúng: Kiến thức đã nằm chắc trong trí nhớ dài hạn.</p>
+    </div>
+
+    <div class="p-3.5 rounded-2xl border border-amber-500/40 bg-amber-500/10 space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="font-extrabold text-amber-400">🟡 Trúng Độc Đắc (Ăn May)</span>
+        <span class="text-lg font-black text-amber-300">${lucky} câu</span>
+      </div>
+      <p class="text-[11px] txt-muted">Phân vân/Đoán mò nhưng đúng: Cần xem lại ngay giải thích kẻo lần sau sai!</p>
+    </div>
+
+    <div class="p-3.5 rounded-2xl border border-rose-500/50 bg-rose-500/15 space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="font-extrabold text-rose-400">🔴 Ảo Tưởng Kiến Thức</span>
+        <span class="text-lg font-black text-rose-300">${illusion} câu</span>
+      </div>
+      <p class="text-[11px] txt-muted">Rất tự tin nhưng chọn SAI: Bẫy nguy hiểm nhất cần sửa ngay lập tức!</p>
+    </div>
+
+    <div class="p-3.5 rounded-2xl border border-purple-500/40 bg-purple-500/10 space-y-1">
+      <div class="flex items-center justify-between">
+        <span class="font-extrabold text-purple-400">🟣 Vùng Mù Kiến Thức</span>
+        <span class="text-lg font-black text-purple-300">${blindspot} câu</span>
+      </div>
+      <p class="text-[11px] txt-muted">Chưa nắm bài & Làm sai: Hãy đúc thẻ Flashcard SM-2 để ôn lại.</p>
+    </div>
+  `;
+}
+
+// Global Ctrl+K / Cmd+K Shortcut & Initializer for v41.0
+window.addEventListener('keydown', (e) => {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    const modal = document.getElementById('modal-command-palette');
+    if (modal && !modal.classList.contains('hidden')) {
+      closeCommandPaletteModal();
+    } else {
+      openCommandPaletteModal();
+    }
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    loadDailyQuestsWidget();
+  }, 600);
+});

@@ -3329,6 +3329,675 @@ async def _telegram_backup_loop():
             print(f"⚠️ Telegram backup failed: {exc}")
         await asyncio.sleep(hours * 3600)
 
+
+# ------------------------------------------------------------------------------
+# UNIMASTER AI v41.0 — VIVA VOCE, FEYNMAN STUDIO, MINDMAP & UML/MEMORY ANALYZER
+# ------------------------------------------------------------------------------
+
+VIVA_QUESTION_BANK = {
+    "biochem": [
+        {
+            "id": "viva_bio_1",
+            "topic": "Chu trình Krebs & Chuỗi hô hấp tế bào",
+            "question": "Tại sao chu trình Krebs được gọi là con đường chuyển hóa lưỡng dụng (amphibolic pathway)? Nếu thiếu hụt vitamin B1 (Thiamin), những enzyme nào bị đình trệ và hậu quả lâm sàng là gì?",
+            "keywords": ["dị hóa", "đồng hóa", "pyruvate dehydrogenase", "alpha-ketoglutarate dehydrogenase", "TPP", "nhiễm toan lactic", "ATP"],
+            "model_answer": "Chu trình Krebs là con đường lưỡng dụng vì vừa đóng vai trò DỊ HÓA (oxy hóa Acetyl-CoA tạo NADH, FADH2, GTP để sinh năng lượng) vừa đóng vai trò ĐỒNG HÓA (cung cấp các chất trung gian như Citrate tổng hợp acid béo, alpha-Ketoglutarate và Oxaloacetate tổng hợp acid amin, Succinyl-CoA tổng hợp Heme). Khi thiếu Vitamin B1 (tiền chất của coenzyme TPP - Thiamin pyrophosphate), hai phức hợp enzyme khử carboxyl oxy hóa là Pyruvate dehydrogenase và alpha-Ketoglutarate dehydrogenase bị ức chế, dẫn đến ứ đọng Pyruvate chuyển thành Lactate gây nhiễm toan lactic và thiếu hụt ATP nghiêm trọng ở mô thần kinh, cơ tim (bệnh Beri-beri).",
+            "follow_up": "Nếu tế bào lấy quá nhiều Oxaloacetate ra khỏi chu trình Krebs để tân tạo đường (Gluconeogenesis), phản ứng bù (anaplerotic reaction) quan trọng nhất để nạp lại Oxaloacetate là phản ứng nào và do enzyme gì xúc tác?"
+        },
+        {
+            "id": "viva_bio_2",
+            "topic": "Động học Enzyme & Chất ức chế",
+            "question": "Hãy phân biệt cơ chế của chất ức chế cạnh tranh (Competitive) và ức chế không cạnh tranh (Non-competitive) dựa trên giá trị Km, Vmax và đồ thị nghịch đảo kép Lineweaver-Burk.",
+            "keywords": ["Km", "Vmax", "trung tâm hoạt động", "dị lập thể", "Lineweaver-Burk", "tăng Km", "giảm Vmax"],
+            "model_answer": "1) Ức chế cạnh tranh: Chất ức chế có cấu trúc giống cơ chất, gắn thuận nghịch vào trung tâm hoạt động của enzyme tự do (E). Khi tăng nồng độ cơ chất [S] thật cao có thể đẩy chất ức chế ra, nên Vmax KHÔNG ĐỔI nhưng Km biểu kiến TĂNG (giảm ái lực). Trên đồ thị Lineweaver-Burk, các đường thẳng cắt nhau trên trục tung (1/Vmax). 2) Ức chế không cạnh tranh: Chất ức chế gắn vào vị trí dị lập thể trên cả E và phức hợp ES, làm bất hoạt xúc tác mà không cản cơ chất gắn vào, do đó Km KHÔNG ĐỔI nhưng Vmax biểu kiến GIẢM. Trên đồ thị Lineweaver-Burk, các đường thẳng cắt nhau trên trục hoành (-1/Km).",
+            "follow_up": "Ứng dụng lâm sàng: Khi bệnh nhân ngộ độc Methanol, tại sao truyền Ethanol tĩnh mạch lại cứu sống được bệnh nhân khỏi mù lòa và toan chuyển hóa?"
+        },
+        {
+            "id": "viva_bio_3",
+            "topic": "Chuyển hóa Bilirubin & Vàng da",
+            "question": "Trên lâm sàng, làm thế nào để phân biệt vàng da trước gan (tan máu), vàng da tại gan và vàng da sau gan (tắc mật) dựa vào Bilirubin tự do, Bilirubin liên hợp, Urobilinogen nước tiểu và Stercobilin phân?",
+            "keywords": ["tự do", "gián tiếp", "liên hợp", "trực tiếp", "UDP-glucuronyl transferase", "urobilinogen", "phân bạc màu"],
+            "model_answer": "- Trước gan (Tan máu): Tăng mạnh Bilirubin tự do (gián tiếp) trong máu (không qua được cầu thận nên nước tiểu không có bilirubin), tăng Urobilinogen nước tiểu và tăng Stercobilin làm phân sẫm màu.\n- Tại gan (Viêm gan): Tăng cả Bilirubin tự do (do giảm bắt giữ/liên hợp) và Bilirubin liên hợp (do tổn thương tiểu quản mật tràn vào máu), nước tiểu sậm màu (có Bilirubin liên hợp).\n- Sau gan (Tắc mật hoàn toàn): Tăng cao Bilirubin liên hợp (trực tiếp) tràn vào máu và ra nước tiểu (nước tiểu vàng sậm như nước trà đặc), nhưng mật không xuống ruột được nên Urobilinogen âm tính và phân bạc màu như đất sét.",
+            "follow_up": "Tại sao trẻ sơ sinh thiếu tháng rất dễ bị vàng da nhân não (Kernicterus) và liệu pháp chiếu đèn xanh hoạt động theo cơ chế hóa sinh nào?"
+        }
+    ],
+    "csharp_oop": [
+        {
+            "id": "viva_cs_1",
+            "topic": "4 Trụ cột OOP & Đa hình (Polymorphism) trong C#",
+            "question": "Sự khác biệt bản chất giữa cơ chế nạp chồng (Method Overloading) và ghi đè (Method Overriding - từ khóa virtual/override) trong C# là gì? Khi nào trình biên dịch quyết định hàm được gọi ở Compile-time và khi nào ở Runtime (V-Table)?",
+            "keywords": ["Overloading", "Overriding", "virtual", "override", "Compile-time", "Runtime", "V-Table", "new"],
+            "model_answer": "- Overloading (Đa hình tĩnh / Compile-time): Các phương thức cùng tên trong cùng một lớp nhưng khác danh sách tham số (số lượng hoặc kiểu dữ liệu). Trình biên dịch xác định chính xác hàm nào được gọi ngay lúc biên dịch.\n- Overriding (Đa hình động / Runtime): Lớp cha khai báo phương thức với `virtual` hoặc `abstract`, lớp con định nghĩa lại với `override`. Khi gọi qua biến tham chiếu kiểu lớp cha trỏ tới đối tượng lớp con (`HinhHoc h = new HinhTron()`), CLR tra bảng phương thức ảo (Virtual Method Table - V-Table) tại thời điểm chạy (Runtime) để gọi đúng hàm của `HinhTron`.",
+            "follow_up": "Nếu ở lớp con ta dùng từ khóa `new` thay vì `override` (Method Hiding), điều gì xảy ra khi gọi phương thức thông qua biến tham chiếu kiểu lớp cha?"
+        },
+        {
+            "id": "viva_cs_2",
+            "topic": "Abstract Class vs Interface trong .NET",
+            "question": "Trong thiết kế hướng đối tượng C#, khi nào bạn chọn `abstract class` và khi nào chọn `interface`? Một lớp trong C# có thể kế thừa nhiều `abstract class` cùng lúc không và tại sao?",
+            "keywords": ["abstract class", "interface", "IS-A", "CAN-DO", "đa kế thừa", "Diamond Problem", "constructor", "field"],
+            "model_answer": "- `abstract class` thể hiện quan hệ bản chất 'IS-A' (là một), có thể chứa thuộc tính dữ liệu (fields), hàm khởi tạo (constructor), access modifiers và code dùng chung. C# chỉ cho phép ĐƠN KẾ THỪA lớp (`class`) để tránh bài toán Kim cương (Diamond Problem).\n- `interface` thể hiện bản hợp đồng hành vi 'CAN-DO' (có khả năng làm gì), một lớp có thể thực thi ĐA INTERFACE cùng lúc (VD: `class SinhVien : Nguoi, IComparable, IDisposable`), giúp tách biệt giao diện khỏi cài đặt (Loose Coupling & Dependency Injection).",
+            "follow_up": "Nếu một lớp thực thi 2 interface có cùng chữ ký phương thức `void Draw()`, làm thế nào để cài đặt tách biệt hành vi cho từng interface trong C#?"
+        },
+        {
+            "id": "viva_cs_3",
+            "topic": "Quản lý bộ nhớ Stack vs Heap & Garbage Collector",
+            "question": "Hãy giải thích sự khác biệt giữa Value Type (`struct`, `int`, `double`) và Reference Type (`class`, `string`, `List<T>`) trên bộ nhớ Stack và Managed Heap. Hiện tượng Boxing và Unboxing gây ảnh hưởng hiệu năng như thế nào?",
+            "keywords": ["Stack", "Heap", "Value Type", "Reference Type", "Boxing", "Unboxing", "Garbage Collector", "con trỏ"],
+            "model_answer": "- Value Type lưu trực tiếp giá trị tại chỗ (thường trên Stack Frame nếu là biến cục bộ), khi gán biến sẽ sao chép toàn bộ giá trị độc lập.\n- Reference Type lưu đối tượng thực sự trên Managed Heap (do Garbage Collector quản lý), còn biến trên Stack chỉ giữ địa chỉ tham chiếu (con trỏ) trỏ tới vùng nhớ Heap.\n- Boxing là quá trình đóng gói một Value Type trên Stack thành một đối tượng `object` cấp phát mới trên Heap (tốn thời gian cấp phát + tăng tải cho GC). Unboxing là ép kiểu ngược từ `object` trên Heap về Value Type trên Stack.",
+            "follow_up": "Tại sao kiểu `string` trong C# là Reference Type nhưng lại mang tính bất biến (Immutable), và tại sao nối chuỗi trong vòng lặp lớn nên dùng `StringBuilder`?"
+        }
+    ],
+    "discrete_math": [
+        {
+            "id": "viva_dm_1",
+            "topic": "Thuật toán tìm đường đi ngắn nhất Dijkstra & Bellman-Ford",
+            "question": "Tại sao thuật toán Dijkstra (sử dụng chiến lược Tham lam - Greedy) lại chạy sai khi đồ thị có cạnh trọng số âm, và thuật toán nào giải quyết được bài toán này?",
+            "keywords": ["Dijkstra", "trọng số âm", "Greedy", "Bellman-Ford", "chu trình âm", "độ phức tạp"],
+            "model_answer": "Thuật toán Dijkstra giả định rằng một khi đỉnh u có khoảng cách d[u] nhỏ nhất được lấy ra khỏi hàng đợi ưu tiên và đánh dấu cố định (visited), sẽ không thể có đường đi nào khác qua các đỉnh chưa xét làm giảm d[u] thêm nữa (vì mọi cạnh đều >= 0). Khi có cạnh trọng số âm, một đường đi dài hơn ở bước sau đi qua cạnh âm có thể làm tổng trọng số nhỏ hơn cả đỉnh đã chốt, khiến giả định tham lam bị phá vỡ. Để xử lý cạnh âm (và phát hiện chu trình âm), ta dùng thuật toán Bellman-Ford với độ phức tạp O(V * E).",
+            "follow_up": "Trong đồ thị không có trọng số (hoặc mọi cạnh đều bằng 1), thuật toán nào tìm đường đi ngắn nhất tối ưu hơn cả Dijkstra và có độ phức tạp bao nhiêu?"
+        },
+        {
+            "id": "viva_dm_2",
+            "topic": "Đồ thị Euler, Đồ thị Hamilton & Cây khung nhỏ nhất",
+            "question": "Phân biệt điều kiện cần và đủ để một đa đồ thị vô hướng liên thông có Chu trình Euler và Đường đi Euler. Tại sao bài toán kiểm tra Chu trình Euler thuộc lớp P còn Chu trình Hamilton thuộc lớp NP-Complete?",
+            "keywords": ["bậc chẵn", "bậc lẻ", "Euler", "Hamilton", "NP-Complete", "Hierholzer", "Kruskal", "Prim"],
+            "model_answer": "Theo định lý Euler: Đồ thị vô hướng liên thông có Chu trình Euler khi và chỉ khi MỌI ĐỈNH đều có bậc chẵn; có Đường đi Euler (không khép kín) khi và chỉ khi có ĐÚNG 2 ĐỈNH bậc lẻ. Vì chỉ cần đếm bậc của các đỉnh trong thời gian tuyến tính O(V + E), bài toán Euler thuộc lớp P. Ngược lại, Chu trình Hamilton yêu cầu đi qua mỗi ĐỈNH đúng một lần, không có điều kiện cục bộ đơn giản theo bậc đỉnh mà phải duyệt không gian trạng thái tổ hợp, nên thuộc lớp NP-Complete.",
+            "follow_up": "So sánh thuật toán Prim và Kruskal khi tìm Cây khung nhỏ nhất (Minimum Spanning Tree): Khi nào nên chọn Prim và khi nào nên chọn Kruskal?"
+        }
+    ],
+    "python": [
+        {
+            "id": "viva_py_1",
+            "topic": "Cấu trúc dữ liệu & Độ phức tạp Big-O trong Python",
+            "question": "Tại sao thao tác kiểm tra phần tử `x in my_collection` trên `set` hoặc `dict` trong Python có độ phức tạp trung bình O(1), trong khi trên `list` lại là O(n)? Điều kiện để một đối tượng làm được khóa (key) của `dict` là gì?",
+            "keywords": ["Hash Table", "O(1)", "O(n)", "hashable", "immutable", "__hash__", "__eq__", "tuple", "list"],
+            "model_answer": "`set` và `dict` trong Python được cài đặt bên dưới bằng Bảng băm (Hash Table). Khi tìm `x`, Python tính hàm băm `hash(x)` để nhảy trực tiếp tới ô nhớ (bucket) trong thời gian O(1), còn `list` là mảng động phải duyệt tuần tự từng phần tử từ đầu đến cuối mất O(n). Để làm key trong `dict` hoặc phần tử trong `set`, đối tượng phải là Hashable (bất biến - Immutable, cài đặt `__hash__()` và `__eq__()`), ví dụ `int`, `str`, `tuple` (chứa các phần tử bất biến), còn `list` hay `dict` là Mutable nên không thể làm key.",
+            "follow_up": "Sự khác biệt giữa tham chiếu nông `copy.copy()` (Shallow Copy) và sao chép sâu `copy.deepcopy()` (Deep Copy) với danh sách lồng nhau `[[1, 2], [3, 4]]` là gì?"
+        }
+    ]
+}
+
+
+async def api_viva_simulator_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    action = data.get("action", "start")
+    domain = data.get("domain", "biochem")
+    persona = data.get("persona", "strict_prof")
+    difficulty = data.get("difficulty", "medium")
+    question_id = data.get("question_id", "")
+
+    bank = VIVA_QUESTION_BANK.get(domain, VIVA_QUESTION_BANK["biochem"])
+
+    if action in ("start", "next_question"):
+        import random
+        candidates = [q for q in bank if q["id"] != question_id] or bank
+        chosen = random.choice(candidates)
+        persona_intro = {
+            "strict_prof": "👨‍🏫 [Giáo sư Hội đồng]: Trình bày ngắn gọn, đi thẳng vào bản chất cơ chế và thuật ngữ chuẩn!",
+            "socratic_mentor": "🧙‍♂️ [Giảng viên Socratic]: Hãy suy luận từng bước từ nguyên lý gốc nhé, thầy sẽ gợi mở cùng em.",
+            "tech_lead": "💻 [Tech Lead / Bác sĩ Nội trú]: Tập trung vào hiệu năng thực tế, xử lý tình huống và các góc khuất (edge cases)!"
+        }.get(persona, "👨‍🏫 [Giám khảo AI]: Hãy trả lời câu hỏi vấn đáp dưới đây:")
+
+        return web.json_response({
+            "ok": True,
+            "question_id": chosen["id"],
+            "topic": chosen["topic"],
+            "question": chosen["question"],
+            "persona_intro": persona_intro,
+            "keywords_hint_count": len(chosen["keywords"]),
+            "difficulty": difficulty
+        })
+
+    user_answer = (data.get("answer") or "").strip()
+    question_text = (data.get("question") or "").strip()
+    matched_item = next((q for q in bank if q["id"] == question_id or q["question"] == question_text), bank[0])
+
+    if not user_answer:
+        return web.json_response({"ok": False, "error": "Vui lòng nhập hoặc nói câu trả lời của bạn trước khi nộp chấm!"}, status=400)
+
+    ans_lower = user_answer.lower()
+    keywords = matched_item.get("keywords", [])
+    hit_keywords = [kw for kw in keywords if kw.lower() in ans_lower]
+    missing_keywords = [kw for kw in keywords if kw.lower() not in ans_lower]
+
+    kw_ratio = len(hit_keywords) / max(1, len(keywords))
+    word_count = len(user_answer.split())
+    length_factor = min(1.0, word_count / 35.0)
+
+    accuracy_score = min(100, int(round((kw_ratio * 0.75 + length_factor * 0.25) * 100)))
+    depth_score = min(100, int(round((length_factor * 0.6 + kw_ratio * 0.4) * 100)))
+    terminology_score = min(100, int(round(kw_ratio * 100)))
+    clarity_score = min(100, max(55, int(round((0.5 + length_factor * 0.5) * 95))))
+    total_score = int(round(accuracy_score * 0.35 + depth_score * 0.25 + terminology_score * 0.25 + clarity_score * 0.15))
+
+    grade_rank = "Xuất sắc (A+)" if total_score >= 85 else ("Khá Giỏi (B+)" if total_score >= 70 else ("Đạt yêu cầu (C)" if total_score >= 50 else "Cần củng cố gấp (D)"))
+
+    feedback = (
+        f"Bạn đã nêu trúng {len(hit_keywords)}/{len(keywords)} từ khóa cốt lõi ({', '.join(hit_keywords) if hit_keywords else 'chưa dùng đúng thuật ngữ chuyên ngành'}). "
+        f"Độ dài lập luận: {word_count} từ."
+    )
+    if missing_keywords:
+        feedback += f" Để đạt điểm tối đa 10/10 trước hội đồng, bạn cần bổ sung phân tích về: {', '.join(missing_keywords)}."
+
+    try:
+        if ai.has_active_key():
+            prompt = (
+                f"Đóng vai giám khảo thi vấn đáp đại học ({persona}).\n"
+                f"Câu hỏi: {question_text}\n"
+                f"Câu trả lời của sinh viên: {user_answer}\n"
+                f"Đáp án chuẩn tham khảo: {matched_item.get('model_answer', '')}\n"
+                f"Hãy nhận xét ngắn gọn, sắc bén (3-4 câu tiếng Việt) về ưu điểm và điểm cần sửa trong câu trả lời của sinh viên."
+            )
+            ai_comment = await asyncio.wait_for(ai._call_gemini_text(prompt, temperature=0.3), timeout=8.0)
+            if ai_comment and len(ai_comment.strip()) > 20:
+                feedback = ai_comment.strip()
+    except Exception:
+        pass
+
+    return web.json_response({
+        "ok": True,
+        "total_score": total_score,
+        "grade_rank": grade_rank,
+        "rubric": {
+            "accuracy": accuracy_score,
+            "depth": depth_score,
+            "terminology": terminology_score,
+            "clarity": clarity_score
+        },
+        "hit_keywords": hit_keywords,
+        "missing_keywords": missing_keywords,
+        "feedback": feedback,
+        "model_answer": matched_item.get("model_answer", ""),
+        "follow_up_question": matched_item.get("follow_up", "")
+    })
+
+
+async def api_feynman_evaluate_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    concept = (data.get("concept") or "").strip()
+    explanation = (data.get("explanation") or "").strip()
+    subject = (data.get("subject") or "Tổng hợp").strip()
+
+    if not concept or not explanation:
+        return web.json_response({"ok": False, "error": "Vui lòng nhập tên khái niệm và lời giải thích của bạn!"}, status=400)
+
+    words = explanation.split()
+    word_count = len(words)
+    has_analogy = any(w in explanation.lower() for w in ["giống như", "tưởng tượng", "ví dụ", "như là", "ví như", "analogy", "nhà máy", "chìa khóa", "ổ khóa", "bản thiết kế"])
+    has_structure = any(w in explanation.lower() for w in ["bởi vì", "do đó", "kết quả là", "bước 1", "đầu tiên", "tiếp theo", "tóm lại"])
+
+    simplicity_score = min(100, max(45, 65 + (20 if has_analogy else 0) + (15 if 20 <= word_count <= 180 else 5)))
+    accuracy_score = min(100, max(50, 60 + min(30, word_count // 3) + (10 if has_structure else 0)))
+    clarity_score = int(round(simplicity_score * 0.55 + accuracy_score * 0.45))
+
+    gaps = []
+    if not has_analogy:
+        gaps.append("Chưa sử dụng hình ảnh ẩn dụ đời thường (Analogy) — trái tim của phương pháp Feynman để người mới nghe hiểu ngay.")
+    if word_count < 25:
+        gaps.append("Lời giải thích còn quá ngắn, chưa làm rõ mối quan hệ Nhân - Quả (Tại sao cơ chế này diễn ra?).")
+    if not has_structure:
+        gaps.append("Nên chia luồng giải thích theo trình tự: Định nghĩa cực ngắn -> Ẩn dụ đời sống -> Ví dụ thực tế.")
+    if not gaps:
+        gaps.append("Cách diễn đạt rất mạch lạc! Hãy thử thách bản thân bằng cách giải thích thêm các trường hợp ngoại lệ (Edge Cases).")
+
+    feynman_rewrite = (
+        f"💡 [Bản chuẩn Feynman cho '{concept}']: Hãy tưởng tượng '{concept}' giống như một quy trình điều phối thông minh trong đời sống. "
+        f"Thay vì học thuộc lòng định nghĩa khô khan, bản chất của nó gồm 3 ý: (1) Nó giải quyết bài toán gì? "
+        f"(2) Cơ chế cốt lõi hoạt động ra sao khi có tác nhân kích thích? và (3) Nếu thành phần này bị lỗi/thiếu hụt thì hệ thống sẽ sụp đổ ở khâu nào?"
+    )
+    child_question = f"Nếu em là một học sinh 12 tuổi và hỏi: 'Tại sao ta không thể bỏ qua {concept} mà lại bắt buộc phải dùng nó?', bạn sẽ trả lời thế nào trong 2 câu?"
+
+    try:
+        if ai.has_active_key():
+            prompt = (
+                f"Sinh viên đang luyện phương pháp Feynman cho khái niệm: '{concept}' (Môn: {subject}).\n"
+                f"Lời giải thích của sinh viên: '{explanation}'\n"
+                f"Hãy viết lại 1 đoạn giải thích chuẩn Feynman cực kỳ dễ hiểu kèm hình ảnh ẩn dụ thú vị (tối đa 4 câu tiếng Việt)."
+            )
+            ai_rewrite = await asyncio.wait_for(ai._call_gemini_text(prompt, temperature=0.4), timeout=8.0)
+            if ai_rewrite and len(ai_rewrite.strip()) > 25:
+                feynman_rewrite = ai_rewrite.strip()
+    except Exception:
+        pass
+
+    return web.json_response({
+        "ok": True,
+        "concept": concept,
+        "clarity_score": clarity_score,
+        "simplicity_score": simplicity_score,
+        "accuracy_score": accuracy_score,
+        "has_analogy": has_analogy,
+        "word_count": word_count,
+        "knowledge_gaps": gaps,
+        "feynman_rewrite": feynman_rewrite,
+        "child_question": child_question
+    })
+
+
+MINDMAP_PRESETS = {
+    "krebs": {
+        "root": "Chu trình Krebs & Hô hấp Tế bào",
+        "subtitle": "Trung tâm chuyển hóa năng lượng tại Chất nền Ty thể (Mitochondrial Matrix)",
+        "branches": [
+            {
+                "id": "b1",
+                "title": "1. Khởi phát: Pyruvate -> Acetyl-CoA",
+                "color": "#ec4899",
+                "summary": "Xúc tác bởi phức hợp Pyruvate Dehydrogenase (PDH) cần 5 coenzyme: TPP (B1), FAD (B2), NAD+ (B3), CoA-SH (B5), Acid Lipoic.",
+                "formula": "Pyruvate + NAD+ + CoA-SH -> Acetyl-CoA + NADH + CO2",
+                "exam_trap": "Bẫy thi: Phản ứng PDH là bước cầu nối, KHÔNG nằm trong 8 phản ứng chính thức của chu trình Krebs nhưng quyết định đầu vào!",
+                "subnodes": ["5 Coenzyme (B1, B2, B3, B5, Lipoic)", "Ức chế bởi Acetyl-CoA & NADH cao", "Sinh 1 NADH (2.5 ATP)"]
+            },
+            {
+                "id": "b2",
+                "title": "2. 3 Điểm Điều Hòa Không Thuận Nghịch",
+                "color": "#8b5cf6",
+                "summary": "3 enzyme điều hòa tốc độ chu trình Krebs: Citrate Synthase, Isocitrate Dehydrogenase (quan trọng nhất), và alpha-Ketoglutarate Dehydrogenase.",
+                "formula": "Isocitrate + NAD+ -> alpha-Ketoglutarate + CO2 + NADH",
+                "exam_trap": "Bẫy thi: ADP và Ca2+ KÍCH THÍCH mạnh Isocitrate dehydrogenase; còn ATP và NADH ỨC CHẾ nó.",
+                "subnodes": ["Citrate Synthase (Mở đầu)", "Isocitrate Dehydrogenase (Rate-limiting)", "a-KG Dehydrogenase (Cần B1)"]
+            },
+            {
+                "id": "b3",
+                "title": "3. Bảng Cân Bằng Năng Lượng (1 vòng)",
+                "color": "#10b981",
+                "summary": "Mỗi phân tử Acetyl-CoA đi qua 1 vòng Krebs tạo ra: 3 NADH, 1 FADH2, 1 GTP (ATP) và giải phóng 2 phân tử CO2.",
+                "formula": "3 NADH (7.5 ATP) + 1 FADH2 (1.5 ATP) + 1 GTP (1 ATP) = 10 ATP",
+                "exam_trap": "Bẫy thi: Quy ước mới tính 1 NADH = 2.5 ATP (cũ là 3), 1 FADH2 = 1.5 ATP (cũ là 2) -> Tổng 10 ATP (hoặc 12 ATP theo quy ước cũ).",
+                "subnodes": ["3 NADH tại bước 3, 4, 8", "1 FADH2 tại Succinate DH (Phức hợp II)", "1 GTP tại Succinyl-CoA Synthetase"]
+            },
+            {
+                "id": "b4",
+                "title": "4. Vai Trò Lưỡng Dụng (Amphibolic)",
+                "color": "#f59e0b",
+                "summary": "Cung cấp tiền chất cho tổng hợp Lipid, Acid amin, Porphyrin (Heme) và Tân tạo đường.",
+                "formula": "Pyruvate + CO2 + ATP -> Oxaloacetate + ADP + Pi (Pyruvate Carboxylase)",
+                "exam_trap": "Bẫy thi: Succinate Dehydrogenase là enzyme DUY NHẤT của chu trình Krebs gắn trên màng trong ty thể!",
+                "subnodes": ["Citrate -> Tổng hợp Acid béo", "Succinyl-CoA + Glycine -> Heme", "Oxaloacetate -> Tân tạo Glucose"]
+            }
+        ]
+    },
+    "csharp_oop": {
+        "root": "4 Trụ Cột OOP & Kiến Trúc C# (.NET)",
+        "subtitle": "Nền tảng thiết kế Hướng đối tượng & Quản lý bộ nhớ CLR",
+        "branches": [
+            {
+                "id": "c1",
+                "title": "1. Đóng Gói (Encapsulation)",
+                "color": "#06b6d4",
+                "summary": "Che giấu dữ liệu nội bộ (`private` fields) và kiểm soát truy cập thông qua Properties (`get`/`set`).",
+                "formula": "public int Tuoi { get => _tuoi; set => _tuoi = value >= 0 ? value : 0; }",
+                "exam_trap": "Bẫy thi: `protected` cho phép lớp con truy cập kể cả khác assembly, còn `internal` chỉ trong cùng một project/assembly.",
+                "subnodes": ["Access Modifiers (private/protected/public)", "Auto-Implemented Properties", "Data Validation trong Setter"]
+            },
+            {
+                "id": "c2",
+                "title": "2. Kế Thừa (Inheritance)",
+                "color": "#8b5cf6",
+                "summary": "Tái sử dụng mã nguồn từ lớp cha (`base`), gọi constructor lớp cha bằng `: base(...)`.",
+                "formula": "public class BacSi : NhanVienYTe { public BacSi(string ten) : base(ten) {} }",
+                "exam_trap": "Bẫy thi: Constructor lớp cha LUÔN chạy trước Constructor lớp con! Từ khóa `sealed` ngăn không cho kế thừa tiếp.",
+                "subnodes": ["Đơn kế thừa Class (: BaseClass)", "Từ khóa base() & this()", "Sealed Class chống kế thừa"]
+            },
+            {
+                "id": "c3",
+                "title": "3. Đa Hình (Polymorphism)",
+                "color": "#ec4899",
+                "summary": "Cùng một lời gọi phương thức nhưng hành vi khác nhau tùy thuộc vào kiểu đối tượng thực tế lúc chạy (Runtime V-Table).",
+                "formula": "virtual (Lớp cha) ---> override (Lớp con) vs new (Che khuất hàm)",
+                "exam_trap": "Bẫy thi: Nếu lớp con dùng `new` thay vì `override`, biến tham chiếu kiểu lớp cha sẽ gọi hàm của LỚP CHA chứ không phải lớp con!",
+                "subnodes": ["Overloading (Compile-time)", "Overriding (virtual / override)", "Method Hiding (từ khóa new)"]
+            },
+            {
+                "id": "c4",
+                "title": "4. Trừu Tượng (Abstraction)",
+                "color": "#10b981",
+                "summary": "Tách biệt bản thiết kế (What) khỏi cách thực thi (How) thông qua `abstract class` và `interface`.",
+                "formula": "public abstract double TinhLuong(); // Bắt buộc lớp con override",
+                "exam_trap": "Bẫy thi: Không thể khởi tạo trực tiếp `new AbstractClass()` hay `new IInterface()`, nhưng có thể khai báo biến tham chiếu của chúng!",
+                "subnodes": ["Abstract Class (Quan hệ IS-A)", "Interface (Hợp đồng CAN-DO)", "Đa thực thi Interface"]
+            }
+        ]
+    },
+    "graph_theory": {
+        "root": "Lý Thuyết Đồ Thị & Thuật Toán Cốt Lõi",
+        "subtitle": "Toán Rời Rạc: Duyệt đồ thị, Đường đi ngắn nhất & Cây khung",
+        "branches": [
+            {
+                "id": "g1",
+                "title": "1. Biểu Diễn & Duyệt Đồ Thị (BFS / DFS)",
+                "color": "#3b82f6",
+                "summary": "BFS dùng Hàng đợi (Queue - FIFO) tìm đường ngắn nhất theo số cạnh; DFS dùng Ngăn xếp (Stack / Đệ quy) xét tính liên thông, chu trình.",
+                "formula": "Độ phức tạp: O(V + E) với Danh sách kề | O(V^2) với Ma trận kề",
+                "exam_trap": "Bẫy thi: Khi liệt kê thứ tự đỉnh thăm, phải tuân thủ thứ tự từ điển (A->Z hoặc 1->N) của đề bài!",
+                "subnodes": ["BFS -> Queue (Lan truyền theo lớp)", "DFS -> Stack / Đệ quy (Đi sâu)", "Đếm thành phần liên thông"]
+            },
+            {
+                "id": "g2",
+                "title": "2. Đường Đi Ngắn Nhất (Dijkstra & Bellman-Ford)",
+                "color": "#f59e0b",
+                "summary": "Dijkstra dùng chiến lược tham lam cho trọng số không âm; Bellman-Ford nới lỏng cạnh V-1 lần xử lý được trọng số âm.",
+                "formula": "Relax: d[v] = min(d[v], d[u] + w(u, v))",
+                "exam_trap": "Bẫy thi: Dijkstra SAI khi có cạnh âm! Nếu bước thứ V của Bellman-Ford vẫn giảm được d[v] thì đồ thị có chu trình âm.",
+                "subnodes": ["Dijkstra: O((V+E) log V)", "Bellman-Ford: O(V * E)", "Floyd-Warshall mọi cặp đỉnh: O(V^3)"]
+            },
+            {
+                "id": "g3",
+                "title": "3. Cây Khung Nhỏ Nhất (Prim & Kruskal)",
+                "color": "#10b981",
+                "summary": "Cây khung của đồ thị liên thông N đỉnh luôn có đúng N-1 cạnh và không có chu trình.",
+                "formula": "Số cạnh cây khung = |V| - 1 | Định lý Cayley: K_n có n^(n-2) cây khung",
+                "exam_trap": "Bẫy thi: Kruskal chọn cạnh nhỏ nhất toàn cục (dùng Union-Find chống chu trình); Prim phát triển từ 1 cây liên thông duy nhất.",
+                "subnodes": ["Kruskal (Sắp xếp cạnh tăng dần)", "Prim (Mở rộng đỉnh kề gần nhất)", "Union-Find (Disjoint Set)"]
+            },
+            {
+                "id": "g4",
+                "title": "4. Chu Trình Euler & Hamilton",
+                "color": "#ec4899",
+                "summary": "Euler đi qua MỌI CẠNH đúng 1 lần; Hamilton đi qua MỌI ĐỈNH đúng 1 lần.",
+                "formula": "Euler: Mọi đỉnh bậc chẵn | Đường đi Euler: Đúng 2 đỉnh bậc lẻ",
+                "exam_trap": "Bẫy thi: Định lý Dirac (mọi đỉnh bậc >= n/2 thì có Hamilton) chỉ là điều kiện ĐỦ, không phải điều kiện cần!",
+                "subnodes": ["Chu trình Euler (Bậc chẵn)", "Đường đi Euler (2 đỉnh bậc lẻ)", "Chu trình Hamilton (Định lý Dirac/Ore)"]
+            }
+        ]
+    }
+}
+
+
+async def api_mindmap_generate_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    topic_key = (data.get("preset") or "krebs").strip().lower()
+    custom_topic = (data.get("topic") or "").strip()
+
+    if not custom_topic and topic_key in MINDMAP_PRESETS:
+        return web.json_response({"ok": True, "mindmap": MINDMAP_PRESETS[topic_key]})
+
+    title = custom_topic or "Chủ đề Học thuật Đại học"
+    generated = {
+        "root": title,
+        "subtitle": "Sơ đồ tư duy phân nhánh thông minh — Bấm vào từng nhánh để xem chi tiết & bẫy thi cử",
+        "branches": [
+            {
+                "id": "m1",
+                "title": f"1. Bản chất & Định nghĩa của {title}",
+                "color": "#8b5cf6",
+                "summary": f"Khái niệm nền tảng, vai trò sinh lý/kỹ thuật và vị trí của {title} trong chương trình học.",
+                "formula": "Nguyên lý gốc: Đầu vào (Input/Cơ chất) ---> Cơ chế xử lý ---> Đầu ra (Output/Sản phẩm)",
+                "exam_trap": "Bẫy thi: Thường hỏi phân biệt khái niệm này với các cơ chế có tên gọi tương tự.",
+                "subnodes": ["Khái niệm cốt lõi", "Điều kiện hoạt động", "Ý nghĩa thực tiễn"]
+            },
+            {
+                "id": "m2",
+                "title": "2. Cơ chế & Các bước thực hiện",
+                "color": "#06b6d4",
+                "summary": f"Trình tự các bước biến đổi hoặc thuật toán xử lý của {title}.",
+                "formula": "Bước 1 (Khởi tạo) -> Bước 2 (Điều hòa giới hạn tốc độ) -> Bước 3 (Hoàn tất)",
+                "exam_trap": "Bẫy thi: Chú ý bước giới hạn tốc độ (Rate-limiting step) hoặc trường hợp biên (Edge case).",
+                "subnodes": ["Giai đoạn khởi phát", "Bước quyết định tốc độ", "Kết quả thu được"]
+            },
+            {
+                "id": "m3",
+                "title": "3. Điều hòa & Các yếu tố ảnh hưởng",
+                "color": "#10b981",
+                "summary": "Các tác nhân kích thích (Activators), chất ức chế (Inhibitors) hoặc độ phức tạp tài nguyên.",
+                "formula": "Tối ưu hóa hiệu suất & Cơ chế phản hồi ngược (Feedback Inhibition)",
+                "exam_trap": "Bẫy thi: Nhầm lẫn chiều tác động (tăng hay giảm) khi thay đổi nồng độ/tham số đầu vào.",
+                "subnodes": ["Yếu tố kích thích / Tối ưu", "Yếu tố ức chế / Giới hạn", "Cơ chế tự điều chỉnh"]
+            },
+            {
+                "id": "m4",
+                "title": "4. Ứng dụng Lâm sàng / Thực chiến Code",
+                "color": "#f59e0b",
+                "summary": f"Vận dụng {title} vào giải quyết ca lâm sàng hoặc bài tập lập trình thực tế.",
+                "formula": "Lý thuyết chuẩn + Phân tích dữ kiện đề bài => Đáp án chính xác 100%",
+                "exam_trap": "Bẫy thi: Đề bài thường cài dữ kiện nhiễu, hãy gạch chân từ khóa quyết định!",
+                "subnodes": ["Ca bệnh / Bài toán điển hình", "Dấu hiệu nhận biết nhanh", "Tổng kết công thức nhớ nhanh"]
+            }
+        ]
+    }
+    return web.json_response({"ok": True, "mindmap": generated})
+
+
+async def api_code_uml_memory_analyzer(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    code = data.get("code") or ""
+    language = (data.get("language") or "csharp").lower()
+
+    classes = []
+    stack_frames = []
+    heap_objects = []
+
+    if language in ("csharp", "cs", "c#"):
+        class_pattern = re.compile(
+            r"(?:public|internal|private|protected)?\s*(abstract|sealed|static)?\s*(class|interface|struct)\s+(\w+)(?:\s*:\s*([^{]+))?",
+            re.MULTILINE
+        )
+        for match in class_pattern.finditer(code):
+            modifier, kind, cname, inherits_raw = match.groups()
+            parents = [p.strip() for p in (inherits_raw or "").split(",") if p.strip()]
+            start_pos = match.end()
+            brace_depth = 0
+            body_chars = []
+            started = False
+            for ch in code[start_pos:]:
+                if ch == "{":
+                    brace_depth += 1
+                    started = True
+                    if brace_depth == 1:
+                        continue
+                elif ch == "}":
+                    brace_depth -= 1
+                    if brace_depth == 0 and started:
+                        break
+                if started and brace_depth >= 1:
+                    body_chars.append(ch)
+            body = "".join(body_chars)
+
+            fields = []
+            methods = []
+            for line in body.splitlines():
+                s = line.strip()
+                if not s or s.startswith("//"):
+                    continue
+                vis = "+" if "public" in s else ("-" if "private" in s else ("#" if "protected" in s else "~"))
+                prop_m = re.match(r"(?:public|private|protected|internal)\s+(?:virtual|override|abstract|static\s+)?([\w<>[\]]+)\s+(\w+)\s*\{\s*get", s)
+                if prop_m:
+                    fields.append(f"{vis} {prop_m.group(2)} : {prop_m.group(1)} {{get; set;}}")
+                    continue
+                meth_m = re.match(r"(?:public|private|protected|internal)?\s*(?:virtual|override|abstract|static\s+)?([\w<>[\]]+)\s+(\w+)\s*\(([^)]*)\)", s)
+                if meth_m and meth_m.group(2) not in ("if", "for", "while", "switch", "catch"):
+                    ret_type, mname, params = meth_m.groups()
+                    tag = " «ctor»" if mname == cname else ""
+                    methods.append(f"{vis} {mname}({params.strip()}) : {ret_type}{tag}")
+                    continue
+                field_m = re.match(r"(?:public|private|protected|internal)\s+(?:readonly\s+|static\s+)?([\w<>[\]]+)\s+(\w+)\s*(?:=|;)", s)
+                if field_m:
+                    fields.append(f"{vis} {field_m.group(2)} : {field_m.group(1)}")
+
+            stereotype = "«interface»" if kind == "interface" else ("«abstract»" if modifier == "abstract" else ("«struct»" if kind == "struct" else "«class»"))
+            classes.append({
+                "name": cname,
+                "stereotype": stereotype,
+                "parents": parents,
+                "fields": fields[:8],
+                "methods": methods[:8]
+            })
+
+        alloc_pattern = re.compile(r"([\w<>[\]]+)\s+(\w+)\s*=\s*new\s+([\w<>[\]]+)\s*\(([^)]*)\)")
+        addr_counter = 0x7F8A10
+        for m in alloc_pattern.finditer(code):
+            decl_type, var_name, obj_type, args = m.groups()
+            addr = f"0x{addr_counter:06X}"
+            addr_counter += 0x48
+            stack_frames.append({
+                "name": var_name,
+                "declared_type": decl_type,
+                "kind": "Reference (Con trỏ Stack -> Heap)",
+                "value": f"Ref -> {addr}",
+                "target_addr": addr
+            })
+            heap_objects.append({
+                "address": addr,
+                "type": obj_type,
+                "args": args.strip(),
+                "polymorphic": decl_type != obj_type,
+                "note": f"Đa hình: Biến `{decl_type}` trỏ tới đối tượng `{obj_type}` trên Heap" if decl_type != obj_type else f"Đối tượng `{obj_type}` cấp phát trên Managed Heap"
+            })
+
+        val_pattern = re.compile(r"\b(int|double|float|bool|char|decimal|long)\s+(\w+)\s*=\s*([^;]+);")
+        for m in val_pattern.finditer(code):
+            vtype, vname, vval = m.groups()
+            if "new " not in vval:
+                stack_frames.append({
+                    "name": vname,
+                    "declared_type": vtype,
+                    "kind": "Value Type (Lưu trực tiếp trên Stack)",
+                    "value": vval.strip()[:28],
+                    "target_addr": None
+                })
+    else:
+        for m in re.finditer(r"class\s+(\w+)(?:\(([^)]*)\))?:", code):
+            cname, parents_raw = m.groups()
+            parents = [p.strip() for p in (parents_raw or "").split(",") if p.strip()]
+            classes.append({
+                "name": cname,
+                "stereotype": "«python class»",
+                "parents": parents,
+                "fields": ["+ self.* (Dynamic Attributes)"],
+                "methods": [f"+ {fn}()" for fn in re.findall(r"def\s+(\w+)\s*\(", code)[:6]]
+            })
+        addr_counter = 0x10A400
+        for m in re.finditer(r"^\s*(\w+)\s*=\s*([^\n#]+)", code, re.MULTILINE):
+            vname, expr = m.group(1), m.group(2).strip()
+            if vname in ("self", "return", "if", "for", "while"):
+                continue
+            addr = f"0x{addr_counter:06X}"
+            addr_counter += 0x30
+            stack_frames.append({
+                "name": vname,
+                "declared_type": "PyObject*",
+                "kind": "Name Binding (Tham chiếu Python)",
+                "value": f"Ref -> {addr}",
+                "target_addr": addr
+            })
+            heap_objects.append({
+                "address": addr,
+                "type": "PyObject",
+                "args": expr[:36],
+                "polymorphic": False,
+                "note": f"Đối tượng Python trên Private Heap: `{expr[:36]}`"
+            })
+
+    if not classes:
+        classes.append({
+            "name": "Program",
+            "stereotype": "«entry»",
+            "parents": [],
+            "fields": [],
+            "methods": ["+ Main() : void"]
+        })
+
+    return web.json_response({
+        "ok": True,
+        "language": language,
+        "classes": classes,
+        "stack_frames": stack_frames[:12],
+        "heap_objects": heap_objects[:12]
+    })
+
+
+async def api_gamification_quests_handler(request):
+    exam_count = 0
+    card_count = 0
+    mistake_count = 0
+    try:
+        conn = db.get_connection()
+        c = conn.cursor()
+        try:
+            exam_count = c.execute("SELECT COUNT(*) FROM exam_results").fetchone()[0]
+        except Exception:
+            try:
+                exam_count = c.execute("SELECT COUNT(*) FROM exam_history").fetchone()[0]
+            except Exception:
+                exam_count = 0
+        try:
+            card_count = c.execute("SELECT COUNT(*) FROM flashcards").fetchone()[0]
+        except Exception:
+            card_count = 0
+        conn.close()
+    except Exception:
+        pass
+
+    quests = [
+        {
+            "id": "q_exam",
+            "title": "Chiến thần Phòng Thi",
+            "desc": "Hoàn thành ít nhất 1 đề luyện tập hoặc thi thực chiến",
+            "progress": min(1, exam_count),
+            "target": 1,
+            "xp": 150,
+            "icon": "🎯",
+            "action_view": "exam"
+        },
+        {
+            "id": "q_code",
+            "title": "Kiến trúc sư OOP & Thuật toán",
+            "desc": "Chạy thử hoặc chấm Test Case 1 bài tập C# / Python + xem sơ đồ UML/Heap",
+            "progress": 1 if exam_count > 0 else 0,
+            "target": 1,
+            "xp": 200,
+            "icon": "💻",
+            "action_view": "exercises"
+        },
+        {
+            "id": "q_viva",
+            "title": "Bản lĩnh Vấn đáp & Feynman",
+            "desc": "Thực hành 1 câu hỏi tại Phòng Vấn Đáp AI hoặc Feynman Studio",
+            "progress": 0,
+            "target": 1,
+            "xp": 250,
+            "icon": "🎙️",
+            "action_view": "viva"
+        },
+        {
+            "id": "q_lab",
+            "title": "Nhà nghiên cứu Phòng Lab",
+            "desc": "Mô phỏng Động học Enzyme Michaelis-Menten hoặc Thuật toán Đồ thị",
+            "progress": 0,
+            "target": 1,
+            "xp": 180,
+            "icon": "🧬",
+            "action_view": "lab"
+        }
+    ]
+    total_xp = exam_count * 120 + card_count * 10
+    level = max(1, total_xp // 500 + 1)
+    return web.json_response({
+        "ok": True,
+        "level": level,
+        "total_xp": total_xp,
+        "next_level_xp": level * 500,
+        "unresolved_mistakes": mistake_count,
+        "quests": quests
+    })
+
+
 def create_app():
     db.init_db()
     # Always repair the catalog first: cloud volumes can start with an empty DB
@@ -3490,6 +4159,13 @@ def create_app():
     app.router.add_get("/api/battle/leaderboard", api_battle_leaderboard)
     app.router.add_get("/api/stem/reference", api_stem_reference)
     app.router.add_get("/api/exam/ctump-parts", api_exam_ctump_parts)
+
+    # UniMaster AI v41.0 Super-Suite Routes
+    app.router.add_post("/api/ai/viva-simulator", api_viva_simulator_handler)
+    app.router.add_post("/api/ai/feynman-evaluate", api_feynman_evaluate_handler)
+    app.router.add_post("/api/ai/mindmap-generate", api_mindmap_generate_handler)
+    app.router.add_post("/api/code/uml-memory-analyzer", api_code_uml_memory_analyzer)
+    app.router.add_get("/api/gamification/quests", api_gamification_quests_handler)
 
     # Route URLs (/exam/practical, /exam/essay, etc.)
     app.router.add_get("/exam/practical", index_handler)

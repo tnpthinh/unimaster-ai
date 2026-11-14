@@ -76,7 +76,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=40.0" />
+  <link rel="stylesheet" href="/static/style.css?v=41.0" />
   <link rel="stylesheet" href="/static/minimal.css?v=3.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
@@ -153,6 +153,28 @@
 
       <!-- Right: User Account Menu & Quick Action Cluster -->
       <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <!-- Command Palette Ctrl+K Omnisearch Pill -->
+        <button onclick="openCommandPaletteModal()" title="Tìm kiếm toàn hệ thống & Lệnh nhanh (Ctrl+K)"
+          class="btn-soft px-2.5 h-8 sm:h-9 text-xs font-bold flex items-center gap-1.5 rounded-xl border shadow-sm hover:border-indigo-500 transition-all"
+          style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <span>🔍</span>
+          <span class="hidden md:inline txt-main font-extrabold">Tìm nhanh</span>
+          <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-black rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Ctrl+K</kbd>
+        </button>
+        <!-- Quick Viva Voce Oral Exam Button -->
+        <button onclick="openVivaSimulatorModal()" title="Phòng Thi Vấn Đáp 1-1 với Hội đồng Giám khảo AI"
+          class="hidden sm:flex btn-soft px-2.5 h-8 sm:h-9 text-xs font-extrabold items-center gap-1 rounded-xl border shadow-sm hover:border-rose-500 transition-all text-rose-400"
+          style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <span>🎙️</span>
+          <span class="hidden xl:inline">Vấn Đáp AI</span>
+        </button>
+        <!-- Quick Mindmap & Feynman Studio Button -->
+        <button onclick="openMindmapFeynmanModal()" title="Sơ Đồ Tư Duy Tương Tác & Phương Pháp Feynman"
+          class="hidden sm:flex btn-soft px-2.5 h-8 sm:h-9 text-xs font-extrabold items-center gap-1 rounded-xl border shadow-sm hover:border-emerald-500 transition-all text-emerald-400"
+          style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <span>🧠</span>
+          <span class="hidden xl:inline">Mindmap</span>
+        </button>
         <!-- Header Quick Zoom Pill: A- / 100% / A+ điều chỉnh tức thời cỡ chữ -->
         <div class="hidden xl:flex items-center border rounded-xl p-0.5 shadow-sm text-xs" style="background-color: var(--bg-subtle); border-color: var(--border);" title="Phóng to / Thu nhỏ nhanh giao diện (Phím tắt: [ và ])">
           <button onclick="quickStepZoom(-10)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 font-black text-xs transition-colors" title="Thu nhỏ chữ ([)">A-</button>
@@ -342,6 +364,63 @@
             <button onclick="openCheatSheetModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1">
               <span>🖨️</span> Phao A4
             </button>
+            <button onclick="openVivaSimulatorModal()" class="btn-primary !bg-gradient-to-r !from-purple-600 !to-pink-600 px-3 py-1.5 text-xs font-bold flex items-center gap-1 shadow-md hover:scale-105 transition-all">
+              <span>🎙️</span> Thi Vấn Đáp AI
+            </button>
+            <button onclick="openMindmapFeynmanModal()" class="btn-primary !bg-gradient-to-r !from-emerald-600 !to-teal-600 px-3 py-1.5 text-xs font-bold flex items-center gap-1 shadow-md hover:scale-105 transition-all">
+              <span>🧠</span> Mindmap & Feynman
+            </button>
+            <button onclick="openCommandPaletteModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1 border-indigo-500/40">
+              <span>⌘</span> Lệnh Nhanh (Ctrl+K)
+            </button>
+          </div>
+        </div>
+
+        <!-- UniMaster v41.0 Super-Suite Banner & Daily Quests Bar -->
+        <div id="dashboard-v41-hub" class="mt-3 pt-3 border-t grid grid-cols-1 lg:grid-cols-12 gap-3" style="border-color: var(--border);">
+          <div class="lg:col-span-7 p-3.5 rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/40 via-purple-950/30 to-slate-900/50 space-y-2.5">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex items-center gap-2">
+                <span class="px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-indigo-500 to-pink-500 text-white shadow">MỚI v41.0</span>
+                <h3 class="text-xs sm:text-sm font-extrabold txt-main">🚀 Bộ Công Cụ Học Thuật Lượng Tử & Mô Phỏng Chuyên Sâu</h3>
+              </div>
+              <span id="v41-xp-badge" class="badge-brand px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black">Level 1 • 0 XP</span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <button onclick="openVivaSimulatorModal()" class="p-2.5 rounded-xl border border-pink-500/30 bg-pink-500/10 hover:bg-pink-500/20 text-left transition-all group">
+                <div class="text-base mb-0.5 group-hover:scale-110 transition-transform">🎙️</div>
+                <div class="font-extrabold text-[11px] txt-main">Vấn Đáp 1-1 AI</div>
+                <div class="text-[10px] txt-muted truncate">Chấm Rubric + Giọng nói</div>
+              </button>
+              <button onclick="openMindmapFeynmanModal()" class="p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all group">
+                <div class="text-base mb-0.5 group-hover:scale-110 transition-transform">🧠</div>
+                <div class="font-extrabold text-[11px] txt-main">Mindmap & Feynman</div>
+                <div class="text-[10px] txt-muted truncate">Sơ đồ SVG & Giải thích</div>
+              </button>
+              <button onclick="switchTab('lab'); switchLabSubTab('kinetics');" class="p-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-left transition-all group">
+                <div class="text-base mb-0.5 group-hover:scale-110 transition-transform">🧬</div>
+                <div class="font-extrabold text-[11px] txt-main">Động Học Enzyme</div>
+                <div class="text-[10px] txt-muted truncate">Michaelis-Menten & Km</div>
+              </button>
+              <button onclick="switchTab('lab'); switchLabSubTab('graphtheory');" class="p-2.5 rounded-xl border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all group">
+                <div class="text-base mb-0.5 group-hover:scale-110 transition-transform">🕸️</div>
+                <div class="font-extrabold text-[11px] txt-main">Đồ Thị Dijkstra</div>
+                <div class="text-[10px] txt-muted truncate">Bảng Trace từng bước</div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Daily Quests Progress -->
+          <div class="lg:col-span-5 p-3.5 rounded-2xl border space-y-2" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="flex items-center justify-between">
+              <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
+                <span>🎯</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
+              </div>
+              <button onclick="loadDailyQuestsWidget()" class="text-[10px] font-bold text-indigo-400 hover:underline">Làm mới</button>
+            </div>
+            <div id="daily-quests-list" class="space-y-1.5 max-h-[120px] overflow-y-auto pr-1 text-xs">
+              <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
+            </div>
           </div>
         </div>
 
@@ -1062,6 +1141,26 @@
             <div id="q-hint-content" class="markdown-body text-sm"></div>
           </div>
 
+          <!-- Metacognition Confidence Selector Bar (v41.0) -->
+          <div id="q-confidence-bar" class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="flex items-center gap-1.5 font-bold txt-sub">
+              <span>🧭</span>
+              <span>Mức độ tự tin câu này:</span>
+              <span id="q-telemetry-timer" class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300">0s</span>
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="setQuestionConfidence('sure')" id="conf-btn-sure" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all hover:border-emerald-500" style="border-color: var(--border);">
+                🟢 Chắc chắn 100%
+              </button>
+              <button type="button" onclick="setQuestionConfidence('hesitant')" id="conf-btn-hesitant" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all hover:border-amber-500" style="border-color: var(--border);">
+                🟡 Phân vân 50/50
+              </button>
+              <button type="button" onclick="setQuestionConfidence('guess')" id="conf-btn-guess" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all hover:border-rose-500" style="border-color: var(--border);">
+                🔴 Đoán mò
+              </button>
+            </div>
+          </div>
+
           <!-- Colorful Answer Options Container -->
           <div id="q-answer-area"></div>
 
@@ -1193,6 +1292,20 @@
           <div id="res-ai-eval-box" class="hidden mt-5 ai-callout ai-callout-indigo markdown-body text-sm"></div>
         </div>
 
+        <!-- Metacognition 4-Quadrant Matrix & Telemetry Analysis (v41.0) -->
+        <div id="res-metacognition-card" class="uni-card p-5 sm:p-6 space-y-4 border border-indigo-500/30">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h3 class="text-base font-extrabold txt-main flex items-center gap-2">
+                <span>🧭</span> Phân Tích Tâm Lý Phòng Thi & Ma Trận Tự Tin (Metacognition Matrix)
+              </h3>
+              <p class="text-xs txt-muted">Phát hiện câu ăn may nguy hiểm và lỗ hổng ảo tưởng kiến thức dựa trên độ tự tin & tốc độ phản xạ</p>
+            </div>
+            <span id="res-avg-time-badge" class="badge-brand px-3 py-1 rounded-full text-xs font-mono font-bold">TB: 0.0s / câu</span>
+          </div>
+          <div id="res-metacognition-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs"></div>
+        </div>
+
         <div class="space-y-3">
           <div class="flex items-center justify-between">
             <h3 class="text-base font-extrabold txt-main">Xem Lại Chi Tiết</h3>
@@ -1240,6 +1353,9 @@
           </button>
           <button onclick="analyzeCurrentCodeComplexity()" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-rose-500 px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Phân tích Big-O & OOP">
             <span>⚡</span> AI Big-O & OOP
+          </button>
+          <button onclick="openUmlMemoryModal()" class="btn-primary !bg-gradient-to-r !from-violet-600 !to-cyan-600 px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Tự động vẽ Sơ đồ lớp UML & Mô phỏng Bộ nhớ Stack/Heap">
+            <span>🔬</span> Sơ Đồ UML & Stack/Heap
           </button>
         </div>
       </div>
@@ -2234,6 +2350,12 @@
             <button type="button" onclick="switchLabSubTab('export')" data-labtab="export" class="preset-pill text-xs">
               📥 9. Xuất Anki & In Đề A4
             </button>
+            <button type="button" onclick="switchLabSubTab('kinetics')" data-labtab="kinetics" class="preset-pill text-xs font-extrabold text-cyan-300 border-cyan-500/40">
+              🧬 10. Động Học Enzyme (Km/Vmax)
+            </button>
+            <button type="button" onclick="switchLabSubTab('graphtheory')" data-labtab="graphtheory" class="preset-pill text-xs font-extrabold text-amber-300 border-amber-500/40">
+              🕸️ 11. Đồ Thị Dijkstra & MST
+            </button>
 
           </div>
         </div>
@@ -2923,6 +3045,161 @@
               <button type="button" onclick="downloadWordExam()" class="btn-primary w-full py-2.5 text-xs font-extrabold bg-gradient-to-r from-cyan-500 to-blue-600 flex items-center justify-center gap-2">
                 <span>🖨️</span> Tải Đề Thi Word (.doc)
               </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-MODULE 10: ENZYME KINETICS MICHAELIS-MENTEN & LINEWEAVER-BURK SIMULATOR -->
+      <div id="lab-sub-kinetics" class="hidden space-y-5">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <!-- Controls & Parameters -->
+          <div class="lg:col-span-5 uni-card p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+                <span>🧬</span> Mô Phỏng Động Học Enzyme Michaelis-Menten
+              </h3>
+              <span class="badge-brand px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">v0 = Vmax[S] / (Km + [S])</span>
+            </div>
+            <p class="text-xs txt-muted">
+              Điều chỉnh thông số thực tế để quan sát sự dịch chuyển của đường cong Michaelis-Menten và giao điểm trên đồ thị nghịch đảo kép Lineweaver-Burk.
+            </p>
+
+            <div>
+              <label class="text-[11px] font-extrabold uppercase txt-muted">Loại chất ức chế Enzyme (Inhibition Mode)</label>
+              <select id="enz-inhibition-type" onchange="renderEnzymeKineticsLab()" class="uni-input w-full px-3 py-2 text-xs font-bold mt-1">
+                <option value="none">🟢 Không có chất ức chế (Enzyme chuẩn)</option>
+                <option value="competitive">🔴 Ức chế Cạnh tranh (Competitive: Km tăng, Vmax giữ nguyên)</option>
+                <option value="noncompetitive">🟡 Ức chế Không cạnh tranh (Non-competitive: Km giữ nguyên, Vmax giảm)</option>
+                <option value="uncompetitive">🟣 Ức chế Phi cạnh tranh (Uncompetitive: Giảm cả Km và Vmax song song)</option>
+              </select>
+            </div>
+
+            <div class="space-y-3 pt-1">
+              <div>
+                <div class="flex justify-between text-xs font-bold">
+                  <span>Tốc độ cực đại gốc $V_{\max}$ ($\mu\text{mol/phút}$):</span>
+                  <span id="enz-vmax-val" class="font-mono text-cyan-400">100</span>
+                </div>
+                <input id="enz-vmax-slider" type="range" min="40" max="160" step="5" value="100" oninput="renderEnzymeKineticsLab()" class="w-full accent-cyan-500" />
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs font-bold">
+                  <span>Hằng số Michaelis gốc $K_m$ ($\text{mM}$):</span>
+                  <span id="enz-km-val" class="font-mono text-emerald-400">2.0 mM</span>
+                </div>
+                <input id="enz-km-slider" type="range" min="0.5" max="6.0" step="0.5" value="2.0" oninput="renderEnzymeKineticsLab()" class="w-full accent-emerald-500" />
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs font-bold">
+                  <span>Hệ số ức chế $\alpha = 1 + [I]/K_i$:</span>
+                  <span id="enz-alpha-val" class="font-mono text-rose-400">2.0x</span>
+                </div>
+                <input id="enz-alpha-slider" type="range" min="1.2" max="4.0" step="0.2" value="2.0" oninput="renderEnzymeKineticsLab()" class="w-full accent-rose-500" />
+              </div>
+
+              <div>
+                <div class="flex justify-between text-xs font-bold">
+                  <span>Nồng độ cơ chất đang khảo sát $[S]$ ($\text{mM}$):</span>
+                  <span id="enz-s-val" class="font-mono text-amber-400">4.0 mM</span>
+                </div>
+                <input id="enz-s-slider" type="range" min="0.5" max="12.0" step="0.5" value="4.0" oninput="renderEnzymeKineticsLab()" class="w-full accent-amber-500" />
+              </div>
+            </div>
+
+            <!-- Live Computed Readout -->
+            <div id="enz-kinetics-readout" class="p-3.5 rounded-xl text-xs space-y-1.5 border border-cyan-500/30 bg-cyan-500/5"></div>
+          </div>
+
+          <!-- Dual SVG Plots: Michaelis-Menten & Lineweaver-Burk -->
+          <div class="lg:col-span-7 space-y-4">
+            <div class="uni-card p-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs sm:text-sm font-extrabold txt-main">📈 1. Đồ thị Hyperbol Michaelis-Menten ($v_0$ theo $[S]$)</h4>
+                <span class="text-[11px] txt-muted font-mono">Đường nét đứt = Có mặt chất ức chế [I]</span>
+              </div>
+              <div id="enz-mm-svg-box" class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-2"></div>
+            </div>
+
+            <div class="uni-card p-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs sm:text-sm font-extrabold txt-main">📐 2. Đồ thị Nghịch Đảo Kép Lineweaver-Burk ($1/v_0$ theo $1/[S]$)</h4>
+                <span class="text-[11px] text-amber-400 font-mono">Trục tung: 1/Vmax • Trục hoành: -1/Km</span>
+              </div>
+              <div id="enz-lb-svg-box" class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-2"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SUB-MODULE 11: INTERACTIVE GRAPH THEORY & DIJKSTRA/MST SANDBOX -->
+      <div id="lab-sub-graphtheory" class="hidden space-y-5">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          <!-- Left: Algorithm Controls & Matrix Output -->
+          <div class="lg:col-span-5 uni-card p-5 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+                <span>🕸️</span> Phòng Lab Lý Thuyết Đồ Thị & Đường Đi Ngắn Nhất
+              </h3>
+              <span class="badge-amber px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">Toán Rời Rạc</span>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div>
+                <label class="text-[11px] font-bold txt-sub">Chọn mẫu đồ thị kinh điển</label>
+                <select id="gt-preset-select" onchange="loadGraphTheoryPreset()" class="uni-input w-full px-2.5 py-1.5 text-xs font-bold mt-1">
+                  <option value="dijkstra_exam">Đề thi Chuẩn 6 Đỉnh (A → F)</option>
+                  <option value="mst_network">Mạng Cáp Quang 6 Trạm (MST)</option>
+                  <option value="euler_bridge">Đồ thị Chu trình Euler</option>
+                </select>
+              </div>
+              <div>
+                <label class="text-[11px] font-bold txt-sub">Chọn thuật toán chạy</label>
+                <select id="gt-algo-select" onchange="runGraphTheorySimulation()" class="uni-input w-full px-2.5 py-1.5 text-xs font-bold mt-1">
+                  <option value="dijkstra">⚡ Dijkstra (Đường đi ngắn nhất từ A)</option>
+                  <option value="prim">🌲 Prim / Kruskal (Cây khung nhỏ nhất MST)</option>
+                  <option value="bfs">🌊 Duyệt theo chiều rộng (BFS từ A)</option>
+                  <option value="dfs">🧭 Duyệt theo chiều sâu (DFS từ A)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Add/Modify Edge -->
+            <div class="p-3 rounded-xl border space-y-2 text-xs" style="background-color: var(--bg-subtle); border-color: var(--border);">
+              <div class="font-extrabold txt-main">➕ Thêm / Cập nhật cạnh có trọng số $(u, v, w)$:</div>
+              <div class="grid grid-cols-4 gap-2">
+                <input id="gt-edge-u" type="text" value="A" maxlength="2" placeholder="Đỉnh u" class="uni-input px-2 py-1 text-center font-mono font-bold uppercase" />
+                <input id="gt-edge-v" type="text" value="D" maxlength="2" placeholder="Đỉnh v" class="uni-input px-2 py-1 text-center font-mono font-bold uppercase" />
+                <input id="gt-edge-w" type="number" value="3" min="1" max="99" placeholder="Trọng số" class="uni-input px-2 py-1 text-center font-mono font-bold" />
+                <button type="button" onclick="upsertGraphTheoryEdge()" class="btn-primary px-2 py-1 text-xs font-bold">Cập nhật</button>
+              </div>
+            </div>
+
+            <!-- Step-by-Step Trace Table -->
+            <div class="space-y-1.5">
+              <div class="text-xs font-extrabold txt-main flex items-center justify-between">
+                <span>📋 Bảng Trace Thuật Toán & Kết Quả Chuẩn Giáo Trình:</span>
+                <button type="button" onclick="runGraphTheorySimulation()" class="text-[11px] text-cyan-400 font-bold hover:underline">▶ Chạy lại</button>
+              </div>
+              <div id="gt-trace-output" class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-slate-200 space-y-1.5 max-h-[240px] overflow-y-auto"></div>
+            </div>
+          </div>
+
+          <!-- Right: Interactive SVG Graph Canvas & Adjacency Matrix -->
+          <div class="lg:col-span-7 space-y-4">
+            <div class="uni-card p-4 space-y-2">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs sm:text-sm font-extrabold txt-main">🎯 Sơ Đồ Mạng Đồ Thị Trực Quan (Cạnh tô sáng = Đường đi / Cây khung tối ưu)</h4>
+                <span id="gt-summary-badge" class="badge-emerald px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold">Tổng trọng số: 0</span>
+              </div>
+              <div id="gt-svg-canvas" class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-2 flex justify-center"></div>
+            </div>
+
+            <div class="uni-card p-4 space-y-2">
+              <h4 class="text-xs font-extrabold txt-main">🔢 Biểu Diễn Ma Trận Kề (Adjacency Matrix) & Bậc Của Đỉnh $\deg(v)$</h4>
+              <div id="gt-matrix-box" class="overflow-x-auto text-[11px] font-mono"></div>
             </div>
           </div>
         </div>
@@ -5455,6 +5732,213 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=40.0"></script>
+  <!-- ---------------------------------------------------------------------
+       MODAL v41.0 #1: COMMAND PALETTE & OMNISEARCH (Ctrl+K / Spotlight)
+       --------------------------------------------------------------------- -->
+  <div id="modal-command-palette" class="hidden fixed inset-0 z-[95] bg-black/75 backdrop-blur-md flex items-start justify-center pt-14 sm:pt-20 p-3 animate-fade-in" onclick="if(event.target===this) closeCommandPaletteModal()">
+    <div class="uni-card w-full max-w-2xl overflow-hidden shadow-2xl border border-indigo-500/40 flex flex-col max-h-[80vh]">
+      <div class="p-3.5 border-b flex items-center gap-3" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <span class="text-lg">🔍</span>
+        <input id="cmd-palette-input" type="text" oninput="renderCommandPaletteResults()" onkeydown="handleCommandPaletteKeydown(event)"
+          placeholder="Gõ tên môn học, bài tập C#/Python, câu hỏi hoặc lệnh nhanh (VD: Vấn đáp, Mindmap, Enzyme, Dijkstra)..."
+          class="w-full bg-transparent text-sm font-bold txt-main focus:outline-none" autocomplete="off" />
+        <kbd class="px-2 py-0.5 text-[10px] font-mono rounded border txt-muted shrink-0" style="border-color: var(--border);">ESC</kbd>
+      </div>
+      <div id="cmd-palette-results" class="p-2.5 overflow-y-auto space-y-1 flex-1 max-h-[60vh]"></div>
+      <div class="px-4 py-2 border-t text-[11px] txt-muted flex items-center justify-between" style="border-color: var(--border); background-color: var(--bg-subtle);">
+        <span>Mẹo: Dùng phím <kbd class="px-1 py-0.5 rounded bg-black/20 font-mono">↑</kbd> <kbd class="px-1 py-0.5 rounded bg-black/20 font-mono">↓</kbd> để di chuyển, <kbd class="px-1 py-0.5 rounded bg-black/20 font-mono">Enter</kbd> để mở ngay</span>
+        <span class="font-mono font-bold text-indigo-400">UniMaster Spotlight v41.0</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------------
+       MODAL v41.0 #2: AI VIVA VOCE & ORAL DEFENSE SIMULATOR (THI VẤN ĐÁP 1-1)
+       --------------------------------------------------------------------- -->
+  <div id="modal-viva-simulator" class="hidden fixed inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-viva-simulator')">
+    <div class="uni-card w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-pink-500/40">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-pink-500 to-purple-600 text-white flex items-center justify-center text-lg shadow-md">🎙️</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              Phòng Thi Vấn Đáp 1-1 & Bảo Vệ Đồ Án AI (Viva Voce Simulator)
+              <span class="badge-rose text-[10px] px-2 py-0.5 rounded-full font-black">LIVE RUBRIC</span>
+            </h3>
+            <p class="text-[11px] txt-muted">Trả lời bằng giọng nói (Mic) hoặc bàn phím • Chấm điểm 4 tiêu chí & Hỏi xoáy chuyên sâu</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-viva-simulator')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+        <!-- Config Row -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label class="text-[11px] font-bold txt-sub">Chuyên ngành vấn đáp</label>
+            <select id="viva-domain-select" onchange="requestNextVivaQuestion()" class="uni-input w-full px-3 py-2 text-xs font-bold mt-1">
+              <option value="biochem">🔬 Hóa Sinh Y Khoa & Lâm Sàng (CTUMP/YDS)</option>
+              <option value="csharp_oop">💻 Lập Trình Hướng Đối Tượng C# (.NET)</option>
+              <option value="discrete_math">🕸️ Toán Rời Rạc & Lý Thuyết Đồ Thị</option>
+              <option value="python">🐍 Cấu Trúc Dữ Liệu & Lập Trình Python</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[11px] font-bold txt-sub">Phong cách Giám khảo Hội đồng</label>
+            <select id="viva-persona-select" onchange="requestNextVivaQuestion()" class="uni-input w-full px-3 py-2 text-xs font-bold mt-1">
+              <option value="strict_prof">👨‍🏫 Giáo sư Hội đồng (Khắt khe, hỏi bản chất)</option>
+              <option value="socratic_mentor">🧙‍♂️ Giảng viên Socratic (Gợi mở từng bước)</option>
+              <option value="tech_lead">💻 Tech Lead / Bác sĩ Nội trú (Thực chiến)</option>
+            </select>
+          </div>
+          <div class="flex items-end gap-2">
+            <button type="button" onclick="requestNextVivaQuestion()" class="btn-primary w-full py-2 text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-md">
+              <span>🎲</span> Đổi Câu Hỏi Hội Đồng Mới
+            </button>
+          </div>
+        </div>
+
+        <!-- Examiner Question Box -->
+        <div class="p-4 rounded-2xl border border-pink-500/30 bg-gradient-to-r from-pink-950/30 to-purple-950/30 space-y-2">
+          <div class="flex items-center justify-between">
+            <span id="viva-topic-badge" class="badge-brand px-2.5 py-0.5 rounded-full text-[11px] font-bold">Chủ đề: Chu trình Krebs</span>
+            <button type="button" onclick="speakVivaQuestion()" class="btn-soft px-2.5 py-1 text-[11px] font-bold flex items-center gap-1">
+              <span>🔊</span> Nghe Giám khảo đọc câu hỏi
+            </button>
+          </div>
+          <div id="viva-persona-intro" class="text-xs font-bold text-pink-300"></div>
+          <div id="viva-question-text" class="text-sm sm:text-base font-extrabold txt-main leading-relaxed"></div>
+        </div>
+
+        <!-- Student Response Input + Voice Mic -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-xs font-extrabold txt-main">🗣️ Câu trả lời của bạn (Nói qua Mic hoặc gõ trực tiếp):</label>
+            <div class="flex items-center gap-2">
+              <button type="button" id="btn-viva-mic" onclick="toggleVivaVoiceInput()" class="btn-soft px-3 py-1 text-xs font-extrabold flex items-center gap-1.5 border-rose-500/40 text-rose-400">
+                <span>🎤</span> <span id="viva-mic-label">Bấm để Nói (Voice STT)</span>
+              </button>
+            </div>
+          </div>
+          <textarea id="viva-answer-input" rows="4" placeholder="Trình bày lập luận của bạn tại đây (nêu rõ cơ chế, thuật ngữ khóa, ví dụ thực tế)..."
+            class="uni-input w-full p-3 text-xs sm:text-sm leading-relaxed"></textarea>
+          <div class="flex justify-end">
+            <button type="button" onclick="submitVivaAnswer()" class="btn-primary !bg-gradient-to-r !from-pink-600 !to-purple-600 px-5 py-2.5 text-xs font-black shadow-lg flex items-center gap-2">
+              <span>⚡</span> Nộp Câu Trả Lời Để Hội Đồng Chấm Điểm
+            </button>
+          </div>
+        </div>
+
+        <!-- Viva Evaluation Result Panel -->
+        <div id="viva-evaluation-box" class="hidden space-y-3 pt-2 border-t" style="border-color: var(--border);"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------------
+       MODAL v41.0 #3: INTERACTIVE SVG MINDMAP & FEYNMAN TECHNIQUE STUDIO
+       --------------------------------------------------------------------- -->
+  <div id="modal-mindmap-feynman" class="hidden fixed inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-mindmap-feynman')">
+    <div class="uni-card w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-emerald-500/40">
+      <div class="px-5 py-3.5 border-b flex flex-wrap items-center justify-between gap-2 shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-md">🧠</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main">Bản Đồ Tư Duy Đa Cấp & Phòng Luyện Phương Pháp Feynman</h3>
+            <p class="text-[11px] txt-muted">Trực quan hóa liên kết kiến thức bằng SVG & Học sâu nhớ lâu theo phương pháp giải thích của Richard Feynman</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <button type="button" id="tab-btn-mindmap-mode" onclick="switchMindmapFeynmanTab('mindmap')" class="preset-pill active text-xs font-bold">🗺️ Sơ Đồ Tư Duy SVG</button>
+          <button type="button" id="tab-btn-feynman-mode" onclick="switchMindmapFeynmanTab('feynman')" class="preset-pill text-xs font-bold">💡 Luyện Giải Thích Feynman</button>
+          <button onclick="closeModal('modal-mindmap-feynman')" class="btn-soft px-2.5 py-1 text-xs font-bold ml-2">✕</button>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+        <!-- SUB-VIEW A: INTERACTIVE MINDMAP -->
+        <div id="subview-mindmap-studio" class="space-y-4">
+          <div class="flex flex-wrap items-center gap-2">
+            <select id="mindmap-preset-select" onchange="loadMindmapStudio(this.value)" class="uni-input px-3 py-2 text-xs font-bold">
+              <option value="krebs">🔬 Chu trình Krebs & Hô hấp Tế bào (Hóa Sinh)</option>
+              <option value="csharp_oop">💻 4 Trụ Cột OOP & Kiến Trúc C# (.NET)</option>
+              <option value="graph_theory">🕸️ Lý Thuyết Đồ Thị & Thuật Toán Cốt Lõi (Toán Rời Rạc)</option>
+            </select>
+            <input id="mindmap-custom-input" type="text" placeholder="Hoặc nhập chủ đề bất kỳ để tạo Sơ đồ tư duy..." class="uni-input flex-1 min-w-[200px] px-3 py-2 text-xs" />
+            <button type="button" onclick="generateCustomMindmap()" class="btn-primary px-4 py-2 text-xs font-extrabold">✨ Vẽ Sơ Đồ Tư Duy</button>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+            <div class="lg:col-span-7 rounded-2xl bg-slate-950 border border-slate-800 p-3 overflow-x-auto">
+              <div id="mindmap-svg-container" class="min-h-[320px] flex items-center justify-center"></div>
+            </div>
+            <div id="mindmap-node-inspector" class="lg:col-span-5 p-4 rounded-2xl border space-y-3" style="background-color: var(--bg-subtle); border-color: var(--border);"></div>
+          </div>
+        </div>
+
+        <!-- SUB-VIEW B: FEYNMAN TECHNIQUE EVALUATOR -->
+        <div id="subview-feynman-studio" class="hidden space-y-4">
+          <div class="p-4 rounded-2xl border border-emerald-500/30 bg-emerald-500/5 text-xs space-y-1">
+            <div class="font-extrabold text-emerald-400">🌟 Nguyên lý Richard Feynman (Giải Nobel Vật lý):</div>
+            <p class="txt-sub leading-relaxed">
+              "Nếu bạn không thể giải thích một khái niệm phức tạp cho một học sinh 12 tuổi hiểu được bằng hình ảnh ẩn dụ đời thường, nghĩa là bạn vẫn đang học vẹt chứ chưa thực sự hiểu bản chất của nó."
+            </p>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="sm:col-span-2">
+              <label class="text-xs font-extrabold txt-main">1. Chọn hoặc nhập khái niệm bạn muốn kiểm tra độ hiểu sâu:</label>
+              <input id="feynman-concept-input" type="text" value="Đa hình động (Runtime Polymorphism - virtual/override) trong C#"
+                class="uni-input w-full px-3 py-2 text-xs font-bold mt-1" />
+            </div>
+            <div>
+              <label class="text-xs font-extrabold txt-main">Gợi ý khái niệm nhanh:</label>
+              <select onchange="document.getElementById('feynman-concept-input').value = this.value" class="uni-input w-full px-3 py-2 text-xs font-bold mt-1">
+                <option value="Đa hình động (Runtime Polymorphism - virtual/override) trong C#">💻 Đa hình động (virtual/override) C#</option>
+                <option value="Chất ức chế enzyme cạnh tranh vs không cạnh tranh">🔬 Ức chế Enzyme Cạnh tranh vs Không cạnh tranh</option>
+                <option value="Thuật toán Dijkstra tìm đường đi ngắn nhất">🕸️ Thuật toán Dijkstra & Chiến lược Tham lam</option>
+                <option value="Phosphoryl hóa oxy hóa và chuỗi vận chuyển điện tử ty thể">🧬 Chuỗi hô hấp tế bào & Tổng hợp ATP</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <label class="text-xs font-extrabold txt-main">2. Hãy giải thích lại theo ngôn ngữ bình dân + ví dụ ẩn dụ đời sống của riêng bạn:</label>
+            <textarea id="feynman-explanation-input" rows="4"
+              placeholder="Ví dụ: Hãy tưởng tượng lớp cha HinhHoc giống như một nút bấm 'Vẽ hình' trên điều khiển vạn năng. Dù cùng bấm một nút đó, nhưng nếu cắm vào HinhTron thì nó vẽ vòng tròn, cắm vào HinhChuNhat thì nó vẽ hình chữ nhật..."
+              class="uni-input w-full p-3 text-xs sm:text-sm leading-relaxed"></textarea>
+            <div class="flex justify-end">
+              <button type="button" onclick="evaluateFeynmanExplanation()" class="btn-primary !bg-gradient-to-r !from-emerald-600 !to-teal-600 px-5 py-2.5 text-xs font-black shadow-lg">
+                <span>🧠</span> Chấm Điểm Feynman & Tìm Lỗ Hổng Kiến Thức
+              </button>
+            </div>
+          </div>
+
+          <div id="feynman-result-box" class="hidden space-y-3 pt-3 border-t" style="border-color: var(--border);"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ---------------------------------------------------------------------
+       MODAL v41.0 #4: AUTO UML CLASS DIAGRAM & STACK/HEAP MEMORY VISUALIZER
+       --------------------------------------------------------------------- -->
+  <div id="modal-uml-memory" class="hidden fixed inset-0 z-[90] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-uml-memory')">
+    <div class="uni-card w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-cyan-500/40">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-600 text-white flex items-center justify-center text-lg shadow-md">🔬</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main">Trình Phân Tích Sơ Đồ Lớp UML & Mô Phỏng Bộ Nhớ Stack / Managed Heap</h3>
+            <p class="text-[11px] txt-muted">Trực quan hóa quan hệ Kế thừa / Đa hình và con trỏ vùng nhớ từ mã nguồn đang viết trong Editor</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-uml-memory')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+      <div id="uml-memory-body" class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-5"></div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=41.0"></script>
 </body>
 </html>
