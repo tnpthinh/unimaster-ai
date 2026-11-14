@@ -3474,16 +3474,22 @@ function switchTab(tabName) {
   const ftContainer = document.getElementById('floating-tutor-container');
   const floatingNextBtn = document.getElementById('floating-next-q-btn');
   if (ftContainer) {
-    const isExamActive = Boolean((STATE.exam && STATE.exam.active) || (window.TIMED_EXAM && window.TIMED_EXAM.active));
-    const isHomeOrTutor = (tabName === 'dashboard' || tabName === 'tutor') && !isExamActive;
+    const timedModal = document.getElementById('modal-timed-exam');
+    const isTimedModalOpen = Boolean(timedModal && !timedModal.classList.contains('hidden'));
+    const isExamViewActive = (tabName === 'exam' && Boolean(STATE.exam && STATE.exam.active)) || isTimedModalOpen;
+    const isHomeOrTutor = (tabName === 'dashboard' || tabName === 'tutor') && !isExamViewActive;
     ftContainer.classList.toggle('hidden', isHomeOrTutor);
     if (floatingNextBtn) {
-      floatingNextBtn.classList.toggle('hidden', !isExamActive);
+      floatingNextBtn.classList.toggle('hidden', !isExamViewActive);
     }
     if (isHomeOrTutor) {
       closeFloatingTutor();
     } else {
       syncFloatingTutorSubjectContext();
+      const qBadge = document.getElementById('floating-btn-q-badge');
+      if (qBadge && !isExamViewActive && pinnedTutorQuestion && (pinnedTutorQuestion.source === 'exam' || pinnedTutorQuestion.source === 'timed_exam')) {
+        qBadge.classList.add('hidden');
+      }
     }
   }
 
@@ -4593,6 +4599,11 @@ function renderCurrentExamQuestion() {
   ).length;
 
   setText('current-q-num', STATE.exam.currentIndex + 1);
+  const qBadgeEl = document.getElementById('floating-btn-q-badge');
+  if (qBadgeEl) {
+    qBadgeEl.textContent = `Câu ${STATE.exam.currentIndex + 1}`;
+    qBadgeEl.classList.remove('hidden');
+  }
   if (typeof pinnedTutorQuestion !== 'undefined' && pinnedTutorQuestion && pinnedTutorQuestion.source === 'exam') {
     const parsedH = parseQuestionHeader(q.question_text || '');
     const cleanT = (parsedH.body || q.question_text || '').replace(/<[^>]+>/g, '').trim();
@@ -4776,8 +4787,6 @@ function renderCurrentExamQuestion() {
   const topNextBtn = document.getElementById('top-btn-next-q');
   const topNextLabel = document.getElementById('top-btn-next-label');
   const bottomNextText = document.getElementById('btn-next-q-text');
-  const stageNextBtn = document.getElementById('btn-next-q-top');
-  const stageNextText = document.getElementById('btn-next-q-top-text');
 
   const isFirst = STATE.exam.currentIndex === 0;
   const isLast = STATE.exam.currentIndex === total - 1;
@@ -4799,19 +4808,14 @@ function renderCurrentExamQuestion() {
       nextBtn.onclick = () => submitExamNow();
     }
     if (topNextBtn) {
-      topNextBtn.innerHTML = `<span class="animate-pulse">✓</span> <span>Nộp Bài</span>`;
+      topNextBtn.innerHTML = `<span id="top-btn-next-label" class="hidden md:inline">Nộp</span> <i data-lucide="check" class="w-4 h-4"></i>`;
       topNextBtn.onclick = () => submitExamNow();
-    }
-    if (stageNextBtn) {
-      stageNextBtn.innerHTML = `<span class="animate-pulse">✓</span> <span id="btn-next-q-top-text">Nộp Bài</span>`;
-      stageNextBtn.onclick = () => submitExamNow();
     }
     if (floatingNextBtn) {
       floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">✓</span> <span id="floating-next-q-text" class="font-bold">Nộp Bài</span>`;
       floatingNextBtn.onclick = () => submitExamNow();
     }
-    if (topNextLabel) topNextLabel.textContent = 'Nộp Bài';
-    if (stageNextText) stageNextText.textContent = 'Nộp Bài';
+    if (topNextLabel) topNextLabel.textContent = 'Nộp';
     if (bottomNextText) bottomNextText.textContent = 'Nộp Bài & Chấm Điểm';
     if (floatingNextText) floatingNextText.textContent = 'Nộp Bài';
   } else {
@@ -4820,19 +4824,14 @@ function renderCurrentExamQuestion() {
       nextBtn.onclick = () => nextQuestion();
     }
     if (topNextBtn) {
-      topNextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="top-btn-next-label">Câu Tiếp Theo</span>`;
+      topNextBtn.innerHTML = `<span id="top-btn-next-label" class="hidden md:inline">Tiếp</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
       topNextBtn.onclick = () => nextQuestion();
-    }
-    if (stageNextBtn) {
-      stageNextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="btn-next-q-top-text">Câu Tiếp Theo</span>`;
-      stageNextBtn.onclick = () => nextQuestion();
     }
     if (floatingNextBtn) {
       floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">➔</span> <span id="floating-next-q-text" class="font-bold">Câu Tiếp Theo</span>`;
       floatingNextBtn.onclick = () => triggerFloatingNextAction();
     }
-    if (topNextLabel) topNextLabel.textContent = 'Câu Tiếp Theo';
-    if (stageNextText) stageNextText.textContent = 'Câu Tiếp Theo';
+    if (topNextLabel) topNextLabel.textContent = 'Tiếp';
     if (bottomNextText) bottomNextText.textContent = 'Câu Tiếp Theo';
     if (floatingNextText) floatingNextText.textContent = 'Câu Tiếp Theo';
   }
@@ -11477,19 +11476,19 @@ function renderExerciseDetail() {
             <!-- Main Gutter + Textarea Area -->
             <div class="flex-1 relative flex overflow-hidden">
               <!-- Line Numbers Gutter (Click để chọn dòng thanh tra) -->
-              <div id="vscode-gutter-lines" onclick="handleVscodeGutterClick(event)" class="vscode-gutter bg-[#1e1e1e] text-[#858585] font-mono select-none border-r border-[#252526] overflow-hidden flex-shrink-0 cursor-pointer" title="Click vào số dòng để Hỏi AI hoặc Sửa lỗi dòng đó">
+              <div id="vscode-gutter-lines" onclick="handleVscodeGutterClick(event)" class="vscode-gutter bg-[#1e1e1e] text-[#858585] font-mono select-none border-r border-[#252526] overflow-hidden flex-shrink-0 cursor-pointer" style="width: 42px; padding: 8px 6px 8px 0; font-size: 13px; line-height: 20px; font-family: Consolas, 'Cascadia Code', 'Courier New', monospace; box-sizing: border-box;" title="Click vào số dòng để Hỏi AI hoặc Sửa lỗi dòng đó">
                 <!-- Generated dynamically -->
               </div>
 
               <!-- Code Textarea -->
-              <textarea id="code-editor-textarea" spellcheck="false"
+              <textarea id="code-editor-textarea" spellcheck="false" wrap="off"
                 onkeydown="handleVscodeEditorKeydown(event)"
                 oninput="handleVscodeCodeInput()"
                 onscroll="syncVscodeGutterScroll()"
                 onclick="handleVscodeEditorClick(event)"
                 onkeyup="handleVscodeEditorKeyup(event)"
                 class="w-full flex-1 font-mono text-[#9cdcfe] bg-[#1e1e1e] outline-none border-none resize-none custom-scrollbar"
-                style="tab-size: 4;"
+                style="tab-size: 4; padding: 8px 12px 8px 10px; font-size: 13px; line-height: 20px; font-family: Consolas, 'Cascadia Code', 'Courier New', monospace; white-space: pre; overflow-wrap: normal; overflow-x: auto; box-sizing: border-box;"
                 placeholder="// Viết code giải thuật của bạn tại đây...&#10;// Mẹo: Gõ code hoặc nhấn Alt+\ để AI Copilot gợi ý dòng tiếp theo!">${escapeHtml(currentCode)}</textarea>
             </div>
 
@@ -12657,9 +12656,6 @@ function renderTimedExamQuestion(idx) {
       .join('');
   }
 
-  const timedTopNextBtn = document.getElementById('timed-top-next-btn');
-  const timedTopNextText = document.getElementById('timed-top-next-btn-text');
-  const timedBottomNext = document.getElementById('timed-next-btn');
   const timedBottomPrev = document.getElementById('timed-prev-btn');
 
   const isTimedFirst = idx === 0;
@@ -12677,30 +12673,12 @@ function renderTimedExamQuestion(idx) {
   }
 
   if (isTimedLast) {
-    if (timedTopNextBtn) {
-      timedTopNextBtn.onclick = () => confirmSubmitTimedExam();
-      timedTopNextBtn.innerHTML = `<span class="animate-pulse">✓</span> <span>Nộp Bài</span>`;
-    }
-    if (timedTopNextText) timedTopNextText.textContent = 'Nộp Bài';
-    if (timedBottomNext) {
-      timedBottomNext.innerHTML = `<span class="animate-pulse">✓</span> <span>Nộp Bài</span>`;
-      timedBottomNext.onclick = () => confirmSubmitTimedExam();
-    }
     if (floatingNextBtn) {
       floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">✓</span> <span id="floating-next-q-text" class="font-bold">Nộp Bài</span>`;
       floatingNextBtn.onclick = () => confirmSubmitTimedExam();
     }
     if (floatingNextText) floatingNextText.textContent = 'Nộp Bài';
   } else {
-    if (timedTopNextBtn) {
-      timedTopNextBtn.onclick = () => nextTimedQuestion();
-      timedTopNextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="timed-top-next-btn-text">Câu Tiếp Theo</span>`;
-    }
-    if (timedTopNextText) timedTopNextText.textContent = 'Câu Tiếp Theo';
-    if (timedBottomNext) {
-      timedBottomNext.innerHTML = `<span class="animate-pulse">➔</span> <span>Câu Tiếp Theo</span>`;
-      timedBottomNext.onclick = () => nextTimedQuestion();
-    }
     if (floatingNextBtn) {
       floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">➔</span> <span id="floating-next-q-text" class="font-bold">Câu Tiếp Theo</span>`;
       floatingNextBtn.onclick = () => triggerFloatingNextAction();
@@ -18933,7 +18911,7 @@ function updateVscodeLineNumbers() {
   let html = '';
   for (let i = 1; i <= count; i++) {
     const isActive = (i === vscodeActiveLine);
-    html += `<div class="vscode-gutter-line ${isActive ? 'vscode-gutter-line-active text-amber-300 font-bold bg-white/10' : ''}" data-line="${i}">${i}</div>`;
+    html += `<div class="vscode-gutter-line ${isActive ? 'vscode-gutter-line-active text-amber-300 font-bold bg-white/10' : ''}" style="height: 20px; line-height: 20px; font-size: 13px; padding: 0; margin: 0; display: block; box-sizing: border-box;" data-line="${i}">${i}</div>`;
   }
   gutter.innerHTML = html;
 }

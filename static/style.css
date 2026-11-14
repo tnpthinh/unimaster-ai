@@ -3944,32 +3944,36 @@ main:has(#view-tutor:not(.hidden)) {
 
 /* Compact VS Code gutter - 1 dòng = 20px, khớp tuyệt đối với editor */
 .vscode-gutter {
-  width: 38px !important;
-  font-size: 12.5px !important;
-  line-height: var(--vs-line-height) !important;
-  padding: var(--vs-code-pad-top) 6px var(--vs-code-pad-top) 0 !important;
+  width: 42px !important;
+  font-size: 13px !important;
+  line-height: 20px !important;
+  padding: 8px 6px 8px 0 !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
 }
 
 .vscode-gutter-line,
 .vscode-gutter-lines > div {
-  height: var(--vs-line-height) !important;
-  line-height: var(--vs-line-height) !important;
-  font-size: 12.5px !important;
+  height: 20px !important;
+  line-height: 20px !important;
+  font-size: 13px !important;
   display: block !important;
   padding: 0 !important;
   margin: 0 !important;
   white-space: nowrap !important;
+  box-sizing: border-box !important;
 }
 
 /* High-density code editor - cùng 20px/dòng để hiển thị 30+ dòng */
 #code-editor-textarea {
-  font-size: 12.5px !important;
-  line-height: var(--vs-line-height) !important;
+  font-size: 13px !important;
+  line-height: 20px !important;
   tab-size: 4 !important;
+  white-space: pre !important;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
   overflow-x: auto !important;
-  padding: var(--vs-code-pad-top) 12px var(--vs-code-pad-top) 10px !important;
+  padding: 8px 12px 8px 10px !important;
   box-sizing: border-box !important;
 }
 
@@ -4297,22 +4301,22 @@ main:has(#view-tutor:not(.hidden)) {
 
 /* Compact VS Code gutter - dong bo chuan xac tung pixel voi code editor */
 .vscode-gutter {
-  width: 38px !important;
-  font-size: 12.5px !important;
-  line-height: var(--vs-line-height, 20px) !important;
-  padding: var(--vs-code-pad-top, 8px) 6px var(--vs-code-pad-top, 8px) 0 !important;
+  width: 42px !important;
+  font-size: 13px !important;
+  line-height: 20px !important;
+  padding: 8px 6px 8px 0 !important;
 }
 
 /* High-density code editor - dong bo 20px tuyet doi voi gutter */
 #code-editor-textarea {
-  font-size: 12.5px !important;
-  line-height: var(--vs-line-height, 20px) !important;
+  font-size: 13px !important;
+  line-height: 20px !important;
   tab-size: 4 !important;
   white-space: pre !important;
   word-wrap: normal !important;
   word-break: normal !important;
   overflow-x: auto !important;
-  padding: var(--vs-code-pad-top, 8px) 12px var(--vs-code-pad-top, 8px) 10px !important;
+  padding: 8px 12px 8px 10px !important;
 }
 
 /* Ensure code wraps naturally without breaking line numbers */
@@ -4436,20 +4440,21 @@ main:has(#view-tutor:not(.hidden)) {
 /* Responsive adjustments for high-density layout - duy tri dong bo 20px */
 @media (max-width: 1024px) {
   #code-editor-textarea {
-    font-size: 12px !important;
-    line-height: var(--vs-line-height, 20px) !important;
+    font-size: 13px !important;
+    line-height: 20px !important;
   }
   
   .vscode-gutter {
-    width: 34px !important;
-    font-size: 11px !important;
-    line-height: var(--vs-line-height, 20px) !important;
+    width: 38px !important;
+    font-size: 13px !important;
+    line-height: 20px !important;
   }
 
   .vscode-gutter-line,
   .vscode-gutter-lines > div {
-    height: var(--vs-line-height, 20px) !important;
-    line-height: var(--vs-line-height, 20px) !important;
+    height: 20px !important;
+    line-height: 20px !important;
+    font-size: 13px !important;
   }
 }
 
