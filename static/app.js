@@ -4771,6 +4771,8 @@ function renderCurrentExamQuestion() {
   const topNextBtn = document.getElementById('top-btn-next-q');
   const topNextLabel = document.getElementById('top-btn-next-label');
   const bottomNextText = document.getElementById('btn-next-q-text');
+  const stageNextBtn = document.getElementById('btn-next-q-top');
+  const stageNextText = document.getElementById('btn-next-q-top-text');
 
   const isFirst = STATE.exam.currentIndex === 0;
   const isLast = STATE.exam.currentIndex === total - 1;
@@ -4787,7 +4789,12 @@ function renderCurrentExamQuestion() {
       topNextBtn.innerHTML = `<span>Nộp Bài</span> <i data-lucide="check-circle-2" class="w-4 h-4"></i>`;
       topNextBtn.onclick = () => submitExamNow();
     }
+    if (stageNextBtn) {
+      stageNextBtn.innerHTML = `<span>Nộp Bài</span> <i data-lucide="check-circle-2" class="w-4 h-4"></i>`;
+      stageNextBtn.onclick = () => submitExamNow();
+    }
     if (topNextLabel) topNextLabel.textContent = 'Nộp Bài';
+    if (stageNextText) stageNextText.textContent = 'Nộp Bài';
     if (bottomNextText) bottomNextText.textContent = 'Nộp Bài & Chấm Điểm';
   } else {
     if (nextBtn) {
@@ -4795,10 +4802,15 @@ function renderCurrentExamQuestion() {
       nextBtn.onclick = () => nextQuestion();
     }
     if (topNextBtn) {
-      topNextBtn.innerHTML = `<span id="top-btn-next-label">Tiếp theo</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
+      topNextBtn.innerHTML = `<span id="top-btn-next-label">Câu Tiếp Theo</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
       topNextBtn.onclick = () => nextQuestion();
     }
-    if (topNextLabel) topNextLabel.textContent = 'Tiếp theo';
+    if (stageNextBtn) {
+      stageNextBtn.innerHTML = `<span id="btn-next-q-top-text">Câu Tiếp Theo</span> <span class="text-xs font-bold">➔</span>`;
+      stageNextBtn.onclick = () => nextQuestion();
+    }
+    if (topNextLabel) topNextLabel.textContent = 'Câu Tiếp Theo';
+    if (stageNextText) stageNextText.textContent = 'Câu Tiếp Theo';
     if (bottomNextText) bottomNextText.textContent = 'Câu Tiếp Theo';
   }
 
@@ -12604,6 +12616,36 @@ function renderTimedExamQuestion(idx) {
       .join('');
   }
 
+  const timedTopNextBtn = document.getElementById('timed-top-next-btn');
+  const timedTopNextText = document.getElementById('timed-top-next-btn-text');
+  const timedBottomNext = document.getElementById('timed-next-btn');
+  const timedBottomPrev = document.getElementById('timed-prev-btn');
+
+  const isTimedFirst = idx === 0;
+  const isTimedLast = idx === (window.TIMED_EXAM.questions.length - 1);
+
+  if (timedBottomPrev) timedBottomPrev.disabled = isTimedFirst;
+
+  if (isTimedLast) {
+    if (timedTopNextBtn) {
+      timedTopNextBtn.onclick = () => confirmSubmitTimedExam();
+    }
+    if (timedTopNextText) timedTopNextText.textContent = 'Nộp Bài';
+    if (timedBottomNext) {
+      timedBottomNext.textContent = 'Nộp Bài';
+      timedBottomNext.onclick = () => confirmSubmitTimedExam();
+    }
+  } else {
+    if (timedTopNextBtn) {
+      timedTopNextBtn.onclick = () => nextTimedQuestion();
+    }
+    if (timedTopNextText) timedTopNextText.textContent = 'Câu Tiếp Theo';
+    if (timedBottomNext) {
+      timedBottomNext.textContent = 'Câu tiếp →';
+      timedBottomNext.onclick = () => nextTimedQuestion();
+    }
+  }
+
   renderTimedExamPalette();
   renderAllMathOnPage();
 }
@@ -18825,7 +18867,7 @@ function updateVscodeCursorPosition() {
 
   const selStart = textarea.selectionStart || 0;
   const textBefore = textarea.value.substring(0, selStart);
-  const lines = textBefore.split('\n');
+  const lines = textBefore.split(/\r\n|\r|\n/);
   const lineNum = lines.length;
   const colNum = lines[lines.length - 1].length + 1;
   vscodeActiveLine = lineNum;
@@ -18863,7 +18905,8 @@ function selectVscodeGutterLine(lineNum) {
   vscodeLastInspectedLine = lineNum;
   updateVscodeLineNumbers();
 
-  const lines = (textarea.value || '').split('\n');
+  const value = textarea.value || '';
+  const lines = value.split(/\r\n|\n/);
   const targetLineText = lines[lineNum - 1] || '';
 
   // Show Inspector Bar
@@ -18877,11 +18920,23 @@ function selectVscodeGutterLine(lineNum) {
     inspector.classList.remove('hidden');
   }
 
-  // Calculate position in textarea to move cursor
+  // Tính toán charPos bằng cách duyệt chuỗi gốc, đếm số dòng và ghi nhớ vị trí ký tự
+  // Cách này đảm bảo chính xác với cả \r\n (Windows) và \n (Unix)
   let charPos = 0;
-  for (let i = 0; i < lineNum - 1; i++) {
-    charPos += (lines[i] ? lines[i].length : 0) + 1;
+  let currentLine = 1;
+  for (let i = 0; i < value.length && currentLine < lineNum; i++) {
+    if (value[i] === '\r' && i + 1 < value.length && value[i + 1] === '\n') {
+      // Windows newline \r\n
+      currentLine++;
+      charPos = i + 2;
+      i++; // Bỏ qua ký tự \n
+    } else if (value[i] === '\n') {
+      // Unix newline \n
+      currentLine++;
+      charPos = i + 1;
+    }
   }
+
   textarea.focus();
   textarea.setSelectionRange(charPos, charPos + targetLineText.length);
   updateVscodeCursorPosition();
@@ -19434,13 +19489,46 @@ function nextExercise() {
   let nextIndex = (STATE.exercises.selectedIndex + 1) % list.length;
   STATE.exercises.selectedIndex = nextIndex;
 
-  // Cập nhật giao diện: render lại danh sách và chi tiết bài mới
-  renderExerciseList();
-  renderExerciseDetail();
+  // Cập nhật giao diện: render lại chi tiết bài mới
+  // renderExerciseList() không tồn tại, chỉ renderExerciseDetail() để hiển thị bài tiếp theo
+  if (typeof renderExerciseDetail === 'function') {
+    renderExerciseDetail();
+  }
+
+  // Nếu có hàm render danh sách bài tập, gọi nó
+  if (typeof loadExercisesView === 'function') {
+    loadExercisesView();
+  } else if (typeof renderDashboard === 'function') {
+    renderDashboard();
+  }
 
   // Cuộn lên đầu trang để xem bài mới
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+
+function prevExercise() {
+  const list = STATE.exercises.list;
+  if (!list || !list.length) return;
+
+  let prevIndex = (STATE.exercises.selectedIndex - 1 + list.length) % list.length;
+  STATE.exercises.selectedIndex = prevIndex;
+
+  if (typeof renderExerciseDetail === 'function') {
+    renderExerciseDetail();
+  }
+
+  if (typeof loadExercisesView === 'function') {
+    loadExercisesView();
+  } else if (typeof renderDashboard === 'function') {
+    renderDashboard();
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// Expose nextExercise và prevExercise lên window để HTML onclick có thể gọi
+window.nextExercise = nextExercise;
+window.prevExercise = prevExercise;
 
 /**
  * Toggle advanced settings drawer in AI Tutor header
