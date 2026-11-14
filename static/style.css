@@ -1932,7 +1932,7 @@ body.app-fullscreen-mode #header-fullscreen-btn {
 }
 
 #floating-tutor-container:not(.tutor-expanded-parent) {
-  z-index: 45 !important;
+  z-index: 1000 !important;
 }
 
 /* 3. High-Contrast Deadline Countdown Cards in Light, Sepia & Non-Dark Themes */
@@ -4095,16 +4095,23 @@ main:has(#view-tutor:not(.hidden)) {
   color: #ffffff;
 }
 
-/* Responsive adjustments for high-density layout */
+/* Responsive adjustments for high-density layout - duy tri dong bo 20px tuyet doi */
 @media (max-width: 1024px) {
   #code-editor-textarea {
     font-size: 12px !important;
-    line-height: 1.3rem !important;
+    line-height: var(--vs-line-height, 20px) !important;
   }
   
   .vscode-gutter {
-    width: 32px !important;
+    width: 34px !important;
     font-size: 11px !important;
+    line-height: var(--vs-line-height, 20px) !important;
+  }
+
+  .vscode-gutter-line,
+  .vscode-gutter-lines > div {
+    height: var(--vs-line-height, 20px) !important;
+    line-height: var(--vs-line-height, 20px) !important;
   }
 }
 
@@ -4288,22 +4295,24 @@ main:has(#view-tutor:not(.hidden)) {
   max-width: 220px !important;
 }
 
-/* Compact VS Code gutter - tighter line spacing for 30+ lines visible */
+/* Compact VS Code gutter - dong bo chuan xac tung pixel voi code editor */
 .vscode-gutter {
-  width: 36px !important;
-  font-size: 11.5px !important;
-  line-height: 1.25rem !important;
-  padding: 8px 6px 8px 0 !important;
+  width: 38px !important;
+  font-size: 12.5px !important;
+  line-height: var(--vs-line-height, 20px) !important;
+  padding: var(--vs-code-pad-top, 8px) 6px var(--vs-code-pad-top, 8px) 0 !important;
 }
 
-/* High-density code editor - 12.5px font, 1.35rem line-height for 30+ lines */
+/* High-density code editor - dong bo 20px tuyet doi voi gutter */
 #code-editor-textarea {
   font-size: 12.5px !important;
-  line-height: 1.35rem !important;
+  line-height: var(--vs-line-height, 20px) !important;
   tab-size: 4 !important;
   white-space: pre !important;
+  word-wrap: normal !important;
+  word-break: normal !important;
   overflow-x: auto !important;
-  padding: 8px 12px !important;
+  padding: var(--vs-code-pad-top, 8px) 12px var(--vs-code-pad-top, 8px) 10px !important;
 }
 
 /* Ensure code wraps naturally without breaking line numbers */
@@ -4424,16 +4433,23 @@ main:has(#view-tutor:not(.hidden)) {
   color: #ffffff;
 }
 
-/* Responsive adjustments for high-density layout */
+/* Responsive adjustments for high-density layout - duy tri dong bo 20px */
 @media (max-width: 1024px) {
   #code-editor-textarea {
     font-size: 12px !important;
-    line-height: 1.3rem !important;
+    line-height: var(--vs-line-height, 20px) !important;
   }
   
   .vscode-gutter {
-    width: 32px !important;
+    width: 34px !important;
     font-size: 11px !important;
+    line-height: var(--vs-line-height, 20px) !important;
+  }
+
+  .vscode-gutter-line,
+  .vscode-gutter-lines > div {
+    height: var(--vs-line-height, 20px) !important;
+    line-height: var(--vs-line-height, 20px) !important;
   }
 }
 

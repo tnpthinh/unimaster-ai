@@ -3474,10 +3474,11 @@ function switchTab(tabName) {
   const ftContainer = document.getElementById('floating-tutor-container');
   const floatingNextBtn = document.getElementById('floating-next-q-btn');
   if (ftContainer) {
-    const isHomeOrTutor = tabName === 'dashboard' || tabName === 'tutor';
+    const isExamActive = Boolean((STATE.exam && STATE.exam.active) || (window.TIMED_EXAM && window.TIMED_EXAM.active));
+    const isHomeOrTutor = (tabName === 'dashboard' || tabName === 'tutor') && !isExamActive;
     ftContainer.classList.toggle('hidden', isHomeOrTutor);
     if (floatingNextBtn) {
-      floatingNextBtn.classList.toggle('hidden', tabName !== 'exam');
+      floatingNextBtn.classList.toggle('hidden', !isExamActive);
     }
     if (isHomeOrTutor) {
       closeFloatingTutor();
@@ -4786,6 +4787,8 @@ function renderCurrentExamQuestion() {
   if (prevBtn) prevBtn.disabled = isFirst;
   if (topPrevBtn) topPrevBtn.disabled = isFirst;
 
+  const ftContainer = document.getElementById('floating-tutor-container');
+  if (ftContainer) ftContainer.classList.remove('hidden');
   if (floatingNextBtn) {
     floatingNextBtn.classList.remove('hidden');
   }
@@ -5662,6 +5665,7 @@ function resetToExamConfig() {
   document.getElementById('exam-active-screen')?.classList.add('hidden');
   document.getElementById('exam-result-screen')?.classList.add('hidden');
   document.getElementById('exam-config-screen')?.classList.remove('hidden');
+  document.getElementById('floating-next-q-btn')?.classList.add('hidden');
   onExamSubjectChange();
 }
 
@@ -11473,7 +11477,7 @@ function renderExerciseDetail() {
             <!-- Main Gutter + Textarea Area -->
             <div class="flex-1 relative flex overflow-hidden">
               <!-- Line Numbers Gutter (Click để chọn dòng thanh tra) -->
-              <div id="vscode-gutter-lines" onclick="handleVscodeGutterClick(event)" class="vscode-gutter w-12 bg-[#1e1e1e] text-[#858585] font-mono text-xs py-3 pr-2 text-right select-none border-r border-[#252526] overflow-hidden flex-shrink-0 leading-relaxed cursor-pointer" style="font-family: 'Cascadia Code', Consolas, 'Courier New', monospace; line-height: 1.5rem;" title="Click vào số dòng để Hỏi AI hoặc Sửa lỗi dòng đó">
+              <div id="vscode-gutter-lines" onclick="handleVscodeGutterClick(event)" class="vscode-gutter bg-[#1e1e1e] text-[#858585] font-mono select-none border-r border-[#252526] overflow-hidden flex-shrink-0 cursor-pointer" title="Click vào số dòng để Hỏi AI hoặc Sửa lỗi dòng đó">
                 <!-- Generated dynamically -->
               </div>
 
@@ -11484,8 +11488,8 @@ function renderExerciseDetail() {
                 onscroll="syncVscodeGutterScroll()"
                 onclick="handleVscodeEditorClick(event)"
                 onkeyup="handleVscodeEditorKeyup(event)"
-                class="w-full flex-1 p-3 font-mono text-xs sm:text-sm text-[#9cdcfe] bg-[#1e1e1e] leading-relaxed outline-none border-none resize-none custom-scrollbar"
-                style="font-family: 'Cascadia Code', Consolas, 'Fira Code', monospace; tab-size: 4; line-height: 1.5rem;"
+                class="w-full flex-1 font-mono text-[#9cdcfe] bg-[#1e1e1e] outline-none border-none resize-none custom-scrollbar"
+                style="tab-size: 4;"
                 placeholder="// Viết code giải thuật của bạn tại đây...&#10;// Mẹo: Gõ code hoặc nhấn Alt+\ để AI Copilot gợi ý dòng tiếp theo!">${escapeHtml(currentCode)}</textarea>
             </div>
 
@@ -12504,6 +12508,12 @@ async function startTimedExamForSubject(subjectId, durationMinutes = 60, count =
     if (modal) modal.classList.remove('hidden');
     if (titleEl) titleEl.textContent = `Thi Thử 60p: ${window.TIMED_EXAM.subjectName}`;
 
+    // Dam bao floating action buttons luon hien thi trong phong thi
+    const ftContainer = document.getElementById('floating-tutor-container');
+    const floatingNextBtn = document.getElementById('floating-next-q-btn');
+    if (ftContainer) ftContainer.classList.remove('hidden');
+    if (floatingNextBtn) floatingNextBtn.classList.remove('hidden');
+
     // Start Clock
     clearInterval(window.TIMED_EXAM.timerInterval);
     updateTimedExamClockDisplay();
@@ -12659,7 +12669,9 @@ function renderTimedExamQuestion(idx) {
 
   const floatingNextBtn = document.getElementById('floating-next-q-btn');
   const floatingNextText = document.getElementById('floating-next-q-text');
+  const ftContainer = document.getElementById('floating-tutor-container');
 
+  if (ftContainer) ftContainer.classList.remove('hidden');
   if (floatingNextBtn) {
     floatingNextBtn.classList.remove('hidden');
   }
@@ -12753,6 +12765,10 @@ function exitTimedExam() {
     clearInterval(window.TIMED_EXAM.timerInterval);
     window.TIMED_EXAM.active = false;
     document.getElementById('modal-timed-exam')?.classList.add('hidden');
+    document.getElementById('floating-next-q-btn')?.classList.add('hidden');
+    if (STATE.currentTab === 'dashboard' || STATE.currentTab === 'tutor') {
+      document.getElementById('floating-tutor-container')?.classList.add('hidden');
+    }
   }
 }
 
@@ -12783,6 +12799,7 @@ function renderTimedExamReport(res) {
   const resultPane = document.getElementById('timed-exam-result-pane');
   if (!resultPane) return;
 
+  document.getElementById('floating-next-q-btn')?.classList.add('hidden');
   resultPane.classList.remove('hidden');
   const score = Number(res.score || 0).toFixed(1);
   const isHigh = score >= 8.0;
@@ -18887,12 +18904,31 @@ let vscodeCopilotTimer = null;
 let vscodeCopilotInFlight = false;
 let vscodeLastInspectedLine = null;
 
+function syncVscodeLineInspector(targetLine = null) {
+  const textarea = document.getElementById('code-editor-textarea');
+  const inspector = document.getElementById('vscode-line-inspector');
+  const numEl = document.getElementById('inspector-line-num');
+  const prevEl = document.getElementById('inspector-line-preview');
+  if (!textarea) return;
+
+  const lineNum = targetLine !== null ? targetLine : vscodeActiveLine;
+  vscodeLastInspectedLine = lineNum;
+
+  if (inspector && numEl && prevEl) {
+    const value = textarea.value || '';
+    const lines = value.split(/\r\n|\r|\n/);
+    const targetLineText = lines[lineNum - 1] || '';
+    numEl.textContent = lineNum;
+    prevEl.textContent = targetLineText.trim() || '(Dòng trống)';
+  }
+}
+
 function updateVscodeLineNumbers() {
   const textarea = document.getElementById('code-editor-textarea');
   const gutter = document.getElementById('vscode-gutter-lines');
   if (!textarea || !gutter) return;
 
-  const lines = (textarea.value || '').split('\n');
+  const lines = (textarea.value || '').split(/\r\n|\r|\n/);
   const count = Math.max(lines.length, 1);
   let html = '';
   for (let i = 1; i <= count; i++) {
@@ -18921,9 +18957,15 @@ function updateVscodeCursorPosition() {
   const lineNum = lines.length;
   const colNum = lines[lines.length - 1].length + 1;
   vscodeActiveLine = lineNum;
+  vscodeLastInspectedLine = lineNum;
 
   if (posEl) {
     posEl.textContent = `Ln ${lineNum}, Col ${colNum}`;
+  }
+
+  const inspector = document.getElementById('vscode-line-inspector');
+  if (inspector && !inspector.classList.contains('hidden')) {
+    syncVscodeLineInspector(lineNum);
   }
 }
 
@@ -18933,7 +18975,7 @@ function handleVscodeEditorClick(e) {
 }
 
 function handleVscodeEditorKeyup(e) {
-  if (e.key === 'ArrowUp' || e.key === 'ArrowDown' || e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End', 'PageUp', 'PageDown'].includes(e.key)) {
     updateVscodeCursorPosition();
     updateVscodeLineNumbers();
   }
@@ -18956,7 +18998,7 @@ function selectVscodeGutterLine(lineNum) {
   updateVscodeLineNumbers();
 
   const value = textarea.value || '';
-  const lines = value.split(/\r\n|\n/);
+  const lines = value.split(/\r\n|\r|\n/);
   const targetLineText = lines[lineNum - 1] || '';
 
   // Show Inspector Bar
@@ -18990,6 +19032,7 @@ function selectVscodeGutterLine(lineNum) {
   textarea.focus();
   textarea.setSelectionRange(charPos, charPos + targetLineText.length);
   updateVscodeCursorPosition();
+  syncVscodeGutterScroll();
 }
 
 function handleVscodeCodeInput() {
@@ -19155,14 +19198,21 @@ function acceptVscodeCopilotSuggestion() {
 // ==========================================
 
 async function askAiAboutCurrentLine() {
-  const lineNum = vscodeLastInspectedLine || vscodeActiveLine;
+  const lineNum = vscodeLastInspectedLine || vscodeActiveLine || 1;
   await callAiLineInspector(lineNum, 'explain');
 }
 
+function explainAiCurrentLine() {
+  return askAiAboutCurrentLine();
+}
+window.explainAiCurrentLine = explainAiCurrentLine;
+window.askAiAboutCurrentLine = askAiAboutCurrentLine;
+
 async function fixAiCurrentLine() {
-  const lineNum = vscodeLastInspectedLine || vscodeActiveLine;
+  const lineNum = vscodeLastInspectedLine || vscodeActiveLine || 1;
   await callAiLineInspector(lineNum, 'fix');
 }
+window.fixAiCurrentLine = fixAiCurrentLine;
 
 async function callAiLineInspector(lineNum, action) {
   const textarea = document.getElementById('code-editor-textarea');
@@ -19221,7 +19271,7 @@ function renderAiFullscreenInspectorResult(data, sourceCode, targetLine, action)
   const existing = document.getElementById('ai-fullscreen-inspector-overlay');
   if (existing) existing.remove();
 
-  const lines = sourceCode.split('\n');
+  const lines = sourceCode.split(/\r\n|\r|\n/);
   const codeLinesHtml = lines.map((line, idx) => {
     const ln = idx + 1;
     const isTarget = (ln === targetLine);
