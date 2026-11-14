@@ -3472,9 +3472,13 @@ function switchTab(tabName) {
   // 1. Hide floating tutor button on Dashboard (trang chủ) và Tutor view
   //    (KHÔNG ẩn khi vào Exercises để nút "Hỏi AI dòng này/từ này" vẫn hoạt động)
   const ftContainer = document.getElementById('floating-tutor-container');
+  const floatingNextBtn = document.getElementById('floating-next-q-btn');
   if (ftContainer) {
     const isHomeOrTutor = tabName === 'dashboard' || tabName === 'tutor';
     ftContainer.classList.toggle('hidden', isHomeOrTutor);
+    if (floatingNextBtn) {
+      floatingNextBtn.classList.toggle('hidden', tabName !== 'exam');
+    }
     if (isHomeOrTutor) {
       closeFloatingTutor();
     } else {
@@ -4776,42 +4780,58 @@ function renderCurrentExamQuestion() {
 
   const isFirst = STATE.exam.currentIndex === 0;
   const isLast = STATE.exam.currentIndex === total - 1;
+  const floatingNextBtn = document.getElementById('floating-next-q-btn');
+  const floatingNextText = document.getElementById('floating-next-q-text');
 
   if (prevBtn) prevBtn.disabled = isFirst;
   if (topPrevBtn) topPrevBtn.disabled = isFirst;
 
+  if (floatingNextBtn) {
+    floatingNextBtn.classList.remove('hidden');
+  }
+
   if (isLast) {
     if (nextBtn) {
-      nextBtn.innerHTML = `<span>Nộp Bài &amp; Chấm Điểm</span> <i data-lucide="check-circle-2" class="w-4 h-4"></i>`;
+      nextBtn.innerHTML = `<span class="animate-pulse">✓</span> <span id="btn-next-q-text">Nộp Bài & Chấm Điểm</span>`;
       nextBtn.onclick = () => submitExamNow();
     }
     if (topNextBtn) {
-      topNextBtn.innerHTML = `<span>Nộp Bài</span> <i data-lucide="check-circle-2" class="w-4 h-4"></i>`;
+      topNextBtn.innerHTML = `<span class="animate-pulse">✓</span> <span>Nộp Bài</span>`;
       topNextBtn.onclick = () => submitExamNow();
     }
     if (stageNextBtn) {
-      stageNextBtn.innerHTML = `<span>Nộp Bài</span> <i data-lucide="check-circle-2" class="w-4 h-4"></i>`;
+      stageNextBtn.innerHTML = `<span class="animate-pulse">✓</span> <span id="btn-next-q-top-text">Nộp Bài</span>`;
       stageNextBtn.onclick = () => submitExamNow();
+    }
+    if (floatingNextBtn) {
+      floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">✓</span> <span id="floating-next-q-text" class="font-bold">Nộp Bài</span>`;
+      floatingNextBtn.onclick = () => submitExamNow();
     }
     if (topNextLabel) topNextLabel.textContent = 'Nộp Bài';
     if (stageNextText) stageNextText.textContent = 'Nộp Bài';
     if (bottomNextText) bottomNextText.textContent = 'Nộp Bài & Chấm Điểm';
+    if (floatingNextText) floatingNextText.textContent = 'Nộp Bài';
   } else {
     if (nextBtn) {
-      nextBtn.innerHTML = `<span>Câu Tiếp Theo</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
+      nextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="btn-next-q-text">Câu Tiếp Theo</span>`;
       nextBtn.onclick = () => nextQuestion();
     }
     if (topNextBtn) {
-      topNextBtn.innerHTML = `<span id="top-btn-next-label">Câu Tiếp Theo</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
+      topNextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="top-btn-next-label">Câu Tiếp Theo</span>`;
       topNextBtn.onclick = () => nextQuestion();
     }
     if (stageNextBtn) {
       stageNextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="btn-next-q-top-text">Câu Tiếp Theo</span>`;
       stageNextBtn.onclick = () => nextQuestion();
     }
+    if (floatingNextBtn) {
+      floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">➔</span> <span id="floating-next-q-text" class="font-bold">Câu Tiếp Theo</span>`;
+      floatingNextBtn.onclick = () => triggerFloatingNextAction();
+    }
     if (topNextLabel) topNextLabel.textContent = 'Câu Tiếp Theo';
     if (stageNextText) stageNextText.textContent = 'Câu Tiếp Theo';
     if (bottomNextText) bottomNextText.textContent = 'Câu Tiếp Theo';
+    if (floatingNextText) floatingNextText.textContent = 'Câu Tiếp Theo';
   }
 
   renderPaletteGrid();
@@ -5526,6 +5546,16 @@ function prevQuestion() {
   }
 }
 
+function triggerFloatingNextAction() {
+  const timedModal = document.getElementById('modal-timed-exam');
+  if (timedModal && !timedModal.classList.contains('hidden')) {
+    nextTimedQuestion();
+  } else {
+    nextQuestion();
+  }
+}
+window.triggerFloatingNextAction = triggerFloatingNextAction;
+
 function nextQuestion() {
   if (STATE.exam.active && !STATE.exam.paused && STATE.exam.currentIndex < STATE.exam.questions.length - 1) {
     STATE.exam.currentIndex++;
@@ -5697,6 +5727,7 @@ function renderExamResultScreen(res) {
   document.getElementById('exam-active-screen')?.classList.add('hidden');
   document.getElementById('exam-result-screen')?.classList.remove('hidden');
   document.getElementById('res-ai-eval-box')?.classList.add('hidden');
+  document.getElementById('floating-next-q-btn')?.classList.add('hidden');
 
   const score = Number(res.score || 0);
   const wrongCount = res.total_questions - res.correct_count;
@@ -12626,15 +12657,28 @@ function renderTimedExamQuestion(idx) {
 
   if (timedBottomPrev) timedBottomPrev.disabled = isTimedFirst;
 
+  const floatingNextBtn = document.getElementById('floating-next-q-btn');
+  const floatingNextText = document.getElementById('floating-next-q-text');
+
+  if (floatingNextBtn) {
+    floatingNextBtn.classList.remove('hidden');
+  }
+
   if (isTimedLast) {
     if (timedTopNextBtn) {
       timedTopNextBtn.onclick = () => confirmSubmitTimedExam();
+      timedTopNextBtn.innerHTML = `<span class="animate-pulse">✓</span> <span>Nộp Bài</span>`;
     }
     if (timedTopNextText) timedTopNextText.textContent = 'Nộp Bài';
     if (timedBottomNext) {
-      timedBottomNext.textContent = 'Nộp Bài';
+      timedBottomNext.innerHTML = `<span class="animate-pulse">✓</span> <span>Nộp Bài</span>`;
       timedBottomNext.onclick = () => confirmSubmitTimedExam();
     }
+    if (floatingNextBtn) {
+      floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">✓</span> <span id="floating-next-q-text" class="font-bold">Nộp Bài</span>`;
+      floatingNextBtn.onclick = () => confirmSubmitTimedExam();
+    }
+    if (floatingNextText) floatingNextText.textContent = 'Nộp Bài';
   } else {
     if (timedTopNextBtn) {
       timedTopNextBtn.onclick = () => nextTimedQuestion();
@@ -12642,9 +12686,14 @@ function renderTimedExamQuestion(idx) {
     }
     if (timedTopNextText) timedTopNextText.textContent = 'Câu Tiếp Theo';
     if (timedBottomNext) {
-      timedBottomNext.textContent = 'Câu tiếp →';
+      timedBottomNext.innerHTML = `<span class="animate-pulse">➔</span> <span>Câu Tiếp Theo</span>`;
       timedBottomNext.onclick = () => nextTimedQuestion();
     }
+    if (floatingNextBtn) {
+      floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">➔</span> <span id="floating-next-q-text" class="font-bold">Câu Tiếp Theo</span>`;
+      floatingNextBtn.onclick = () => triggerFloatingNextAction();
+    }
+    if (floatingNextText) floatingNextText.textContent = 'Câu Tiếp Theo';
   }
 
   renderTimedExamPalette();

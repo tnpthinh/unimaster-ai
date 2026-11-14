@@ -1146,8 +1146,8 @@
                 <span>🎮</span> <span class="hidden md:inline">Chán học?</span>
               </button>
             </div>
-            <button id="btn-next-q" onclick="nextQuestion()" class="btn-primary !bg-gradient-to-r !from-indigo-600 !to-violet-600 px-6 py-2.5 text-xs font-black flex items-center gap-2 rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all">
-              <span id="btn-next-q-text">Câu Tiếp Theo</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>
+            <button id="btn-next-q" onclick="nextQuestion()" class="btn-primary !bg-gradient-to-r !from-emerald-600 !via-teal-600 !to-cyan-600 px-6 py-2.5 text-xs font-black flex items-center gap-2 rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all">
+              <span class="animate-pulse">➔</span> <span id="btn-next-q-text">Câu Tiếp Theo</span>
             </button>
           </div>
         </div>
@@ -4382,19 +4382,31 @@
   <div id="floating-tutor-backdrop" onclick="closeFloatingTutor()" class="hidden fixed inset-0 z-[9990] bg-black/60 backdrop-blur-sm transition-opacity"></div>
 
   <div id="floating-tutor-container" class="hidden fixed bottom-20 lg:bottom-6 right-3 sm:right-6 z-50 flex flex-col-reverse items-end gap-2.5">
-    <!-- Floating Trigger Button (Sleek Gradient Gem with Context Badge) -->
-    <button id="floating-tutor-btn" onclick="toggleFloatingTutor()"
-      class="group p-2.5 sm:px-3 sm:py-2.5 rounded-full sm:rounded-xl shadow-2xl flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all relative"
-      style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%); border: 1.5px solid rgba(255, 255, 255, 0.25); box-shadow: 0 10px 25px -4px rgba(99, 102, 241, 0.5);"
-      title="Gia Sư AI Ôn Thi (Nhấn phím T để bật/tắt)">
-      <span class="relative flex h-2.5 w-2.5">
-        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-      </span>
-      <span class="text-lg sm:text-xl">🤖</span>
-      <span id="floating-btn-subject-tag" class="hidden md:inline badge-brand text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">T</span>
-      <span id="floating-btn-q-badge" class="hidden text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold"></span>
-    </button>
+    <!-- Row chứa các nút Floating ở góc dưới cùng: Nút Câu Tiếp Theo nổi bật + Nút AI -->
+    <div class="flex items-center gap-2">
+      <!-- Nút nổi Câu Tiếp Theo (Floating Action Button kế bên nút AI) -->
+      <button id="floating-next-q-btn" onclick="triggerFloatingNextAction()"
+        class="hidden group px-3.5 py-2.5 rounded-full sm:rounded-xl shadow-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all relative cursor-pointer font-black text-xs text-white"
+        style="background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%); border: 1.5px solid rgba(255, 255, 255, 0.25); box-shadow: 0 10px 25px -4px rgba(16, 185, 129, 0.5);"
+        title="Câu tiếp theo (hoặc Nộp bài khi hoàn thành)">
+        <span class="animate-pulse text-base">➔</span>
+        <span id="floating-next-q-text" class="font-bold">Câu Tiếp Theo</span>
+      </button>
+
+      <!-- Floating Trigger Button (Sleek Gradient Gem with Context Badge) -->
+      <button id="floating-tutor-btn" onclick="toggleFloatingTutor()"
+        class="group p-2.5 sm:px-3 sm:py-2.5 rounded-full sm:rounded-xl shadow-2xl flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all relative"
+        style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%); border: 1.5px solid rgba(255, 255, 255, 0.25); box-shadow: 0 10px 25px -4px rgba(99, 102, 241, 0.5);"
+        title="Gia Sư AI Ôn Thi (Nhấn phím T để bật/tắt)">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+        </span>
+        <span class="text-lg sm:text-xl">🤖</span>
+        <span id="floating-btn-subject-tag" class="hidden md:inline badge-brand text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">T</span>
+        <span id="floating-btn-q-badge" class="hidden text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold"></span>
+      </button>
+    </div>
 
     <!-- Floating Chat Window (Glassmorphism, Expandable, Multi-Persona, Voice) -->
     <div id="floating-tutor-window"
@@ -4611,12 +4623,12 @@
             <!-- 4 Options A, B, C, D -->
           </div>
 
-          <div class="flex items-center justify-between pt-4 border-t" style="border-color: var(--border);">
-            <button onclick="prevTimedQuestion()" id="timed-prev-btn" class="btn-soft px-4 py-2 text-xs font-bold">
-              ← Câu trước
+          <div class="sticky bottom-2 z-30 flex items-center justify-between gap-3 p-3 rounded-2xl border shadow-2xl backdrop-blur-2xl mt-4" style="background: color-mix(in srgb, var(--bg-surface) 96%, transparent); border-color: var(--border);">
+            <button onclick="prevTimedQuestion()" id="timed-prev-btn" class="btn-soft px-4 py-2.5 text-xs font-bold flex items-center gap-1.5 rounded-xl">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i> <span>Câu Trước</span>
             </button>
-            <button onclick="nextTimedQuestion()" id="timed-next-btn" class="btn-primary px-5 py-2 text-xs font-bold">
-              Câu tiếp →
+            <button onclick="nextTimedQuestion()" id="timed-next-btn" class="btn-primary !bg-gradient-to-r !from-emerald-600 !via-teal-600 !to-cyan-600 px-6 py-2.5 text-xs font-black flex items-center gap-2 rounded-xl shadow-lg hover:scale-105 active:scale-95 transition-all">
+              <span class="animate-pulse">➔</span> <span>Câu Tiếp Theo</span>
             </button>
           </div>
         </div>
