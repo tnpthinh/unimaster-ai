@@ -685,6 +685,9 @@ def get_exercises_by_subject(subject_id):
     c.execute("SELECT * FROM exercises WHERE subject_id = ? ORDER BY id ASC", (subject_id,))
     rows = [dict(r) for r in c.fetchall()]
     for r in rows:
+        code_val = r.get('sample_code') or r.get('starter_code') or ''
+        r['sample_code'] = code_val
+        r['starter_code'] = code_val
         try:
             r['specs'] = json.loads(r.get('specs_json') or '[]')
         except Exception:
@@ -705,6 +708,9 @@ def get_exercise_by_id(exercise_id):
     if not row:
         return None
     r = dict(row)
+    code_val = r.get('sample_code') or r.get('starter_code') or ''
+    r['sample_code'] = code_val
+    r['starter_code'] = code_val
     try:
         r['specs'] = json.loads(r.get('specs_json') or '[]')
     except Exception:

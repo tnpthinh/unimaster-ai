@@ -60,6 +60,7 @@ ROUTER_TELEMETRY = {
     "last_error": "",
     "last_checked_at": None,
     "available_models": [],
+    "cooldown_until": 0.0,
 }
 _RR_CURSOR = 0
 _ENV_FILE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
@@ -793,6 +794,14 @@ def _is_local_url(url: str) -> bool:
         return "127.0.0.1" in low or "localhost" in low
 
 
+def _is_ephemeral_tunnel_url(url: str) -> bool:
+    """True nếu URL là localhost hoặc đường hầm động (Cloudflare/abc-tunnel/ngrok) có thể đổi địa chỉ."""
+    if _is_local_url(url):
+        return True
+    low = (url or "").strip().lower()
+    return any(tok in low for tok in ("abc-tunnel.", "trycloudflare.com", "ngrok-free.app", "ngrok.io"))
+
+
 def validate_router_base_url(raw_url: str, default_on_empty: bool = False) -> tuple[bool, str, str]:
     """Validate and normalize 9Router/OpenAI-compatible Base URL with SSRF protection."""
     raw = (raw_url or "").strip()
@@ -863,10 +872,12 @@ def invalidate_gateway_cache() -> None:
 
 
 async def resolve_gateway_base_url(base_url: str, force: bool = False) -> str:
-    """Nếu Base URL trỏ vào máy nội bộ, tự dò địa chỉ tunnel công khai khi chạy trên cloud."""
+    """Nếu Base URL trỏ vào máy nội bộ hoặc tunnel động bị lỗi, tự dò địa chỉ tunnel mới nhất."""
     base_url = (base_url or "").rstrip("/")
     discovery = gateway_discovery_url()
-    if not discovery or not _is_local_url(base_url):
+    if not discovery:
+        return base_url
+    if not force and not _is_local_url(base_url):
         return base_url
     if not force and _is_local_runtime():
         return base_url
@@ -1041,6 +1052,7 @@ def save_router_config(
         ROUTER_TELEMETRY["last_error"] = ""
         ROUTER_TELEMETRY["latency_ms"] = None
         ROUTER_TELEMETRY["available_models"] = []
+        ROUTER_TELEMETRY["cooldown_until"] = 0.0
 
     return True, get_router_public_status(), "Đã cập nhật cấu hình 9Router / AI Gateway an toàn."
 
@@ -1156,6 +1168,11 @@ async def _call_openai_chatgpt_meta(
     if not key:
         return None
 
+    # Circuit breaker: nếu Router/Tunnel vừa báo sập (HTTP 530/502/timeout) và có Gemini dự phòng,
+    # bỏ qua ngay để không làm chậm các request tiếp theo.
+    if cfg.get("priority") != "openai_only" and ROUTER_TELEMETRY.get("cooldown_until", 0.0) > time.time():
+        return None
+
     ok_u, norm_cfg_url, url_err = validate_router_base_url(cfg["base_url"])
     if not ok_u:
         ROUTER_TELEMETRY["status"] = "error"
@@ -1166,7 +1183,7 @@ async def _call_openai_chatgpt_meta(
     base_url = await resolve_gateway_base_url(norm_cfg_url)
     endpoint = f"{base_url}/chat/completions"
 
-    gateway_route = _is_local_url(norm_cfg_url) and bool(gateway_discovery_url())
+    gateway_route = _is_ephemeral_tunnel_url(norm_cfg_url) and bool(gateway_discovery_url())
     gateway_retried = False
 
     provider_type = _detect_router_provider_type(base_url, cfg.get("model", ""))
@@ -1240,6 +1257,7 @@ async def _call_openai_chatgpt_meta(
                                 "latency_ms": latency_ms,
                                 "last_error": "",
                                 "last_checked_at": _utc_now_iso(),
+                                "cooldown_until": 0.0,
                             })
                             print(f"[AI Service] Generated via {p_name} ({actual_model}, {latency_ms}ms)!")
                             return {
@@ -1250,21 +1268,37 @@ async def _call_openai_chatgpt_meta(
                                 "masked_key": mask_key(key),
                                 "latency_ms": latency_ms,
                             }
-                elif resp.status in (400, 401, 403, 404, 429, 500, 502, 503, 530):
+                elif resp.status in (400, 401, 403, 404, 429, 500, 502, 503, 504, 530):
                     err_text = _sanitize_error_text(await resp.text(), key)
+                    low_err = err_text.lower()
+                    is_tunnel_dead = (
+                        resp.status in (502, 503, 504, 530)
+                        or "cloudflare tunnel error" in low_err
+                        or "error code: 1033" in low_err
+                    )
                     print(f"[AI Service] Router/OpenAI HTTP {resp.status} ({model}): {err_text[:140]}")
                     ROUTER_TELEMETRY.update({
                         "status": "error",
-                        "last_error": f"HTTP {resp.status}: {err_text[:120]}",
+                        "last_error": (
+                            "HTTP 530 (Cloudflare Tunnel offline / lỗi 1033)"
+                            if resp.status == 530 or "1033" in low_err
+                            else f"HTTP {resp.status}: {err_text[:120]}"
+                        ),
                         "last_checked_at": _utc_now_iso(),
                     })
-                    if resp.status in (502, 503, 530) and gateway_route and not gateway_retried:
-                        gateway_retried = True
-                        invalidate_gateway_cache()
-                        base_url = await resolve_gateway_base_url(norm_cfg_url, force=True)
-                        endpoint = f"{base_url}/chat/completions"
-                        print(f"[AI Service] Gateway HTTP {resp.status}, thử dò lại tunnel: {base_url}")
-                        continue
+                    if is_tunnel_dead:
+                        if gateway_route and not gateway_retried:
+                            gateway_retried = True
+                            invalidate_gateway_cache()
+                            new_base = await resolve_gateway_base_url(norm_cfg_url, force=True)
+                            if new_base and new_base != base_url:
+                                base_url = new_base
+                                endpoint = f"{base_url}/chat/completions"
+                                print(f"[AI Service] Gateway HTTP {resp.status}, thử tunnel mới: {base_url}")
+                                continue
+                        # Đường hầm đã tắt hoặc không có tunnel mới -> ngắt mạch 90s và thoát ngay
+                        ROUTER_TELEMETRY["cooldown_until"] = time.time() + 90.0
+                        return None
                     if resp.status == 400 and any(k in err_text for k in ["max_tokens", "max_completion_tokens", "temperature"]):
                         fallback_content = (
                             f"{system_instruction}\n\n{prompt}" if system_instruction else prompt
@@ -1321,10 +1355,14 @@ async def _call_openai_chatgpt_meta(
             if gateway_route and not gateway_retried:
                 gateway_retried = True
                 invalidate_gateway_cache()
-                base_url = await resolve_gateway_base_url(norm_cfg_url, force=True)
-                endpoint = f"{base_url}/chat/completions"
-                print(f"[AI Service] Tunnel có thể đã đổi, thử lại qua: {base_url}")
-            continue
+                new_base = await resolve_gateway_base_url(norm_cfg_url, force=True)
+                if new_base and new_base != base_url:
+                    base_url = new_base
+                    endpoint = f"{base_url}/chat/completions"
+                    print(f"[AI Service] Tunnel có thể đã đổi, thử lại qua: {base_url}")
+                    continue
+            ROUTER_TELEMETRY["cooldown_until"] = time.time() + 60.0
+            return None
     return None
 
 

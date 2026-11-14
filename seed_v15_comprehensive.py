@@ -238,11 +238,11 @@ public class Program {
     public static void Main() {
         string input = Console.ReadLine();
         if (string.IsNullOrWhiteSpace(input)) return;
-        string[] parts = input.Split(' ');
+        string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
         string type = parts[0];
         double amt = double.Parse(parts[1]);
 
-        IThanhToan p = type == "CARD" ? new TheTinDung() : new ViDienTu();
+        IThanhToan p = type == "CARD" ? (IThanhToan)new TheTinDung() : new ViDienTu();
         Console.WriteLine($"THUC THU: {p.XuLy(amt):F2}");
     }
 }""",

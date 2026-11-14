@@ -1039,6 +1039,7 @@ if __name__ == '__main__':
                 "Tự do nhập dữ liệu đầu vào (STDIN) bất kỳ trong tab Console.",
                 "Sử dụng nút 'AI Sửa Lỗi & Nâng Cấp' để AI chẩn đoán lỗi, giải thích bài học và refactor tối ưu."
             ],
+            "starter_code": sample,
             "sample_code": sample,
             "solution_code": sample,
             "test_cases": [
@@ -1066,6 +1067,24 @@ async def get_exercises_by_query(request):
         exercises = db.get_exercises_by_subject(sid)
         exercises = _inject_playground_exercise(exercises, sid)
         return json_resp({"success": True, "exercises": exercises})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def get_exercise_detail(request):
+    """GET /api/exercises/{id} — trả chi tiết 1 bài tập (hỗ trợ cả Playground 9999)."""
+    try:
+        ex_id = int(request.match_info["id"])
+        raw_sid = request.rel_url.query.get("subject_id")
+        sid = int(raw_sid) if raw_sid and str(raw_sid).isdigit() else 5
+        if ex_id == 9999:
+            injected = _inject_playground_exercise([], sid if sid in (5, 22) else 5)
+            if injected:
+                return json_resp({"success": True, "exercise": injected[0]})
+        ex = db.get_exercise_by_id(ex_id)
+        if ex:
+            return json_resp({"success": True, "exercise": ex})
+        return json_resp({"success": False, "error": f"Không tìm thấy bài tập #{ex_id}"}, 404)
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
 
@@ -2958,11 +2977,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v37';
+    const CACHE_NAME = 'unimaster-pwa-v38';
     const CORE_ASSETS = [
-      '/static/style.css?v=37.0',
+      '/static/style.css?v=38.0',
       '/static/minimal.css?v=3.0',
-      '/static/app.js?v=37.0',
+      '/static/app.js?v=38.0',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -3451,6 +3470,7 @@ def create_app():
 
     # Alias routes: query-param style (used by frontend & tests)
     app.router.add_get("/api/exercises", get_exercises_by_query)
+    app.router.add_get("/api/exercises/{id}", get_exercise_detail)
     app.router.add_get("/api/flashcards", get_flashcards_by_query)
 
     # Missing endpoints surfaced by test_server_endpoints.py

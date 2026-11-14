@@ -19386,7 +19386,12 @@ function renderAiFullscreenInspectorResult(data, sourceCode, targetLine, action)
 }
 
 function escapeJsString(str) {
-  return JSON.stringify(String(str ?? '')).replace(/"/g, '"');
+  return JSON.stringify(String(str ?? ''))
+    .replace(/&/g, '\x26amp;')
+    .replace(/"/g, '\x26quot;')
+    .replace(/'/g, '\x26#39;')
+    .replace(/</g, '\x26lt;')
+    .replace(/>/g, '\x26gt;');
 }
 
 function applySingleLineFix(lineNum, newLineText) {
@@ -19570,23 +19575,18 @@ function nextExercise() {
   const list = STATE.exercises.list;
   if (!list || !list.length) return;
 
-  let nextIndex = (STATE.exercises.selectedIndex + 1) % list.length;
-  STATE.exercises.selectedIndex = nextIndex;
-
-  // Cập nhật giao diện: render lại chi tiết bài mới
-  // renderExerciseList() không tồn tại, chỉ renderExerciseDetail() để hiển thị bài tiếp theo
-  if (typeof renderExerciseDetail === 'function') {
-    renderExerciseDetail();
+  const nextIndex = (STATE.exercises.selectedIndex + 1) % list.length;
+  if (typeof selectExercise === 'function') {
+    selectExercise(nextIndex);
+  } else {
+    STATE.exercises.selectedIndex = nextIndex;
+    if (typeof renderExerciseList === 'function') renderExerciseList();
+    if (typeof renderExerciseDetail === 'function') renderExerciseDetail();
   }
-
-  // Nếu có hàm render danh sách bài tập, gọi nó
-  if (typeof loadExercisesView === 'function') {
-    loadExercisesView();
-  } else if (typeof renderDashboard === 'function') {
-    renderDashboard();
+  if (typeof showToast === 'function') {
+    const ex = list[nextIndex];
+    showToast('Chuyển đến bài: ' + (ex?.title || ('#' + (nextIndex + 1))), 'info');
   }
-
-  // Cuộn lên đầu trang để xem bài mới
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
@@ -19594,19 +19594,18 @@ function prevExercise() {
   const list = STATE.exercises.list;
   if (!list || !list.length) return;
 
-  let prevIndex = (STATE.exercises.selectedIndex - 1 + list.length) % list.length;
-  STATE.exercises.selectedIndex = prevIndex;
-
-  if (typeof renderExerciseDetail === 'function') {
-    renderExerciseDetail();
+  const prevIndex = (STATE.exercises.selectedIndex - 1 + list.length) % list.length;
+  if (typeof selectExercise === 'function') {
+    selectExercise(prevIndex);
+  } else {
+    STATE.exercises.selectedIndex = prevIndex;
+    if (typeof renderExerciseList === 'function') renderExerciseList();
+    if (typeof renderExerciseDetail === 'function') renderExerciseDetail();
   }
-
-  if (typeof loadExercisesView === 'function') {
-    loadExercisesView();
-  } else if (typeof renderDashboard === 'function') {
-    renderDashboard();
+  if (typeof showToast === 'function') {
+    const ex = list[prevIndex];
+    showToast('Quay lại bài: ' + (ex?.title || ('#' + (prevIndex + 1))), 'info');
   }
-
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 

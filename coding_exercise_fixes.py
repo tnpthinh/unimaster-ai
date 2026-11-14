@@ -32,7 +32,7 @@ FILE NÀY chứa nội dung ĐÚNG cho 11 bài đó và được gọi tự đ�
 tự được vá, không phụ thuộc vào việc copy lại seed.
 """
 
-FIXES_REV = "coding-exercises-rev-3"
+FIXES_REV = "coding-exercises-rev-5"
 
 SUBJECT_CSHARP = 5
 SUBJECT_PYTHON = 22
@@ -41,6 +41,36 @@ SUBJECT_PYTHON = 22
 # NỘI DUNG ĐÚNG CHO TỪNG BÀI
 # Mỗi bài: key = (subject_id, tiền tố tiêu đề) để tìm được cả khi id khác nhau
 # ---------------------------------------------------------------------------
+
+_CS03 = r'''using System;
+
+public interface IThanhToan {
+    double XuLy(double soTien);
+}
+
+public class TheTinDung : IThanhToan {
+    public double XuLy(double soTien) => soTien * 1.02;
+}
+
+public class ViDienTu : IThanhToan {
+    public double XuLy(double soTien) {
+        if (soTien <= 100.0) return soTien;
+        return soTien * 1.01;
+    }
+}
+
+public class Program {
+    public static void Main() {
+        string input = Console.ReadLine();
+        if (string.IsNullOrWhiteSpace(input)) return;
+        string[] parts = input.Split(new char[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        string type = parts[0];
+        double amt = double.Parse(parts[1]);
+
+        IThanhToan p = type == "CARD" ? (IThanhToan)new TheTinDung() : new ViDienTu();
+        Console.WriteLine($"THUC THU: {p.XuLy(amt):F2}");
+    }
+}'''
 
 _CS06 = r'''using System;
 
@@ -410,6 +440,29 @@ EXERCISE_FIXES = [
     # ------------------------------ C# (môn 5) ------------------------------
     {
         "subject_id": SUBJECT_CSHARP,
+        "title_prefix": "C# 03",
+        "title": "C# 03: Hiện Thực Interface IThanhToan (IPaymentProcessor)",
+        "problem": (
+            "Định nghĩa Interface `IThanhToan` có phương thức `double XuLy(double soTien);`. "
+            "Cài đặt 2 class: `TheTinDung` (tính phí 2%) và `ViDienTu` (miễn phí nếu soTien <= 100, trên 100 tính phí 1%)."
+        ),
+        "specs": [
+            "Bắt buộc khai báo 'interface IThanhToan'.",
+            "Đầu vào: Phương thức ('CARD' hoặc 'WALLET') và Số tiền.",
+            "Đầu ra: In ra 'THUC THU: [so_tien_sau_phi]' (làm tròn 2 chữ số).",
+        ],
+        "language": "csharp",
+        "sample_code": _CS03,
+        "test_cases": [
+            _tc("CARD 200.0", "THUC THU: 204.00"),
+            _tc("WALLET 80.0", "THUC THU: 80.00"),
+            _tc("WALLET 150.0", "THUC THU: 151.50", True),
+            _tc("CARD 1000.0", "THUC THU: 1020.00", True),
+            _tc("WALLET 100.0", "THUC THU: 100.00", True),
+        ],
+    },
+    {
+        "subject_id": SUBJECT_CSHARP,
         "title_prefix": "C# 06",
         "title": "C# 06: Nạp Chồng Toán Tử (Operator Overloading) Class PhanSo",
         "problem": (
@@ -723,14 +776,15 @@ def repair_coding_exercises(conn) -> int:
                 """
                 UPDATE exercises
                    SET title = ?, problem = ?, specs_json = ?, sample_code = ?,
-                       solution_code = ?, test_cases_json = ?, language = ?,
-                       difficulty = 'medium'
+                       starter_code = ?, solution_code = ?, test_cases_json = ?,
+                       language = ?, difficulty = 'medium'
                  WHERE subject_id = ? AND title LIKE ?
                 """,
                 (
                     item["title"],
                     item["problem"],
                     _json.dumps(item["specs"], ensure_ascii=False),
+                    item["sample_code"],
                     item["sample_code"],
                     item["sample_code"],
                     _json.dumps(item["test_cases"], ensure_ascii=False),
