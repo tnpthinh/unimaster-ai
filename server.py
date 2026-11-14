@@ -57,7 +57,7 @@ _LOGIN_FAILS = {}  # ip -> [fail_count, locked_until]
 _RATE_LIMIT_BUCKETS = {}  # (bucket, ip) -> [timestamps]
 AUTH_EXEMPT_PATHS = {
     "/login", "/api/login", "/api/auth/login", "/api/auth/register",
-    "/manifest.json", "/icon.svg", "/healthz",
+    "/manifest.json", "/icon.svg", "/sw.js", "/healthz",
     "/ws/arena", "/api/export/anki", "/api/export/printable-exam"
 }
 
@@ -192,7 +192,7 @@ async def auth_middleware(request, handler):
         request["_authenticated"] = False
         request["user"] = {"id": 1, "role": "admin" if not AUTH_ENABLED else "guest"}
 
-    if not AUTH_ENABLED or request.path in AUTH_EXEMPT_PATHS:
+    if not AUTH_ENABLED or request.path in AUTH_EXEMPT_PATHS or request.path.startswith("/static/"):
         return await handler(request)
 
     if user_info:
@@ -2977,11 +2977,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v38';
+    const CACHE_NAME = 'unimaster-pwa-v39';
     const CORE_ASSETS = [
-      '/static/style.css?v=38.0',
+      '/static/style.css?v=39.0',
       '/static/minimal.css?v=3.0',
-      '/static/app.js?v=38.0',
+      '/static/app.js?v=39.0',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -3007,7 +3007,7 @@ async def pwa_sw(request):
       e.respondWith(
         fetch(e.request)
           .then((resp) => {
-            if (resp && resp.status === 200 && url.pathname.startsWith('/static/')) {
+            if (resp && resp.status === 200 && !resp.redirected && url.pathname.startsWith('/static/')) {
               const clone = resp.clone();
               caches.open(CACHE_NAME).then((c) => c.put(e.request, clone)).catch(() => {});
             }
