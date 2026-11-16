@@ -2628,20 +2628,125 @@ Hãy đóng vai Sổ tay Công thức Thông minh, tóm tắt **ngắn gọn tro
     return gemini_reply or "### 🧠 Lý thuyết nền tảng\nHãy đối chiếu định nghĩa gốc, điều kiện áp dụng công thức và chú ý đổi đồng nhất đơn vị trước khi thay số."
 
 
-async def ai_deep_analysis(question_text: str, correct_option: str, explanation: str, code_snippet: str = "") -> str:
+async def ai_deep_analysis(
+    question_text: str,
+    correct_option: str,
+    explanation: str,
+    code_snippet: str = "",
+    mode: str = "standard"
+) -> str:
+    """
+    Phân tích chuyên sâu nâng cao với 5 lăng kính học thuật khác nhau:
+    - 'standard': Toàn diện (Luồng suy luận, bẫy trắc nghiệm, chốt hạ 5s).
+    - 'feynman': Kỹ thuật Feynman (Ẩn dụ đời sống, đơn giản cho người mới bắt đầu).
+    - 'exam_trap': Mổ xẻ bẫy trắc nghiệm (Bóc trần cạm bẫy tâm lý, dấu hiệu scan 2 giây).
+    - 'socratic': Phương pháp Socrates (Đặt câu hỏi phản biện, tự tư duy tìm chân lý).
+    - 'stem_clinical': Lâm sàng Y Dược & Thuật toán Kỹ thuật (Mức phân tử/cơ chế/độ phức tạp O(N)).
+    """
     code_part = f"\n```csharp\n{code_snippet}\n```" if code_snippet else ""
-    prompt = f"""Câu hỏi: "{question_text}"{code_part}
-Đáp án đúng: **{correct_option}** | Giải thích gốc: "{explanation}"
-Phân tích chuyên sâu, súc tích:
-1. **🔬 Luồng suy luận & biến đổi công thức từng bước:** Tại sao đáp án đúng?
+
+    if mode == "feynman":
+        mode_instruction = f"""Áp dụng **Phương pháp Feynman (Feynman Technique)** để giải thích trực quan:
+1. **👶 Ẩn dụ đời sống (Giải thích dễ hiểu cho học sinh 10 tuổi):** Dùng một ví dụ thực tế cực kỳ sinh động để ai cũng hiểu được nguyên lý này.
+2. **🧩 Đơn giản hóa cơ chế:** Bóc tách bản chất vấn đề thành 2-3 bước tự nhiên nhất mà không lạm dụng biệt ngữ.
+3. **💡 Bài học cốt lõi:** Đúc kết 1 câu ngắn gọn dễ nhớ mãi."""
+    elif mode == "exam_trap":
+        mode_instruction = f"""Đóng vai **Chuyên gia Giảo nghiệm Đề thi & Bẫy Tâm lý**:
+1. **🎯 Mổ xẻ ý đồ người ra đề:** Thầy cô đã cài cắm cạm bẫy ở chi tiết nào (đổi đơn vị, phủ định kép, ngoại lệ hiếm, điều kiện biên)?
+2. **💣 Bóc trần các phương án bẫy:** Chỉ rõ lỗi tư duy sai lầm của từng phương án nhiễu khiến thí sinh mất điểm oan.
+3. **🛡️ Lá chắn phòng thủ 2 giây:** Kỹ thuật quét từ khóa (keyword scan) để chốt đúng trong 2 giây đầu."""
+    elif mode == "socratic":
+        mode_instruction = f"""Áp dụng **Phương pháp Đối thoại Socrates (Socratic Dialogue)** để kích hoạt tư duy phản biện:
+1. **❓ Câu hỏi lật ngược vấn đề 1:** "Nếu ta thay đổi giả định ban đầu thì hiện tượng sẽ biến đổi ra sao?"
+2. **🤔 Câu hỏi bóc trần mâu thuẫn 2:** "Tại sao trực giác ban đầu thường sai khi tiếp cận dữ kiện này?"
+3. **🎯 Khám phá chân lý:** Dẫn dắt người học tự đúc kết ra chân lý học thuật mà không cần học vẹt."""
+    elif mode == "stem_clinical":
+        mode_instruction = f"""Đóng vai **Chuyên gia Đầu ngành (Bác sĩ Chuyên khoa / Kỹ sư Trưởng)**:
+1. **🧬 Cơ chế Bệnh sinh / Kiến trúc Hệ thống:** Đi sâu vào mức phân tử, enzym, dược lý (Y Dược) hoặc kiến trúc bộ nhớ, luồng bit, độ phức tạp thuật toán O(T)/O(S) (CNTT & Kỹ thuật).
+2. **📈 Phân tích Biên & Ca thực tế (Clinical/Edge Cases):** Ý nghĩa ứng dụng trên ca lâm sàng hoặc trường hợp biên cực hạn.
+3. **📌 Bài học thực chiến:** Kinh nghiệm hành nghề chuẩn mực."""
+    else:  # standard
+        mode_instruction = f"""Phân tích chuyên sâu toàn diện, chuẩn phong cách Giáo sư đại học:
+1. **🔬 Luồng suy luận & biến đổi công thức từng bước:** Bản chất khoa học vì sao đáp án đúng?
 2. **⚠️ Phân tích bẫy đề thi:** Tại sao các phương án nhiễu dễ làm thí sinh nhầm lẫn?
-3. **⚡ Quy tắc chốt hạ 5 giây.**
+3. **⚡ Quy tắc chốt hạ 5 giây:** Dấu hiệu thị giác giúp nhận diện ngay đáp án trong phòng thi."""
+
+    prompt = f"""Câu hỏi: "{question_text}"{code_part}
+Đáp án đúng: **{correct_option}** | Lời giải gốc: "{explanation}"
+
+{mode_instruction}
 {STEM_FORMAT_GUIDE}"""
 
     gemini_reply = await call_gemini(prompt, max_tokens=6144, thinking_budget=384)
     if gemini_reply:
         return gemini_reply
     return f"#### 🔬 Bản chất cốt lõi\n- {explanation or 'Đáp án đúng tuân thủ quy tắc chuẩn của học phần.'}"
+
+
+async def ai_deep_analysis_followup(
+    question_text: str,
+    correct_option: str,
+    analysis_context: str,
+    student_query: str,
+    code_snippet: str = ""
+) -> str:
+    """Trả lời câu hỏi thắc mắc / phản biện của học viên dựa trên ngữ cảnh bài phân tích chuyên sâu."""
+    code_part = f"\n```csharp\n{code_snippet}\n```" if code_snippet else ""
+    prompt = f"""Ngữ cảnh câu hỏi:
+"{question_text}"{code_part}
+Đáp án đúng: **{correct_option}**
+
+Bài phân tích chuyên sâu trước đó:
+\"\"\"
+{analysis_context[:3000]}
+\"\"\"
+
+Học viên đặt câu hỏi thắc mắc / phản biện:
+"{student_query}"
+
+Hãy đóng vai Giáo sư tận tâm, trả lời thẳng vào trọng tâm câu hỏi của học viên:
+1. **🎯 Trực diện:** Giải thích chính xác, rõ ràng, gãy gọn điều học viên đang băn khoăn.
+2. **💡 Minh chứng & Phân tích:** Đưa ra ví dụ phản chứng hoặc lý giải logic trực quan.
+3. **✅ Khắc sâu kiến thức:** Đưa ra 1 lưu ý ngắn giúp người học vững tin.
+{STEM_FORMAT_GUIDE}"""
+
+    reply = await call_gemini(prompt, max_tokens=3072, thinking_budget=256)
+    return reply or "Đã ghi nhận câu hỏi của bạn. Hãy rà soát lại định nghĩa và các điều kiện ràng buộc trong lời giải gốc."
+
+
+async def ai_generate_mindmap(question_text: str, analysis_context: str) -> dict:
+    """Sinh sơ đồ Mermaid.js để trực quan hóa luồng tư duy từ bài phân tích chuyên sâu."""
+    prompt = f"""Từ câu hỏi: "{question_text}"
+Và nội dung phân tích chuyên sâu:
+\"\"\"
+{analysis_context[:2500]}
+\"\"\"
+
+Hãy tạo sơ đồ tư duy bằng cú pháp Mermaid.js (ưu tiên `graph TD` hoặc `mindmap`).
+Đảm bảo các node ngắn gọn (dưới 8 từ), luồng logic mạch lạc từ Vấn đề -> Dữ kiện -> Cơ chế -> Đáp án đúng.
+
+Trả về DUY NHẤT một chuỗi JSON hợp lệ dạng:
+{{
+  "mermaid_code": "graph TD\\n  A[Câu hỏi cốt lõi] --> B[Dữ kiện then chốt]\\n  B --> C[Phân tích cơ chế]\\n  C --> D[Đáp án đúng]",
+  "summary": "Tóm tắt 1 câu ngắn gọn về dòng chảy tư duy"
+}}
+Chỉ trả về JSON thuần, không kèm markdown hoặc giải thích."""
+
+    raw = await call_gemini(prompt, max_tokens=2048, thinking_budget=128)
+    try:
+        clean = (raw or "").strip()
+        if clean.startswith("```json"):
+            clean = clean[7:]
+        elif clean.startswith("```"):
+            clean = clean[3:]
+        if clean.endswith("```"):
+            clean = clean[:-3]
+        return json.loads(clean.strip())
+    except Exception:
+        return {
+            "mermaid_code": "graph TD\n  Q[\"Đề bài\"] --> K[\"Từ khóa then chốt\"]\n  K --> E[\"Cơ chế bản chất\"]\n  E --> Ans[\"Đáp án chuẩn xác\"]",
+            "summary": "Dòng chảy suy luận logic từ dữ kiện đến kết luận."
+        }
 
 
 async def ai_explain_mistake(subject_name: str, question_text: str, user_wrong_answer: str, correct_answer: str, explanation: str = "", code_snippet: str = "") -> str:

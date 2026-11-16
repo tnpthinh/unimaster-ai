@@ -178,7 +178,7 @@ html.midnight {
 
   --text-main: #f8fafc;
   --text-sub: #e2e8f0;
-  --text-muted: #94a3b8;
+  --text-muted: #a8b8d0;
 
   --border: #243452;
   --border-strong: #3b527e;
@@ -344,7 +344,7 @@ header > div {
   min-height: 2rem !important;
 }
 
-@media (max-width: 1199px) {
+@media (max-width: 1023px) {
   header nav.hidden.lg\:flex {
     display: none !important;
   }
@@ -354,10 +354,9 @@ header > div {
   }
 
   #header-active-subj-btn {
-    max-width: min(260px, 28vw) !important;
+    max-width: min(280px, 46vw) !important;
   }
 
-  /* Tên/role tài khoản dài (vd. Sinh Viên Y Khoa CTUMP) không được đẩy nút cài đặt. */
   #header-user-btn {
     max-width: 2.5rem !important;
     padding: 0.25rem !important;
@@ -370,7 +369,7 @@ header > div {
   }
 
   #header-active-subj-btn #active-subj-name {
-    max-width: 10ch !important;
+    max-width: min(200px, 38vw) !important;
     overflow: hidden !important;
     text-overflow: ellipsis !important;
     white-space: nowrap !important;
@@ -386,7 +385,7 @@ header > div {
 
   header > div > div:first-child {
     min-width: 0 !important;
-    gap: 0.25rem !important;
+    gap: 0.35rem !important;
   }
 
   header > div > div:first-child > button:first-child {
@@ -401,14 +400,15 @@ header > div {
   }
 
   #header-active-subj-btn {
-    max-width: 92px !important;
-    padding-left: 0.4rem !important;
-    padding-right: 0.4rem !important;
-    gap: 0.25rem !important;
+    max-width: min(215px, 55vw) !important;
+    flex: 1 1 auto !important;
+    padding-left: 0.5rem !important;
+    padding-right: 0.5rem !important;
+    gap: 0.3rem !important;
   }
 
   #header-active-subj-btn #active-subj-name {
-    max-width: 7ch !important;
+    max-width: none !important;
   }
 
   #header-active-subj-btn #active-subj-badge {
@@ -416,7 +416,6 @@ header > div {
   }
 
   #header-settings-btn,
-  #header-fullscreen-btn,
   #quick-theme-btn {
     position: relative !important;
     z-index: 101 !important;
@@ -735,6 +734,29 @@ select.uni-input option {
   background: linear-gradient(135deg, var(--brand), var(--brand-2));
   color: #ffffff;
   box-shadow: 0 3px 10px -1px var(--brand-glow);
+}
+
+@media (min-width: 1024px) {
+  .mobile-bottom-nav {
+    display: none !important;
+  }
+}
+
+/* Prevent mobile horizontal overflow globally across all views and cards */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+main, section, .uni-card {
+  max-width: 100%;
+}
+.grid > *, .flex > * {
+  min-width: 0;
+}
+.countdown-slate {
+  background-color: var(--bg-subtle);
+  border-color: var(--border);
+  color: var(--text-main);
 }
 
 /* ==========================================================================
@@ -2174,8 +2196,8 @@ header > div > div:last-child {
 }
 /* Nav lấp đầy khoảng giữa linh hoạt (tối đa 940px, canh giữa) → không còn "khúc trống", không bao giờ bị đè chữ */
 header > div > nav {
-  flex: 1 1 auto !important;
-  max-width: 940px !important;
+  flex: 0 1 auto !important;
+  max-width: none !important;
   margin-inline: auto !important;
   min-width: 0 !important;
   position: relative !important;
@@ -2193,13 +2215,13 @@ header .nav-tab {
   flex: 0 0 auto !important;
   min-width: max-content !important;
   justify-content: center !important;
-  padding: var(--nav-tab-pad-y, 0.45rem) var(--nav-tab-pad-x, 0.75rem) !important;
-  font-size: var(--nav-tab-font-size, 0.8125rem) !important;
+  padding: var(--nav-tab-pad-y, 0.4rem) var(--nav-tab-pad-x, 0.62rem) !important;
+  font-size: var(--nav-tab-font-size, 0.78rem) !important;
   line-height: 1.25 !important;
 }
 
 #header-active-subj-btn {
-  flex: 0 1 auto !important;
+  flex: 0 0 auto !important;
   min-width: 0 !important;
 }
 #header-user-btn { flex: 0 0 auto !important; }
@@ -4558,9 +4580,241 @@ main:has(#view-tutor:not(.hidden)) {
   transition: r 0.2s ease, stroke-width 0.2s ease;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1023px) {
   #floating-zen-dock {
-    bottom: 4.6rem;
-    right: 0.75rem;
+    bottom: 5rem;
+    left: 0.75rem;
+    right: auto;
   }
+}
+
+/* ==============================================================================
+   UNIMASTER AI v43.0 QUANTUM NEURO-LEARNING & ENGINEERING SUITE STYLES
+   - Glassmorphism Studio Cards & Radial Gradients
+   - SQL Sandbox Execution Grid & Join Venn badges
+   - Step-by-Step Algo Time-Travel Array Element Animations
+   - Cornell Note 3-Column Split View & Active Recall Cover
+   - 6-Axis Competency Radar SVG & Cramming Roadmap Timeline
+   ============================================================================== */
+
+.quantum-card-glow {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.quantum-card-glow::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.4), rgba(236, 72, 153, 0.35), rgba(16, 185, 129, 0.3));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+}
+
+.quantum-card-glow:hover::before {
+  opacity: 1;
+}
+
+.quantum-card-glow:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 16px 32px -8px rgba(99, 102, 241, 0.22);
+}
+
+/* SQL Execution Step Timeline Badge */
+.sql-exec-pill {
+  transition: all 0.2s ease;
+}
+.sql-exec-pill.active {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.25), rgba(168, 85, 247, 0.25));
+  border-color: rgba(168, 85, 247, 0.6);
+  color: #f1f5f9;
+  font-weight: 800;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.3);
+}
+
+/* Time Travel Array Visualizer Cells */
+.algo-cell {
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), background-color 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+}
+.algo-cell.is-mid {
+  transform: scale(1.15) translateY(-6px);
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.25) !important;
+  box-shadow: 0 8px 20px rgba(245, 158, 11, 0.35);
+  z-index: 10;
+}
+.algo-cell.is-found {
+  transform: scale(1.18) translateY(-8px);
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.3) !important;
+  box-shadow: 0 10px 24px rgba(16, 185, 129, 0.45);
+  animation: pulse-ring 1.8s infinite;
+  z-index: 12;
+}
+.algo-cell.is-eliminated {
+  opacity: 0.3;
+  filter: grayscale(0.85);
+  transform: scale(0.94);
+}
+
+/* Cornell Note-Taking Layout & Active Recall Curtain */
+.cornell-paper-grid {
+  background-color: var(--surface);
+  background-image: radial-gradient(rgba(148, 163, 184, 0.15) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.active-recall-covered {
+  position: relative;
+  user-select: none;
+}
+.active-recall-covered::after {
+  content: '🔒 Bấm vào mắt kính để lật mở đáp án (Active Recall)';
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.94);
+  backdrop-filter: blur(6px);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #93c5fd;
+  border: 1px dashed rgba(147, 197, 253, 0.4);
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.active-recall-covered:hover::after {
+  background: rgba(15, 23, 0.88);
+  color: #bfdbfe;
+}
+
+/* 6-Axis Radar Polygon & Point Tooltips */
+.radar-axis-line {
+  stroke: rgba(148, 163, 184, 0.2);
+  stroke-dasharray: 3, 3;
+}
+.radar-polygon {
+  transition: all 0.4s ease;
+  filter: drop-shadow(0 0 12px rgba(99, 102, 241, 0.4));
+}
+
+@keyframes pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+/* ==============================================================================
+   UniMaster AI v44.0 Hyper-Learning Studio Custom Styles
+   ============================================================================== */
+
+/* Clinical Simulator Lab Badges */
+.clinical-badge-critical-high {
+  background: rgba(225, 29, 72, 0.2);
+  color: #fb7185;
+  border: 1px solid rgba(244, 63, 94, 0.5);
+  animation: pulse-ring 2s infinite;
+}
+.clinical-badge-critical-low {
+  background: rgba(14, 165, 233, 0.2);
+  color: #38bdf8;
+  border: 1px solid rgba(56, 189, 248, 0.5);
+}
+.clinical-badge-warning {
+  background: rgba(245, 158, 11, 0.2);
+  color: #fde047;
+  border: 1px solid rgba(251, 191, 36, 0.5);
+}
+
+/* DFA Automata Node & Edges */
+.dfa-state-circle {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.dfa-state-circle:hover {
+  filter: drop-shadow(0 0 8px rgba(168, 85, 247, 0.8));
+  cursor: pointer;
+}
+.dfa-active-pulse {
+  animation: pulse-ring 1.8s infinite;
+}
+
+/* Memory GC Heap Blocks */
+.memory-heap-block {
+  transition: all 0.35s ease;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+.memory-heap-reachable {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(52, 211, 153, 0.4);
+  color: #a7f3d0;
+}
+.memory-heap-garbage {
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px dashed rgba(248, 113, 113, 0.6);
+  color: #fca5a5;
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+
+/* Bioenergetic Golden ATP Glow */
+.atp-golden-glow {
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.18) 0%, rgba(245, 158, 11, 0.28) 100%);
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  box-shadow: 0 0 25px -5px rgba(245, 158, 11, 0.3);
+}
+
+/* GPU Layer & Rendering Performance Optimizations */
+#modal-clinical-sim > .uni-card,
+#modal-regex-engine > .uni-card,
+#modal-memory-gc > .uni-card,
+#modal-metabolic-atp > .uni-card {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+#regex-dfa-canvas-wrapper,
+#memory-gc-canvas-wrapper {
+  contain: layout paint;
+}
+
+/* AI Deep Analysis History Modal & Hardware Compositing */
+#modal-deep-analysis-history > .uni-card {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+#deep-hist-list-container,
+#deep-detail-analysis-content {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(99, 102, 241, 0.4) transparent;
+}
+
+#deep-hist-list-container::-webkit-scrollbar,
+#deep-detail-analysis-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+#deep-hist-list-container::-webkit-scrollbar-thumb,
+#deep-detail-analysis-content::-webkit-scrollbar-thumb {
+  background-color: rgba(99, 102, 241, 0.35);
+  border-radius: 9999px;
+}
+
+#deep-hist-list-container::-webkit-scrollbar-track,
+#deep-detail-analysis-content::-webkit-scrollbar-track {
+  background: transparent;
 }

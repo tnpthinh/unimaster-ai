@@ -44,11 +44,18 @@ CORE_SUBJECTS = (
         "description": "Class, kế thừa, đa hình, interface và thực hành lập trình C#.",
     },
     {
-        "code": "DISCRETE_MATH_ALGO",
-        "name": "Giải thuật & Toán rời rạc (Tự luận)",
+        "code": "TOAN_RR",
+        "name": "Toán Rời Rạc",
         "icon": "📐",
         "category": "CNTT",
-        "description": "Đồ thị, cây, quy nạp, Big-O và các thuật toán nền tảng.",
+        "description": "Logic mệnh đề, Tập hợp, Quan hệ, Đếm tổ hợp, Đồ thị Euler/Hamilton & Cây khung MST.",
+    },
+    {
+        "code": "CTDL_GT",
+        "name": "Giải Thuật (CTDL & Giải Thuật)",
+        "icon": "⚡",
+        "category": "CNTT",
+        "description": "Độ phức tạp Big-O, Chia để trị, Sắp xếp QuickSort/MergeSort, Dijkstra, Quy hoạch động & Cây AVL.",
     },
     {
         "code": "NNLT1",

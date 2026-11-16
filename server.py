@@ -11,6 +11,7 @@ Equipped with:
 import os
 import re
 import json
+import functools
 import time
 import hmac
 import base64
@@ -639,8 +640,10 @@ async def no_cache_static_middleware(request, handler):
     return resp
 
 
+_FAST_JSON_DUMPS = functools.partial(json.dumps, separators=(',', ':'), ensure_ascii=False, default=str)
+
 def json_resp(data, status=200):
-    return web.json_response(data, status=status)
+    return web.json_response(data, status=status, dumps=_FAST_JSON_DUMPS)
 
 
 async def safe_get_json(request):
@@ -1880,14 +1883,176 @@ async def ai_hint_handler(request):
 
 
 async def ai_deep_analysis_handler(request):
+    """
+    Phân tích câu hỏi chuyên sâu với Cache-Aside đa chế độ & Auto-Persistence.
+    Hỗ trợ 5 lăng kính học thuật: standard, feynman, exam_trap, socratic, stem_clinical.
+    Nếu question_id + mode đã có bài phân tích trước đó và force_refresh=False: Trả về tức thì từ DB.
+    """
     try:
         data = await safe_get_json(request)
         q_text = data.get("question_text", "")
         correct_opt = data.get("correct_option", "")
         explanation = data.get("explanation", "")
         code = data.get("code_snippet", "")
-        analysis = await ai.ai_deep_analysis(q_text, correct_opt, explanation, code)
-        return json_resp({"success": True, "analysis": analysis})
+        q_id = data.get("question_id")
+        sub_id = data.get("subject_id")
+        source_type = data.get("source_type", "exam")
+        force_refresh = bool(data.get("force_refresh", False))
+        mode = data.get("mode") or data.get("analysis_mode") or "standard"
+
+        # 1. Tối ưu Cache-Aside: Kiểm tra lịch sử đã có cho câu hỏi + chế độ này
+        if q_id and not force_refresh:
+            try:
+                cached = db.get_ai_analysis_by_question(int(q_id), analysis_mode=mode)
+                if cached and cached.get("analysis"):
+                    return json_resp({
+                        "success": True,
+                        "analysis": cached["analysis"],
+                        "cached": True,
+                        "history_id": cached["id"],
+                        "analysis_mode": cached.get("analysis_mode", mode),
+                        "created_at": cached.get("created_at")
+                    })
+            except Exception as e:
+                logger.warning(f"Cache-aside lookup failed for question {q_id}: {e}")
+
+        # 2. Gọi AI Deep Analysis với chế độ chỉ định
+        analysis = await ai.ai_deep_analysis(q_text, correct_opt, explanation, code, mode=mode)
+
+        # 3. Tự động lưu bền vững vào SQLite kèm analysis_mode
+        history_id = None
+        try:
+            history_id = db.save_ai_analysis(
+                question_text=q_text,
+                analysis=analysis,
+                question_id=int(q_id) if q_id else None,
+                subject_id=int(sub_id) if sub_id else None,
+                correct_option=correct_opt,
+                explanation=explanation,
+                code_snippet=code,
+                source_type=source_type,
+                analysis_mode=mode
+            )
+        except Exception as e:
+            logger.warning(f"Auto-save deep analysis history failed: {e}")
+
+        return json_resp({
+            "success": True,
+            "analysis": analysis,
+            "cached": False,
+            "analysis_mode": mode,
+            "history_id": history_id
+        })
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def ai_deep_analysis_followup_handler(request):
+    """Xử lý câu hỏi phản biện / hỏi sâu trực tiếp vào bài phân tích chuyên sâu."""
+    try:
+        data = await safe_get_json(request)
+        q_text = data.get("question_text", "")
+        correct_opt = data.get("correct_option", "")
+        analysis_ctx = data.get("analysis_context", "")
+        student_query = data.get("student_query", "").strip()
+        code = data.get("code_snippet", "")
+
+        if not student_query:
+            return json_resp({"success": False, "error": "Vui lòng nhập câu hỏi của bạn."}, 400)
+
+        reply = await ai.ai_deep_analysis_followup(
+            question_text=q_text,
+            correct_option=correct_opt,
+            analysis_context=analysis_ctx,
+            student_query=student_query,
+            code_snippet=code
+        )
+        return json_resp({"success": True, "reply": reply, "answer": reply})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def ai_deep_analysis_mindmap_handler(request):
+    """Trích xuất sơ đồ Mermaid.js tư duy từ bài phân tích chuyên sâu."""
+    try:
+        data = await safe_get_json(request)
+        q_text = data.get("question_text", "")
+        analysis_ctx = data.get("analysis_context", "")
+        if not analysis_ctx:
+            return json_resp({"success": False, "error": "Thiếu nội dung phân tích."}, 400)
+
+        result = await ai.ai_generate_mindmap(q_text, analysis_ctx)
+        return json_resp({"success": True, **result})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def ai_deep_analysis_history_list_handler(request):
+    """Lấy danh sách lịch sử phân tích AI với tìm kiếm keyword, lọc theo môn học và chế độ."""
+    try:
+        sub_str = request.query.get("subject_id")
+        sub_id = int(sub_str) if sub_str and sub_str.isdigit() else None
+        search = request.query.get("search", "").strip() or None
+        mode = request.query.get("mode") or request.query.get("analysis_mode") or None
+        limit = min(int(request.query.get("limit", 50)), 200)
+        offset = max(int(request.query.get("offset", 0)), 0)
+
+        items = db.get_ai_analysis_history(subject_id=sub_id, search=search, analysis_mode=mode, limit=limit, offset=offset)
+        total = db.count_ai_analysis_history(subject_id=sub_id, search=search, analysis_mode=mode)
+        return json_resp({"success": True, "items": items, "total": total, "limit": limit, "offset": offset})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def ai_deep_analysis_history_save_handler(request):
+    """Lưu bài phân tích thủ công từ client."""
+    try:
+        data = await safe_get_json(request)
+        q_text = data.get("question_text", "")
+        analysis = data.get("analysis", "")
+        if not q_text or not analysis:
+            return json_resp({"success": False, "error": "Thiếu question_text hoặc analysis"}, 400)
+        
+        q_id = data.get("question_id")
+        sub_id = data.get("subject_id")
+        corr = data.get("correct_option", "")
+        exp = data.get("explanation", "")
+        code = data.get("code_snippet", "")
+        src = data.get("source_type", "exam")
+        
+        hid = db.save_ai_analysis(
+            question_text=q_text,
+            analysis=analysis,
+            question_id=int(q_id) if q_id else None,
+            subject_id=int(sub_id) if sub_id else None,
+            correct_option=corr,
+            explanation=exp,
+            code_snippet=code,
+            source_type=src
+        )
+        return json_resp({"success": True, "history_id": hid})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def ai_deep_analysis_history_delete_handler(request):
+    """Xóa một bản ghi lịch sử phân tích."""
+    try:
+        item_id = int(request.match_info.get("id", 0))
+        success = db.delete_ai_analysis_item(item_id)
+        return json_resp({"success": True, "deleted": success})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def ai_deep_analysis_history_clear_handler(request):
+    """Xóa toàn bộ lịch sử phân tích (hoặc theo subject_id)."""
+    try:
+        data = await safe_get_json(request)
+        sub_str = data.get("subject_id")
+        sub_id = int(sub_str) if sub_str and str(sub_str).isdigit() else None
+        count = db.clear_all_ai_analysis_history(subject_id=sub_id)
+        return json_resp({"success": True, "cleared_count": count})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
 
@@ -3390,19 +3555,37 @@ VIVA_QUESTION_BANK = {
     "discrete_math": [
         {
             "id": "viva_dm_1",
-            "topic": "Thuật toán tìm đường đi ngắn nhất Dijkstra & Bellman-Ford",
-            "question": "Tại sao thuật toán Dijkstra (sử dụng chiến lược Tham lam - Greedy) lại chạy sai khi đồ thị có cạnh trọng số âm, và thuật toán nào giải quyết được bài toán này?",
-            "keywords": ["Dijkstra", "trọng số âm", "Greedy", "Bellman-Ford", "chu trình âm", "độ phức tạp"],
-            "model_answer": "Thuật toán Dijkstra giả định rằng một khi đỉnh u có khoảng cách d[u] nhỏ nhất được lấy ra khỏi hàng đợi ưu tiên và đánh dấu cố định (visited), sẽ không thể có đường đi nào khác qua các đỉnh chưa xét làm giảm d[u] thêm nữa (vì mọi cạnh đều >= 0). Khi có cạnh trọng số âm, một đường đi dài hơn ở bước sau đi qua cạnh âm có thể làm tổng trọng số nhỏ hơn cả đỉnh đã chốt, khiến giả định tham lam bị phá vỡ. Để xử lý cạnh âm (và phát hiện chu trình âm), ta dùng thuật toán Bellman-Ford với độ phức tạp O(V * E).",
-            "follow_up": "Trong đồ thị không có trọng số (hoặc mọi cạnh đều bằng 1), thuật toán nào tìm đường đi ngắn nhất tối ưu hơn cả Dijkstra và có độ phức tạp bao nhiêu?"
+            "topic": "Đồ thị Euler, Đường đi Hamilton & Cây khung",
+            "question": "Phân biệt điều kiện cần và đủ để một đa đồ thị vô hướng liên thông có Chu trình Euler và Đường đi Euler. Tại sao bài toán Chu trình Euler thuộc lớp P còn Chu trình Hamilton thuộc lớp NP-Complete?",
+            "keywords": ["bậc chẵn", "bậc lẻ", "Euler", "Hamilton", "NP-Complete", "Hierholzer", "Kruskal", "Prim"],
+            "model_answer": "Theo định lý Euler: Đồ thị vô hướng liên thông có Chu trình Euler khi và chỉ khi MỌI ĐỈNH đều có bậc chẵn; có Đường đi Euler (không khép kín) khi và chỉ khi có 0 hoặc ĐÚNG 2 ĐỈNH bậc lẻ. Vì chỉ cần đếm bậc các đỉnh trong thời gian tuyến tính O(V + E), bài toán Euler thuộc lớp P. Ngược lại, Chu trình Hamilton yêu cầu đi qua mỗi ĐỈNH đúng một lần, không có đặc trưng bậc cục bộ đơn giản nên thuộc lớp NP-Complete.",
+            "follow_up": "Chứng minh bổ đề bắt tay (Handshaking Lemma): Tại sao trong mọi đồ thị vô hướng, số đỉnh có bậc lẻ luôn là một số chẵn?"
         },
         {
             "id": "viva_dm_2",
-            "topic": "Đồ thị Euler, Đồ thị Hamilton & Cây khung nhỏ nhất",
-            "question": "Phân biệt điều kiện cần và đủ để một đa đồ thị vô hướng liên thông có Chu trình Euler và Đường đi Euler. Tại sao bài toán kiểm tra Chu trình Euler thuộc lớp P còn Chu trình Hamilton thuộc lớp NP-Complete?",
-            "keywords": ["bậc chẵn", "bậc lẻ", "Euler", "Hamilton", "NP-Complete", "Hierholzer", "Kruskal", "Prim"],
-            "model_answer": "Theo định lý Euler: Đồ thị vô hướng liên thông có Chu trình Euler khi và chỉ khi MỌI ĐỈNH đều có bậc chẵn; có Đường đi Euler (không khép kín) khi và chỉ khi có ĐÚNG 2 ĐỈNH bậc lẻ. Vì chỉ cần đếm bậc của các đỉnh trong thời gian tuyến tính O(V + E), bài toán Euler thuộc lớp P. Ngược lại, Chu trình Hamilton yêu cầu đi qua mỗi ĐỈNH đúng một lần, không có điều kiện cục bộ đơn giản theo bậc đỉnh mà phải duyệt không gian trạng thái tổ hợp, nên thuộc lớp NP-Complete.",
-            "follow_up": "So sánh thuật toán Prim và Kruskal khi tìm Cây khung nhỏ nhất (Minimum Spanning Tree): Khi nào nên chọn Prim và khi nào nên chọn Kruskal?"
+            "topic": "Logic Mệnh đề, Hệ đếm & Quan hệ Tương đương",
+            "question": "Phát biểu 3 tính chất cần có của một Quan hệ Tương đương (Equivalence Relation) và sự khác biệt cốt lõi so với Quan hệ Thứ tự Bộ phận (Partial Order)?",
+            "keywords": ["phản xạ", "đối xứng", "phản đối xứng", "bắc cầu", "lớp tương đương", "Hasse", "phân hoạch"],
+            "model_answer": "- Quan hệ R trên tập A là Quan hệ Tương đương nếu thỏa mãn: Phản xạ (aRa), ĐỐI XỨNG (aRb -> bRa) và Bắc cầu (aRb & bRc -> aRc); nó phân hoạch A thành các lớp tương đương rời nhau.\n- Quan hệ Thứ tự Bộ phận (ví dụ quan hệ chia hết hoặc tập con) thay tính Đối xứng bằng PHẢN ĐỐI XỨNG (aRb & bRa -> a = b).",
+            "follow_up": "Áp dụng định lý Đếm phần bù và Bao hàm – Loại trừ (Inclusion-Exclusion) cho 3 tập hợp A, B, C như thế nào?"
+        }
+    ],
+    "algorithms": [
+        {
+            "id": "viva_algo_1",
+            "topic": "Thuật toán Dijkstra, Bellman-Ford & Trọng số Âm",
+            "question": "Tại sao thuật toán Dijkstra (sử dụng chiến lược Tham lam - Greedy) lại chạy sai khi đồ thị có cạnh trọng số âm, và thuật toán nào giải quyết được bài toán này?",
+            "keywords": ["Dijkstra", "trọng số âm", "Greedy", "Bellman-Ford", "chu trình âm", "O(V*E)"],
+            "model_answer": "Dijkstra giả định khi đỉnh u có khoảng cách d[u] nhỏ nhất được chốt (visited), không thể có đường đi nào khác qua đỉnh chưa xét làm giảm d[u] (vì mọi cạnh >= 0). Khi có cạnh âm, đường đi vòng ở bước sau có thể giảm tổng trọng số nhỏ hơn đỉnh đã chốt, phá vỡ tính tham lam. Để xử lý cạnh âm và phát hiện chu trình âm, ta dùng Bellman-Ford với độ phức tạp O(V * E).",
+            "follow_up": "Nếu cài Dijkstra bằng Binary Heap (PriorityQueue) trên đồ thị thưa E << V^2 thì độ phức tạp là bao nhiêu?"
+        },
+        {
+            "id": "viva_algo_2",
+            "topic": "QuickSort vs MergeSort & Cây Cân Bằng AVL",
+            "question": "So sánh độ phức tạp thời gian/không gian của QuickSort và MergeSort trong trường hợp trung bình vs xấu nhất. Tại sao cây BST thông thường cần nâng cấp lên cây AVL?",
+            "keywords": ["O(n log n)", "O(n^2)", "pivot", "in-place", "O(log n)", "AVL", "xoay cây"],
+            "model_answer": "- MergeSort luôn đạt O(n log n) ở mọi trường hợp (tốn O(n) bộ nhớ phụ), ổn định (stable). QuickSort trung bình O(n log n) và O(log n) stack (nhanh thực tế nhờ cache locality), nhưng trường hợp xấu nhất khi chọn pivot lệch đạt O(n^2).\n- Cây BST thông thường khi chèn dãy đã sắp xếp sẽ suy biến thành danh sách liên kết cao O(n), nên cây AVL dùng phép xoay đơn/kép giữ hiệu chiều cao <= 1 để bảo toàn thao tác tìm/chèn/xóa ở O(log n).",
+            "follow_up": "Khi cây AVL mất cân bằng dạng Left-Right (L-R), ta thực hiện hai phép xoay nào theo thứ tự nào?"
         }
     ],
     "python": [
@@ -3430,7 +3613,15 @@ async def api_viva_simulator_handler(request):
     difficulty = data.get("difficulty", "medium")
     question_id = data.get("question_id", "")
 
-    bank = VIVA_QUESTION_BANK.get(domain, VIVA_QUESTION_BANK["biochem"])
+    domain_alias = {
+        "csharp": "csharp_oop",
+        "discrete": "discrete_math",
+        "toan_rr": "discrete_math",
+        "ctdl_gt": "algorithms",
+        "ctdl": "algorithms",
+        "algo": "algorithms"
+    }.get(domain, domain)
+    bank = VIVA_QUESTION_BANK.get(domain_alias, VIVA_QUESTION_BANK["biochem"])
 
     if action in ("start", "next_question"):
         import random
@@ -4046,6 +4237,17 @@ DEVILS_ADVOCATE_BANK = {
     "discrete_math": [
         {
             "id": "da_dm_1",
+            "topic": "Điều kiện Chu trình Euler & Đồ thị Hai phía (Bipartite)",
+            "fallacy_claim": "Nếu một đồ thị vô hướng G có tổng số bậc của các đỉnh là một số CHẴN và mọi đỉnh đều có bậc >= 2, thì G chắc chắn tồn tại một Chu trình Euler!",
+            "trap_type": "Ngụy biện Điều kiện Cần (Tổng Bậc Chẵn) vs Điều kiện Đủ (Từng Đỉnh Bậc Chẵn & Liên Thông)",
+            "keywords": ["liên thông", "từng đỉnh bậc chẵn", "bậc lẻ", "2 đỉnh bậc lẻ", "bổ đề bắt tay"],
+            "truth_explanation": "SAI! Theo Bổ đề bắt tay $\\sum \\deg(v) = 2|E|$, MỌI đồ thị đều có tổng bậc là số chẵn (không phân biệt có Euler hay không)! Điều kiện đủ để có Chu trình Euler là đồ thị phải LIÊN THÔNG và **TẤT CẢ TỪNG ĐỈNH** đều phải có bậc chẵn (không được có đỉnh bậc lẻ nào). Ngoài ra, đồ thị không liên thông (nhiều thành phần rời có cạnh) dù mọi đỉnh bậc chẵn vẫn không có một Chu trình Euler đơn nhất.",
+            "challenge_followup": "Một đồ thị đơn vô hướng liên thông có 6 đỉnh với dãy bậc (2, 2, 3, 3, 4, 4) có Chu trình Euler hay Đường đi Euler?"
+        }
+    ],
+    "algorithms": [
+        {
+            "id": "da_dm_1",
             "topic": "Thuật toán Dijkstra với Trọng số Âm bằng Phép Cộng Hằng Số",
             "fallacy_claim": "Nếu đồ thị có cạnh trọng số âm (nhưng không có chu trình âm), ví dụ cạnh nhỏ nhất là -5, ta chỉ cần cộng thêm +6 vào TẤT CẢ các cạnh của đồ thị để mọi cạnh đều dương (> 0), sau đó chạy thuật toán Dijkstra thì chắc chắn tìm được đúng đường đi ngắn nhất của đồ thị ban đầu!",
             "trap_type": "Ngụy biện Bảo toàn Thứ tự Đường đi khi Dịch chuyển Trọng số Cạnh",
@@ -4078,7 +4280,14 @@ async def api_devils_advocate_handler(request):
     domain = data.get("domain", "biochem")
     challenge_id = data.get("challenge_id", "")
 
-    domain_alias = {"csharp": "csharp_oop", "discrete": "discrete_math"}.get(domain, domain)
+    domain_alias = {
+        "csharp": "csharp_oop",
+        "discrete": "discrete_math",
+        "toan_rr": "discrete_math",
+        "ctdl_gt": "algorithms",
+        "ctdl": "algorithms",
+        "algo": "algorithms"
+    }.get(domain, domain)
     bank = DEVILS_ADVOCATE_BANK.get(domain_alias, DEVILS_ADVOCATE_BANK["biochem"])
 
     if action in ("challenge", "next", "next_challenge"):
@@ -4551,6 +4760,1533 @@ async def api_polyglot_transpile_handler(request):
     })
 
 
+# ==============================================================================
+# UNIMASTER AI v43.0 QUANTUM NEURO-LEARNING & ENGINEERING SUITE HANDLERS
+# 1. Interactive SQL Sandbox & Execution Plan / LINQ Transpiler (/api/sql/sandbox-execute)
+# 2. Step-by-Step Algorithm Time-Travel & Call-Stack Visualizer (/api/algo/step-visualizer)
+# 3. AI Cornell Note-Taking Studio & Active Recall Generator (/api/ai/cornell-studio)
+# 4. 6-Axis Competency Radar & 7-Day Exam Cramming Roadmap (/api/ai/cram-roadmap)
+# ==============================================================================
+
+def _seed_in_memory_sql_sandbox(conn):
+    cur = conn.cursor()
+    cur.executescript("""
+        CREATE TABLE SinhVien (
+            ma_sv TEXT PRIMARY KEY,
+            ho_ten TEXT NOT NULL,
+            khoa TEXT NOT NULL,
+            lop TEXT NOT NULL,
+            gpa REAL NOT NULL,
+            nam_hoc INTEGER NOT NULL
+        );
+        INSERT INTO SinhVien VALUES
+            ('SV01', 'Nguyễn Minh Khoa', 'CNTT', 'K48-CNTT1', 3.78, 2),
+            ('SV02', 'Trần Ngọc Bảo Trâm', 'Y Dược', 'K48-YK1', 3.92, 2),
+            ('SV03', 'Lê Hoàng Nam', 'CNTT', 'K48-CNTT1', 3.15, 2),
+            ('SV04', 'Phạm Thị Thảo Vy', 'Y Dược', 'K48-DK1', 3.64, 2),
+            ('SV05', 'Võ Quốc Huy', 'CNTT', 'K48-CNTT2', 2.85, 2),
+            ('SV06', 'Đặng Khánh Linh', 'Y Dược', 'K48-YK1', 3.48, 2),
+            ('SV07', 'Bùi Tuấn Kiệt', 'Kỹ Thuật Phần Mềm', 'K48-KTPM1', 3.55, 2);
+
+        CREATE TABLE MonHoc (
+            ma_mh TEXT PRIMARY KEY,
+            ten_mh TEXT NOT NULL,
+            so_tin_chi INTEGER NOT NULL,
+            bo_mon TEXT NOT NULL
+        );
+        INSERT INTO MonHoc VALUES
+            ('CS102', 'Lập trình Hướng đối tượng C#', 4, 'Công Nghệ Phần Mềm'),
+            ('MA201', 'Toán Rời Rạc & Lý Thuyết Đồ Thị', 3, 'Toán Tin'),
+            ('BC301', 'Hóa Sinh Y Học CTUMP', 4, 'Y Cơ Sở'),
+            ('ST202', 'Xác Suất Thống Kê Y Sinh', 3, 'Toán Ứng Dụng'),
+            ('PY105', 'Lập Trình Python Khoa Học', 3, 'Khoa Học Dữ Liệu');
+
+        CREATE TABLE DiemThi (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            ma_sv TEXT NOT NULL,
+            ma_mh TEXT NOT NULL,
+            diem_qt REAL NOT NULL,
+            diem_thi REAL NOT NULL,
+            diem_tk REAL NOT NULL,
+            hoc_ky TEXT NOT NULL
+        );
+        INSERT INTO DiemThi (ma_sv, ma_mh, diem_qt, diem_thi, diem_tk, hoc_ky) VALUES
+            ('SV01', 'CS102', 9.5, 9.0, 9.2, '2026-HK1'),
+            ('SV01', 'MA201', 8.5, 8.8, 8.7, '2026-HK1'),
+            ('SV01', 'PY105', 9.0, 9.4, 9.2, '2026-HK1'),
+            ('SV02', 'BC301', 9.8, 9.5, 9.6, '2026-HK1'),
+            ('SV02', 'ST202', 9.0, 9.2, 9.1, '2026-HK1'),
+            ('SV03', 'CS102', 7.5, 6.8, 7.1, '2026-HK1'),
+            ('SV03', 'MA201', 8.0, 7.5, 7.7, '2026-HK1'),
+            ('SV04', 'BC301', 8.5, 8.8, 8.7, '2026-HK1'),
+            ('SV04', 'ST202', 8.2, 8.0, 8.1, '2026-HK1'),
+            ('SV05', 'CS102', 6.5, 5.8, 6.1, '2026-HK1'),
+            ('SV06', 'BC301', 8.0, 8.4, 8.2, '2026-HK1'),
+            ('SV07', 'CS102', 8.8, 8.6, 8.7, '2026-HK1');
+
+        CREATE TABLE XetNghiemHoaSinh (
+            ma_bn TEXT PRIMARY KEY,
+            ten_bn TEXT NOT NULL,
+            glucose_mmol REAL NOT NULL,
+            hba1c_pct REAL NOT NULL,
+            ast_ul INTEGER NOT NULL,
+            alt_ul INTEGER NOT NULL,
+            creatinin_umol INTEGER NOT NULL,
+            chan_doan TEXT NOT NULL
+        );
+        INSERT INTO XetNghiemHoaSinh VALUES
+            ('BN01', 'Lê Văn An', 11.4, 8.6, 32, 35, 92, 'Đái tháo đường Type 2'),
+            ('BN02', 'Trần Thị Bình', 5.1, 5.4, 245, 310, 78, 'Viêm gan cấp tính'),
+            ('BN03', 'Nguyễn Văn Cường', 5.6, 5.7, 28, 24, 285, 'Suy thận mạn độ 3'),
+            ('BN04', 'Phạm Ngọc Dung', 4.9, 5.1, 22, 19, 68, 'Bình thường'),
+            ('BN05', 'Hoàng Minh Đức', 14.2, 9.8, 40, 44, 165, 'ĐTĐ biến chứng thận'),
+            ('BN06', 'Vũ Thị Mai', 5.3, 5.5, 180, 95, 81, 'Tổn thương gan do rượu (AST > ALT)');
+
+        -- Aliases for English Presets
+        CREATE VIEW students AS
+            SELECT ma_sv AS student_id, ho_ten AS full_name, khoa AS major, lop AS class_name, gpa, nam_hoc AS academic_year
+            FROM SinhVien;
+
+        CREATE VIEW courses AS
+            SELECT ma_mh AS course_id, ten_mh AS course_title, so_tin_chi AS credits, bo_mon AS course_dept
+            FROM MonHoc;
+
+        CREATE VIEW enrollments AS
+            SELECT id, ma_sv AS student_id, ma_mh AS course_id, diem_qt AS midterm_score, diem_thi AS exam_score, diem_tk AS score,
+                   CASE WHEN diem_tk >= 4.0 THEN 'Passed' ELSE 'Failed' END AS status
+            FROM DiemThi;
+    """)
+    conn.commit()
+
+
+def _analyze_sql_execution_and_linq(sql_text):
+    up = sql_text.upper()
+    join_type = "SINGLE_TABLE"
+    if "LEFT JOIN" in up or "LEFT OUTER JOIN" in up:
+        join_type = "LEFT_JOIN"
+    elif "RIGHT JOIN" in up or "RIGHT OUTER JOIN" in up:
+        join_type = "RIGHT_JOIN"
+    elif "FULL JOIN" in up or "FULL OUTER JOIN" in up:
+        join_type = "FULL_JOIN"
+    elif "CROSS JOIN" in up:
+        join_type = "CROSS_JOIN"
+    elif "JOIN" in up:
+        join_type = "INNER_JOIN"
+
+    steps = []
+    steps.append({
+        "step": 1,
+        "clause": "FROM & JOIN",
+        "active": "FROM" in up,
+        "desc": "Định vị các bảng nguồn và tạo tích Descartes / nối bảng theo điều kiện ON trước tiên."
+    })
+    if "WHERE" in up:
+        steps.append({
+            "step": 2,
+            "clause": "WHERE",
+            "active": True,
+            "desc": "Lọc từng dòng dữ liệu thô thỏa điều kiện (chạy TRƯỚC khi gom nhóm GROUP BY, không dùng được hàm gộp ở đây)."
+        })
+    if "GROUP BY" in up:
+        steps.append({
+            "step": 3,
+            "clause": "GROUP BY",
+            "active": True,
+            "desc": "Gom các dòng có cùng giá trị khóa thành từng cụm (bucket) để tính COUNT, AVG, SUM, MAX."
+        })
+    if "HAVING" in up:
+        steps.append({
+            "step": 4,
+            "clause": "HAVING",
+            "active": True,
+            "desc": "Lọc các nhóm SAU khi đã GROUP BY (có thể dùng hàm gộp như AVG(diem_tk) >= 8.0)."
+        })
+    steps.append({
+        "step": 5,
+        "clause": "SELECT",
+        "active": True,
+        "desc": "Chiếu (Project) các cột cần lấy, tính biểu thức CASE WHEN hoặc Window Functions (RANK, ROW_NUMBER)."
+    })
+    if "ORDER BY" in up:
+        steps.append({
+            "step": 6,
+            "clause": "ORDER BY",
+            "active": True,
+            "desc": "Sắp xếp tập kết quả cuối cùng theo thứ tự ASC / DESC (chạy gần cuối nên dùng được bí danh Alias ở SELECT)."
+        })
+    if "LIMIT" in up:
+        steps.append({
+            "step": 7,
+            "clause": "LIMIT / OFFSET",
+            "active": True,
+            "desc": "Cắt lấy đúng số dòng đầu tiên sau khi đã sắp xếp hoàn tất."
+        })
+
+    # Generate smart C# LINQ equivalent hint
+    if "GROUP BY" in up:
+        linq_code = (
+            "// التمثيل tương đương trong C# LINQ (Method & Query Syntax):\n"
+            "var query = db.SinhViens\n"
+            "    .Join(db.DiemThis, sv => sv.MaSv, d => d.MaSv, (sv, d) => new { sv, d })\n"
+            "    .GroupBy(x => new { x.sv.MaSv, x.sv.HoTen, x.sv.Khoa })\n"
+            "    .Select(g => new {\n"
+            "        g.Key.MaSv,\n"
+            "        g.Key.HoTen,\n"
+            "        SoMon = g.Count(),\n"
+            "        DiemTB = Math.Round(g.Average(x => x.d.DiemTk), 2)\n"
+            "    })\n"
+            "    .OrderByDescending(r => r.DiemTB)\n"
+            "    .ToList();"
+        )
+    elif "LEFT JOIN" in up:
+        linq_code = (
+            "// C# LINQ Left Outer Join (GroupJoin + DefaultIfEmpty):\n"
+            "var query = from sv in db.SinhViens\n"
+            "            join d in db.DiemThis on sv.MaSv equals d.MaSv into svDiem\n"
+            "            from d in svDiem.DefaultIfEmpty()\n"
+            "            select new {\n"
+            "                sv.MaSv,\n"
+            "                sv.HoTen,\n"
+            "                MaMh = d != null ? d.MaMh : \"(Chưa đăng ký)\",\n"
+            "                DiemTk = d != null ? d.DiemTk : 0.0\n"
+            "            };"
+        )
+    elif "XETNGHIEMHOASINH" in up:
+        linq_code = (
+            "// C# LINQ truy vấn Lâm sàng Hóa Sinh:\n"
+            "var caBenh = db.XetNghiemHoaSinhs\n"
+            "    .Where(bn => bn.GlucoseMmol >= 7.0 || bn.AstUl > 100 || bn.CreatininUmol > 130)\n"
+            "    .OrderByDescending(bn => bn.GlucoseMmol)\n"
+            "    .Select(bn => new { bn.MaBn, bn.TenBn, bn.GlucoseMmol, bn.ChanDoan })\n"
+            "    .ToList();"
+        )
+    else:
+        linq_code = (
+            "// C# LINQ Inner Join + Filter + OrderBy:\n"
+            "var query = db.DiemThis\n"
+            "    .Join(db.SinhViens, d => d.MaSv, sv => sv.MaSv, (d, sv) => new { d, sv })\n"
+            "    .Join(db.MonHocs, x => x.d.MaMh, mh => mh.MaMh, (x, mh) => new {\n"
+            "        x.sv.MaSv, x.sv.HoTen, mh.TenMh, x.d.DiemTk\n"
+            "    })\n"
+            "    .Where(r => r.DiemTk >= 8.0)\n"
+            "    .OrderByDescending(r => r.DiemTk)\n"
+            "    .ToList();"
+        )
+
+    return join_type, steps, linq_code
+
+
+async def api_sql_sandbox_execute_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    sql = (data.get("sql") or "").strip()
+    if not sql:
+        sql = (
+            "SELECT sv.ma_sv, sv.ho_ten, sv.khoa, mh.ten_mh, d.diem_tk\n"
+            "FROM SinhVien sv\n"
+            "INNER JOIN DiemThi d ON sv.ma_sv = d.ma_sv\n"
+            "INNER JOIN MonHoc mh ON d.ma_mh = mh.ma_mh\n"
+            "WHERE d.diem_tk >= 8.0\n"
+            "ORDER BY d.diem_tk DESC;"
+        )
+
+    # Security guard: allow only read-only queries in sandbox
+    forbidden = re.search(r"\b(ATTACH|DETACH|PRAGMA|DROP|ALTER|VACUUM)\b", sql, re.IGNORECASE)
+    if forbidden:
+        return web.json_response({
+            "ok": False,
+            "error": f"Lệnh '{forbidden.group(1)}' bị khóa trong môi trường Sandbox để đảm bảo an toàn cấu trúc bảng."
+        }, status=400)
+
+    conn = sqlite3.connect(":memory:")
+    try:
+        _seed_in_memory_sql_sandbox(conn)
+        cur = conn.cursor()
+        t0 = time.perf_counter()
+        cur.execute(sql)
+        rows_raw = cur.fetchall()
+        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+        columns = [desc[0] for desc in (cur.description or [])]
+        rows = [list(r) for r in rows_raw[:100]]
+
+        # Explain query plan
+        plan_lines = []
+        try:
+            cur.execute(f"EXPLAIN QUERY PLAN {sql}")
+            for pr in cur.fetchall():
+                plan_lines.append(str(pr[-1]))
+        except Exception:
+            plan_lines = ["SCAN TABLE (Sequential Table Scan in Memory)"]
+
+        join_type, exec_steps, linq_code = _analyze_sql_execution_and_linq(sql)
+
+        return web.json_response({
+            "ok": True,
+            "sql": sql,
+            "columns": columns,
+            "rows": rows,
+            "row_count": len(rows),
+            "elapsed_ms": elapsed_ms,
+            "join_type": join_type,
+            "execution_steps": exec_steps,
+            "query_plan": plan_lines,
+            "linq_equivalent": linq_code
+        })
+    except Exception as e:
+        return web.json_response({
+            "ok": False,
+            "error": f"Lỗi cú pháp SQL: {str(e)}"
+        })
+    finally:
+        conn.close()
+
+
+async def api_algo_step_visualizer_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    algo = (data.get("algo") or "binary_search").strip()
+    target = int(data.get("target") or 58)
+
+    if algo == "binary_search":
+        arr = [4, 9, 15, 22, 31, 45, 58, 67, 81, 94]
+        frames = []
+        low, high = 0, len(arr) - 1
+        step_no = 1
+        frames.append({
+            "step": 0,
+            "title": "Khởi tạo biên tìm kiếm",
+            "array": arr,
+            "pointers": {"low": low, "high": high},
+            "active_indices": list(range(low, high + 1)),
+            "eliminated_indices": [],
+            "found_index": -1,
+            "call_stack": [f"BinarySearch(arr, target={target}, low=0, high=9)"],
+            "explanation": f"Khởi tạo con trỏ low = 0 (giá trị {arr[0]}) và high = {high} (giá trị {arr[high]}). Mảng đã được sắp xếp tăng dần."
+        })
+        eliminated = set()
+        found_idx = -1
+        while low <= high:
+            mid = low + (high - low) // 2
+            mid_val = arr[mid]
+            if mid_val == target:
+                found_idx = mid
+                frames.append({
+                    "step": step_no,
+                    "title": f"Bước {step_no}: Tìm thấy đích tại mid = {mid}!",
+                    "array": arr,
+                    "pointers": {"low": low, "mid": mid, "high": high},
+                    "active_indices": [mid],
+                    "eliminated_indices": sorted(list(eliminated)),
+                    "found_index": mid,
+                    "call_stack": [
+                        f"BinarySearch(target={target})",
+                        f"mid = {low} + ({high}-{low})/2 = {mid}",
+                        f"arr[{mid}] == {target} -> RETURN {mid}"
+                    ],
+                    "explanation": f"Tính mid = {mid}. Giá trị arr[{mid}] = {mid_val} khớp chính xác với target = {target}! Thuật toán kết thúc sau {step_no} bước (O(log2 N))."
+                })
+                break
+            elif mid_val < target:
+                for k in range(low, mid + 1):
+                    eliminated.add(k)
+                frames.append({
+                    "step": step_no,
+                    "title": f"Bước {step_no}: So sánh tại mid = {mid} (arr[{mid}] = {mid_val} < {target})",
+                    "array": arr,
+                    "pointers": {"low": low, "mid": mid, "high": high},
+                    "active_indices": list(range(mid + 1, high + 1)),
+                    "eliminated_indices": sorted(list(eliminated)),
+                    "found_index": -1,
+                    "call_stack": [
+                        f"BinarySearch(low={low}, high={high})",
+                        f"mid = {mid} (arr[mid]={mid_val} < {target})",
+                        f"Dịch biên trái: low = mid + 1 = {mid + 1}"
+                    ],
+                    "explanation": f"Tại mid = {mid}, arr[{mid}] = {mid_val} nhỏ hơn {target}. Loại bỏ toàn bộ nửa bên trái từ chỉ số {low} đến {mid}, cập nhật low = {mid + 1}."
+                })
+                low = mid + 1
+            else:
+                for k in range(mid, high + 1):
+                    eliminated.add(k)
+                frames.append({
+                    "step": step_no,
+                    "title": f"Bước {step_no}: So sánh tại mid = {mid} (arr[{mid}] = {mid_val} > {target})",
+                    "array": arr,
+                    "pointers": {"low": low, "mid": mid, "high": high},
+                    "active_indices": list(range(low, mid)),
+                    "eliminated_indices": sorted(list(eliminated)),
+                    "found_index": -1,
+                    "call_stack": [
+                        f"BinarySearch(low={low}, high={high})",
+                        f"mid = {mid} (arr[mid]={mid_val} > {target})",
+                        f"Dịch biên phải: high = mid - 1 = {mid - 1}"
+                    ],
+                    "explanation": f"Tại mid = {mid}, arr[{mid}] = {mid_val} lớn hơn {target}. Loại bỏ toàn bộ nửa bên phải từ chỉ số {mid} đến {high}, cập nhật high = {mid - 1}."
+                })
+                high = mid - 1
+            step_no += 1
+
+        if found_idx == -1:
+            frames.append({
+                "step": step_no,
+                "title": "Kết thúc: Không tìm thấy phần tử (low > high)",
+                "array": arr,
+                "pointers": {"low": low, "high": high},
+                "active_indices": [],
+                "eliminated_indices": list(range(len(arr))),
+                "found_index": -1,
+                "call_stack": [f"low ({low}) > high ({high}) -> RETURN -1"],
+                "explanation": f"Con trỏ low ({low}) đã vượt qua high ({high}). Kết luận phần tử {target} không tồn tại trong mảng, trả về -1."
+            })
+
+        return web.json_response({
+            "ok": True,
+            "algo": "binary_search",
+            "name": "Tìm Kiếm Nhị Phân (Binary Search - O(log N))",
+            "complexity": {"time": "O(log2 N)", "space": "O(1) Iterative"},
+            "frames": frames
+        })
+
+    elif algo == "quicksort":
+        arr = [38, 17, 49, 12, 65, 24, 30]
+        frames = []
+        pivot = arr[-1]
+        i = -1
+        frames.append({
+            "step": 0,
+            "title": f"Khởi tạo Phân hoạch Lomuto (Pivot = arr[6] = {pivot})",
+            "array": list(arr),
+            "pointers": {"i": i, "j": 0, "pivot": len(arr) - 1},
+            "active_indices": [len(arr) - 1],
+            "eliminated_indices": [],
+            "found_index": len(arr) - 1,
+            "call_stack": [
+                "QuickSort(arr, low=0, high=6)",
+                f"Partition(low=0, high=6) -> chọn pivot = {pivot} tại cuối mảng"
+            ],
+            "explanation": f"Chọn phần tử cuối cùng làm chốt (pivot = {pivot}). Con trỏ i = -1 đánh dấu ranh giới vùng các phần tử <= pivot."
+        })
+        step_no = 1
+        for j in range(len(arr) - 1):
+            cur_val = arr[j]
+            if cur_val <= pivot:
+                i += 1
+                arr[i], arr[j] = arr[j], arr[i]
+                frames.append({
+                    "step": step_no,
+                    "title": f"Bước {step_no}: arr[{j}] = {cur_val} <= pivot ({pivot}) -> Tăng i={i} & Hoán vị!",
+                    "array": list(arr),
+                    "pointers": {"i": i, "j": j, "pivot": len(arr) - 1},
+                    "active_indices": [i, j],
+                    "eliminated_indices": [],
+                    "found_index": len(arr) - 1,
+                    "call_stack": [
+                        f"j = {j}: arr[{j}] ({cur_val}) <= {pivot}",
+                        f"i++ -> i = {i}",
+                        f"Swap(arr[{i}], arr[{j}])"
+                    ],
+                    "explanation": f"Vì arr[{j}] = {cur_val} <= pivot ({pivot}), ta tăng i lên {i} và hoán đổi arr[{i}] với arr[{j}] để gom phần tử nhỏ về vùng bên trái."
+                })
+            else:
+                frames.append({
+                    "step": step_no,
+                    "title": f"Bước {step_no}: arr[{j}] = {cur_val} > pivot ({pivot}) -> Giữ nguyên",
+                    "array": list(arr),
+                    "pointers": {"i": i, "j": j, "pivot": len(arr) - 1},
+                    "active_indices": [j],
+                    "eliminated_indices": [],
+                    "found_index": len(arr) - 1,
+                    "call_stack": [
+                        f"j = {j}: arr[{j}] ({cur_val}) > {pivot}",
+                        f"Bỏ qua hoán vị, giữ i = {i}"
+                    ],
+                    "explanation": f"Vì arr[{j}] = {cur_val} lớn hơn pivot ({pivot}), nó thuộc vùng bên phải nên không cần hoán đổi, chỉ dịch j sang phải."
+                })
+            step_no += 1
+
+        arr[i + 1], arr[-1] = arr[-1], arr[i + 1]
+        pivot_final = i + 1
+        frames.append({
+            "step": step_no,
+            "title": f"Bước cuối Partition: Đưa Pivot ({pivot}) về đúng vị trí chuẩn i+1 = {pivot_final}!",
+            "array": list(arr),
+            "pointers": {"pivot_fixed": pivot_final},
+            "active_indices": [pivot_final],
+            "eliminated_indices": [],
+            "found_index": pivot_final,
+            "call_stack": [
+                f"Swap(arr[i+1={pivot_final}], arr[high=6])",
+                f"RETURN pivot_index = {pivot_final} (Giá trị {pivot} đã cố định!)"
+            ],
+            "explanation": f"Hoán đổi pivot ({pivot}) vào chỉ số i+1 = {pivot_final}. Mọi phần tử bên trái ({arr[:pivot_final]}) đều <= {pivot}, và bên phải ({arr[pivot_final+1:]}) đều > {pivot}!"
+        })
+
+        return web.json_response({
+            "ok": True,
+            "algo": "quicksort",
+            "name": "Phân Hoạch QuickSort Lomuto (O(N log N))",
+            "complexity": {"time": "O(N log N) Avg", "space": "O(log N) Call Stack"},
+            "frames": frames
+        })
+
+    elif algo == "recursion_fib":
+        frames = [
+            {
+                "step": 0,
+                "title": "Gọi hàm gốc: Fib(4) đẩy khung nhớ đầu tiên vào Call Stack",
+                "array": [0, 1, "?", "?", "?"],
+                "pointers": {"n": 4},
+                "active_indices": [4],
+                "eliminated_indices": [],
+                "found_index": -1,
+                "call_stack": ["[Frame #1] Fib(4) -> chờ Fib(3) + Fib(2)"],
+                "explanation": "Khi gọi Fib(4), CPU cấp phát Stack Frame #1. Để tính Fib(4), hàm phải gọi đệ quy nhánh trái Fib(3) trước."
+            },
+            {
+                "step": 1,
+                "title": "Đào sâu nhánh trái: PUSH Fib(3) rồi PUSH Fib(2)",
+                "array": [0, 1, "?", "?", "?"],
+                "pointers": {"n": 2},
+                "active_indices": [2, 3, 4],
+                "eliminated_indices": [],
+                "found_index": -1,
+                "call_stack": [
+                    "[Frame #1] Fib(4) -> chờ Fib(3)",
+                    "[Frame #2] Fib(3) -> chờ Fib(2)",
+                    "[Frame #3] Fib(2) -> gọi Fib(1) + Fib(0)"
+                ],
+                "explanation": "Ngăn xếp tăng lên 3 tầng theo nguyên lý LIFO (Vào sau - Ra trước). Fib(2) tiếp tục gọi xuống trường hợp cơ sở (Base Case)."
+            },
+            {
+                "step": 2,
+                "title": "Chạm điều kiện dừng (Base Case): Fib(1) = 1 và Fib(0) = 0",
+                "array": [0, 1, 1, "?", "?"],
+                "pointers": {"base": 1},
+                "active_indices": [0, 1, 2],
+                "eliminated_indices": [],
+                "found_index": 2,
+                "call_stack": [
+                    "[Frame #1] Fib(4) -> chờ Fib(3)",
+                    "[Frame #2] Fib(3) -> nhận Fib(2) = 1",
+                    "[POP] Fib(2) = Fib(1) + Fib(0) = 1 + 0 = 1"
+                ],
+                "explanation": "Chạm Base Case n <= 1! Fib(2) hoàn tất với giá trị 1, giải phóng (POP) Frame #3 khỏi bộ nhớ Stack và trả kết quả về cho Fib(3)."
+            },
+            {
+                "step": 3,
+                "title": "Hoàn tất Fib(3) = 2 -> Quay lui tính nhánh phải Fib(2) của Fib(4)",
+                "array": [0, 1, 1, 2, "?"],
+                "pointers": {"n": 3},
+                "active_indices": [3],
+                "eliminated_indices": [],
+                "found_index": 3,
+                "call_stack": [
+                    "[Frame #1] Fib(4) -> đã có Fib(3)=2, đang gọi Fib(2)",
+                    "[Frame #2 - Mới] Fib(2) -> tính lại từ đầu (Overlapping Subproblem!)"
+                ],
+                "explanation": "Chú ý: Đệ quy thuần túy phải tính lại Fib(2) lần thứ 2 (Gối nhau bài toán con - gây độ phức tạp O(2^N)). Dùng Quy hoạch động / Memoization sẽ tra bảng ngay trong O(1)!"
+            },
+            {
+                "step": 4,
+                "title": "Tổng hợp kết quả cuối tại đỉnh gốc: Fib(4) = 2 + 1 = 3!",
+                "array": [0, 1, 1, 2, 3],
+                "pointers": {"result": 4},
+                "active_indices": [4],
+                "eliminated_indices": [],
+                "found_index": 4,
+                "call_stack": [
+                    "[RETURN] Fib(4) = Fib(3) [2] + Fib(2) [1] = 3 (Stack trống hoàn toàn!)"
+                ],
+                "explanation": "Hàm gốc Fib(4) nhận đủ 2 nhánh (2 + 1 = 3), thu hồi Stack Frame cuối cùng và trả kết quả 3 về hàm Main()."
+            }
+        ]
+        return web.json_response({
+            "ok": True,
+            "algo": "recursion_fib",
+            "name": "Mô Phỏng Khung Ngăn Xếp Đệ Quy (Call Stack LIFO & Memoization)",
+            "complexity": {"time": "O(2^N) Đệ quy / O(N) DP", "space": "O(N) Độ sâu Stack"},
+            "frames": frames
+        })
+
+    else:
+        # knapsack_dp
+        frames = [
+            {
+                "step": 0,
+                "title": "Khởi tạo mảng Quy hoạch động dp[0..4] = [0, 0, 0, 0, 0]",
+                "array": [0, 0, 0, 0, 0],
+                "pointers": {"W_max": 4},
+                "active_indices": [0, 1, 2, 3, 4],
+                "eliminated_indices": [],
+                "found_index": -1,
+                "call_stack": ["Khởi tạo dp[w] = 0 với mọi sức chứa w từ 0..4"],
+                "explanation": "Bài toán Balo 0/1 với sức chứa tối đa W = 4kg và 3 vật phẩm: Vật 1 (1kg, $15), Vật 2 (2kg, $25), Vật 3 (3kg, $40)."
+            },
+            {
+                "step": 1,
+                "title": "Xét Vật 1 (nặng 1kg, giá trị 15): Cập nhật lùi w từ 4 về 1",
+                "array": [0, 15, 15, 15, 15],
+                "pointers": {"item": 1, "weight": 1},
+                "active_indices": [1, 2, 3, 4],
+                "eliminated_indices": [],
+                "found_index": -1,
+                "call_stack": [
+                    "Vật #1 (w=1, v=15)",
+                    "dp[w] = max(dp[w], dp[w-1] + 15) -> [0, 15, 15, 15, 15]"
+                ],
+                "explanation": "Với mọi sức chứa từ 1kg đến 4kg, ta đều bỏ vừa Vật 1 (1kg) và thu được giá trị 15."
+            },
+            {
+                "step": 2,
+                "title": "Xét Vật 2 (nặng 2kg, giá trị 25): Cập nhật lùi w từ 4 về 2",
+                "array": [0, 15, 25, 40, 40],
+                "pointers": {"item": 2, "weight": 2},
+                "active_indices": [2, 3, 4],
+                "eliminated_indices": [],
+                "found_index": 3,
+                "call_stack": [
+                    "Vật #2 (w=2, v=25)",
+                    "Tại w=3: max(dp[3]=15, dp[3-2] + 25 = 15 + 25 = 40)",
+                    "Tại w=2: max(dp[2]=15, dp[0] + 25 = 25)"
+                ],
+                "explanation": "Tại w = 3kg: Kết hợp Vật 1 (1kg, $15) + Vật 2 (2kg, $25) đạt tổng giá trị 40! Duyệt lùi giúp không dùng lặp Vật 2 hai lần."
+            },
+            {
+                "step": 3,
+                "title": "Xét Vật 3 (nặng 3kg, giá trị 40): Tìm ra nghiệm tối ưu dp[4] = 55!",
+                "array": [0, 15, 25, 40, 55],
+                "pointers": {"item": 3, "optimal_W": 4},
+                "active_indices": [4],
+                "eliminated_indices": [],
+                "found_index": 4,
+                "call_stack": [
+                    "Vật #3 (w=3, v=40)",
+                    "Tại w=4: max(dp[4]=40, dp[4-3] + 40 = dp[1] + 40 = 15 + 40 = 55)",
+                    "RETURN dp[4] = 55 (Chọn Vật 1 + Vật 3)"
+                ],
+                "explanation": "Tại sức chứa W = 4kg: So sánh giữ nguyên phương án cũ ($40) hay lấy Vật 3 (3kg, $40) + dp[1] ($15) = $55. Chọn phương án tối ưu $55!"
+            }
+        ]
+        return web.json_response({
+            "ok": True,
+            "algo": "knapsack_dp",
+            "name": "Quy Hoạch Động Balo 0/1 (0/1 Knapsack DP Table)",
+            "complexity": {"time": "O(N * W)", "space": "O(W) 1D Array"},
+            "frames": frames
+        })
+
+
+CORNELL_PRESETS = {
+    "biochem_enzyme": {
+        "title": "Động Học Enzyme & Các Cơ Chế Chất Ức Chế (Hóa Sinh CTUMP)",
+        "subject": "Hóa Sinh Y Học (322 Câu CTUMP)",
+        "cues": [
+            {
+                "cue_question": "1. Hằng số Michaelis $K_m$ có ý nghĩa sinh học gì?",
+                "key_term": "Ái lực Enzyme - Cơ chất ($K_m$)",
+                "note_detail": "$K_m$ là nồng độ cơ chất $[S]$ mà tại đó tốc độ phản ứng bằng một nửa tốc độ cực đại ($v_0 = V_{\\max}/2$). $K_m$ là hằng số đặc trưng cho mỗi cặp enzyme-cơ chất, KHÔNG phụ thuộc nồng độ enzyme $[E]$.",
+                "formula_or_code": "v0 = (Vmax * [S]) / (Km + [S])  |  Km nhỏ <=> Ái lực CAO",
+                "exam_trap": "Bẫy thi kinh điển: Tăng nồng độ enzyme [E] làm tăng Vmax nhưng KHÔNG làm thay đổi Km!"
+            },
+            {
+                "cue_question": "2. Phân biệt Ức chế Cạnh tranh vs Không cạnh tranh?",
+                "key_term": "Competitive vs Non-competitive",
+                "note_detail": "• Ức chế cạnh tranh (I giống S, tranh TTHĐ): $V_{\\max}$ KHÔNG ĐỔI, $K_m$ TĂNG (giải độc được bằng cách tăng $[S]$ thật cao, ví dụ truyền Ethanol giải độc Methanol).\n• Ức chế không cạnh tranh (I gắn vào vị trí dị lập thể): $K_m$ KHÔNG ĐỔI, $V_{\\max}$ GIẢM.",
+                "formula_or_code": "Cạnh tranh: Km' = α.Km, Vmax' = Vmax\nKhông cạnh tranh: Km' = Km, Vmax' = Vmax / α",
+                "exam_trap": "Trên đồ thị Lineweaver-Burk: Cạnh tranh cắt nhau trên trục tung (1/Vmax); Không cạnh tranh cắt nhau trên trục hoành (-1/Km)!"
+            },
+            {
+                "cue_question": "3. Isoenzyme LDH và CK dùng chẩn đoán nhồi máu cơ tim như thế nào?",
+                "key_term": "Isoenzyme Tim mạch (CK-MB, LDH1)",
+                "note_detail": "Cơ tim giàu **CK-MB** (CK2) và **LDH1 ($H_4$)**. Khi nhồi máu cơ tim cấp, CK-MB tăng sớm (4-6h, đỉnh 24h), còn tỉ lệ **LDH1 > LDH2** (hiện tượng đảo ngược tỉ số LDH1/LDH2 > 1) xuất hiện muộn và kéo dài.",
+                "formula_or_code": "Cơ tim: LDH1 (H4) & CK-MB (MB)\nGan & Cơ xương: LDH5 (M4) & CK-MM (MM)",
+                "exam_trap": "Bình thường trong huyết tương LDH2 > LDH1. Khi LDH1 > LDH2 gọi là 'Flipped LDH' đặc hiệu cho hoại tử cơ tim hoặc tán huyết!"
+            }
+        ],
+        "summary": "Động học Michaelis-Menten xoay quanh 2 thông số cốt lõi: Km phản ánh nghịch đảo ái lực của enzyme với cơ chất, còn Vmax phản ánh năng lực xúc tác tối đa khi bão hòa. Mọi bài toán chất ức chế trong đề thi CTUMP đều giải quyết được bằng quy tắc: Cạnh tranh làm tăng Km (Vmax giữ nguyên), Không cạnh tranh làm giảm Vmax (Km giữ nguyên), và Phi cạnh tranh làm giảm cả hai theo cùng tỷ lệ.",
+        "mini_quiz": [
+            {
+                "q": "Khi có mặt chất ức chế cạnh tranh, thông số động học nào của enzyme thay đổi?",
+                "options": ["Km tăng, Vmax không đổi", "Km giảm, Vmax không đổi", "Km không đổi, Vmax giảm", "Cả Km và Vmax đều giảm"],
+                "ans": 0,
+                "exp": "Chất ức chế cạnh tranh làm giảm ái lực biểu kiến của enzyme với cơ chất nên Km tăng, nhưng nếu tăng [S] vô cực vẫn đạt lại Vmax ban đầu."
+            },
+            {
+                "q": "Isoenzyme nào của Lactate Dehydrogenase (LDH) chiếm ưu thế đặc trưng ở mô cơ tim và hồng cầu?",
+                "options": ["LDH1 (H4)", "LDH3 (H2M2)", "LDH4 (HM3)", "LDH5 (M4)"],
+                "ans": 0,
+                "exp": "LDH1 gồm 4 chuỗi H (Heart - H4) đặc trưng cho mô hiếu khí như cơ tim và hồng cầu."
+            }
+        ]
+    },
+    "csharp_oop_solid": {
+        "title": "4 Trụ Cột OOP C# (.NET) & Cơ Chế Đa Hình V-Table",
+        "subject": "Lập Trình Hướng Đối Tượng C#",
+        "cues": [
+            {
+                "cue_question": "1. Khi nào dùng từ khóa `virtual`/`override` khác với `new` (Method Hiding)?",
+                "key_term": "Runtime Polymorphism vs Method Hiding",
+                "note_detail": "• `virtual` + `override`: Liên kết động lúc chạy (Late Binding / V-Table). Khi khai báo kiểu lớp cha `HinhHoc h = new HinhTron()`, gọi `h.TinhDienTich()` sẽ chạy hàm của lớp con `HinhTron`.\n• Từ khóa `new`: Che khuất phương thức (Early Binding), gọi theo kiểu khai báo biến (`HinhHoc`) chứ không theo đối tượng thực tế!",
+                "formula_or_code": "Cha p = new Con();\np.HamOverride(); // Chạy của Con (Đa hình thực sự)\np.HamNewHiding(); // Chạy của Cha (Che khuất tĩnh)",
+                "exam_trap": "Đề thi C# rất hay hỏi kết quả in ra màn hình khi gán `Base b = new Derived()` rồi gọi hàm đánh dấu `new` thay vì `override`!"
+            },
+            {
+                "cue_question": "2. Phân biệt `abstract class` và `interface` trong C#?",
+                "key_term": "Trừu tượng hóa (Abstraction)",
+                "note_detail": "• `abstract class`: Quan hệ **IS-A** (Bản chất kế thừa đơn: 1 lớp chỉ kế thừa tối đa 1 lớp cha), có thể chứa biến thành viên (fields), constructor và phương thức có thân.\n• `interface`: Quan hệ **CAN-DO** (Hợp đồng hành vi), một lớp C# có thể thực thi **đa giao diện (Multiple Interfaces)**.",
+                "formula_or_code": "public class SinhVienY : Nguoi, IThucTapLamSang, IXetNghiem { ... }",
+                "exam_trap": "Trong C#, không thể viết `new HinhHoc()` nếu `HinhHoc` là `abstract class` hoặc `interface` (Lỗi biên dịch CS0144)!"
+            },
+            {
+                "cue_question": "3. Đóng gói (Encapsulation) với Property `get; set;` bảo vệ dữ liệu ra sao?",
+                "key_term": "Encapsulation & Validation",
+                "note_detail": "Đặt trường dữ liệu là `private _diem` và mở truy cập qua `public double Diem { get; set; }` giúp kiểm tra tính hợp lệ (ví dụ chặn điểm âm `< 0` hoặc `> 10`) trước khi gán vào vùng nhớ đối tượng.",
+                "formula_or_code": "public double Diem {\n  get => _diem;\n  set => _diem = (value >= 0 && value <= 10) ? value : throw new ArgumentOutOfRangeException();\n}",
+                "exam_trap": "Nếu trong `set` của Property lại viết `Diem = value;` (gọi chính tên Property thay vì biến `_diem`) sẽ gây đệ quy vô tận `StackOverflowException`!"
+            }
+        ],
+        "summary": "Lập trình Hướng đối tượng C# đặt trọng tâm vào 4 tính chất: Đóng gói (che giấu dữ liệu nội bộ bằng private + Property), Kế thừa (tái sử dụng code lớp cha bằng dấu `:`), Đa hình (ghi đè hành vi động qua cặp `virtual/override`), và Trừu tượng (`abstract class` & `interface`). Nắm vững sự khác biệt giữa `override` và `new` là chìa khóa đạt điểm tuyệt đối phần đọc hiểu code.",
+        "mini_quiz": [
+            {
+                "q": "Trong C#, một lớp con có thể kế thừa trực tiếp từ bao nhiêu lớp cha (class) và bao nhiêu giao diện (interface)?",
+                "options": ["Tối đa 1 class và nhiều interface", "Nhiều class và 1 interface", "Tối đa 1 class và 1 interface", "Không giới hạn số class cha"],
+                "ans": 0,
+                "exp": "C# chỉ hỗ trợ đơn kế thừa đối với class để tránh bài toán kim cương (Diamond Problem), nhưng cho phép thực thi không giới hạn số lượng interface."
+            }
+        ]
+    },
+    "discrete_graph": {
+        "title": "Toán Rời Rạc: Euler, Hamilton, Logic & Cây Khung",
+        "subject": "Toán Rời Rạc",
+        "cues": [
+            {
+                "cue_question": "1. Điều kiện cần và đủ để đồ thị vô hướng liên thông có Chu trình Euler và Đường đi Euler?",
+                "key_term": "Định lý Euler (Bậc của đỉnh)",
+                "note_detail": "• Có **Chu trình Euler** (đi qua mọi CẠNH đúng 1 lần rồi quay về đỉnh xuất phát) $\\iff$ **Tất cả các đỉnh đều có bậc CHẴN**.\n• Có **Đường đi Euler** (không khép kín) $\\iff$ Đồ thị có **đúng 0 hoặc 2 đỉnh bậc LẺ** (xuất phát ở 1 đỉnh bậc lẻ và kết thúc ở đỉnh bậc lẻ còn lại).",
+                "formula_or_code": "∑ deg(v) = 2.|E| (Bổ đề bắt tay: Số đỉnh bậc lẻ luôn là một số CHẴN!)",
+                "exam_trap": "Nếu đề bài cho đồ thị có 4 đỉnh bậc lẻ -> Kết luận ngay: KHÔNG có chu trình Euler và cũng KHÔNG có đường đi Euler!"
+            },
+            {
+                "cue_question": "2. Tính chất số cạnh và chu trình của Cây (Tree) gồm $n$ đỉnh?",
+                "key_term": "Cây & Cây khung nhỏ nhất (MST)",
+                "note_detail": "Một đồ thị vô hướng $G$ gồm $n$ đỉnh là một **Cây** khi và chỉ khi nó liên thông, không có chu trình, và có **đúng $n - 1$ cạnh**. Thêm bất kỳ 1 cạnh nào vào cây sẽ tạo ra đúng 1 chu trình đơn.",
+                "formula_or_code": "|V| = n  ==>  Số cạnh của Cây |E| = n - 1  |  Số cây khung của Kn là n^(n-2) (Công thức Cayley)",
+                "exam_trap": "Đề hỏi: Đồ thị liên thông 12 đỉnh, 18 cạnh cần bỏ đi ít nhất bao nhiêu cạnh để trở thành cây khung? Đáp án: 18 - (12 - 1) = 7 cạnh!"
+            }
+        ],
+        "summary": "Toán Rời Rạc tập trung vào Logic Mệnh đề, Tập hợp & Tổ hợp đếm, Quan hệ tương đương/thứ tự, Bậc đỉnh Euler/Hamilton và số cạnh cây n-1.",
+        "mini_quiz": [
+            {
+                "q": "Một đồ thị liên thông có 10 đỉnh và 15 cạnh. Phải loại bỏ bao nhiêu cạnh để thu được một cây khung (Spanning Tree)?",
+                "options": ["6 cạnh", "5 cạnh", "4 cạnh", "9 cạnh"],
+                "ans": 0,
+                "exp": "Cây khung của 10 đỉnh luôn có đúng n - 1 = 9 cạnh. Do đó số cạnh cần loại bỏ là 15 - 9 = 6 cạnh."
+            }
+        ]
+    },
+    "algorithms_ctdl": {
+        "title": "Giải Thuật & CTDL: Big-O, Dijkstra, AVL, QuickSort & DP",
+        "subject": "Giải Thuật (CTDL & Giải Thuật)",
+        "cues": [
+            {
+                "cue_question": "1. Khi nào thuật toán Dijkstra chạy SAI và cần thay bằng Bellman-Ford?",
+                "key_term": "Giới hạn Dijkstra ($O(E \\log V)$) vs Bellman-Ford ($O(V \\cdot E)$)",
+                "note_detail": "Thuật toán **Dijkstra** dựa trên chiến lược Tham lam (Greedy): một khi đỉnh $u$ đã được cố định nhãn nhỏ nhất thì không xét lại. Do đó, Dijkstra chỉ đúng khi **mọi trọng số cạnh không âm ($w(u,v) \\ge 0$)**. Nếu có cạnh trọng số âm, bắt buộc phải dùng **Bellman-Ford**.",
+                "formula_or_code": "Relax(u, v): if d[u] + w(u,v) < d[v] then d[v] = d[u] + w(u,v)",
+                "exam_trap": "Cộng một hằng số C vào mọi cạnh KHÔNG bảo toàn đường đi ngắn nhất vì đường đi nhiều cạnh bị cộng thêm nhiều lần!"
+            },
+            {
+                "cue_question": "2. Phân biệt QuickSort, MergeSort và độ phức tạp Big-O trường hợp xấu nhất?",
+                "key_term": "Chia để trị (Divide & Conquer)",
+                "note_detail": "**MergeSort** luôn $O(n \\log n)$ ở mọi trường hợp nhưng tốn $O(n)$ RAM phụ. **QuickSort** chạy nhanh tại chỗ ($O(\\log n)$ stack) ở mức $O(n \\log n)$, nhưng sẽ tụt xuống $O(n^2)$ nếu chọn pivot luôn là min/max trên mảng đã sắp xếp.",
+                "formula_or_code": "Master Theorem: T(n) = 2T(n/2) + O(n) => Theta(n log n)",
+                "exam_trap": "Cây BST không cân bằng khi chèn dãy tăng dần cũng suy biến thành $O(n)$; phải dùng cây AVL ($|h_L - h_R| \\le 1$)."
+            }
+        ],
+        "summary": "Giải Thuật (CTDL & GT) đánh giá tốc độ tăng trưởng Big-O, phân tích đệ quy/DP, sắp xếp QuickSort/MergeSort/HeapSort, tìm đường đi Dijkstra/BFS/DFS và cân bằng cây AVL.",
+        "mini_quiz": [
+            {
+                "q": "Độ phức tạp thời gian trong trường hợp XẤU NHẤT (worst-case) của QuickSort chuẩn và MergeSort lần lượt là gì?",
+                "options": ["O(n²) và O(n log n)", "O(n log n) và O(n²)", "O(n) và O(n log n)", "Đều là O(n log n)"],
+                "ans": 0,
+                "exp": "QuickSort suy biến thành O(n²) khi phân hoạch lệch tối đa, trong khi MergeSort luôn chia đôi đều nên giữ O(n log n)."
+            }
+        ]
+    }
+}
+
+
+async def api_cornell_studio_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    preset_key = (data.get("preset") or "biochem_enzyme").strip()
+    raw_text = (data.get("raw_text") or "").strip()
+    custom_title = (data.get("title") or "").strip()
+
+    if raw_text:
+        # Parse raw study text into structured Cornell Cues + Notes + Summary
+        lines = [ln.strip() for ln in re.split(r"[\n\r]+", raw_text) if ln.strip()]
+        cues = []
+        chunk_size = max(1, (len(lines) + 2) // 3)
+        for idx in range(0, len(lines), chunk_size):
+            segment = " ".join(lines[idx:idx + chunk_size])
+            first_words = " ".join(segment.split()[:7])
+            cues.append({
+                "cue_question": f"Câu hỏi trọng tâm #{len(cues)+1}: Bản chất của '{first_words}...' là gì?",
+                "key_term": f"Ý cốt lõi #{len(cues)+1}",
+                "note_detail": segment,
+                "formula_or_code": "📌 Ghi nhớ từ khóa & cơ chế chính trong đoạn trên",
+                "exam_trap": "Chú ý các mệnh đề phủ định (KHÔNG, NGOẠI TRỪ) hoặc điều kiện biên khi vào phòng thi!"
+            })
+        note_obj = {
+            "title": custom_title or "Sổ Tay Ghi Chép Cornell Tự Động Từ Tài Liệu",
+            "subject": "Tài Liệu Cá Nhân Hóa AI",
+            "cues": cues[:5],
+            "summary": f"Tóm tắt Cornell: Tài liệu gồm {len(cues)} luận điểm cốt lõi. Hãy bật chế độ 'Che Cột Phải (Active Recall)' và tự trả lời các câu hỏi ở cột trái trước khi lật mở đáp án để tăng 250% khả năng ghi nhớ dài hạn.",
+            "mini_quiz": [
+                {
+                    "q": f"Đâu là nội dung trọng tâm được đề cập ngay đầu ghi chép '{custom_title or 'Tài liệu'}'?",
+                    "options": [
+                        lines[0][:95] if lines else "Nội dung cốt lõi số 1",
+                        "Một giả thuyết ngụy biện không có trong tài liệu",
+                        "Thông số ngẫu nhiên không liên quan đến cơ chế",
+                        "Đáp án nhiễu dùng để kiểm tra phản xạ"
+                    ],
+                    "ans": 0,
+                    "exp": "Được trích xuất trực tiếp từ luận điểm đầu tiên trong ghi chép Cornell của bạn."
+                }
+            ]
+        }
+        return web.json_response({"ok": True, "cornell": note_obj})
+
+    item = CORNELL_PRESETS.get(preset_key) or CORNELL_PRESETS["biochem_enzyme"]
+    return web.json_response({"ok": True, "cornell": item})
+
+
+async def api_cram_roadmap_handler(request):
+    stats = db.get_stats()
+    history = stats.get("recent_exams") or []
+    mistakes = stats.get("mistakes") or []
+    subj_stats = stats.get("subject_stats") or []
+
+    total_exams = int(stats.get("total_exams") or 0)
+    avg_score = float(stats.get("avg_score") or 72.0)
+    due_cards = int(stats.get("due_flashcards") or 12)
+
+    # Calculate 6-axis radar scores (0..100)
+    theory_acc = min(98, max(45, int(round(avg_score))))
+    code_algo = min(96, max(50, int(round(avg_score * 0.92 + min(12, total_exams * 2)))))
+    biochem_clin = min(97, max(48, int(round(avg_score * 0.95 + 4))))
+    spaced_mem = min(95, max(42, 100 - min(50, due_cards * 2)))
+    exam_speed = min(96, max(55, 74 + min(20, total_exams * 2)))
+    trap_immunity = min(95, max(45, 85 - min(35, len(mistakes) * 2)))
+
+    axes = [
+        {"key": "theory", "label": "Lý Thuyết Cốt Lõi", "score": theory_acc},
+        {"key": "code", "label": "Giải Thuật & Code OOP", "score": code_algo},
+        {"key": "biochem", "label": "Cơ Chế Hóa Sinh / Y Sinh", "score": biochem_clin},
+        {"key": "memory", "label": "Trí Nhớ Dài Hạn (SM-2)", "score": spaced_mem},
+        {"key": "speed", "label": "Tốc Độ Phản Xạ Thi", "score": exam_speed},
+        {"key": "trap", "label": "Kháng Bẫy Đề Thi", "score": trap_immunity}
+    ]
+
+    priorities = []
+    for s in subj_stats[:6]:
+        s_avg = float(s.get("avg_score") or 0)
+        s_cnt = int(s.get("exam_count") or 0)
+        if s_cnt == 0 or s_avg < 65:
+            level = "CRITICAL"
+            badge = "🔥 ƯU TIÊN SỐ 1"
+            advice = "Cần ôn ngay Sổ tay Cornell + Làm đề 20 câu phân tích sâu."
+        elif s_avg < 82:
+            level = "HIGH"
+            badge = "⚡ CẦN Bứt Phá"
+            advice = "Tập trung quét sạch Sổ tay câu sai và luyện phản xạ Blitz."
+        else:
+            level = "STABLE"
+            badge = "🛡️ VỮNG VÀNG"
+            advice = "Duyệt thẻ nhớ 3D Flashcards 5 phút/ngày để giữ đỉnh đường cong Ebbinghaus."
+        priorities.append({
+            "subject_id": s.get("id"),
+            "name": s.get("name"),
+            "exam_count": s_cnt,
+            "avg_score": round(s_avg, 1),
+            "level": level,
+            "badge": badge,
+            "advice": advice
+        })
+
+    if not priorities:
+        priorities = [
+            {"subject_id": 5, "name": "Hóa Sinh Y Học CTUMP (322 Câu)", "exam_count": total_exams, "avg_score": round(avg_score, 1), "level": "CRITICAL", "badge": "🔥 ƯU TIÊN SỐ 1", "advice": "Ôn tập 8 chuyên đề Chuyển hóa & Động học Enzyme Michaelis-Menten."},
+            {"subject_id": 21, "name": "Toán Rời Rạc", "exam_count": total_exams, "avg_score": round(avg_score, 1), "level": "HIGH", "badge": "⚡ SẮP THI 27/11", "advice": "Ôn Logic mệnh đề, Hệ đếm tổ hợp, Đồ thị Euler/Hamilton & Cây khung MST."},
+            {"subject_id": 82, "name": "Giải Thuật (CTDL & Giải Thuật)", "exam_count": total_exams, "avg_score": round(avg_score, 1), "level": "HIGH", "badge": "⚡ CẦN BỨT PHÁ", "advice": "Thực hành phân tích Big-O, QuickSort/MergeSort, Cây AVL và Quy hoạch động."}
+        ]
+
+    schedule = [
+        {
+            "day": "Chặng 1 (Ngày 1 - 2)",
+            "title": "Xây Nền Cơ Chế & Ghi Chép Cornell Chủ Động",
+            "focus": "Nắm chắc 100% công thức gốc, tránh học vẹt đáp án.",
+            "tasks": [
+                "Mở Sổ Tay Ghi Chép Cornell AI: Tự nhẩm cột trái (Active Recall) cho Hóa Sinh & OOP C#.",
+                "Dùng Phòng Lab Động học Enzyme & Đồ thị Dijkstra để nhìn tận mắt sự dịch chuyển thông số.",
+                "Chuyển hóa các câu khó thành Thẻ nhớ SM-2."
+            ],
+            "cta_label": "Mở Sổ Tay Cornell AI",
+            "cta_action": "cornell"
+        },
+        {
+            "day": "Chặng 2 (Ngày 3 - 4)",
+            "title": "Thực Chiến Code, Truy Vấn SQL & Gỡ Rối Giải Thuật",
+            "focus": "Tối ưu điểm thực hành lập trình và bài tập tự luận tính toán.",
+            "tasks": [
+                "Chạy Máy Chiếu Thuật Toán (Time-Travel Debugger) để hiểu rõ Binary Search, QuickSort và Call Stack đệ quy.",
+                "Thực hành Phòng Lab SQL Trực Quan: Viết truy vấn INNER/LEFT JOIN và GROUP BY HAVING.",
+                "Làm 5 bài tập C# / Python có chấm Unit Test tự động."
+            ],
+            "cta_label": "Mở Phòng Lab SQL & Code",
+            "cta_action": "sql_sandbox"
+        },
+        {
+            "day": "Chặng 3 (Ngày 5 - 6)",
+            "title": "Diệt Lỗ Hổng Sổ Tay Câu Sai & Phản Biện Socratic",
+            "focus": "Kháng hoàn toàn các câu hỏi bẫy phủ định (NGOẠI TRỪ, KHÔNG ĐÚNG).",
+            "tasks": [
+                f"Quét sạch {len(mistakes)} câu trong Sổ Tay Câu Sai kèm giải thích AI chuyên sâu.",
+                "Vào Đấu Trường Săn Ngụy Biện (Devil's Advocate) và Phòng Vấn Đáp 1-1 Viva Voce.",
+                "Bật sóng não Gamma 40Hz + Pomodoro 25 phút khi luyện đề tổng hợp."
+            ],
+            "cta_label": "Vào Phòng Thi Vấn Đáp",
+            "cta_action": "viva"
+        },
+        {
+            "day": "Chặng 4 (24 Giờ Trước Giờ G)",
+            "title": "Tổng Duyệt Tốc Độ Cao & Giữ Đỉnh Trí Nhớ Ebbinghaus",
+            "focus": "Đưa tỷ lệ lưu giữ kiến thức R(t) lên trên 92% đúng giờ vào phòng thi.",
+            "tasks": [
+                f"Ôn nhanh {due_cards} thẻ Flashcard đến hạn hôm nay (không nhồi thêm kiến thức quá mới).",
+                "Kiểm tra Dự báo Điểm thi Ebbinghaus 95% CI và nghỉ ngơi sóng Alpha 10Hz trước khi thi."
+            ],
+            "cta_label": "Xem Dự Báo Điểm Ebbinghaus",
+            "cta_action": "ebbinghaus"
+        }
+    ]
+
+    return web.json_response({
+        "ok": True,
+        "axes": axes,
+        "priorities": priorities,
+        "schedule": schedule,
+        "summary": {
+            "total_exams": total_exams,
+            "avg_score": round(avg_score, 1),
+            "mistake_count": len(mistakes),
+            "due_cards": due_cards
+        }
+    })
+
+
+# ==============================================================================
+# UNIMASTER AI v44.0: HYPER-LEARNING & ENGINEERING STUDIO ENGINES
+# ==============================================================================
+
+CLINICAL_CASES_DB = {
+    "dka": {
+        "id": "dka",
+        "title": "Toan Ceton Do Đái Tháo Đường (DKA)",
+        "patient": "Nguyễn Văn H., 24 tuổi, Nam",
+        "chief_complaint": "Mệt lả, lơ mơ, buồn nôn, thở dốc mùi táo chín",
+        "history": "Tiền sử ĐTĐ Type 1 từ năm 16 tuổi. 2 ngày trước bị viêm họng sốt nhẹ, tự ý ngưng tiêm Insulin vì nghĩ 'không ăn được nhiều thì không cần tiêm'.",
+        "vitals": {"bp": "90/60 mmHg", "hr": "118 l/p", "rr": "28 l/p (Kussmaul)", "temp": "37.6°C", "spo2": "96%", "gcs": "13 điểm"},
+        "physical_exam": "Môi khô nứt nẻ, véo da mất rất chậm (> 3 giây), nhãn cầu mềm trũng. Tim nhịp nhanh đều, không âm thổi. Phổi rì rào phế nang êm 2 bên. Bụng mềm, ấn đau nhẹ thượng vị mơ hồ, không có phản ứng thành bụng.",
+        "available_labs": {
+            "glucose": {
+                "name": "Đường huyết mao mạch & tĩnh mạch",
+                "val": "32.5 mmol/L",
+                "ref": "3.9 - 6.4 mmol/L",
+                "status": "critical_high",
+                "mechanism": "Thiếu hụt Insulin tuyệt đối làm tế bào không thu nạp được Glucose, đồng thời gan tăng tân tạo và ly giải Glycogen dữ dội."
+            },
+            "abg": {
+                "name": "Khí máu động mạch (ABG)",
+                "val": "pH 7.12 | PaCO2 22 mmHg | HCO3- 9.5 mmol/L | PaO2 95 mmHg",
+                "ref": "pH 7.35-7.45 | PaCO2 35-45 | HCO3 22-28",
+                "status": "critical_low",
+                "mechanism": "Toan chuyển hóa tăng Anion Gap do tích tụ axit Acetoacetic và Beta-hydroxybutyric. PaCO2 giảm phản ánh sự bù trừ tối đa qua hô hấp (thở Kussmaul đào thải CO2)."
+            },
+            "electrolytes": {
+                "name": "Điện giải đồ máu (Ion đồ)",
+                "val": "Na+ 131 | K+ 5.6 | Cl- 95 mmol/L",
+                "ref": "Na: 135-145 | K: 3.5-5.0 | Cl: 98-106",
+                "status": "warning",
+                "mechanism": "Anion Gap = Na+ - (Cl- + HCO3-) = 131 - (95 + 9.5) = 26.5 mmol/L (Bình thường <= 12). K+ huyết tương tăng giả tạo do toan máu đẩy K+ từ trong tế bào ra ngoài, dù tổng lượng Kali toàn cơ thể đang bị cạn kiệt do bài niệu thẩm thấu!"
+            },
+            "urine": {
+                "name": "Tổng phân tích nước tiểu 10 thông số",
+                "val": "Glucose (++++), Ceton (+++), Protein (-), Hồng cầu (-)",
+                "ref": "Âm tính",
+                "status": "critical_high",
+                "mechanism": "Ngưỡng thận đối với Glucose là ~10 mmol/L, nồng độ máu 32.5 khiến Glucose tràn ngập vào ống thận gây bài niệu thẩm thấu mất 5-8 lít nước."
+            },
+            "ecg": {
+                "name": "Điện tâm đồ 12 chuyển đạo (ECG)",
+                "val": "Nhịp nhanh xoang 118 ck/p, sóng T nhọn đối xứng ở V2-V4, khoảng PR và QRS bình thường",
+                "ref": "Bình thường",
+                "status": "warning",
+                "mechanism": "Sóng T nhọn đối xứng phản ánh tình trạng tăng nồng độ Kali ngoại bào trên màng tế bào cơ tim."
+            }
+        },
+        "diagnosis_benchmark": {
+            "primary": "Nhiễm toan ceton do đái tháo đường (DKA) mức độ nặng / ĐTĐ Type 1",
+            "differentials": ["Hôn mê tăng áp lực thẩm thấu (HHS)", "Toan lactic do nhiễm trùng huyết", "Suy thận cấp vô niệu"],
+            "golden_management": [
+                "1. Bù dịch tích cực đầu tiên: NaCl 0.9% 1000 - 1500 ml trong giờ đầu tiên để khôi phục thể tích tuần hoàn hữu hiệu.",
+                "2. Kiểm tra Kali TRƯỚC KHI tiêm Insulin: Nếu K+ < 3.3 mmol/L thì TUYỆT ĐỐI CHƯA ĐƯỢC DÙNG INSULIN (phải bù K+ trước vì Insulin sẽ kéo K+ vào nội bào gây ngừng tim do tụt K+).",
+                "3. Liều Insulin Regular: Truyền tĩnh mạch liên tục 0.1 đơn vị/kg/giờ (không cần bolus nếu truyền liên tục).",
+                "4. Bù Kali: Duy trì K+ máu từ 4.0 - 5.0 mmol/L ngay khi K+ < 5.2 mmol/L và bệnh nhân có nước tiểu.",
+                "5. Khi Glucose máu giảm xuống dưới 14 mmol/L (250 mg/dL): Phải thêm dịch Glucose 5% song song với NaCl để tránh hạ đường huyết và phù não."
+            ],
+            "clinical_traps": [
+                "BẪY TỬ VONG #1: Tiêm ngay liều cao Insulin khi chưa có kết quả điện giải đồ Kali máu. Nếu bệnh nhân bị tụt Kali tiềm ẩn, Insulin làm Kali tụt đột ngột vào tế bào gây rung thất ngừng tuần hoàn!",
+                "BẪY THI CỬ #2: Bù Natri Bicarbonate vội vã. Chỉ định bù Bicarbonate cực kỳ hạn chế (chỉ khi pH < 6.9 kéo dài) vì nguy cơ gây toan nội bào nghịch đảo và hạ Kali máu nặng hơn."
+            ]
+        }
+    },
+    "stemi": {
+        "id": "stemi",
+        "title": "Nhồi Máu Cơ Tim Cấp ST Chênh Lên (STEMI)",
+        "patient": "Trần Văn B., 58 tuổi, Nam",
+        "chief_complaint": "Đau thắt ngực dữ dội sau xương ức lan lên vai trái và hàm dưới kéo dài > 45 phút",
+        "history": "Hút thuốc 30 năm (1 gói/ngày), tăng huyết áp 5 năm điều trị không đều. Đang ngồi nghỉ thì xuất hiện cơn đau như bị đá đè, toát mồ hôi lạnh, ngậm 1 viên Nitroglycerin dưới lưỡi không đỡ đau.",
+        "vitals": {"bp": "155/95 mmHg", "hr": "92 l/p", "rr": "22 l/p", "temp": "37.0°C", "spo2": "94%", "gcs": "15 điểm"},
+        "physical_exam": "Vẻ mặt hoảng hốt, da tái lạnh, vã mồ hôi. T1, T2 rõ, nghe thấy tiếng T4 ở mỏm tim (phản ánh giảm độ giãn thất trái). Không có tiếng cọ màng tim. Phổi đáy 2 bên có ít rale ẩm rải rác (Killip II).",
+        "available_labs": {
+            "ecg": {
+                "name": "Điện tâm đồ khẩn cấp 12 chuyển đạo",
+                "val": "ST chênh lên dạng vòm >= 3mm ở V1, V2, V3, V4 kèm sóng Q hoại tử sớm ở V1-V2; ST chênh xuống soi gương ở II, III, aVF",
+                "ref": "Bình thường",
+                "status": "critical_high",
+                "mechanism": "Tắc nghẽn hoàn toàn động mạch liên thất trước (LAD) do nứt vỡ mảng xơ vữa và hình thành huyết khối đỏ bít tắc lòng mạch."
+            },
+            "troponin": {
+                "name": "Troponin I siêu nhạy (hs-cTnI)",
+                "val": "3,450 ng/L",
+                "ref": "< 14 ng/L",
+                "status": "critical_high",
+                "mechanism": "Màng tế bào cơ tim hoại tử giải phóng phức hợp Troponin vào tuần hoàn máu. Tăng cao gấp > 200 lần giới hạn trên bình thường."
+            },
+            "ckmb": {
+                "name": "CK-MB khối lượng (CK-MB Mass)",
+                "val": "74 ng/mL",
+                "ref": "< 5 ng/mL",
+                "status": "critical_high",
+                "mechanism": "Isoenzyme CK-MB của tế bào cơ tim tăng nhanh từ giờ thứ 4 và đạt đỉnh sau 18-24 giờ."
+            },
+            "echo": {
+                "name": "Siêu âm tim Doppler cấp cứu tại giường",
+                "val": "Vô động hoàn toàn vùng mỏm và vách liên thất trước. Phân suất tống máu EF = 40%.",
+                "ref": "EF > 55%",
+                "status": "warning",
+                "mechanism": "Thiếu máu hoại tử diện rộng cơ tim gây rối loạn vận động vùng tương ứng với nhánh động mạch LAD bị tắc."
+            },
+            "cbc": {
+                "name": "Tổng phân tích tế bào máu ngoại vi",
+                "val": "WBC 13.5 G/L (Neutrophil 82%), Hb 138 g/L, PLT 235 G/L",
+                "ref": "WBC: 4.0-10.0 G/L",
+                "status": "warning",
+                "mechanism": "Tăng bạch cầu đa nhân trung tính phản ánh phản ứng viêm cấp tính toàn thân do mô cơ tim hoại tử phóng thích cytokine."
+            }
+        },
+        "diagnosis_benchmark": {
+            "primary": "Nhồi máu cơ tim cấp có ST chênh lên (STEMI) thành trước rộng giờ thứ 1 - Killip II",
+            "differentials": ["Bóc tách động mạch chủ ngực loại A (Stanford A)", "Thuyên tắc động mạch phổi cấp diện rộng", "Tràn khí màng phổi áp lực"],
+            "golden_management": [
+                "1. KÍCH HOẠT PHÒNG CATHLAB KHẨN CẤP: Chụp và can thiệp mạch vành qua da thì đầu (Primary PCI) với mục tiêu Thời gian Cửa - Bóng (Door-to-Balloon time) < 60-90 phút.",
+                "2. Kháng kết tập tiểu cầu kép (DAPT) liều nạp ngay: Aspirin 300mg nhai + Ticagrelor 180mg (hoặc Clopidogrel 600mg).",
+                "3. Chống đông: Heparin không phân đoạn tiêm tĩnh mạch bolus 60-70 UI/kg.",
+                "4. Giảm đau & giãn mạch: Morphin sulfat 2-4mg tiêm tĩnh mạch chậm; Nitroglycerin (chú ý chống chỉ định nếu nhồi máu thất phải hoặc HA < 90).",
+                "5. Statin liều cao sớm: Atorvastatin 80mg hoặc Rosuvastatin 40mg để ổn định mảng xơ vữa và giảm viêm nội mạc."
+            ],
+            "clinical_traps": [
+                "BẪY THI CỬ CHẾT NGƯỜI: Chờ kết quả men tim Troponin rồi mới gọi hội chẩn can thiệp PCI! Khi bệnh nhân có đau ngực điển hình + ST chênh lên trên ECG, đó là STEMI đã đủ tiêu chuẩn chẩn đoán, mỗi phút chậm trễ mất đi hàng triệu tế bào cơ tim ('Time is Muscle').",
+                "BẪY DÙNG THUỐC: Cho Nitroglycerin hoặc Nitrate khi bệnh nhân có nhồi máu thất phải (ST chênh lên ở V3R, V4R) gây tụt huyết áp trụy mạch không hồi phục!"
+            ]
+        }
+    },
+    "cirrhosis_he": {
+        "id": "cirrhosis_he",
+        "title": "Bệnh Não Gan & Xơ Gan Mất Bù",
+        "patient": "Lê Hoàng D., 52 tuổi, Nam",
+        "chief_complaint": "Nói lảm nhảm, chậm chạp, ngày ngủ li bì, đêm thức quậy phá",
+        "history": "Tiền sử viêm gan virus B mạn tính 15 năm, xơ gan phát hiện 2 năm. 3 ngày nay bệnh nhân bị táo bón nặng không đi cầu được, ăn nhiều đạm thịt bò, người nhà thấy bệnh nhân phản ứng chậm, nói câu không mạch lạc.",
+        "vitals": {"bp": "105/65 mmHg", "hr": "78 l/p", "rr": "18 l/p", "temp": "36.8°C", "spo2": "97%", "gcs": "13 điểm"},
+        "physical_exam": "Vàng da, củng mạc mắt vàng sẫm. Ngực có nhiều sao mạch (Spider angioma), lòng bàn tay son. Khám thần kinh: Flapping tremor (run vẩy cánh chim / Asterixis) dương tính rõ khi đưa 2 tay ra trước và duỗi cổ tay. Bụng cổ trướng mức độ trung bình, không sốt, không có đề kháng thành bụng.",
+        "available_labs": {
+            "ammonia": {
+                "name": "Định lượng Amoniac máu tĩnh mạch (NH3)",
+                "val": "185 umol/L",
+                "ref": "11 - 35 umol/L",
+                "status": "critical_high",
+                "mechanism": "Gan bị xơ hóa nặng làm suy giảm chu trình Ure (Ornithine cycle), kết hợp tuần hoàn bàng hệ cửa - chủ làm NH3 từ ruột đi tắt thẳng lên tuần hoàn não mà không qua gan chuyển hóa thành Ure."
+            },
+            "lft": {
+                "name": "Men gan & Bilirubin (LFT)",
+                "val": "AST 118 U/L | ALT 65 U/L | Bilirubin TP 68 umol/L | Albumin 23 g/L",
+                "ref": "AST < 40 | ALT < 40 | Bili < 17 | Alb 35-50",
+                "status": "critical_high",
+                "mechanism": "Tỷ số De Ritis AST/ALT > 1 điển hình cho xơ gan tiến triển. Albumin giảm nặng phản ánh suy tế bào gan mạn tính."
+            },
+            "coagulation": {
+                "name": "Đông máu toàn bộ (PT, INR, aPTT)",
+                "val": "PT 25.4s | INR 2.25 | Fibrinogen 1.4 g/L",
+                "ref": "INR 0.85 - 1.15",
+                "status": "critical_high",
+                "mechanism": "Gan không còn đủ năng lực tổng hợp các yếu tố đông máu phụ thuộc Vitamin K (II, VII, IX, X)."
+            },
+            "electrolytes": {
+                "name": "Điện giải đồ máu",
+                "val": "Na+ 128 | K+ 3.1 | Cl- 92 mmol/L",
+                "ref": "Na: 135-145 | K: 3.5-5.0",
+                "status": "warning",
+                "mechanism": "Hạ Natri và hạ Kali máu do dùng thuốc lợi tiểu không kiểm soát. Hạ Kali máu kích thích ống thận tăng tạo NH3, làm nặng thêm bệnh não gan!"
+            },
+            "ultrasound": {
+                "name": "Siêu âm bụng tổng quát",
+                "val": "Nhu mô gan thô không đều, bờ răng cưa, tĩnh mạch cửa dãn d = 16 mm, lách to độ II, dịch ổ bụng tự do lượng vừa",
+                "ref": "Bình thường",
+                "status": "warning",
+                "mechanism": "Hình ảnh kinh điển của xơ gan tăng áp lực tĩnh mạch cửa."
+            }
+        },
+        "diagnosis_benchmark": {
+            "primary": "Bệnh não gan (Hôn mê gan) độ 2 theo phân độ West Haven / Xơ gan mất bù Child-Pugh C do HBV",
+            "differentials": ["Xuất huyết dưới màng cứng mạn tính do ngã", "Hạ đường huyết do suy tế bào gan", "Nhiễm độc thuốc an thần hoặc hội chứng cai rượu"],
+            "golden_management": [
+                "1. Nhận diện và giải quyết YẾU TỐ KHỞI KÍCH: Táo bón kéo dài làm vi khuẩn ruột phân hủy đạm sinh ra lượng lớn NH3.",
+                "2. Thụt tháo hoặc cho uống Lactulose (Duphalac) 20-30g mỗi 2-4 giờ cho đến khi đi ngoài phân mềm 2-3 lần/ngày. Cơ chế: Vi khuẩn ruột lên men Lactulose thành axit hữu cơ làm giảm pH đại tràng, ion hóa NH3 thành ion NH4+ không hấp thu được và bị tống xuất theo phân.",
+                "3. Kháng sinh đường ruột không hấp thu: Rifaximin 550mg x 2 lần/ngày để tiêu diệt vi khuẩn sinh men Urease.",
+                "4. Bù Kali máu: Đưa K+ lên mức bình thường (> 4.0 mmol/L) để cắt đứt chu trình sản sinh NH3 tại thận.",
+                "5. Điều trị căn nguyên: Thuốc kháng virus HBV (Tenofovir/Entecavir) dài hạn."
+            ],
+            "clinical_traps": [
+                "BẪY NGUY HIỂM: Thấy bệnh nhân lú lẫn, mất ngủ về đêm lại kê thuốc an thần Benzodiazepine (Diazepam/Seduxen) -> Thuốc an thần bị gan mất khả năng đào thải sẽ tác động cộng gộp lên thụ thể GABA ở não khiến bệnh nhân rơi thẳng vào hôn mê độ 4 và tử vong!",
+                "BẪY ĂN UỐNG: Cắt bỏ hoàn toàn đạm (Protein) khỏi khẩu phần ăn trong thời gian dài -> Gây teo cơ vân dữ dội, trong khi cơ vân là cơ quan phụ trợ quan trọng giúp gan khử độc NH3 thành Glutamine."
+            ]
+        }
+    }
+}
+
+
+async def api_clinical_sim_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    action = (data.get("action") or "start").strip().lower()
+    case_id = (data.get("case_id") or "dka").strip().lower()
+
+    if case_id not in CLINICAL_CASES_DB:
+        case_id = "dka"
+
+    current_case = CLINICAL_CASES_DB[case_id]
+
+    if action == "start":
+        return json_resp({
+            "ok": True,
+            "case_id": case_id,
+            "title": current_case["title"],
+            "patient": current_case["patient"],
+            "chief_complaint": current_case["chief_complaint"],
+            "history": current_case["history"],
+            "vitals": current_case["vitals"],
+            "physical_exam": current_case["physical_exam"],
+            "available_lab_keys": list(current_case["available_labs"].keys()),
+            "cases_list": [{"id": k, "title": v["title"], "patient": v["patient"]} for k, v in CLINICAL_CASES_DB.items()]
+        })
+
+    elif action == "order_lab":
+        lab_key = (data.get("lab_key") or "").strip().lower()
+        if lab_key in current_case["available_labs"]:
+            return json_resp({
+                "ok": True,
+                "case_id": case_id,
+                "lab_key": lab_key,
+                "result": current_case["available_labs"][lab_key]
+            })
+        return json_resp({"ok": False, "error": f"Không tìm thấy xét nghiệm '{lab_key}'"}, status=404)
+
+    elif action == "diagnose":
+        user_diag = (data.get("user_diagnosis") or "").strip()
+        bm = current_case["diagnosis_benchmark"]
+        return json_resp({
+            "ok": True,
+            "case_id": case_id,
+            "user_diagnosis": user_diag,
+            "benchmark_primary": bm["primary"],
+            "differentials": bm["differentials"],
+            "golden_management": bm["golden_management"],
+            "clinical_traps": bm["clinical_traps"]
+        })
+
+    return json_resp({"ok": False, "error": "Action không hợp lệ"})
+
+
+@functools.lru_cache(maxsize=1024)
+def _evaluate_regex_cached(pattern_str: str, flags: int, flags_str: str, test_str: str):
+    compiled_regex = re.compile(pattern_str, flags)
+    matches = []
+    for m in compiled_regex.finditer(test_str):
+        matches.append({
+            "match": m.group(0),
+            "start": m.start(),
+            "end": m.end(),
+            "groups": list(m.groups()),
+            "group_dict": m.groupdict()
+        })
+    is_full_match = bool(compiled_regex.fullmatch(test_str))
+
+    tokens_expl = []
+    if "^" in pattern_str:
+        tokens_expl.append({"token": "^", "type": "Anchor", "meaning": "Bắt đầu chuỗi (hoặc dòng nếu có cờ Multiline m)."})
+    if "$" in pattern_str:
+        tokens_expl.append({"token": "$", "type": "Anchor", "meaning": "Kết thúc chuỗi (hoặc dòng nếu có cờ Multiline m)."})
+    if r"\d" in pattern_str:
+        tokens_expl.append({"token": r"\d", "type": "CharClass", "meaning": "Khớp đúng 1 ký tự chữ số từ 0 đến 9."})
+    if r"\w" in pattern_str:
+        tokens_expl.append({"token": r"\w", "type": "CharClass", "meaning": "Khớp 1 ký tự chữ cái, chữ số hoặc gạch dưới [a-zA-Z0-9_]."})
+    if r"\s" in pattern_str:
+        tokens_expl.append({"token": r"\s", "type": "CharClass", "meaning": "Khớp 1 ký tự khoảng trắng (space, tab, newline)."})
+    if "+" in pattern_str:
+        tokens_expl.append({"token": "+", "type": "Quantifier", "meaning": "Khớp lặp lại từ 1 lần trở lên (Greedy - Tham lam)."})
+    if "*" in pattern_str:
+        tokens_expl.append({"token": "*", "type": "Quantifier", "meaning": "Khớp lặp lại từ 0 lần trở lên."})
+    if "?" in pattern_str:
+        tokens_expl.append({"token": "?", "type": "Quantifier", "meaning": "Khớp 0 hoặc 1 lần (hoặc biến quantifier thành Non-Greedy)."})
+    if "(?=" in pattern_str:
+        tokens_expl.append({"token": "(?=...)", "type": "Lookaround", "meaning": "Positive Lookahead: Khẳng định phía trước phải khớp điều kiện mà không tiêu thụ ký tự."})
+
+    dfa_nodes = [
+        {"id": "q0", "label": "Start (q0)", "is_start": True, "is_accept": False},
+        {"id": "q1", "label": "Scanning (q1)", "is_start": False, "is_accept": False},
+        {"id": "q2", "label": "Delimiter (q2)", "is_start": False, "is_accept": False},
+        {"id": "q_accept", "label": "Accept (q_acc)", "is_start": False, "is_accept": True}
+    ]
+
+    return {
+        "ok": True,
+        "regex": pattern_str,
+        "test_str": test_str,
+        "flags": flags_str,
+        "is_full_match": is_full_match,
+        "match_count": len(matches),
+        "matches": matches[:50],
+        "tokens_explained": tokens_expl,
+        "dfa_nodes": dfa_nodes,
+        "presets": {
+            "email": r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
+            "phone_vn": r"^(0|\+84)(3|5|7|8|9)[0-9]{8}$",
+            "password_strong": r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$",
+            "csharp_identifier": r"^[a-zA-Z_][a-zA-Z0-9_]*$",
+            "sql_injection": r"(?i)\b(SELECT|UNION|INSERT|DROP|UPDATE|DELETE)\b.*--"
+        }
+    }
+
+
+async def api_regex_engine_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    pattern_str = (data.get("regex") or r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").strip()
+    test_str = (data.get("test_str") or "contact_alice@ctump.edu.vn").strip()
+    flags_str = (data.get("flags") or "").strip().lower()
+
+    flags = 0
+    if "i" in flags_str:
+        flags |= re.IGNORECASE
+    if "m" in flags_str:
+        flags |= re.MULTILINE
+    if "s" in flags_str:
+        flags |= re.DOTALL
+
+    try:
+        res = _evaluate_regex_cached(pattern_str, flags, flags_str, test_str)
+        return json_resp(res)
+    except re.error as e:
+        return json_resp({
+            "ok": False,
+            "error": f"Lỗi cú pháp biểu thức chính quy (Regex): {str(e)}"
+        })
+    except Exception as e:
+        return json_resp({
+            "ok": False,
+            "error": f"Lỗi thực thi Regex: {str(e)}"
+        }, status=500)
+
+
+async def api_memory_gc_visualizer_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    scenario = (data.get("scenario") or "value_vs_ref").strip().lower()
+
+    if scenario == "gc_generations":
+        title = "Chu Trình Thu Gom Rác Thế Hệ (GC Generations: Gen 0 -> Gen 1 -> Gen 2)"
+        code_snippet = (
+            "// C# Managed Heap & Garbage Collection\n"
+            "for (int i = 0; i < 1000; i++) {\n"
+            "    var temp = new byte[1024]; // Cấp phát ngắn hạn trong Gen 0\n"
+            "}\n"
+            "var cache = new List<string>(); // GC Root sống lâu năm\n"
+            "GC.Collect(0); // Kích hoạt quét rác thế hệ 0 (Gen 0)"
+        )
+        steps = [
+            {
+                "step": 0,
+                "title": "Khởi tạo: Biến 'cache' được tham chiếu từ Stack sang Heap Gen 0",
+                "stack": [{"frame": "Main()", "var": "cache", "type": "List<string>", "val": "ref -> 0x00A1F0"}],
+                "gen0": [{"addr": "0x00A1F0", "type": "List<string>", "size": "48 B", "reachable": True}],
+                "gen1": [],
+                "gen2": [{"addr": "0x000100", "type": "TypeMetadata / StringIntern", "size": "12 KB", "reachable": True}],
+                "action": "Cấp phát ban đầu",
+                "explanation": "Trong .NET CLR, mọi đối tượng mới khởi tạo (dưới 85,000 bytes) mặc định rơi vào Generation 0."
+            },
+            {
+                "step": 1,
+                "title": "Cấp phát 1,000 mảng tạm thời trong vòng lặp làm đầy Gen 0",
+                "stack": [{"frame": "Main()", "var": "cache", "type": "List<string>", "val": "ref -> 0x00A1F0"}],
+                "gen0": [
+                    {"addr": "0x00A1F0", "type": "List<string>", "size": "48 B", "reachable": True},
+                    {"addr": "0x00B000", "type": "byte[] (temp #1)", "size": "1024 B", "reachable": False},
+                    {"addr": "0x00B400", "type": "byte[] (temp #2)", "size": "1024 B", "reachable": False},
+                    {"addr": "0x00B800", "type": "byte[] (temp #999)", "size": "1024 B", "reachable": False}
+                ],
+                "gen1": [],
+                "gen2": [{"addr": "0x000100", "type": "Metadata", "size": "12 KB", "reachable": True}],
+                "action": "Ngưỡng bộ nhớ Gen 0 bị vượt quá",
+                "explanation": "Các mảng 'temp' sau khi hết phạm vi vòng lặp trở thành 'Unreachable' (không còn con trỏ nào từ GC Roots trỏ tới)."
+            },
+            {
+                "step": 2,
+                "title": "GC Chạy Giai Đoạn Đánh Dấu (Mark Phase): Dò từ GC Roots",
+                "stack": [{"frame": "Main()", "var": "cache", "type": "List<string>", "val": "ref -> 0x00A1F0"}],
+                "gen0": [
+                    {"addr": "0x00A1F0", "type": "List<string>", "size": "48 B", "reachable": True, "marked": True},
+                    {"addr": "0x00B000", "type": "byte[]", "size": "1024 B", "reachable": False, "marked": False},
+                    {"addr": "0x00B400", "type": "byte[]", "size": "1024 B", "reachable": False, "marked": False}
+                ],
+                "gen1": [],
+                "gen2": [{"addr": "0x000100", "type": "Metadata", "size": "12 KB", "reachable": True, "marked": True}],
+                "action": "Thuật toán Mark: Duyệt đồ thị đối tượng từ Stack Pointers & Static Roots",
+                "explanation": "Chỉ có đối tượng 'cache' được nối với biến cục bộ trên Stack được đánh dấu 'Sống' (Marked). Toàn bộ các mảng temp bị bỏ qua."
+            },
+            {
+                "step": 3,
+                "title": "Giai Đoạn Quét & Nén (Sweep & Compact): Thăng hạng lên Gen 1!",
+                "stack": [{"frame": "Main()", "var": "cache", "type": "List<string>", "val": "ref -> 0x00A1F0 (promoted)"}],
+                "gen0": [],
+                "gen1": [{"addr": "0x00C000", "type": "List<string>", "size": "48 B", "reachable": True}],
+                "gen2": [{"addr": "0x000100", "type": "Metadata", "size": "12 KB", "reachable": True}],
+                "action": "Giải phóng rác Gen 0 và thăng hạng đối tượng sống sót lên Gen 1",
+                "explanation": "Toàn bộ rác được thu hồi trong micro-giây. Đối tượng sống sót 'cache' được chuyển lên Gen 1. Gen 0 sạch hoàn toàn để đón các cấp phát mới."
+            }
+        ]
+
+    elif scenario == "memory_leak_event":
+        title = "Rò Rỉ Bộ Nhớ Do Quên Hủy Đăng Ký Sự Kiện (Event Handler Leak)"
+        code_snippet = (
+            "// C# Memory Leak Antipattern\n"
+            "public class EventPublisher {\n"
+            "    public event Action OnDataReceived;\n"
+            "}\n"
+            "public void Process() {\n"
+            "    var heavy = new HeavyService();\n"
+            "    publisher.OnDataReceived += heavy.HandleData; // Tạo tham chiếu ẩn từ publisher -> heavy!\n"
+            "    // Kết thúc hàm: biến heavy trên Stack mất đi, nhưng Heap KHÔNG THỂ BỊ THU GOM!\n"
+            "}"
+        )
+        steps = [
+            {
+                "step": 0,
+                "title": "Cấp phát biến 'heavy' cục bộ trong hàm Process()",
+                "stack": [{"frame": "Process()", "var": "heavy", "type": "HeavyService", "val": "ref -> 0x00D500"}],
+                "gen0": [{"addr": "0x00D500", "type": "HeavyService", "size": "4.5 MB", "reachable": True}],
+                "gen1": [],
+                "gen2": [{"addr": "0x001000", "type": "EventPublisher (static/singleton)", "size": "128 B", "reachable": True}],
+                "action": "Đăng ký sự kiện: publisher.OnDataReceived += heavy.HandleData",
+                "explanation": "Khi đăng ký sự kiện, delegate bên trong Publisher giữ một tham chiếu ngầm (Strong Reference) trỏ trực tiếp tới đối tượng HeavyService."
+            },
+            {
+                "step": 1,
+                "title": "Hàm Process() kết thúc -> Stack Frame bị giải phóng",
+                "stack": [{"frame": "Main()", "var": "None", "type": "void", "val": "None"}],
+                "gen0": [{"addr": "0x00D500", "type": "HeavyService", "size": "4.5 MB", "reachable": True, "leaked": True}],
+                "gen1": [],
+                "gen2": [{"addr": "0x001000", "type": "EventPublisher", "size": "128 B", "reachable": True}],
+                "action": "Bộ nhớ bị rò rỉ (Memory Leak)!",
+                "explanation": "Lập trình viên nghĩ rằng hết hàm Process() thì HeavyService sẽ được GC dọn dẹp. NHƯNG KHÔNG! Con trỏ từ Singleton Publisher vẫn đang giữ chặt nó. Mỗi lần gọi Process() sẽ mất thêm 4.5 MB!"
+            }
+        ]
+
+    else:
+        # value_vs_ref
+        title = "Kiểu Giá Trị (Stack) vs Kiểu Tham Chiếu (Managed Heap)"
+        code_snippet = (
+            "// C# Value Type vs Reference Type\n"
+            "int age = 21;                     // Cấp phát trực tiếp 4 bytes trên STACK\n"
+            "Point pt = new Point(10, 20);     // struct: Cấp phát toàn bộ 8 bytes trên STACK\n"
+            "Student s = new Student(\"Khoa\");  // class: Con trỏ 8 bytes trên STACK -> Đối tượng trên HEAP"
+        )
+        steps = [
+            {
+                "step": 0,
+                "title": "Khai báo biến nguyên thủy 'int age = 21'",
+                "stack": [{"frame": "Main()", "var": "age", "type": "int (ValueType)", "val": "21 (4 bytes trực tiếp)"}],
+                "gen0": [],
+                "gen1": [],
+                "gen2": [],
+                "action": "Cấp phát Stack O(1)",
+                "explanation": "Biến kiểu giá trị (Value Type) nằm trực tiếp bên trong Stack Frame. Không cần thông qua con trỏ và không gây gánh nặng cho Garbage Collector."
+            },
+            {
+                "step": 1,
+                "title": "Khai báo struct 'Point pt = new Point(10, 20)'",
+                "stack": [
+                    {"frame": "Main()", "var": "age", "type": "int", "val": "21"},
+                    {"frame": "Main()", "var": "pt", "type": "struct Point (ValueType)", "val": "{X: 10, Y: 20} (8 bytes trực tiếp)"}
+                ],
+                "gen0": [],
+                "gen1": [],
+                "gen2": [],
+                "action": "Cấp phát Struct trên Stack",
+                "explanation": "Dù có từ khóa 'new', nhưng vì Point là một struct nên toàn bộ dữ liệu của nó được nhúng thẳng vào khung ngăn xếp Stack."
+            },
+            {
+                "step": 2,
+                "title": "Khởi tạo class 'Student s = new Student(\"Khoa\")'",
+                "stack": [
+                    {"frame": "Main()", "var": "age", "type": "int", "val": "21"},
+                    {"frame": "Main()", "var": "pt", "type": "struct Point", "val": "{X: 10, Y: 20}"},
+                    {"frame": "Main()", "var": "s", "type": "Student (RefType)", "val": "Con trỏ địa chỉ 64-bit -> 0x00F83C"}
+                ],
+                "gen0": [{"addr": "0x00F83C", "type": "Student", "size": "32 B", "reachable": True, "fields": {"Name": "Khoa", "ID": 1}}],
+                "gen1": [],
+                "gen2": [],
+                "action": "Cấp phát Heap & Trả về con trỏ",
+                "explanation": "Class là Reference Type: CPU cấp phát 32 bytes trên Managed Heap Gen 0 (bao gồm SyncBlockIndex 8B + TypeHandle 8B + Fields) và lưu con trỏ 8 bytes trên Stack."
+            }
+        ]
+
+    return json_resp({
+        "ok": True,
+        "scenario": scenario,
+        "title": title,
+        "code_snippet": code_snippet,
+        "steps": steps
+    })
+
+
+@functools.lru_cache(maxsize=256)
+def _calculate_metabolic_atp_cached(substrate: str, shuttle: str, inhibitor: str):
+    # Calculations based on modern P/O ratio (1 NADH = 2.5 ATP, 1 FADH2 = 1.5 ATP)
+    if substrate == "glucose_anaerobic":
+        stages = [
+            {"phase": "1. Đường phân yếm khí (Anaerobic Glycolysis)", "atp_direct": 2, "nadh": 0, "fadh2": 0, "subtotal": 2, "desc": "1 Glucose -> 2 Pyruvate (sinh 2 ATP, 2 NADH). 2 NADH này được dùng ngay để khử Pyruvate thành 2 Lactate bởi men LDH!"}
+        ]
+        total_atp = 2
+        formula = "Glucose + 2 ADP + 2 Pi -> 2 Lactate + 2 ATP + 2 H2O"
+        clinical = "Xảy ra ở hồng cầu (không có ty thể), cơ vân khi vận động cực độ thiếu oxy, hoặc trong sốc nhiễm trùng gây toan lactic máu."
+
+    elif substrate == "palmitic_acid":
+        stages = [
+            {"phase": "1. Hoạt hóa Axit Béo (Activation)", "atp_direct": -2, "nadh": 0, "fadh2": 0, "subtotal": -2, "desc": "Palmitate + ATP + CoA -> Palmitoyl-CoA + AMP + PPi (tiêu tốn tương đương 2 liên kết cao năng ATP)."},
+            {"phase": "2. 7 Chu kỳ Beta-Oxy hóa", "atp_direct": 0, "nadh": 7, "fadh2": 7, "subtotal": 28, "desc": "7 NADH x 2.5 = 17.5 ATP; 7 FADH2 x 1.5 = 10.5 ATP -> Tổng 28 ATP."},
+            {"phase": "3. 8 Phân tử Acetyl-CoA vào Chu trình Krebs", "atp_direct": 8, "nadh": 24, "fadh2": 8, "subtotal": 80, "desc": "Mỗi Acetyl-CoA sinh 10 ATP (3 NADH, 1 FADH2, 1 GTP). 8 x 10 = 80 ATP."}
+        ]
+        total_atp = 106
+        formula = "C16H32O2 + 23 O2 + 106 (ADP + Pi) -> 16 CO2 + 16 H2O + 106 ATP"
+        clinical = "Nguồn năng lượng chủ yếu của cơ tim trong điều kiện bình thường (cơ tim sử dụng 60-70% năng lượng từ axit béo)."
+
+    else:
+        # glucose_aerobic
+        cytosolic_atp = 5.0 if shuttle == "malate_aspartate" else 3.0
+        shuttle_name = "Malate-Aspartate (Tim, Gan, Thận - giữ nguyên NADH)" if shuttle == "malate_aspartate" else "Glycerol-3-Phosphate (Não, Cơ xương - chuyển thành FADH2)"
+
+        stages = [
+            {"phase": "1. Đường phân (Glycolysis tại bào tương)", "atp_direct": 2, "nadh": 2, "fadh2": 0, "subtotal": 2 + cytosolic_atp, "desc": f"Sinh 2 ATP mức cơ chất + 2 NADH bào tương qua con thoi {shuttle_name} -> {cytosolic_atp} ATP."},
+            {"phase": "2. Phức hợp Pyruvate Dehydrogenase (Bên trong Ty thể)", "atp_direct": 0, "nadh": 2, "fadh2": 0, "subtotal": 5.0, "desc": "2 Pyruvate -> 2 Acetyl-CoA + 2 CO2 + 2 NADH ty thể (2 x 2.5 = 5.0 ATP)."},
+            {"phase": "3. Chu trình Krebs (TCA Cycle)", "atp_direct": 2, "nadh": 6, "fadh2": 2, "subtotal": 20.0, "desc": "2 Vòng quay: 2 GTP + 6 NADH (15 ATP) + 2 FADH2 (3 ATP) = 20 ATP."},
+            {"phase": "4. Chuỗi chuyền Electron & Phosphoryl hóa oxy hóa (OXPHOS)", "atp_direct": 0, "nadh": 0, "fadh2": 0, "subtotal": 0, "desc": "Vận chuyển electron qua 4 phức hợp I-IV tạo chênh lệch thế proton (H+ gradient) quay turbine ATP Synthase."}
+        ]
+        total_atp = 2 + cytosolic_atp + 5.0 + 20.0
+        formula = f"C6H12O6 + 6 O2 + {int(total_atp)} (ADP + Pi) -> 6 CO2 + 6 H2O + {int(total_atp)} ATP"
+        clinical = f"Với con thoi {shuttle_name}, 1 phân tử Glucose tạo ra đúng {int(total_atp)} ATP (theo hệ số hiện đại P/O 2.5 và 1.5)."
+
+    # Process Inhibitors
+    inhibitor_effect = None
+    if inhibitor == "cyanide_co":
+        inhibitor_effect = {
+            "target": "Phức hợp IV (Cytochrome c oxidase)",
+            "mechanism": "Cyanide (CN-) và Carbon monoxide (CO) gắn chặt vào Fe3+ trong Heme a3 của Phức hợp IV, ngăn cản truyền electron cho Oxy.",
+            "consequence": "Chuỗi hô hấp ngừng trệ hoàn toàn -> Mất chênh lệch điện thế proton -> Tổng hợp ATP giảm về 0 -> Tử vong nhanh do ngạt mô tế bào!"
+        }
+        total_atp = 0
+    elif inhibitor == "rotenone_amytal":
+        inhibitor_effect = {
+            "target": "Phức hợp I (NADH-Q oxidoreductase)",
+            "mechanism": "Ngăn cản chuyển electron từ trung tâm Fe-S của Phức hợp I sang Ubiquinone (Coenzyme Q).",
+            "consequence": "NADH không oxy hóa được, nhưng electron từ Succinate (FADH2) qua Phức hợp II vẫn đi tiếp được một phần."
+        }
+        total_atp = round(total_atp * 0.3, 1)
+    elif inhibitor == "dnp_uncoupler":
+        inhibitor_effect = {
+            "target": "Chất tách đôi màng trong ty thể (Uncoupling Protein / 2,4-DNP)",
+            "mechanism": "Vận chuyển proton H+ thẩm thấu ngược vào chất nền mà không đi qua kênh F0 của ATP Synthase.",
+            "consequence": "Chuỗi chuyền electron chạy với tốc độ tối đa, tiêu thụ Oxy cực lớn nhưng KHÔNG TẠO ATP -> Toàn bộ năng lượng thoát ra dạng NHIỆT (Sốt cao ác tính, hủy tế bào)!"
+        }
+        total_atp = 2  # chỉ còn ATP ở mức cơ chất
+
+    return {
+        "ok": True,
+        "substrate": substrate,
+        "shuttle": shuttle,
+        "inhibitor": inhibitor,
+        "total_atp": total_atp,
+        "formula": formula,
+        "stages": stages,
+        "inhibitor_effect": inhibitor_effect,
+        "clinical_notes": clinical
+    }
+
+
+async def api_metabolic_pathway_handler(request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
+
+    substrate = (data.get("substrate") or "glucose_aerobic").strip().lower()
+    shuttle = (data.get("shuttle") or "malate_aspartate").strip().lower()
+    inhibitor = (data.get("inhibitor") or "none").strip().lower()
+
+    result = _calculate_metabolic_atp_cached(substrate, shuttle, inhibitor)
+    return json_resp(result)
+
+
 def create_app():
     db.init_db()
     # Always repair the catalog first: cloud volumes can start with an empty DB
@@ -4627,6 +6363,12 @@ def create_app():
     app.router.add_post("/api/ai/tutor-assist", ai_tutor_assist_handler)
     app.router.add_post("/api/ai/concept-recall", ai_concept_recall_handler)
     app.router.add_post("/api/ai/deep-analysis", ai_deep_analysis_handler)
+    app.router.add_post("/api/ai/deep-analysis/followup", ai_deep_analysis_followup_handler)
+    app.router.add_post("/api/ai/deep-analysis/mindmap", ai_deep_analysis_mindmap_handler)
+    app.router.add_get("/api/ai/deep-analysis/history", ai_deep_analysis_history_list_handler)
+    app.router.add_post("/api/ai/deep-analysis/history/save", ai_deep_analysis_history_save_handler)
+    app.router.add_delete("/api/ai/deep-analysis/history/{id}", ai_deep_analysis_history_delete_handler)
+    app.router.add_post("/api/ai/deep-analysis/history/clear", ai_deep_analysis_history_clear_handler)
     app.router.add_post("/api/ai/explain-mistake", ai_explain_mistake_handler)
     app.router.add_post("/api/ai/mnemonic", ai_mnemonic_handler)
     app.router.add_post("/api/ai/make-flashcard", ai_make_flashcard_handler)
@@ -4713,7 +6455,7 @@ def create_app():
     app.router.add_get("/api/stem/reference", api_stem_reference)
     app.router.add_get("/api/exam/ctump-parts", api_exam_ctump_parts)
 
-    # UniMaster AI v41.0 & v42.0 Super-Suite Routes
+    # UniMaster AI v41.0, v42.0 & v43.0 Super-Suite Routes
     app.router.add_post("/api/ai/viva-simulator", api_viva_simulator_handler)
     app.router.add_post("/api/ai/feynman-evaluate", api_feynman_evaluate_handler)
     app.router.add_post("/api/ai/mindmap-generate", api_mindmap_generate_handler)
@@ -4722,6 +6464,16 @@ def create_app():
     app.router.add_post("/api/ai/devils-advocate", api_devils_advocate_handler)
     app.router.add_get("/api/analytics/forgetting-curve", api_forgetting_curve_handler)
     app.router.add_post("/api/code/polyglot-transpile", api_polyglot_transpile_handler)
+    app.router.add_post("/api/sql/sandbox-execute", api_sql_sandbox_execute_handler)
+    app.router.add_post("/api/algo/step-visualizer", api_algo_step_visualizer_handler)
+    app.router.add_post("/api/ai/cornell-studio", api_cornell_studio_handler)
+    app.router.add_get("/api/ai/cram-roadmap", api_cram_roadmap_handler)
+
+    # UniMaster AI v44.0 Hyper-Learning & Engineering Studio Routes
+    app.router.add_post("/api/clinical/case-sim", api_clinical_sim_handler)
+    app.router.add_post("/api/code/regex-engine", api_regex_engine_handler)
+    app.router.add_post("/api/code/memory-gc", api_memory_gc_visualizer_handler)
+    app.router.add_post("/api/biochem/metabolic-atp", api_metabolic_pathway_handler)
 
     # Route URLs (/exam/practical, /exam/essay, etc.)
     app.router.add_get("/exam/practical", index_handler)

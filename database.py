@@ -64,9 +64,10 @@ def get_connection():
     conn.row_factory = sqlite3.Row
     try:
         conn.execute("PRAGMA synchronous=NORMAL")
-        conn.execute("PRAGMA busy_timeout=10000")
+        conn.execute("PRAGMA busy_timeout=15000")
         conn.execute("PRAGMA temp_store=MEMORY")
-        conn.execute("PRAGMA cache_size=-16000")
+        conn.execute("PRAGMA cache_size=-64000")
+        conn.execute("PRAGMA mmap_size=268435456")
     except Exception:
         pass
     return conn
@@ -232,6 +233,30 @@ def init_db():
     )
     """)
 
+    # Bảng lưu trữ lịch sử AI Phân tích chuyên sâu (Persistent Deep Analysis History)
+    cursor.execute('''
+    CREATE TABLE IF NOT EXISTS ai_analysis_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        question_id INTEGER,
+        subject_id INTEGER,
+        question_text TEXT NOT NULL,
+        correct_option TEXT DEFAULT '',
+        explanation TEXT DEFAULT '',
+        analysis TEXT NOT NULL,
+        source_type TEXT DEFAULT 'exam',
+        code_snippet TEXT DEFAULT '',
+        user_id TEXT DEFAULT 'guest',
+        analysis_mode TEXT DEFAULT 'standard',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    ''')
+
+    # Migration thêm cột analysis_mode nếu bảng đã tạo trước đó
+    try:
+        cursor.execute("ALTER TABLE ai_analysis_history ADD COLUMN analysis_mode TEXT DEFAULT 'standard'")
+    except Exception:
+        pass
+
     # Bảng kết quả thi thử
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS exam_results (
@@ -295,6 +320,10 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_exam_results_user ON exam_results(user_id, created_at DESC)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_discussions_question ON question_discussions(question_id, is_verified DESC, upvotes DESC)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_archived_history_type_time ON archived_history(history_type, archived_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_analysis_q_time ON ai_analysis_history(question_id, created_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_analysis_q_mode ON ai_analysis_history(question_id, analysis_mode, created_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_analysis_sub_time ON ai_analysis_history(subject_id, created_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_analysis_created ON ai_analysis_history(created_at DESC)")
 
     # Bảng quản lý API Keys an toàn (gitignored DB, không đưa lên cloud seed)
     cursor.execute("""
@@ -1192,6 +1221,166 @@ def delete_archived_item(archive_id: int):
 
 
 # ==========================================
+
+
+# ==========================================
+# AI DEEP ANALYSIS HISTORY (PERSISTENT & CACHE-ASIDE)
+# ==========================================
+def save_ai_analysis(
+    question_text: str,
+    analysis: str,
+    question_id: int = None,
+    subject_id: int = None,
+    correct_option: str = "",
+    explanation: str = "",
+    code_snippet: str = "",
+    source_type: str = "exam",
+    user_id: str = "guest",
+    analysis_mode: str = "standard"
+) -> int:
+    """Lưu phân tích chuyên sâu vào SQLite, trả về ID vừa tạo."""
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("""
+            INSERT INTO ai_analysis_history (
+                question_id, subject_id, question_text, correct_option,
+                explanation, analysis, source_type, code_snippet, user_id, analysis_mode
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            question_id, subject_id, question_text.strip(),
+            (correct_option or "").strip(), (explanation or "").strip(),
+            analysis.strip(), source_type or "exam", (code_snippet or "").strip(),
+            user_id or "guest", analysis_mode or "standard"
+        ))
+        conn.commit()
+        return cur.lastrowid
+    finally:
+        conn.close()
+
+
+def get_ai_analysis_by_question(question_id: int, analysis_mode: str = None) -> dict | None:
+    """Cache-aside lookup: Lấy phân tích gần nhất theo question_id (và mode nếu có) trong < 0.1ms."""
+    if not question_id:
+        return None
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        if analysis_mode:
+            cur.execute("""
+                SELECT id, question_id, subject_id, question_text, correct_option,
+                       explanation, analysis, source_type, code_snippet, user_id, analysis_mode, created_at
+                FROM ai_analysis_history
+                WHERE question_id = ? AND analysis_mode = ?
+                ORDER BY created_at DESC LIMIT 1
+            """, (question_id, analysis_mode))
+        else:
+            cur.execute("""
+                SELECT id, question_id, subject_id, question_text, correct_option,
+                       explanation, analysis, source_type, code_snippet, user_id, analysis_mode, created_at
+                FROM ai_analysis_history
+                WHERE question_id = ?
+                ORDER BY created_at DESC LIMIT 1
+            """, (question_id,))
+        row = cur.fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def get_ai_analysis_history(
+    subject_id: int = None,
+    search: str = None,
+    analysis_mode: str = None,
+    limit: int = 50,
+    offset: int = 0
+) -> list[dict]:
+    """Lấy danh sách lịch sử phân tích với hỗ trợ tìm kiếm full text / LIKE và lọc môn/chế độ."""
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        conditions = []
+        params = []
+        if subject_id:
+            conditions.append("h.subject_id = ?")
+            params.append(subject_id)
+        if analysis_mode:
+            conditions.append("h.analysis_mode = ?")
+            params.append(analysis_mode)
+        if search:
+            kw = f"%{search.strip()}%"
+            conditions.append("(h.question_text LIKE ? OR h.analysis LIKE ?)")
+            params.extend([kw, kw])
+        
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        query = f"""
+            SELECT h.id, h.question_id, h.subject_id, h.question_text, h.correct_option,
+                   h.explanation, h.analysis, h.source_type, h.code_snippet, h.user_id,
+                   COALESCE(h.analysis_mode, 'standard') as analysis_mode, h.created_at,
+                   s.name as subject_name, s.code as subject_code
+            FROM ai_analysis_history h
+            LEFT JOIN subjects s ON h.subject_id = s.id
+            {where_clause}
+            ORDER BY h.created_at DESC
+            LIMIT ? OFFSET ?
+        """
+        params.extend([limit, offset])
+        cur.execute(query, params)
+        return [dict(r) for r in cur.fetchall()]
+    finally:
+        conn.close()
+
+
+def count_ai_analysis_history(subject_id: int = None, search: str = None, analysis_mode: str = None) -> int:
+    """Đếm tổng số bản ghi phân tích để phục vụ phân trang giao diện."""
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        conditions = []
+        params = []
+        if subject_id:
+            conditions.append("subject_id = ?")
+            params.append(subject_id)
+        if analysis_mode:
+            conditions.append("analysis_mode = ?")
+            params.append(analysis_mode)
+        if search:
+            kw = f"%{search.strip()}%"
+            conditions.append("(question_text LIKE ? OR analysis LIKE ?)")
+            params.extend([kw, kw])
+        where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+        cur.execute(f"SELECT COUNT(*) FROM ai_analysis_history {where_clause}", params)
+        return cur.fetchone()[0]
+    finally:
+        conn.close()
+
+
+def delete_ai_analysis_item(analysis_id: int) -> bool:
+    """Xóa một bản ghi lịch sử phân tích."""
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM ai_analysis_history WHERE id = ?", (analysis_id,))
+        conn.commit()
+        return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def clear_all_ai_analysis_history(subject_id: int = None) -> int:
+    """Xóa toàn bộ hoặc theo môn học."""
+    conn = get_connection()
+    try:
+        cur = conn.cursor()
+        if subject_id:
+            cur.execute("DELETE FROM ai_analysis_history WHERE subject_id = ?", (subject_id,))
+        else:
+            cur.execute("DELETE FROM ai_analysis_history")
+        conn.commit()
+        return cur.rowcount
+    finally:
+        conn.close()
+
 # AI API KEYS POOL & PERSISTENT TUTOR CHATS
 # ==========================================
 def list_ai_api_keys(provider: str = "gemini") -> list[dict]:

@@ -1633,12 +1633,22 @@ const SUBJECT_SHORTCUTS = {
     { icon: '🗂️', label: 'Flashcard Đa Hình', action: 'openSubjectFlashcards(5)' },
     { icon: '🤖', label: 'AI Soi Rò Rỉ RAM', action: "switchTab('exercises')" }
   ],
+  TOAN_RR: [
+    { icon: '📐', label: 'Đề Toán Rời Rạc (27/11)', action: 'openExamForSubjectCode("TOAN_RR", 21)' },
+    { icon: '🕸️', label: 'Lab Đồ Thị Euler & MST', action: "switchTab('lab'); switchLabSubTab('graphtheory');" },
+    { icon: '✍️', label: 'Tự Luận Logic & Đồ Thị', action: "switchTab('essay'); setTimeout(() => filterEssayPromptList('toan_rr'), 120);" },
+    { icon: '🗂️', label: 'Flashcard Toán Rời Rạc', action: 'openFlashcardsForCode("TOAN_RR", 21)' }
+  ],
+  CTDL_GT: [
+    { icon: '⚡', label: 'Đề Giải Thuật (60 câu)', action: 'openExamForSubjectCode("CTDL_GT", 82)' },
+    { icon: '⏳', label: 'Tua Bước & Call Stack', action: "openAlgoVisualizerModal('steps')" },
+    { icon: '📊', label: 'Mô Phỏng Sort & Search', action: "openAlgoVisualizerModal('bars')" },
+    { icon: '✍️', label: 'Tự Luận Big-O & Dijkstra', action: "switchTab('essay'); setTimeout(() => filterEssayPromptList('ctdl_gt'), 120);" },
+    { icon: '🗂️', label: 'Flashcard Giải Thuật', action: 'openFlashcardsForCode("CTDL_GT", 82)' }
+  ],
   DISCRETE_MATH_ALGO: [
-    { icon: '⚡', label: 'Đề Giữa Kỳ 16/11 (40 câu)', action: 'startTimedExamForSubject(21, 60, 40)' },
-    { icon: '📊', label: 'Mô Phỏng Thuật Toán', action: 'openAlgoVisualizerModal()' },
-    { icon: '✍️', label: 'Chấm Tự Luận Thuật Toán', action: "switchTab('essay')" },
-    { icon: '🎯', label: 'Săn Lỗi 20s (Bug Hunter)', action: 'openBugHunterModal()' },
-    { icon: '🗂️', label: 'Flashcard Big-O', action: 'openSubjectFlashcards(21)' }
+    { icon: '📐', label: 'Ôn Toán Rời Rạc', action: 'openExamForSubjectCode("TOAN_RR", 21)' },
+    { icon: '⚡', label: 'Ôn Giải Thuật', action: 'openExamForSubjectCode("CTDL_GT", 82)' }
   ],
   NNLT1: [
     { icon: '💻', label: 'Chấm Thực Hành Python', action: "switchTab('exercises'); selectExerciseBySubject(22);" },
@@ -1773,7 +1783,8 @@ const DEFAULT_UI_PREFS = {
 };
 
 const BUILT_IN_SUBJECT_CODES = new Set([
-  'MLN101', 'PLDC101', 'MATH101', 'CS101', 'OOP_CSHARP', 'CHEM101', 'PHYS101', 'BIO101', 'HOASINH_CTUMP'
+  'MLN101', 'PLDC101', 'MATH101', 'CS101', 'OOP_CSHARP', 'CHEM101', 'PHYS101', 'BIO101',
+  'HOASINH_CTUMP', 'HOASINH_YDS_2024', 'TOAN_RR', 'CTDL_GT', 'NNLT1', 'AVCB3', 'kysinh_trung'
 ]);
 
 function loadLocalPrefs() {
@@ -3279,9 +3290,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 // =========================================================================
 const EXAM_COUNTDOWN_TARGETS = [
   { date: new Date(2026, 10, 15), name: 'OOP Thực hành C#' },
-  { date: new Date(2026, 10, 16), name: 'Giữa Kỳ Giải Thuật' },
+  { date: new Date(2026, 10, 16), name: 'Giải Thuật (CTDL & GT)' },
   { date: new Date(2026, 10, 26), name: 'OOP Trắc nghiệm & TH' },
-  { date: new Date(2026, 10, 27), name: 'Toán Rời Rạc & Giải Thuật' },
+  { date: new Date(2026, 10, 27), name: 'Toán Rời Rạc' },
   { date: new Date(2026, 11, 1), name: 'NNLT 1 Python' },
   { date: new Date(2026, 11, 4), name: 'Anh Văn Cơ Bản 3' }
 ];
@@ -3378,7 +3389,9 @@ function populateAllSubjectSelects() {
     'roadmap-subject-select',
     'battle-subject-select'
   ];
+  const savedSubId = STATE.activeSubjectId || localStorage.getItem('unimaster_active_subject_id');
   const preferred =
+    STATE.subjects.find((s) => String(s.id) === String(savedSubId)) ||
     STATE.subjects.find((s) => s.code === 'HOASINH_CTUMP') ||
     STATE.subjects.find((s) => s.code === 'OOP_CSHARP') ||
     STATE.subjects[0];
@@ -3391,8 +3404,8 @@ function populateAllSubjectSelects() {
     sel.innerHTML = STATE.subjects
       .map((s) => `<option value="${s.id}">${s.icon || '📘'} ${escapeHtml(s.name)} (${s.question_count})</option>`)
       .join('');
-    if (prev && STATE.subjects.some((s) => String(s.id) === String(prev))) sel.value = prev;
-    else if (preferred) sel.value = String(preferred.id);
+    if (preferred) sel.value = String(preferred.id);
+    else if (prev && STATE.subjects.some((s) => String(s.id) === String(prev))) sel.value = prev;
   });
 }
 
@@ -3508,6 +3521,13 @@ function switchTab(tabName) {
 
   playSound('click');
   if (tabName === 'dashboard') renderDashboard();
+  if (tabName === 'exam') {
+    const examSel = document.getElementById('exam-subject-select');
+    if (examSel && STATE.activeSubjectId && examSel.value !== String(STATE.activeSubjectId)) {
+      examSel.value = String(STATE.activeSubjectId);
+    }
+    onExamSubjectChange();
+  }
   if (tabName === 'exercises') loadExercisesView();
   if (tabName === 'essay') loadEssayView();
   if (tabName === 'flashcards') loadFlashcardsView();
@@ -3550,10 +3570,9 @@ function renderLearningProgressWidget() {
   const streak = Number(STATE.streakDays || 0);
 
   const metrics = [
-    ['🏆', 'Điểm TB', `${avgScore.toFixed(1)}/10`, 'txt-amber'],
     ['✅', 'Câu đúng (ước tính)', totalCorrect.toLocaleString('vi-VN'), 'txt-emerald'],
-    ['❌', 'Câu sai (ước tính)', totalWrong.toLocaleString('vi-VN'), 'txt-rose'],
-    ['🔥', 'Streak', `${streak} ngày`, 'txt-brand']
+    ['❌', 'Câu sai cần ôn', totalWrong.toLocaleString('vi-VN'), 'txt-rose'],
+    ['🔥', 'Chuỗi ôn tập', `${streak} ngày`, 'txt-brand']
   ];
   summary.innerHTML = metrics.map(([icon, label, value, color]) => `
     <div class="rounded-xl p-3 border" style="border-color: var(--border); background: var(--bg-subtle);">
@@ -3604,6 +3623,52 @@ function renderLearningProgressWidget() {
   if (status) status.textContent = `${exams.length} đề • ${accuracy}% chính xác`;
 }
 
+function _classifySubjectCategory(s) {
+  const code = String(s?.code || '').toUpperCase();
+  const cat = String(s?.category || '').toLowerCase();
+  const name = String(s?.name || '').toLowerCase();
+  if (cat.includes('y') || cat.includes('hóa sinh') || cat.includes('sinh') || code.includes('HOASINH') || code.includes('KYSINH') || ['CHEM101', 'BIO101', 'PHYS101'].includes(code) || name.includes('hóa sinh') || name.includes('ký sinh')) {
+    return 'y_duoc';
+  }
+  if (['OOP_CSHARP', 'CTDL_GT', 'NNLT1', 'CS101', 'TOAN_RR', 'DISCRETE_MATH_ALGO'].includes(code) || cat.includes('công nghệ') || cat.includes('cntt') || name.includes('giải thuật') || name.includes('lập trình')) {
+    return 'cntt';
+  }
+  return 'toan_dc';
+}
+
+function setSubjectCategoryFilter(cat) {
+  STATE.subjectCategoryFilter = cat || 'all';
+  document.querySelectorAll('.subj-cat-pill').forEach((btn) => {
+    const active = btn.getAttribute('data-cat-filter') === STATE.subjectCategoryFilter;
+    btn.classList.toggle('btn-primary', active);
+    btn.classList.toggle('btn-soft', !active);
+  });
+  renderDashboard();
+}
+
+function switchDashboardStudioTab(tabKey) {
+  ['cntt', 'medical', 'study'].forEach((k) => {
+    document.getElementById(`studio-panel-${k}`)?.classList.toggle('hidden', k !== tabKey);
+  });
+  document.querySelectorAll('.studio-hub-tab').forEach((btn) => {
+    const active = btn.getAttribute('data-studio-tab') === tabKey;
+    btn.classList.toggle('btn-primary', active);
+    btn.classList.toggle('btn-soft', !active);
+  });
+}
+
+function openExamForSubjectCode(code, fallbackId) {
+  const matched = (STATE.subjects || []).find((s) => String(s.code).toUpperCase() === String(code).toUpperCase());
+  const sid = matched ? matched.id : fallbackId;
+  openSubjectExam(sid);
+}
+
+function openFlashcardsForCode(code, fallbackId) {
+  const matched = (STATE.subjects || []).find((s) => String(s.code).toUpperCase() === String(code).toUpperCase());
+  const sid = matched ? matched.id : fallbackId;
+  openSubjectFlashcards(sid);
+}
+
 function renderDashboard() {
   let subs = (Array.isArray(STATE.subjects) && STATE.subjects.length) ? STATE.subjects : [];
   if (!subs.length) {
@@ -3615,8 +3680,8 @@ function renderDashboard() {
       }
     } catch (_) {}
   }
-  const subCount = subs.length || 13;
-  const qCount = subs.reduce((a, s) => a + (s.question_count || 0), 0) || 3670;
+  const subCount = subs.length || 15;
+  const qCount = subs.reduce((a, s) => a + (s.question_count || 0), 0) || 6829;
   setText('stat-subjects', subCount);
   setText('stat-questions', qCount.toLocaleString('vi-VN'));
   setText('stat-exams', STATE.stats?.total_exams || 0);
@@ -3647,52 +3712,67 @@ function renderDashboard() {
         return bEn - aEn;
       });
     }
+    const catFilter = STATE.subjectCategoryFilter || 'all';
+    if (catFilter !== 'all') {
+      displaySubjects = displaySubjects.filter((s) => _classifySubjectCategory(s) === catFilter);
+    }
 
-    grid.innerHTML = displaySubjects
-      .map((s, idx) => {
-        const isEnrolled = enrolledIds.includes(s.id);
-        const grad = accents[idx % accents.length];
-        return `
-        <div class="uni-card uni-card-interactive p-5 flex flex-col justify-between gap-4">
-          <div class="flex items-start justify-between gap-3">
-            <div class="flex items-center gap-3.5">
-              <div class="w-12 h-12 rounded-2xl flex items-center justify-center text-xl text-white shadow-md shrink-0" style="background: ${grad};">
-                ${s.icon || '📘'}
+    grid.innerHTML = displaySubjects.length
+      ? displaySubjects
+          .map((s, idx) => {
+            const grad = accents[idx % accents.length];
+            const tagHtml =
+              s.code === 'TOAN_RR'
+                ? '<span class="badge-brand px-1.5 py-0.2 rounded text-[10px] font-extrabold">📐 Toán Rời Rạc</span>'
+                : s.code === 'CTDL_GT'
+                ? '<span class="badge-cyan px-1.5 py-0.2 rounded text-[10px] font-extrabold">⚡ Giải Thuật</span>'
+                : s.code === 'OOP_CSHARP'
+                ? '<span class="badge-brand px-1.5 py-0.2 rounded text-[10px] font-extrabold">💻 CNTT</span>'
+                : s.code === 'HOASINH_CTUMP' || s.code === 'HOASINH_YDS_2024'
+                ? '<span class="badge-emerald px-1.5 py-0.2 rounded text-[10px] font-extrabold">🩺 Y Khoa</span>'
+                : '';
+            return `
+            <div class="uni-card uni-card-interactive p-4 sm:p-5 flex flex-col justify-between gap-3.5">
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-center gap-3 min-w-0">
+                  <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-xl text-white shadow-md shrink-0" style="background: ${grad};">
+                    ${s.icon || '📘'}
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                      <span class="text-[10px] font-mono font-bold txt-muted uppercase">${escapeHtml(s.code)}</span>
+                      ${tagHtml}
+                    </div>
+                    <h3 class="font-extrabold text-sm sm:text-base txt-main leading-snug truncate">${escapeHtml(s.name)}</h3>
+                    <div class="flex flex-wrap gap-1.5 mt-1.5 text-[11px] font-bold">
+                      <span class="badge-brand px-2 py-0.5 rounded-lg">${s.question_count} câu</span>
+                      <span class="badge-subtle px-2 py-0.5 rounded-lg">${s.flashcard_count} thẻ</span>
+                      ${s.exercise_count ? `<span class="badge-amber px-2 py-0.5 rounded-lg">${s.exercise_count} bài code</span>` : ''}
+                    </div>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1 shrink-0">
+                  <button onclick="quickExpandSubjectQuestions(${s.id}, this)" title="AI tự soạn thêm 5 câu mới cho môn này" class="ai-chip-btn !py-1 !px-2 !text-[11px]">
+                    ✨ +5
+                  </button>
+                  ${
+                    !BUILT_IN_SUBJECT_CODES.has(s.code)
+                      ? `<button onclick="deleteSubject(${s.id})" title="Xóa môn học" class="btn-soft p-1.5 txt-rose"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>`
+                      : ''
+                  }
+                </div>
               </div>
-              <div>
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="text-[10px] font-mono font-bold txt-muted uppercase">${escapeHtml(s.code)}</span>
-                  ${isEnrolled ? '<span class="badge-brand px-1.5 py-0.2 rounded text-[10px] font-black border border-indigo-500/40">★ Môn Của Acc</span>' : ''} ${s.code === 'OOP_CSHARP' ? '<span class="badge-brand px-1.5 py-0.2 rounded text-[10px] font-extrabold">💻 CNTT Pro</span>' : s.code === 'HOASINH_CTUMP' ? '<span class="badge-emerald px-1.5 py-0.2 rounded text-[10px] font-extrabold">🔬 Y Khoa</span>' : s.question_count > 100 ? '<span class="badge-amber px-1.5 py-0.2 rounded text-[10px] font-extrabold">⭐ Trọng Tâm</span>' : ''}
-                </div>
-                <h3 class="font-extrabold text-sm sm:text-base txt-main leading-snug">${escapeHtml(s.name)}</h3>
-                <div class="flex flex-wrap gap-1.5 mt-1.5 text-[11px] font-bold">
-                  <span class="badge-brand px-2 py-0.5 rounded-lg">${s.question_count} câu</span>
-                  <span class="badge-subtle px-2 py-0.5 rounded-lg">${s.flashcard_count} thẻ</span>
-                  ${s.exercise_count ? `<span class="badge-amber px-2 py-0.5 rounded-lg">${s.exercise_count} bài C#</span>` : ''}
-                </div>
+
+              <div class="grid grid-cols-3 gap-2 pt-3" style="border-top: 1px solid var(--border);">
+                <button onclick="openSubjectExam(${s.id})" class="btn-primary py-2 text-xs">Vào Thi</button>
+                <button onclick="openSubjectFlashcards(${s.id})" class="btn-soft py-2 text-xs">Thẻ Nhớ</button>
+                <button onclick="openSubjectBank(${s.id})" class="btn-soft py-2 text-xs">Tra Cứu</button>
               </div>
             </div>
-            <div class="flex items-center gap-1">
-              <button onclick="quickExpandSubjectQuestions(${s.id}, this)" title="AI tự soạn thêm 5 câu mới cho môn này" class="ai-chip-btn !py-1 !px-2 !text-[11px]">
-                ✨ +5 câu
-              </button>
-              ${
-                !BUILT_IN_SUBJECT_CODES.has(s.code)
-                  ? `<button onclick="deleteSubject(${s.id})" title="Xóa môn học" class="btn-soft p-1.5 txt-rose"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>`
-                  : ''
-              }
-            </div>
-          </div>
-
-          <div class="grid grid-cols-3 gap-2 pt-3" style="border-top: 1px solid var(--border);">
-            <button onclick="openSubjectExam(${s.id})" class="btn-primary py-2 text-xs">Vào Thi</button>
-            <button onclick="openSubjectFlashcards(${s.id})" class="btn-soft py-2 text-xs">Thẻ Nhớ</button>
-            <button onclick="openSubjectBank(${s.id})" class="btn-soft py-2 text-xs">Tra Cứu</button>
-          </div>
-        </div>
-      `;
-      })
-      .join('');
+          `;
+          })
+          .join('')
+      : `<div class="col-span-full text-center py-8 text-xs txt-muted">Chưa có học phần nào trong nhóm này.</div>`;
   }
 
   const tbody = document.getElementById('recent-exams-tbody');
@@ -4083,6 +4163,20 @@ async function onExamSubjectChange() {
 
   const meta = document.getElementById('exam-subject-meta');
   if (meta) meta.textContent = `Tổng ${allQs.length} câu hỏi sẵn sàng`;
+
+  const subObj = (Array.isArray(STATE.subjects) ? STATE.subjects : []).find((s) => Number(s.id) === sid);
+  const ctumpCard = document.getElementById('exam-ctump-parts-card');
+  if (ctumpCard) {
+    const isCtump = subObj && String(subObj.code || '').toUpperCase() === 'HOASINH_CTUMP';
+    ctumpCard.classList.toggle('hidden', !isCtump);
+  }
+  const quickTo = document.getElementById('exam-quick-range-to');
+  const quickFrom = document.getElementById('exam-quick-range-from');
+  if (quickTo && quickFrom) {
+    quickFrom.value = '1';
+    quickTo.value = String(Math.min(allQs.length || 50, 50));
+    if (typeof updateRangePreview === 'function') updateRangePreview();
+  }
 
   const grid = document.getElementById('exam-parts-grid');
   if (grid) {
@@ -5150,8 +5244,37 @@ function renderQuestionFeedbackArea(q) {
   const deepBox = document.getElementById('q-ai-deep-box');
   if (deepBox) {
     if (STATE.exam.deepAnalysis[q.id]) {
-      deepBox.innerHTML = `<div class="markdown-body text-sm">${renderMarkdown(STATE.exam.deepAnalysis[q.id])}</div>`;
+      const meta = STATE.exam.deepAnalysisMeta?.[q.id] || {};
+      const modeLabels = {
+        standard: '🔬 Chuẩn giáo sư',
+        feynman: '👶 Feynman đời sống',
+        exam_trap: '🎯 Mổ xẻ bẫy thi',
+        socratic: '❓ Socrates phản biện',
+        stem_clinical: '🧬 STEM & Lâm sàng'
+      };
+      const modeText = modeLabels[meta.mode] || '🔬 Chuẩn giáo sư';
+      const cachedBadge = meta.cached
+        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">⚡ Đã nạp từ lịch sử (0.05ms)</span>`
+        : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">💾 Đã lưu vào kho lịch sử</span>`;
+
+      deepBox.innerHTML = `
+        <div class="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/35 space-y-2.5">
+          <div class="flex items-center justify-between pb-2 border-b border-white/10 text-xs flex-wrap gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-bold text-indigo-300 flex items-center gap-1.5"><i data-lucide="microscope" class="w-4 h-4 text-indigo-400"></i> AI Phân Tích Chuyên Sâu</span>
+              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">${modeText}</span>
+              ${cachedBadge}
+            </div>
+            <div class="flex items-center gap-1.5">
+              <button onclick="triggerDeepAnalysis(true)" class="px-2 py-0.5 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white transition-all" title="Yêu cầu AI sinh lại bài phân tích mới">🔄 Làm mới</button>
+              <button onclick="openDeepAnalysisHistoryModal()" class="px-2 py-0.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-1 transition-all" title="Mở kho lịch sử lưu trữ">📚 Kho Lịch Sử</button>
+            </div>
+          </div>
+          <div class="markdown-body text-sm leading-relaxed text-slate-200">${renderMarkdown(STATE.exam.deepAnalysis[q.id])}</div>
+        </div>
+      `;
       deepBox.classList.remove('hidden');
+      if (window.lucide) lucide.createIcons();
     } else deepBox.classList.add('hidden');
   }
 
@@ -5440,24 +5563,52 @@ async function distillQuestionObjectToFlashcard(q, sid) {
   }
 }
 
-async function triggerDeepAnalysis() {
+async function triggerDeepAnalysis(forceRefresh = false, customMode = null) {
   const q = STATE.exam.questions[STATE.exam.currentIndex];
   const deepBox = document.getElementById('q-ai-deep-box');
   if (!q || !deepBox) return;
+
+  const mode = customMode || document.getElementById('deep-analysis-mode-select')?.value || 'standard';
   deepBox.classList.remove('hidden');
-  deepBox.innerHTML = `<div class="skeleton-shimmer h-16 w-full"></div>`;
+  deepBox.innerHTML = `
+    <div class="p-3 bg-indigo-950/30 rounded-xl border border-indigo-500/30 flex items-center gap-3">
+      <div class="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
+      <span class="text-xs text-indigo-300 font-medium">${forceRefresh ? 'Đang gửi yêu cầu phân tích mới tới AI...' : 'Đang tra cứu kho lưu trữ & phân tích chuyên sâu...'}</span>
+    </div>
+  `;
   playSound('click');
-  const res = await apiFetch('/api/ai/deep-analysis', {
-    method: 'POST',
-    body: JSON.stringify({
-      question_text: q.question_text,
-      correct_option: q._effectiveCorrect,
-      explanation: q.explanation,
-      code_snippet: q.code_snippet || ''
-    })
-  });
-  STATE.exam.deepAnalysis[q.id] = res.analysis || '';
-  renderQuestionFeedbackArea(q);
+  try {
+    const res = await apiFetch('/api/ai/deep-analysis', {
+      method: 'POST',
+      body: JSON.stringify({
+        question_id: q.id,
+        subject_id: STATE.exam.subjectId || q.subject_id,
+        question_text: q.question_text,
+        correct_option: q._effectiveCorrect || '',
+        explanation: q.explanation || '',
+        code_snippet: q.code_snippet || '',
+        source_type: 'exam',
+        force_refresh: forceRefresh,
+        mode: mode
+      })
+    });
+    STATE.exam.deepAnalysis[q.id] = res.analysis || '';
+    if (!STATE.exam.deepAnalysisMeta) STATE.exam.deepAnalysisMeta = {};
+    STATE.exam.deepAnalysisMeta[q.id] = {
+      cached: !!res.cached,
+      history_id: res.history_id,
+      created_at: res.created_at,
+      mode: res.analysis_mode || mode
+    };
+    renderQuestionFeedbackArea(q);
+    if (res.cached) {
+      showToast('⚡ Phân tích được nạp tức thì từ kho lịch sử (0.05ms)', 'info');
+    } else {
+      showToast('💾 Đã lưu phân tích chuyên sâu vào kho dữ liệu bền vững', 'success');
+    }
+  } catch (err) {
+    deepBox.innerHTML = `<div class="p-3 bg-red-950/40 rounded-xl border border-red-500/40 text-xs text-red-300">Không thể phân tích: ${err.message || 'Lỗi kết nối'}</div>`;
+  }
 }
 
 async function triggerSimilarQuestion() {
@@ -6488,7 +6639,7 @@ async function aiExpandCurrentSubjectBank() {
   }
 }
 
-async function aiAnalyzeBankQuestion(qid) {
+async function aiAnalyzeBankQuestion(qid, forceRefresh = false) {
   const q = STATE.bank.all.find((x) => x.id === qid);
   const box = document.getElementById(`bank-ai-box-${qid}`);
   if (!q || !box) return;
@@ -6497,17 +6648,46 @@ async function aiAnalyzeBankQuestion(qid) {
   playSound('click');
 
   const corr = normalizeCorrectLetter(q);
-  const res = await apiFetch('/api/ai/deep-analysis', {
-    method: 'POST',
-    body: JSON.stringify({
-      question_text: q.question_text,
-      correct_option: corr,
-      explanation: q.explanation || '',
-      code_snippet: q.code_snippet || ''
-    })
-  });
-  STATE.bank.aiCache[qid] = res.analysis || '';
-  box.innerHTML = renderMarkdown(STATE.bank.aiCache[qid]);
+  const sid = Number(document.getElementById('bank-subject-select')?.value || q.subject_id || 0);
+  try {
+    const res = await apiFetch('/api/ai/deep-analysis', {
+      method: 'POST',
+      body: JSON.stringify({
+        question_id: q.id,
+        subject_id: sid,
+        question_text: q.question_text,
+        correct_option: corr,
+        explanation: q.explanation || '',
+        code_snippet: q.code_snippet || '',
+        source_type: 'bank',
+        force_refresh: forceRefresh
+      })
+    });
+    STATE.bank.aiCache[qid] = res.analysis || '';
+    const cachedBadge = res.cached
+      ? `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">⚡ Đã nạp từ lịch sử</span>`
+      : `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">💾 Đã lưu kho</span>`;
+    box.innerHTML = `
+      <div class="p-3 rounded-xl bg-indigo-950/20 border border-indigo-500/30 space-y-2">
+        <div class="flex items-center justify-between pb-1.5 border-b border-white/10 text-xs">
+          <span class="font-bold text-indigo-300 flex items-center gap-1.5">🔬 AI Phân Tích Chuyên Sâu ${cachedBadge}</span>
+          <div class="flex items-center gap-1.5">
+            <button onclick="aiAnalyzeBankQuestion(${qid}, true)" class="text-[10px] px-2 py-0.5 rounded border border-white/15 hover:bg-white/10 text-slate-300 transition-all">🔄 Phân tích lại</button>
+            <button onclick="openDeepAnalysisHistoryModal()" class="text-[10px] px-2 py-0.5 rounded border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/15 transition-all">📚 Kho lịch sử</button>
+          </div>
+        </div>
+        <div class="markdown-body text-sm text-slate-200">${renderMarkdown(STATE.bank.aiCache[qid])}</div>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+    if (res.cached) {
+      showToast('⚡ Phân tích được nạp tức thì từ kho lưu trữ (0.05ms)', 'info');
+    } else {
+      showToast('💾 Đã lưu phân tích vào kho lưu trữ', 'success');
+    }
+  } catch (err) {
+    box.innerHTML = `<div class="p-2.5 bg-red-950/30 rounded border border-red-500/30 text-xs text-red-300">Không thể phân tích: ${err.message || 'Lỗi'}</div>`;
+  }
 }
 
 async function aiMnemonicBankQuestion(qid) {
@@ -7656,7 +7836,7 @@ function renderKnowledgeHeatmapAndPredictor(allQs, sid) {
         ? topicList.reduce((acc, t) => acc + t.mastery, 0) / topicList.length
         : 78;
     const predScore = Math.max(4.0, Math.min(9.9, (avgMastery / 100) * 10));
-    predScoreEl.textContent = `${predScore.toFixed(1)} ± 0.4`;
+    predScoreEl.textContent = `${predScore.toFixed(1)}`;
 
     const weakest = [...topicList].sort((a, b) => a.mastery - b.mastery)[0];
     if (weakest) {
@@ -10985,12 +11165,15 @@ function selectActiveSubject(subjectId, notify = true) {
 
   closeModal('modal-subject-picker');
 
+  // Always keep Exam View synced even when changed from another view
+  onExamSubjectChange();
+
   // Context-aware refresh based on active tab
   if (STATE.currentTab === 'dashboard') renderDashboard();
-  if (STATE.currentTab === 'exam') onExamSubjectChange();
   if (STATE.currentTab === 'flashcards') loadFlashcardsView();
   if (STATE.currentTab === 'search') filterQuestionBank();
   if (STATE.currentTab === 'exercises') loadExercisesView();
+  if (STATE.currentTab === 'essay' && typeof loadEssayView === 'function') loadEssayView();
 
   if (notify) {
     showToast(`🎯 Đã chọn môn: ${sub.name}`, 'success');
@@ -12208,7 +12391,41 @@ async function aiReviewCurrentCode() {
 // UNIMASTER v14.0 MODULE 2: TRỢ GIẢNG CHẤM TỰ LUẬN (TOÁN RỜI RẠC & GIẢI THUẬT)
 // =========================================================================
 if (!STATE.essay) {
-  STATE.essay = { prompts: [], currentPromptId: 'ESSAY_01', drafts: {}, results: {}, showModel: false };
+  STATE.essay = { prompts: [], currentPromptId: 'ESSAY_01', subjectFilter: 'all', drafts: {}, results: {}, showModel: false };
+}
+
+function _getEssayCategory(p) {
+  const id = String(p?.id || '');
+  const topic = String(p?.topic || '').toLowerCase();
+  const title = String(p?.title || '').toLowerCase();
+  const sid = Number(p?.subject_id || 0);
+  if (sid === 82 || id === 'ESSAY_04' || id === 'ESSAY_05' || id === 'ESSAY_06' || topic.includes('giải thuật') || topic.includes('đệ quy') || topic.includes('quy hoạch') || title.includes('merge sort') || title.includes('dijkstra') || title.includes('dp') || title.includes('quy hoạch')) {
+    return 'ctdl_gt';
+  }
+  return 'toan_rr';
+}
+
+function filterEssayPromptList(filterKey = 'all') {
+  STATE.essay.subjectFilter = filterKey;
+  document.querySelectorAll('.essay-subj-pill').forEach((btn) => {
+    const active = btn.getAttribute('data-essay-filter') === filterKey;
+    btn.classList.toggle('btn-primary', active);
+    btn.classList.toggle('btn-soft', !active);
+  });
+  const allPrompts = STATE.essay.prompts || [];
+  const filtered = filterKey === 'all' ? allPrompts : allPrompts.filter((p) => _getEssayCategory(p) === filterKey);
+  const sel = document.getElementById('essay-prompt-select');
+  if (sel && filtered.length) {
+    sel.innerHTML = filtered.map((p) => {
+      const tag = _getEssayCategory(p) === 'ctdl_gt' ? '[Giải Thuật]' : '[Toán Rời Rạc]';
+      return `<option value="${p.id}">${tag} ${escapeHtml(p.title)}</option>`;
+    }).join('');
+    if (!filtered.some((p) => p.id === STATE.essay.currentPromptId)) {
+      STATE.essay.currentPromptId = filtered[0].id;
+    }
+    sel.value = STATE.essay.currentPromptId;
+    loadSelectedEssayPrompt();
+  }
 }
 
 async function loadEssayView() {
@@ -12217,13 +12434,18 @@ async function loadEssayView() {
     const prompts = res && res.prompts ? res.prompts : [];
     STATE.essay.prompts = prompts;
 
-    const sel = document.getElementById('essay-prompt-select');
-    if (sel && prompts.length) {
-      sel.innerHTML = prompts.map((p) => `<option value="${p.id}">${escapeHtml(p.title)}</option>`).join('');
-      sel.value = STATE.essay.currentPromptId || prompts[0].id;
+    // Auto-match filter if user's global active subject is Toán Rời Rạc or Giải Thuật
+    const activeSub = (STATE.subjects || []).find((s) => String(s.id) === String(STATE.activeSubjectId));
+    if (activeSub && activeSub.code === 'TOAN_RR') {
+      filterEssayPromptList('toan_rr');
+      return;
+    }
+    if (activeSub && activeSub.code === 'CTDL_GT') {
+      filterEssayPromptList('ctdl_gt');
+      return;
     }
 
-    loadSelectedEssayPrompt();
+    filterEssayPromptList(STATE.essay.subjectFilter || 'all');
   } catch (err) {
     console.error('Failed to load essay prompts:', err);
   }
@@ -13051,15 +13273,39 @@ window.ALGO_STATE = {
   timer: null
 };
 
-function openAlgoVisualizerModal() {
-  document.getElementById('modal-algo-visualizer')?.classList.remove('hidden');
-  initSelectedAlgo();
+function switchAlgoVisualizerTab(tab = 'steps') {
+  const isBars = tab === 'bars';
+  document.getElementById('algo-panel-steps')?.classList.toggle('hidden', isBars);
+  document.getElementById('algo-panel-bars')?.classList.toggle('hidden', !isBars);
+  const btnSteps = document.getElementById('algo-tab-btn-steps');
+  const btnBars = document.getElementById('algo-tab-btn-bars');
+  if (btnSteps) {
+    btnSteps.classList.toggle('btn-primary', !isBars);
+    btnSteps.classList.toggle('btn-soft', isBars);
+  }
+  if (btnBars) {
+    btnBars.classList.toggle('btn-primary', isBars);
+    btnBars.classList.toggle('btn-soft', !isBars);
+  }
+  if (isBars) {
+    initSelectedAlgo();
+  } else if (typeof loadAlgoStepVisualizer === 'function') {
+    loadAlgoStepVisualizer();
+  }
 }
 
 function closeAlgoVisualizerModal() {
   clearInterval(window.ALGO_STATE.timer);
   window.ALGO_STATE.isPlaying = false;
-  document.getElementById('modal-algo-visualizer')?.classList.add('hidden');
+  if (typeof V43_STATE !== 'undefined' && V43_STATE.algo?.playInterval) {
+    clearInterval(V43_STATE.algo.playInterval);
+    V43_STATE.algo.isPlaying = false;
+  }
+  const modal = document.getElementById('modal-algo-visualizer');
+  if (modal) {
+    modal.classList.add('hidden');
+    modal.classList.remove('active');
+  }
 }
 
 function resetAlgoArray() {
@@ -13554,39 +13800,43 @@ document.addEventListener('dblclick', (e) => {
 function renderSurvivalPredictor() {
   const now = new Date();
   const exams = [
-    { id: 'countdown-15-11', date: new Date(2026, 10, 15), name: 'OOP Thực hành C#', urgent: true },
-    { id: 'countdown-16-11', date: new Date(2026, 10, 16), name: 'Giữa Kỳ Giải Thuật', urgent: true },
-    { id: 'countdown-26-11', date: new Date(2026, 10, 26), name: 'OOP Trắc nghiệm & TH' },
-    { id: 'countdown-27-11', date: new Date(2026, 10, 27), name: 'Toán Rời Rạc & Giải Thuật' },
-    { id: 'countdown-01-12', date: new Date(2026, 11, 1), name: 'NNLT 1 Python' },
-    { id: 'countdown-04-12', date: new Date(2026, 11, 4), name: 'Anh Văn Cơ Bản 3' }
+    { id: 'countdown-15-11', badgeId: 'cd-badge-15-11', date: new Date(2026, 10, 15, 23, 59), name: 'OOP Thực hành C#' },
+    { id: 'countdown-16-11', badgeId: 'cd-badge-16-11', date: new Date(2026, 10, 16, 23, 59), name: 'Giải Thuật (CTDL & GT)' },
+    { id: 'countdown-26-11', badgeId: 'cd-badge-26-11', date: new Date(2026, 10, 26, 23, 59), name: 'OOP Trắc nghiệm & TH' },
+    { id: 'countdown-27-11', badgeId: 'cd-badge-27-11', date: new Date(2026, 10, 27, 23, 59), name: 'Toán Rời Rạc' },
+    { id: 'countdown-01-12', badgeId: 'cd-badge-01-12', date: new Date(2026, 11, 1, 23, 59), name: 'NNLT 1 Python' },
+    { id: 'countdown-04-12', badgeId: 'cd-badge-04-12', date: new Date(2026, 11, 4, 23, 59), name: 'Anh Văn Cơ Bản 3' }
   ];
 
   let nearestDays = 999;
   let nearestName = '';
 
-  exams.forEach(ex => {
+  exams.forEach((ex) => {
     const diffMs = ex.date.getTime() - now.getTime();
-    const days = Math.max(0, Math.ceil(diffMs / (1000 * 60 * 60 * 24)));
+    const isPast = diffMs < 0;
+    const days = isPast ? -1 : Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const el = document.getElementById(ex.id);
+    const badgeEl = document.getElementById(ex.badgeId);
+
     if (el) {
-      el.textContent = days === 0 ? 'HÔM NAY THI!' : `${days} ngày nữa`;
+      if (isPast) el.textContent = 'Đã qua / Ôn lại';
+      else if (days === 0) el.textContent = 'Hôm nay thi';
+      else el.textContent = `${days} ngày nữa`;
     }
-    if (days < nearestDays) {
+    if (badgeEl) {
+      if (isPast) badgeEl.textContent = 'Đã qua';
+      else if (days === 0) badgeEl.textContent = 'HÔM NAY';
+      else badgeEl.textContent = `${days} NGÀY`;
+    }
+    if (!isPast && days < nearestDays) {
       nearestDays = days;
       nearestName = ex.name;
     }
   });
 
   const titleEl = document.getElementById('survival-urgent-title');
-  if (titleEl) {
-    const d15 = Math.max(0, Math.ceil((new Date(2026, 10, 15).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-    const d16 = Math.max(0, Math.ceil((new Date(2026, 10, 16).getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
-    if (d15 <= 7 && d16 <= 8) {
-      titleEl.textContent = `15/11: OOP Thực Hành (${d15} ngày) • 16/11: Giữa Kỳ Giải Thuật (${d16} ngày)`;
-    } else {
-      titleEl.textContent = `${nearestName}: Còn đúng ${nearestDays} ngày!`;
-    }
+  if (titleEl && nearestName) {
+    titleEl.textContent = `Mốc thi gần nhất: ${nearestName} (còn ${nearestDays} ngày)`;
   }
 
   const quota = JSON.parse(localStorage.getItem('unimaster_daily_quota') || '{"done": 0, "target": 40}');
@@ -15673,6 +15923,7 @@ function renderAccountSubjectCheckboxes() {
 
   const allSubjects = STATE.subjects || [];
   setText('acc-subj-total-count', allSubjects.length);
+  setText('acc-subj-total-count-btn', allSubjects.length);
   setText('acc-subj-selected-count', tempSelectedSubjectIds.size);
 
   grid.innerHTML = allSubjects
@@ -20130,8 +20381,16 @@ function buildCommandPaletteCatalog(query) {
   const q = (query || '').trim().toLowerCase();
   const items = [];
 
-  // Core System, v41.0 & v42.0 Actions
+  // Core System, v41.0, v42.0 & v43.0 Actions
   const coreCommands = [
+    { icon: '🩺', title: 'Mô Phỏng Khám Bệnh & Biện Luận Lâm Sàng Thực Nghiệm', sub: 'Hỏi bệnh, đo sinh hiệu, chỉ định xét nghiệm động & phòng ngừa bẫy tử vong', badge: 'MỚI v44', action: () => openClinicalSimModal() },
+    { icon: '🔣', title: 'Trực Quan Hóa Regex & Máy Trạng Thái Hữu Hạn (DFA/NFA)', sub: 'Biên dịch Regex thời gian thực, bóc tách Token & vẽ đồ thị trạng thái automata', badge: 'MỚI v44', action: () => openRegexEngineModal() },
+    { icon: '💾', title: 'Trực Quan Hóa Bộ Nhớ C# CLR & Thu Gom Rác (GC Generations)', sub: 'Phân biệt Stack vs Heap, Mark-Sweep-Compact thế hệ Gen 0, 1, 2 & bẫy leak', badge: 'MỚI v44', action: () => openMemoryGcModal() },
+    { icon: '⚡', title: 'Hóa Sinh Năng Lượng & Cân Bằng ATP Ty Thể (Bioenergetics)', sub: 'Đường phân, Krebs, Chuỗi Hô Hấp Tế Bào, Hệ số P/O hiện đại & Chất độc', badge: 'MỚI v44', action: () => openMetabolicAtpModal() },
+    { icon: '🗄️', title: 'Phòng Lab SQL Trực Quan & Trình Đối Chiếu C# LINQ', sub: 'Chạy Query SQLite in-memory, phân tích Execution Plan & giải mã JOIN', badge: 'v43', action: () => openSqlSandboxModal() },
+    { icon: '⏳', title: 'Máy Chiếu Tua Bước Giải Thuật & Khung Ngăn Xếp (Time-Travel)', sub: 'Step debugger trực quan cho Binary Search, QuickSort, Call Stack đệ quy & DP', badge: 'MỚI v43', action: () => openAlgoVisualizerModal() },
+    { icon: '📑', title: 'Sổ Tay Ghi Chép Cornell Thông Minh & Tự Nhẩm (Active Recall)', sub: 'Cột gợi ý + Cột ghi chú + Tóm tắt bản chất kèm nút che đáp án tự kiểm tra', badge: 'MỚI v43', action: () => openCornellStudioModal() },
+    { icon: '🧭', title: 'Bản Đồ Năng Lực 6 Chiều & Lộ Trình Vượt Vũ Môn Cấp Tốc', sub: 'Radar 6D Bloom/SM-2, danh sách môn nguy cấp & kế hoạch 4 chặng trước thi', badge: 'MỚI v43', action: () => openCramRoadmapModal() },
     { icon: '⚔️', title: 'Đấu Trường Săn Ngụy Biện AI (Devil\'s Advocate Arena)', sub: 'Bắt lỗi lập luận sai của AI để rèn tư duy phản biện Socratic', badge: 'MỚI v42', action: () => openDevilsAdvocateModal() },
     { icon: '📈', title: 'Đường Cong Quên Lãng Ebbinghaus & Dự Báo Điểm Thi', sub: 'Mô hình toán học R(t)=e^(-t/S) & Khoảng tin cậy 95%', badge: 'MỚI v42', action: () => openEbbinghausModal() },
     { icon: '🔄', title: 'Đối Chiếu Code C# ↔ Python ↔ SQL & Đồ Thị Big-O', sub: 'Chuyển đổi song ngữ thuật toán và vẽ đường cong độ phức tạp', badge: 'MỚI v42', action: () => openPolyglotModal(false) },
@@ -20166,7 +20425,7 @@ function buildCommandPaletteCatalog(query) {
           sub: `${s.question_count || 0} câu hỏi • Bấm để chọn môn và vào Phòng Thi`,
           badge: 'MÔN HỌC',
           action: () => {
-            if (typeof selectGlobalSubject === 'function') selectGlobalSubject(s.id);
+            if (typeof selectActiveSubject === 'function') selectActiveSubject(s.id, true);
             switchTab('exam');
           }
         });
@@ -21343,6 +21602,1373 @@ const V42_STATE = {
   pomoTimerId: null
 };
 
+// ==========================================
+// V43_STATE: QUANTUM NEURO-ENGINEERING SUITE
+// ==========================================
+const V43_STATE = {
+  sql: {
+    lastResults: [],
+    lastExecutionOrder: [],
+    lastLinqCode: ''
+  },
+  algo: {
+    currentAlgo: 'binary_search',
+    frames: [],
+    currentFrameIndex: 0,
+    isPlaying: false,
+    playInterval: null,
+    playSpeedMs: 900
+  },
+  cornell: {
+    topic: '',
+    activeRecallCovered: false,
+    currentData: null
+  },
+  cram: {
+    scores: {},
+    roadmap: []
+  }
+};
+
+// ------------------------------------------
+// 1. SQL SANDBOX & EXECUTION PLAN ENGINE
+// ------------------------------------------
+function openSqlSandboxModal() {
+  const modal = document.getElementById('modal-sql-sandbox');
+  if (modal) {
+    modal.classList.remove('hidden');
+    const editor = document.getElementById('sql-sandbox-editor');
+    if (editor && (!editor.value || editor.value.trim().length === 0)) {
+      loadSqlSandboxPreset('inner_join');
+    } else {
+      runSqlSandboxQuery();
+    }
+  }
+}
+
+function loadSqlSandboxPreset(presetName) {
+  const editor = document.getElementById('sql-sandbox-editor');
+  if (!editor) return;
+
+  const presets = {
+    inner_join: `SELECT sv.ho_ten, mh.ten_mon, dt.diem_tong_ket
+FROM SinhVien sv
+INNER JOIN DiemThi dt ON sv.id = dt.sinh_vien_id
+INNER JOIN MonHoc mh ON dt.mon_hoc_id = mh.id
+WHERE dt.diem_tong_ket >= 8.0
+ORDER BY dt.diem_tong_ket DESC;`,
+    group_by_having: `SELECT sv.khoa,
+       COUNT(dt.id) AS so_luot_thi,
+       ROUND(AVG(dt.diem_tong_ket), 2) AS gpa_trung_binh
+FROM SinhVien sv
+INNER JOIN DiemThi dt ON sv.id = dt.sinh_vien_id
+GROUP BY sv.khoa
+HAVING so_luot_thi >= 2
+ORDER BY gpa_trung_binh DESC;`,
+    left_join: `SELECT sv.ma_sv, sv.ho_ten, dt.diem_tong_ket
+FROM SinhVien sv
+LEFT JOIN DiemThi dt ON sv.id = dt.sinh_vien_id
+WHERE dt.id IS NULL;`,
+    clinical_lab: `SELECT xn.benh_nhan, xn.glucose_mmol, xn.ast_ul, xn.alt_ul, xn.ket_luan
+FROM XetNghiemHoaSinh xn
+WHERE xn.glucose_mmol > 7.0 OR xn.ast_ul > 40
+ORDER BY xn.glucose_mmol DESC;`
+  };
+
+  if (presets[presetName]) {
+    editor.value = presets[presetName];
+    runSqlSandboxQuery();
+  }
+}
+
+async function runSqlSandboxQuery() {
+  const editor = document.getElementById('sql-sandbox-editor');
+  const resultsTable = document.getElementById('sql-result-table-box') || document.getElementById('sql-results-table');
+  const queryPlanEl = document.getElementById('sql-query-plan-list') || document.getElementById('sql-query-plan');
+  const linqCodeEl = document.getElementById('sql-linq-code');
+  const execPipeline = document.getElementById('sql-execution-pipeline') || document.getElementById('sql-exec-pipeline');
+  const countEl = document.getElementById('sql-row-count');
+  const timeBadge = document.getElementById('sql-exec-time-badge');
+  const joinBadge = document.getElementById('sql-join-badge');
+
+  if (!editor || !editor.value.trim()) {
+    showToast('Vui lòng nhập câu lệnh SQL hợp lệ!', 'warning');
+    return;
+  }
+
+  const query = editor.value.trim();
+  if (countEl) countEl.textContent = '...';
+
+  try {
+    const res = await fetch('/api/sql/sandbox-execute', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sql: query, query })
+    });
+    const data = await res.json();
+
+    if (!data.ok && !data.success) {
+      if (resultsTable) {
+        resultsTable.innerHTML = `<div class="p-4 text-rose-400 bg-rose-950/40 rounded border border-rose-800 text-xs">
+          <strong>Lỗi thực thi SQL:</strong> ${escapeHtml(data.error || 'Syntax error')}
+        </div>`;
+      }
+      if (countEl) countEl.textContent = '0';
+      return;
+    }
+
+    const rows = data.rows || [];
+    const columns = data.columns || [];
+    const execSteps = data.execution_steps || data.execution_order || [];
+    const linqCode = data.linq_equivalent || data.linq_csharp || '';
+    const queryPlan = data.query_plan || data.plan || [];
+    const elapsed = data.elapsed_ms || data.execution_time_ms || 0;
+    const rowCount = data.row_count !== undefined ? data.row_count : rows.length;
+
+    V43_STATE.sql.lastResults = rows;
+    V43_STATE.sql.lastExecutionOrder = execSteps;
+    V43_STATE.sql.lastLinqCode = linqCode;
+
+    if (countEl) countEl.textContent = String(rowCount);
+    if (timeBadge) timeBadge.textContent = `${elapsed} ms`;
+    if (joinBadge) {
+      const upperQ = query.toUpperCase();
+      joinBadge.textContent = upperQ.includes('LEFT JOIN') ? 'LEFT JOIN' : upperQ.includes('GROUP BY') ? 'GROUP BY' : upperQ.includes('INNER JOIN') ? 'INNER JOIN' : 'SELECT';
+    }
+
+    if (resultsTable) {
+      if (columns.length === 0 || rows.length === 0) {
+        resultsTable.innerHTML = `<div class="p-4 text-center text-slate-400 text-xs">Không có bản ghi nào khớp điều kiện truy vấn.</div>`;
+      } else {
+        let html = '<table class="w-full text-left border-collapse text-xs"><thead><tr class="bg-slate-800/80 border-b border-slate-700">';
+        columns.forEach(col => {
+          html += `<th class="p-2 font-mono text-cyan-300 font-semibold">${escapeHtml(col)}</th>`;
+        });
+        html += '</tr></thead><tbody>';
+        rows.forEach((row, idx) => {
+          const bg = idx % 2 === 0 ? 'bg-slate-900/40' : 'bg-slate-800/30';
+          html += `<tr class="${bg} border-b border-slate-800/60 hover:bg-cyan-950/20 transition">`;
+          columns.forEach((col, colIdx) => {
+            let val = Array.isArray(row) ? row[colIdx] : row[col];
+            const cell = (val === null || val === undefined)
+              ? '<span class="text-slate-500 italic">NULL</span>'
+              : escapeHtml(String(val));
+            html += `<td class="p-2 font-mono text-slate-200">${cell}</td>`;
+          });
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+        resultsTable.innerHTML = html;
+      }
+    }
+
+    if (queryPlanEl) {
+      if (queryPlan && queryPlan.length > 0) {
+        queryPlanEl.innerHTML = queryPlan.map(p => {
+          const text = typeof p === 'string' ? p : (p.detail || JSON.stringify(p));
+          return `<li class="flex items-center gap-1.5"><span class="text-cyan-400 font-bold">›</span> <span class="text-slate-200">${escapeHtml(text)}</span></li>`;
+        }).join('');
+      } else {
+        queryPlanEl.innerHTML = '<li>• Full Table Scan In-Memory</li>';
+      }
+    }
+
+    if (execPipeline && execSteps.length > 0) {
+      execPipeline.innerHTML = execSteps.map(step => {
+        const orderNum = step.step || step.order || 1;
+        const clauseName = step.clause || step.phase || 'STEP';
+        const actionDesc = step.desc || step.action || '';
+        return `
+          <div class="sql-exec-pill active flex items-center gap-1.5 px-2.5 py-1 rounded-lg border border-cyan-500/30 bg-slate-900 text-[11px]">
+            <span class="font-bold text-cyan-400 font-mono">${escapeHtml(String(orderNum))}.</span>
+            <span class="font-semibold text-slate-100">${escapeHtml(clauseName)}</span>
+            ${actionDesc ? `<span class="text-slate-400 text-[10px]">(${escapeHtml(actionDesc)})</span>` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    if (linqCodeEl) {
+      linqCodeEl.textContent = linqCode || '// Không có mã chuyển đổi LINQ tương ứng';
+    }
+  } catch (err) {
+    console.error('SQL Sandbox error:', err);
+    showToast('Lỗi kết nối Sandbox: ' + err.message, 'error');
+  }
+}
+
+// ------------------------------------------
+// 2. UNIFIED ALGORITHM VISUALIZER & TIME-TRAVEL DEBUGGER
+// ------------------------------------------
+function openAlgoVisualizerModal(mode = 'steps') {
+  const modal = document.getElementById('modal-algo-visualizer');
+  if (modal) {
+    modal.classList.remove('hidden');
+    switchAlgoVisualizerTab(mode === 'bars' ? 'bars' : 'steps');
+  }
+}
+
+async function loadAlgoStepVisualizer(algoKey) {
+  if (!algoKey) {
+    const sel = document.getElementById('algo-select');
+    algoKey = sel ? sel.value : 'binary_search';
+  } else {
+    const sel = document.getElementById('algo-select');
+    if (sel) sel.value = algoKey;
+  }
+
+  V43_STATE.algo.currentAlgo = algoKey;
+  if (V43_STATE.algo.playInterval) {
+    clearInterval(V43_STATE.algo.playInterval);
+    V43_STATE.algo.isPlaying = false;
+  }
+
+  const stage = document.getElementById('algo-array-stage');
+  if (stage) {
+    stage.innerHTML = '<div class="text-cyan-400 text-xs animate-pulse py-6">Đang tính toán các Frame mô phỏng giải thuật...</div>';
+  }
+
+  try {
+    const res = await fetch('/api/algo/step-visualizer', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ algo: algoKey, algorithm: algoKey })
+    });
+    const data = await res.json();
+
+    if (!data.ok && !data.success) {
+      showToast('Lỗi tải dữ liệu giải thuật: ' + (data.error || ''), 'error');
+      return;
+    }
+
+    V43_STATE.algo.frames = data.frames || [];
+    V43_STATE.algo.currentFrameIndex = 0;
+
+    const compTitle = document.getElementById('algo-complexity-title');
+    const compNote = document.getElementById('algo-complexity-note');
+    if (compTitle) compTitle.textContent = data.complexity?.time || data.time_complexity || 'O(log₂ N)';
+    if (compNote) compNote.textContent = data.complexity?.note || data.summary || `${data.name || algoKey} • Bộ nhớ: ${data.complexity?.space || 'O(1)'}`;
+
+    renderAlgoStepFrame(0);
+  } catch (err) {
+    console.error('Algo Visualizer error:', err);
+    showToast('Lỗi mô phỏng giải thuật: ' + err.message, 'error');
+  }
+}
+
+function renderAlgoStepFrame(index) {
+  const frames = V43_STATE.algo.frames;
+  if (!frames || frames.length === 0) return;
+
+  const boundedIdx = Math.max(0, Math.min(index, frames.length - 1));
+  V43_STATE.algo.currentFrameIndex = boundedIdx;
+  const frame = frames[boundedIdx];
+
+  const stepInd = document.getElementById('algo-step-indicator');
+  if (stepInd) stepInd.textContent = `${boundedIdx + 1} / ${frames.length}`;
+
+  const titleEl = document.getElementById('algo-frame-title');
+  if (titleEl) titleEl.textContent = frame.title || `Bước ${boundedIdx + 1}`;
+
+  const explEl = document.getElementById('algo-frame-explanation');
+  if (explEl) explEl.textContent = frame.explanation || frame.title || '';
+
+  const stackEl = document.getElementById('algo-call-stack-box');
+  if (stackEl) {
+    const stack = frame.call_stack || [];
+    if (stack.length > 0) {
+      stackEl.innerHTML = stack.map((call, idx) => {
+        const isTop = idx === stack.length - 1;
+        return `<div class="px-2.5 py-1.5 rounded-lg border ${isTop ? 'border-cyan-500/60 bg-cyan-500/15 text-cyan-200 font-bold' : 'border-slate-800 bg-slate-900 text-slate-400'}">#${idx + 1} ${escapeHtml(String(call))}</div>`;
+      }).join('');
+    } else {
+      stackEl.innerHTML = `<div class="text-slate-400 italic px-2 py-1">${escapeHtml(frame.pseudocode || frame.title || '// Bước thực thi chính')}</div>`;
+    }
+  }
+
+  const stage = document.getElementById('algo-array-stage');
+  const ptrsRow = document.getElementById('algo-pointers-row');
+  if (!stage) return;
+
+  const algo = V43_STATE.algo.currentAlgo;
+  const arr = frame.array || [];
+  const ptrs = frame.pointers || {};
+
+  if (algo === 'recursion_fib' || algo === 'fibonacci_recursion') {
+    stage.innerHTML = arr.length
+      ? arr.map((val, vIdx) => `<div class="px-3 py-2 rounded-xl bg-slate-900 border border-slate-700 text-xs font-mono"><span class="text-slate-400 mr-1">F(${vIdx})=</span><span class="text-cyan-300 font-bold">${escapeHtml(String(val))}</span></div>`).join('')
+      : `<div class="text-xs font-mono text-cyan-300 py-3">Đang theo dõi Call Stack (${(frame.call_stack || []).length} khung hàm)</div>`;
+    if (ptrsRow) ptrsRow.innerHTML = `<span>Ngăn xếp LIFO đang giữ ${(frame.call_stack || []).length} hàm</span>`;
+    return;
+  }
+
+  if (algo === 'knapsack_dp') {
+    const activeIdxs = frame.active_indices || [];
+    stage.innerHTML = arr.map((val, cap) => {
+      const isCur = activeIdxs.includes(cap);
+      const cls = isCur ? 'bg-emerald-500/30 text-emerald-200 border-emerald-400 ring-2 ring-emerald-400 font-bold' : 'bg-slate-800 text-slate-300 border-slate-700';
+      return `<div class="flex flex-col items-center"><span class="text-[10px] font-mono text-slate-400 mb-1">w=${cap}</span><div class="algo-cell w-12 h-12 rounded-xl border flex items-center justify-center text-sm font-mono font-bold ${cls}">${escapeHtml(String(val))}</div></div>`;
+    }).join('');
+    if (ptrsRow) ptrsRow.innerHTML = `<span>${escapeHtml(frame.title || 'Bảng DP 1D')}</span>`;
+    return;
+  }
+
+  const low = ptrs.low ?? frame.low ?? -1;
+  const high = ptrs.high ?? frame.high ?? -1;
+  const mid = ptrs.mid ?? frame.mid ?? -1;
+  const pvtIdx = ptrs.pivot ?? ptrs.pivot_fixed ?? frame.pivot_index ?? -1;
+  const iIdx = ptrs.i ?? frame.i ?? -1;
+  const jIdx = ptrs.j ?? frame.j ?? -1;
+  const foundIdx = frame.found_index !== undefined ? frame.found_index : (frame.found ? mid : -1);
+
+  stage.innerHTML = arr.map((val, idx) => {
+    let cls = 'bg-slate-800 text-slate-200 border-slate-700';
+    let tag = '';
+    if (algo === 'binary_search') {
+      if (low >= 0 && high >= 0 && (idx < low || idx > high)) cls = 'bg-slate-900/40 text-slate-600 border-slate-800 line-through opacity-40';
+      else if (foundIdx === idx) { cls = 'bg-emerald-600/30 text-emerald-200 border-emerald-500 ring-2 ring-emerald-400 font-bold'; tag = 'FOUND'; }
+      else if (idx === mid) { cls = 'bg-cyan-500/30 text-cyan-200 border-cyan-400 ring-2 ring-cyan-400 font-bold'; tag = 'MID'; }
+      else if (idx === low) { cls = 'bg-blue-500/20 text-blue-300 border-blue-500'; tag = 'LOW'; }
+      else if (idx === high) { cls = 'bg-purple-500/20 text-purple-300 border-purple-500'; tag = 'HIGH'; }
+    } else {
+      if (idx === pvtIdx) { cls = 'bg-amber-500/30 text-amber-200 border-amber-400 ring-2 ring-amber-400 font-bold'; tag = 'PIVOT'; }
+      else if (idx === jIdx) { cls = 'bg-cyan-500/30 text-cyan-200 border-cyan-400 font-bold'; tag = 'J'; }
+      else if (idx === iIdx) { cls = 'bg-purple-500/30 text-purple-200 border-purple-400 font-bold'; tag = 'I'; }
+    }
+    return `
+      <div class="flex flex-col items-center">
+        <span class="text-[10px] font-mono text-cyan-400 mb-1 h-3">${tag}</span>
+        <div class="algo-cell w-12 h-12 sm:w-14 sm:h-14 rounded-xl border flex items-center justify-center text-sm sm:text-base font-mono font-bold shadow ${cls}">
+          ${escapeHtml(String(val))}
+        </div>
+        <span class="text-[10px] font-mono text-slate-500 mt-1">[${idx}]</span>
+      </div>`;
+  }).join('');
+
+  if (ptrsRow) {
+    if (algo === 'binary_search') {
+      ptrsRow.innerHTML = `<span>Target X = <strong class="text-amber-400">${frame.target ?? 58}</strong></span><span>low = ${low}</span><span>mid = ${mid}</span><span>high = ${high}</span>`;
+    } else {
+      ptrsRow.innerHTML = `<span>i = ${iIdx}</span><span>j = ${jIdx}</span><span>pivot = ${pvtIdx}</span>`;
+    }
+  }
+}
+
+function stepAlgoVisualizer(delta) {
+  const newIdx = V43_STATE.algo.currentFrameIndex + delta;
+  renderAlgoStepFrame(newIdx);
+}
+
+function autoPlayAlgoVisualizer() {
+  const btn = document.getElementById('algo-autoplay-btn');
+  if (V43_STATE.algo.isPlaying) {
+    clearInterval(V43_STATE.algo.playInterval);
+    V43_STATE.algo.isPlaying = false;
+    if (btn) btn.textContent = '▶️ Tự Chạy';
+    return;
+  }
+  V43_STATE.algo.isPlaying = true;
+  if (btn) btn.textContent = '⏸ Tạm Dừng';
+  V43_STATE.algo.playInterval = setInterval(() => {
+    const nextIdx = V43_STATE.algo.currentFrameIndex + 1;
+    if (nextIdx >= V43_STATE.algo.frames.length) {
+      clearInterval(V43_STATE.algo.playInterval);
+      V43_STATE.algo.isPlaying = false;
+      if (btn) btn.textContent = '▶️ Tự Chạy';
+    } else {
+      renderAlgoStepFrame(nextIdx);
+    }
+  }, V43_STATE.algo.playSpeedMs);
+}
+
+// ------------------------------------------
+// 3. AI CORNELL NOTE-TAKING & ACTIVE RECALL
+// ------------------------------------------
+function openCornellStudioModal() {
+  const modal = document.getElementById('modal-cornell-studio');
+  if (modal) {
+    modal.classList.remove('hidden');
+    const activeSub = (STATE.subjects || []).find((s) => String(s.id) === String(STATE.activeSubjectId));
+    let defaultPreset = 'biochem_enzyme';
+    if (activeSub?.code === 'TOAN_RR') defaultPreset = 'discrete_graph';
+    else if (activeSub?.code === 'CTDL_GT') defaultPreset = 'algorithms_ctdl';
+    else if (activeSub?.code === 'OOP_CSHARP') defaultPreset = 'csharp_oop_solid';
+    const sel = document.getElementById('cornell-preset-select');
+    if (sel) sel.value = defaultPreset;
+    loadCornellPreset(defaultPreset);
+  }
+}
+
+function openCornellCustomModal(force) {
+  const box = document.getElementById('cornell-custom-box');
+  if (!box) return;
+  if (typeof force === 'boolean') box.classList.toggle('hidden', !force);
+  else box.classList.toggle('hidden');
+}
+
+function submitCustomCornellText() {
+  const title = document.getElementById('cornell-custom-title')?.value.trim() || '';
+  const rawText = document.getElementById('cornell-custom-text')?.value.trim() || '';
+  if (!rawText) {
+    showToast('Vui lòng dán nội dung cần tóm tắt Cornell!', 'warning');
+    return;
+  }
+  openCornellCustomModal(false);
+  generateCornellNotes('custom', rawText, title);
+}
+
+function loadCornellPreset(topicKey) {
+  generateCornellNotes(topicKey || 'biochem_enzyme');
+}
+
+async function generateCornellNotes(presetKey, rawText = '', title = '') {
+  const container = document.getElementById('cornell-note-container');
+  if (container) {
+    container.innerHTML = '<div class="p-6 text-center text-xs txt-muted animate-pulse">AI đang tạo sổ tay Cornell Active Recall...</div>';
+  }
+
+  try {
+    const res = await fetch('/api/ai/cornell-studio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ preset: presetKey || 'biochem_enzyme', raw_text: rawText, title })
+    });
+    const data = await res.json();
+    if (!data.ok && !data.success) {
+      showToast('Lỗi tạo Cornell: ' + (data.error || ''), 'error');
+      return;
+    }
+
+    const cornell = data.cornell || data;
+    V43_STATE.cornell.currentData = cornell;
+    V43_STATE.cornell.topic = cornell.title || '';
+
+    const cues = cornell.cues || [];
+    const coveredClass = V43_STATE.cornell.activeRecallCovered ? 'blur-sm select-none opacity-40 hover:blur-none hover:opacity-100 transition-all' : 'transition-all';
+
+    if (container) {
+      container.innerHTML = `
+        <div class="p-4 rounded-2xl border space-y-1" style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <div class="text-[11px] font-bold txt-brand uppercase">${escapeHtml(cornell.subject || 'Chuyên đề')}</div>
+          <h4 class="text-sm sm:text-base font-extrabold txt-main">${escapeHtml(cornell.title || 'Sổ Tay Cornell')}</h4>
+        </div>
+        <div class="space-y-3">
+          ${cues.map((c) => `
+            <div class="grid grid-cols-1 md:grid-cols-12 rounded-2xl border overflow-hidden" style="border-color: var(--border);">
+              <div class="md:col-span-4 p-3.5 border-b md:border-b-0 md:border-r space-y-1" style="background-color: var(--bg-subtle); border-color: var(--border);">
+                <div class="text-xs font-extrabold txt-brand">❓ ${escapeHtml(c.key_term || 'Từ khóa')}</div>
+                <div class="text-xs txt-main font-semibold leading-relaxed">${escapeHtml(c.cue_question || '')}</div>
+              </div>
+              <div class="md:col-span-8 p-3.5 space-y-2 cornell-recall-target ${coveredClass}" style="background-color: var(--bg-surface);">
+                <div class="text-xs txt-sub leading-relaxed whitespace-pre-line">${escapeHtml(c.note_detail || '')}</div>
+                ${c.formula_or_code ? `<pre class="p-2.5 rounded-xl bg-slate-950 text-cyan-300 font-mono text-[11px] overflow-x-auto">${escapeHtml(c.formula_or_code)}</pre>` : ''}
+                ${c.exam_trap ? `<div class="p-2 rounded-lg text-[11px] font-semibold" style="background-color: var(--amber-bg); color: var(--amber-text); border: 1px solid var(--amber-border);">⚠️ Bẫy thi: ${escapeHtml(c.exam_trap)}</div>` : ''}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div class="p-4 rounded-2xl border space-y-1" style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <div class="text-xs font-extrabold txt-main uppercase">📝 Tóm tắt cốt lõi (Summary)</div>
+          <p class="text-xs txt-sub leading-relaxed cornell-recall-target ${coveredClass}">${escapeHtml(cornell.summary || '')}</p>
+        </div>
+      `;
+      renderAllMathOnPage(container);
+    }
+  } catch (err) {
+    console.error('Cornell Studio error:', err);
+    showToast('Lỗi tạo Cornell: ' + err.message, 'error');
+  }
+}
+
+function toggleCornellActiveRecallCover() {
+  V43_STATE.cornell.activeRecallCovered = !V43_STATE.cornell.activeRecallCovered;
+  const covered = V43_STATE.cornell.activeRecallCovered;
+  document.querySelectorAll('.cornell-recall-target').forEach((el) => {
+    el.classList.toggle('blur-sm', covered);
+    el.classList.toggle('opacity-40', covered);
+  });
+  const icon = document.getElementById('cornell-cover-icon');
+  const label = document.getElementById('cornell-cover-label');
+  if (icon) icon.textContent = covered ? '👁️' : '🙈';
+  if (label) label.textContent = covered ? 'Hiện Đáp Án (Đang che cột phải)' : 'Bật Chế Độ Che Đáp Án (Tự Nhẩm)';
+}
+
+// ------------------------------------------
+// 4. 6-AXIS COMPETENCY RADAR & 7-DAY CRAMMING
+// ------------------------------------------
+function openCramRoadmapModal() {
+  const modal = document.getElementById('modal-cram-roadmap');
+  if (modal) {
+    modal.classList.remove('hidden');
+    loadCramRoadmapData();
+  }
+}
+
+async function loadCramRoadmapData() {
+  try {
+    const res = await fetch('/api/ai/cram-roadmap');
+    const data = await res.json();
+    if (!data.ok && !data.success) {
+      showToast('Lỗi tải lộ trình học: ' + (data.error || ''), 'error');
+      return;
+    }
+
+    const axes = data.axes || [];
+    const schedule = data.schedule || [];
+    const priorities = data.priorities || [];
+    const summary = data.summary || {};
+
+    renderCramRadarSvg(axes);
+
+    const overallEl = document.getElementById('cram-overall-stat');
+    if (overallEl) overallEl.textContent = `Tổng quan: ${summary.overall_score || 78}/100`;
+
+    const prioritiesBox = document.getElementById('cram-priorities-box');
+    if (prioritiesBox) {
+      prioritiesBox.innerHTML = priorities.length
+        ? priorities.slice(0, 4).map((p) => `
+            <div class="p-3 rounded-xl border flex items-center justify-between gap-3" style="background-color: var(--bg-subtle); border-color: var(--border);">
+              <div class="min-w-0">
+                <div class="text-xs font-extrabold txt-main flex items-center gap-1.5 flex-wrap">
+                  <span>${escapeHtml(p.name || '')}</span>
+                  <span class="badge-brand px-1.5 py-0.2 rounded text-[10px]">${escapeHtml(p.badge || '')}</span>
+                </div>
+                <div class="text-[11px] txt-muted mt-0.5">${escapeHtml(p.advice || '')}</div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-sm font-black txt-main font-mono">${p.avg_score || 0}/10</div>
+                <div class="text-[10px] txt-muted">${p.exam_count || 0} đề</div>
+              </div>
+            </div>
+          `).join('')
+        : '<div class="text-xs txt-muted">Chưa có dữ liệu môn học.</div>';
+    }
+
+    const timelineEl = document.getElementById('cram-schedule-timeline') || document.getElementById('cram-timeline-cards');
+    if (timelineEl && schedule.length > 0) {
+      timelineEl.innerHTML = schedule.map(phase => `
+        <div class="p-3.5 rounded-2xl border space-y-2" style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <div class="text-[11px] font-bold font-mono txt-brand">${escapeHtml(phase.day || '')}</div>
+          <div class="text-xs font-extrabold txt-main">${escapeHtml(phase.title || '')}</div>
+          <div class="text-[11px] txt-sub font-semibold">${escapeHtml(phase.focus || '')}</div>
+          <ul class="text-[11px] txt-muted leading-relaxed space-y-1 list-disc list-inside">
+            ${(phase.tasks || []).map(t => `<li>${escapeHtml(t)}</li>`).join('')}
+          </ul>
+        </div>
+      `).join('');
+    }
+  } catch (err) {
+    console.error('Cram Roadmap error:', err);
+    showToast('Lỗi tải lộ trình nước rút: ' + err.message, 'error');
+  }
+}
+
+function renderCramRadarSvg(axesInput) {
+  const container = document.getElementById('cram-radar-svg-canvas') || document.getElementById('cram-radar-svg-container');
+  if (!container) return;
+
+  let dimensions = [];
+  if (Array.isArray(axesInput)) {
+    dimensions = axesInput.map(a => ({
+      key: a.key,
+      label: a.label,
+      val: a.score || 80
+    }));
+  } else if (typeof axesInput === 'object') {
+    dimensions = [
+      { key: 'theory', label: 'Lý Thuyết Cốt Lõi', val: axesInput.theory_mastery || 82 },
+      { key: 'code', label: 'Giải Thuật & OOP', val: axesInput.code_algo_speed || 88 },
+      { key: 'biochem', label: 'Cơ Chế Y Sinh', val: axesInput.biochem_clinical || 78 },
+      { key: 'memory', label: 'Trí Nhớ SM-2', val: axesInput.spaced_retention || 84 },
+      { key: 'speed', label: 'Tốc Độ Phản Xạ', val: axesInput.speed_reflex || 80 },
+      { key: 'trap', label: 'Kháng Cạm Bẫy', val: axesInput.trap_immunity || 75 }
+    ];
+  }
+
+  const size = 320;
+  const center = size / 2;
+  const radius = 110;
+  const numAxes = dimensions.length;
+  const angleStep = (Math.PI * 2) / numAxes;
+
+  // Grid concentric rings (20%, 40%, 60%, 80%, 100%)
+  const levels = [0.2, 0.4, 0.6, 0.8, 1.0];
+  let ringsSvg = '';
+  levels.forEach(lvl => {
+    let pts = [];
+    for (let i = 0; i < numAxes; i++) {
+      const angle = i * angleStep - Math.PI / 2;
+      const x = center + radius * lvl * Math.cos(angle);
+      const y = center + radius * lvl * Math.sin(angle);
+      pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+    }
+    ringsSvg += `<polygon points="${pts.join(' ')}" fill="none" stroke="#334155" stroke-dasharray="2,2" stroke-width="1" />`;
+  });
+
+  // Axis lines & Labels
+  let axesSvg = '';
+  let labelsSvg = '';
+  dimensions.forEach((dim, i) => {
+    const angle = i * angleStep - Math.PI / 2;
+    const xEnd = center + radius * Math.cos(angle);
+    const yEnd = center + radius * Math.sin(angle);
+    axesSvg += `<line x1="${center}" y1="${center}" x2="${xEnd.toFixed(1)}" y2="${yEnd.toFixed(1)}" stroke="#1e293b" stroke-width="1.5" />`;
+
+    // Position label slightly further out
+    const xLabel = center + (radius + 24) * Math.cos(angle);
+    const yLabel = center + (radius + 18) * Math.sin(angle);
+    labelsSvg += `
+      <text x="${xLabel.toFixed(1)}" y="${yLabel.toFixed(1)}" fill="#94a3b8" font-size="9" font-family="monospace" text-anchor="middle" dominant-baseline="central">
+        ${dim.label} (${dim.val}%)
+      </text>
+    `;
+  });
+
+  // User Polygon Points
+  const userPts = dimensions.map((dim, i) => {
+    const angle = i * angleStep - Math.PI / 2;
+    const r = (radius * Math.max(10, Math.min(100, dim.val))) / 100;
+    const x = center + r * Math.cos(angle);
+    const y = center + r * Math.sin(angle);
+    return `${x.toFixed(1)},${y.toFixed(1)}`;
+  }).join(' ');
+
+  const svg = `
+    <svg viewBox="0 0 ${size} ${size}" class="w-full h-full max-w-[340px] mx-auto filter drop-shadow">
+      <defs>
+        <linearGradient id="radarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.45" />
+          <stop offset="100%" stop-color="#3b82f6" stop-opacity="0.15" />
+        </linearGradient>
+      </defs>
+      ${ringsSvg}
+      ${axesSvg}
+      <polygon points="${userPts}" fill="url(#radarGrad)" stroke="#06b6d4" stroke-width="2.5" class="radar-polygon" />
+      ${dimensions.map((dim, i) => {
+        const angle = i * angleStep - Math.PI / 2;
+        const r = (radius * dim.val) / 100;
+        const x = center + r * Math.cos(angle);
+        const y = center + r * Math.sin(angle);
+        return `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" fill="#06b6d4" stroke="#0f172a" stroke-width="1.5" />`;
+      }).join('')}
+      ${labelsSvg}
+    </svg>
+  `;
+
+  container.innerHTML = svg;
+}
+
+// Export V43 Globally for HTML Onclick handlers
+window.openSqlSandboxModal = openSqlSandboxModal;
+window.runSqlSandboxQuery = runSqlSandboxQuery;
+window.loadSqlSandboxPreset = loadSqlSandboxPreset;
+window.openAlgoVisualizerModal = openAlgoVisualizerModal;
+window.loadAlgoStepVisualizer = loadAlgoStepVisualizer;
+window.renderAlgoStepFrame = renderAlgoStepFrame;
+window.stepAlgoVisualizer = stepAlgoVisualizer;
+window.autoPlayAlgoVisualizer = autoPlayAlgoVisualizer;
+window.openCornellStudioModal = openCornellStudioModal;
+window.loadCornellPreset = loadCornellPreset;
+window.generateCornellNotes = generateCornellNotes;
+window.toggleCornellActiveRecallCover = toggleCornellActiveRecallCover;
+window.openCramRoadmapModal = openCramRoadmapModal;
+window.loadCramRoadmapData = loadCramRoadmapData;
+window.renderCramRadarSvg = renderCramRadarSvg;
+
+/* ==============================================================================
+   UNIMASTER AI v44.0 HYPER-LEARNING SUITE JAVASCRIPT CONTROLLERS
+   ============================================================================== */
+
+const V44_STATE = {
+  // Clinical Simulator
+  clinicalCaseId: 'dka',
+  clinicalCaseData: null,
+  clinicalOrderedLabs: new Set(),
+  
+  // Regex Engine
+  regexPattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$',
+  regexTestStr: 'contact_alice@ctump.edu.vn',
+  regexFlags: '',
+  regexDebounceTimer: null,
+  regexAbortController: null,
+
+  // Memory & GC Visualizer
+  memoryScenario: 'gc_generations',
+  memoryData: null,
+  memoryCurrentStep: 0,
+  memoryAutoTimer: null,
+
+  // Metabolic ATP
+  metabolicSubstrate: 'glucose_aerobic',
+  metabolicShuttle: 'malate_aspartate',
+  metabolicInhibitor: 'none'
+};
+
+// --- FEATURE 1: CLINICAL CASE SIMULATOR ---
+async function openClinicalSimModal() {
+  const modal = document.getElementById('modal-clinical-sim');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  await loadClinicalCase('dka');
+}
+
+async function loadClinicalCase(caseId) {
+  V44_STATE.clinicalCaseId = caseId || 'dka';
+  V44_STATE.clinicalOrderedLabs = new Set();
+  
+  const selectEl = document.getElementById('clinical-case-select');
+  if (selectEl) selectEl.value = V44_STATE.clinicalCaseId;
+
+  const resultBox = document.getElementById('clinical-diagnosis-result');
+  if (resultBox) resultBox.classList.add('hidden');
+  const userDiagInput = document.getElementById('clinical-user-diag-input');
+  if (userDiagInput) userDiagInput.value = '';
+
+  const feedEl = document.getElementById('clinical-labs-feed');
+  if (feedEl) {
+    feedEl.innerHTML = `
+      <div class="p-4 text-center text-xs txt-muted italic border border-dashed border-slate-800 rounded-lg">
+        Chưa có chỉ định cận lâm sàng nào. Hãy bấm vào danh sách xét nghiệm bên trái để xem kết quả!
+      </div>
+    `;
+  }
+  setText('clinical-labs-ordered-count', '0 Đã làm');
+
+  try {
+    const res = await fetch('/api/clinical/case-sim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'start', case_id: V44_STATE.clinicalCaseId })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Lỗi tải ca bệnh');
+
+    V44_STATE.clinicalCaseData = data;
+    renderClinicalPatientCard(data);
+    renderClinicalLabButtons(data.available_lab_keys);
+  } catch (err) {
+    showToast('Lỗi tải ca bệnh lâm sàng: ' + err.message, 'error');
+  }
+}
+
+function resetClinicalCase() {
+  loadClinicalCase(V44_STATE.clinicalCaseId);
+}
+
+function renderClinicalPatientCard(data) {
+  const cardEl = document.getElementById('clinical-patient-card');
+  if (!cardEl) return;
+
+  const vitals = data.vitals || {};
+  cardEl.innerHTML = `
+    <div class="space-y-1">
+      <div class="text-[10px] font-mono text-rose-300 uppercase font-black">Hành chính & Lý do vào viện</div>
+      <div class="font-extrabold text-sm text-white">${escapeHtml(data.patient || '')}</div>
+      <div class="text-rose-400 font-bold">Lý do: "${escapeHtml(data.chief_complaint || '')}"</div>
+      <div class="text-slate-300 leading-relaxed text-[11px] pt-1"><strong>Bệnh sử:</strong> ${escapeHtml(data.history || '')}</div>
+    </div>
+    <div class="space-y-1">
+      <div class="text-[10px] font-mono text-cyan-300 uppercase font-black">Dấu hiệu Sinh tồn (Vitals)</div>
+      <div class="grid grid-cols-2 gap-1.5 font-mono text-[11px]">
+        <div class="p-1 rounded bg-slate-950 border border-slate-800">HA: <span class="text-rose-300 font-bold">${escapeHtml(vitals.bp || '')}</span></div>
+        <div class="p-1 rounded bg-slate-950 border border-slate-800">Mạch: <span class="text-amber-300 font-bold">${escapeHtml(vitals.hr || '')}</span></div>
+        <div class="p-1 rounded bg-slate-950 border border-slate-800">Nhịp thở: <span class="text-sky-300 font-bold">${escapeHtml(vitals.rr || '')}</span></div>
+        <div class="p-1 rounded bg-slate-950 border border-slate-800">Thân nhiệt: <span class="text-emerald-300 font-bold">${escapeHtml(vitals.temp || '')}</span></div>
+        <div class="p-1 rounded bg-slate-950 border border-slate-800">SpO2: <span class="text-teal-300 font-bold">${escapeHtml(vitals.spo2 || '')}</span></div>
+        <div class="p-1 rounded bg-slate-950 border border-slate-800">GCS: <span class="text-purple-300 font-bold">${escapeHtml(vitals.gcs || '')}</span></div>
+      </div>
+    </div>
+    <div class="space-y-1">
+      <div class="text-[10px] font-mono text-amber-300 uppercase font-black">Khám Lâm Sàng Hiện Tại</div>
+      <div class="text-slate-300 text-[11px] leading-relaxed p-2 rounded-lg bg-slate-950 border border-slate-800">
+        ${escapeHtml(data.physical_exam || '')}
+      </div>
+    </div>
+  `;
+}
+
+function renderClinicalLabButtons(labKeys) {
+  const container = document.getElementById('clinical-lab-buttons');
+  if (!container || !labKeys) return;
+
+  const labNames = {
+    glucose: '🩸 Glucose máu mao mạch & TM',
+    abg: '🫁 Khí máu động mạch (ABG)',
+    electrolytes: '⚡ Ion đồ (Na+, K+, Cl-)',
+    urine: '🧪 Tổng phân tích nước tiểu 10 thông số',
+    ecg: '📈 Điện tâm đồ khẩn 12 chuyển đạo',
+    troponin: '❤️ Men tim Troponin I siêu nhạy (hs-cTnI)',
+    ckmb: '🧬 Men tim CK-MB Mass',
+    echo: '📡 Siêu âm tim Doppler cấp cứu tại giường',
+    cbc: '🩸 Tổng phân tích tế bào máu (CBC)',
+    ammonia: '🧠 Nồng độ Amoniac máu (NH3)',
+    liver_enzymes: '🧪 Men gan & Bilirubin toàn phần/trực tiếp',
+    coagulation: '🩸 Đông máu cơ bản (PT/INR)',
+    albumin: '💧 Albumin & Protein máu'
+  };
+
+  container.innerHTML = labKeys.map(key => {
+    const isOrdered = V44_STATE.clinicalOrderedLabs.has(key);
+    const label = labNames[key] || `🔬 Xét nghiệm: ${key.toUpperCase()}`;
+    return `
+      <button onclick="orderClinicalLab('${key}')" id="btn-lab-${key}" class="w-full text-left p-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-between ${
+        isOrdered ? 'bg-cyan-950/40 border-cyan-500/50 text-cyan-200' : 'bg-slate-900 border-slate-800 hover:border-slate-700 text-slate-300'
+      }">
+        <span class="truncate">${label}</span>
+        <span class="text-[10px] font-mono shrink-0 ml-1.5 ${isOrdered ? 'text-cyan-400 font-black' : 'text-slate-500'}">${isOrdered ? '✓ Có kết quả' : 'Chỉ định ➔'}</span>
+      </button>
+    `;
+  }).join('');
+}
+
+async function orderClinicalLab(labKey) {
+  if (V44_STATE.clinicalOrderedLabs.has(labKey)) {
+    showToast(`Xét nghiệm ${labKey.toUpperCase()} đã có kết quả trong phiếu!`, 'info');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/clinical/case-sim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'order_lab', case_id: V44_STATE.clinicalCaseId, lab_key: labKey })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Lỗi lấy kết quả');
+
+    V44_STATE.clinicalOrderedLabs.add(labKey);
+    setText('clinical-labs-ordered-count', `${V44_STATE.clinicalOrderedLabs.size} Đã làm`);
+
+    // Update button state
+    const btn = document.getElementById(`btn-lab-${labKey}`);
+    if (btn) {
+      btn.className = 'w-full text-left p-2 rounded-lg border text-xs font-bold transition-all flex items-center justify-between bg-cyan-950/40 border-cyan-500/50 text-cyan-200';
+      const indicator = btn.querySelector('span:last-child');
+      if (indicator) {
+        indicator.textContent = '✓ Có kết quả';
+        indicator.className = 'text-[10px] font-mono shrink-0 ml-1.5 text-cyan-400 font-black';
+      }
+    }
+
+    // Append to feed
+    const feedEl = document.getElementById('clinical-labs-feed');
+    if (feedEl) {
+      if (V44_STATE.clinicalOrderedLabs.size === 1) {
+        feedEl.innerHTML = ''; // clear placeholder
+      }
+
+      const resObj = data.result || {};
+      let badgeClass = 'clinical-badge-warning';
+      let badgeText = 'BẤT THƯỜNG';
+      if (resObj.status === 'critical_high') {
+        badgeClass = 'clinical-badge-critical-high';
+        badgeText = 'NGUY HIỂM CAO ⚠️';
+      } else if (resObj.status === 'critical_low') {
+        badgeClass = 'clinical-badge-critical-low';
+        badgeText = 'NGUY HIỂM THẤP ⚠️';
+      }
+
+      const itemHtml = `
+        <div class="p-3 rounded-xl border border-slate-700 bg-slate-900/90 space-y-2 animate-fade-in shadow-sm">
+          <div class="flex items-center justify-between gap-2">
+            <span class="font-black text-xs text-white">${escapeHtml(resObj.name || labKey)}</span>
+            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full ${badgeClass}">${badgeText}</span>
+          </div>
+          <div class="flex flex-wrap items-baseline gap-3 text-xs bg-black/40 p-2 rounded-lg font-mono">
+            <div><span class="text-slate-400">Kết quả:</span> <strong class="text-rose-400 text-sm font-extrabold">${escapeHtml(resObj.val || '')}</strong></div>
+            <div><span class="text-slate-400">Tham chiếu:</span> <span class="text-slate-300">${escapeHtml(resObj.ref || '')}</span></div>
+          </div>
+          <div class="p-2 rounded-lg bg-indigo-950/30 border border-indigo-500/20 text-[11px] text-indigo-200 leading-relaxed">
+            <strong class="text-indigo-400">🔬 Cơ chế bệnh sinh (Pathophysiology):</strong> ${escapeHtml(resObj.mechanism || '')}
+          </div>
+        </div>
+      `;
+      feedEl.insertAdjacentHTML('afterbegin', itemHtml);
+    }
+    showToast(`Đã nhận kết quả ${labKey.toUpperCase()}`, 'success');
+  } catch (err) {
+    showToast('Lỗi nhận kết quả xét nghiệm: ' + err.message, 'error');
+  }
+}
+
+async function submitClinicalDiagnosis() {
+  const inputEl = document.getElementById('clinical-user-diag-input');
+  const userDiag = (inputEl ? inputEl.value : '').trim();
+  if (!userDiag) {
+    showToast('Vui lòng nhập chẩn đoán lâm sàng của bạn!', 'warning');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/clinical/case-sim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'diagnose', case_id: V44_STATE.clinicalCaseId, user_diagnosis: userDiag })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Lỗi đối chiếu chẩn đoán');
+
+    const resultBox = document.getElementById('clinical-diagnosis-result');
+    if (!resultBox) return;
+    resultBox.classList.remove('hidden');
+
+    const trapsHtml = (data.clinical_traps || []).map(trap => `
+      <div class="p-2.5 rounded-lg bg-rose-950/40 border border-rose-500/50 text-rose-200 leading-relaxed">
+        <strong>⚠️ ${escapeHtml(trap)}</strong>
+      </div>
+    `).join('');
+
+    const mgmtHtml = (data.golden_management || []).map(m => `
+      <li class="leading-relaxed text-slate-200">${escapeHtml(m)}</li>
+    `).join('');
+
+    const diffHtml = (data.differentials || []).map(d => `
+      <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 text-[11px] font-mono">${escapeHtml(d)}</span>
+    `).join(' ');
+
+    resultBox.innerHTML = `
+      <div class="space-y-1 border-b border-slate-800 pb-2.5">
+        <div class="text-[10px] font-mono text-slate-400 uppercase">Đối chiếu chẩn đoán xác định</div>
+        <div class="text-xs text-slate-300">Chẩn đoán của bạn: <strong class="text-white font-black">${escapeHtml(userDiag)}</strong></div>
+        <div class="text-xs text-emerald-400 font-extrabold">Chẩn đoán chuẩn Y khoa: ${escapeHtml(data.benchmark_primary)}</div>
+        <div class="pt-1 flex items-center gap-1.5 flex-wrap">
+          <span class="text-[11px] text-slate-400 font-bold">Chẩn đoán phân biệt cần loại trừ:</span>
+          ${diffHtml}
+        </div>
+      </div>
+
+      <div class="space-y-1.5">
+        <div class="font-extrabold text-amber-300 flex items-center gap-1.5">
+          <span>🛡️</span> Phác Đồ Xử Trí Khẩn Chuẩn Guideline (Golden Management):
+        </div>
+        <ul class="space-y-1 list-disc list-inside text-[11px] pl-1">
+          ${mgmtHtml}
+        </ul>
+      </div>
+
+      <div class="space-y-1.5 pt-1">
+        <div class="font-black text-rose-400 flex items-center gap-1.5">
+          <span>💀</span> Cảnh Báo Bẫy Thi Cử & Nguy Cơ Tử Vong:
+        </div>
+        <div class="space-y-1.5 text-[11px]">
+          ${trapsHtml}
+        </div>
+      </div>
+    `;
+    showToast('Đã đối chiếu thành công cùng phác đồ điều trị chuẩn!', 'success');
+  } catch (err) {
+    showToast('Lỗi đối chiếu chẩn đoán: ' + err.message, 'error');
+  }
+}
+
+
+// --- FEATURE 2: REGEX VISUALIZER & FINITE STATE AUTOMATA ---
+function openRegexEngineModal() {
+  const modal = document.getElementById('modal-regex-engine');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  runRegexEvaluation();
+}
+
+function applyRegexPreset(presetKey) {
+  const presets = {
+    email: { pattern: '^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$', testStr: 'contact_alice@ctump.edu.vn' },
+    phone_vn: { pattern: '^(0|\\+84)(3|5|7|8|9)[0-9]{8}$', testStr: '+84912345678' },
+    password_strong: { pattern: '^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[@$!%*?&])[A-Za-z\\d@$!%*?&]{8,}$', testStr: 'UniMaster#2026' },
+    csharp_identifier: { pattern: '^[a-zA-Z_][a-zA-Z0-9_]*$', testStr: '_totalPatientRecordsCount' },
+    sql_injection: { pattern: '(?i)\\b(SELECT|UNION|INSERT|DROP|UPDATE|DELETE)\\b.*--', testStr: "admin' UNION SELECT * FROM Users--" }
+  };
+
+  const choice = presets[presetKey] || presets.email;
+  const patternInput = document.getElementById('regex-pattern-input');
+  const testInput = document.getElementById('regex-test-string');
+  if (patternInput) patternInput.value = choice.pattern;
+  if (testInput) testInput.value = choice.testStr;
+  runRegexEvaluation();
+}
+
+function runRegexEvaluation() {
+  clearTimeout(V44_STATE.regexDebounceTimer);
+  if (V44_STATE.regexAbortController) {
+    try { V44_STATE.regexAbortController.abort(); } catch (e) {}
+  }
+  V44_STATE.regexDebounceTimer = setTimeout(async () => {
+    const pattern = (document.getElementById('regex-pattern-input')?.value || '').trim();
+    const testStr = document.getElementById('regex-test-string')?.value || '';
+    const flagI = document.getElementById('regex-flag-i')?.checked ? 'i' : '';
+    const flagM = document.getElementById('regex-flag-m')?.checked ? 'm' : '';
+    const flagS = document.getElementById('regex-flag-s')?.checked ? 's' : '';
+    const flags = flagI + flagM + flagS;
+
+    V44_STATE.regexAbortController = new AbortController();
+    try {
+      const res = await fetch('/api/code/regex-engine', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ regex: pattern, test_str: testStr, flags: flags }),
+        signal: V44_STATE.regexAbortController.signal
+      });
+      const data = await res.json();
+      renderRegexEvaluationResult(data);
+    } catch (err) {
+      if (err.name !== 'AbortError') {
+        console.error(err);
+      }
+    }
+  }, 180);
+}
+
+function renderRegexEvaluationResult(data) {
+  const banner = document.getElementById('regex-match-status-banner');
+  if (banner) {
+    if (!data.ok) {
+      banner.className = 'p-3 rounded-xl border border-rose-500/50 bg-rose-950/40 text-rose-300 text-xs font-mono';
+      banner.innerHTML = `⚠️ ${escapeHtml(data.error || 'Lỗi cú pháp Regex')}`;
+      return;
+    }
+
+    if (data.is_full_match) {
+      banner.className = 'p-3 rounded-xl border border-emerald-500/50 bg-emerald-950/40 text-emerald-300 text-xs font-bold flex items-center justify-between';
+      banner.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-lg">✅</span>
+          <span>Khớp Hoàn Toàn (Full Match!): Chuỗi thỏa mãn biểu thức chính quy 100%</span>
+        </div>
+        <span class="font-mono text-[11px] px-2 py-0.5 rounded bg-emerald-500/20">${data.match_count} kết quả</span>
+      `;
+    } else if (data.match_count > 0) {
+      banner.className = 'p-3 rounded-xl border border-amber-500/50 bg-amber-950/40 text-amber-300 text-xs font-bold flex items-center justify-between';
+      banner.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-lg">⚡</span>
+          <span>Khớp Một Phần: Tìm thấy ${data.match_count} đoạn chuỗi con phù hợp</span>
+        </div>
+        <span class="font-mono text-[11px] px-2 py-0.5 rounded bg-amber-500/20">${data.match_count} đoạn</span>
+      `;
+    } else {
+      banner.className = 'p-3 rounded-xl border border-slate-700 bg-slate-900/60 text-slate-400 text-xs font-bold flex items-center justify-between';
+      banner.innerHTML = `
+        <div class="flex items-center gap-2">
+          <span class="text-lg">❌</span>
+          <span>Không Khớp (No Match): Chuỗi không thỏa mãn mẫu biểu thức quy định</span>
+        </div>
+        <span class="font-mono text-[11px] px-2 py-0.5 rounded bg-slate-800">0 Match</span>
+      `;
+    }
+  }
+
+  // Render DFA SVG
+  const dfaCanvas = document.getElementById('regex-dfa-canvas');
+  if (dfaCanvas) {
+    renderRegexDfaSvg(dfaCanvas, data.dfa_nodes || [], data.is_full_match);
+  }
+
+  // Render Tokens
+  const tokensContainer = document.getElementById('regex-tokens-container');
+  if (tokensContainer) {
+    const tokens = data.tokens_explained || [];
+    if (tokens.length === 0) {
+      tokensContainer.innerHTML = '<div class="text-xs text-slate-500 col-span-3">Không phát hiện ký tự đặc biệt cần giải thích.</div>';
+    } else {
+      tokensContainer.innerHTML = tokens.map(tok => `
+        <div class="p-2 rounded-lg border border-slate-800 bg-slate-900/60 space-y-0.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="font-mono text-emerald-400 font-black bg-slate-950 px-1.5 py-0.2 rounded border border-slate-800">${escapeHtml(tok.token)}</span>
+            <span class="text-[9px] font-mono text-violet-300 uppercase">${escapeHtml(tok.type)}</span>
+          </div>
+          <div class="text-[11px] text-slate-300 leading-snug">${escapeHtml(tok.meaning)}</div>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+function renderRegexDfaSvg(container, nodes, isMatch) {
+  if (!nodes || nodes.length === 0) {
+    container.innerHTML = '<div class="text-xs text-slate-500">Chưa tạo đồ thị DFA</div>';
+    return;
+  }
+
+  const nodeWidth = 140;
+  const svgWidth = Math.max(580, nodes.length * nodeWidth + 60);
+  const svgHeight = 110;
+
+  const circles = nodes.map((node, i) => {
+    const cx = 50 + i * nodeWidth;
+    const cy = 55;
+    const isLast = i === nodes.length - 1;
+    const strokeColor = isLast ? (isMatch ? '#34d399' : '#818cf8') : '#818cf8';
+    const fillColor = isLast && isMatch ? 'rgba(52, 211, 153, 0.25)' : 'rgba(30, 41, 59, 0.9)';
+
+    return `
+      <g class="dfa-node-group">
+        ${isLast ? `<circle cx="${cx}" cy="${cy}" r="32" fill="none" stroke="${strokeColor}" stroke-width="1.5" stroke-dasharray="3,3" />` : ''}
+        <circle cx="${cx}" cy="${cy}" r="26" fill="${fillColor}" stroke="${strokeColor}" stroke-width="2.5" class="dfa-state-circle" />
+        <text x="${cx}" y="${cy - 3}" text-anchor="middle" font-size="11" font-weight="900" fill="#f8fafc" font-family="monospace">${escapeHtml(node.state)}</text>
+        <text x="${cx}" y="${cy + 12}" text-anchor="middle" font-size="9" fill="#94a3b8" font-family="sans-serif">${escapeHtml(node.label || '')}</text>
+      </g>
+    `;
+  }).join('');
+
+  const arrows = nodes.slice(0, nodes.length - 1).map((node, i) => {
+    const x1 = 76 + i * nodeWidth;
+    const x2 = 24 + (i + 1) * nodeWidth;
+    const y = 55;
+    const nextNode = nodes[i + 1];
+    return `
+      <g>
+        <line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="#64748b" stroke-width="2" marker-end="url(#arrow)" />
+        <text x="${(x1 + x2) / 2}" y="${y - 8}" text-anchor="middle" font-size="9" font-mono font-bold fill="#38bdf8">${escapeHtml(nextNode.transition || 'input')}</text>
+      </g>
+    `;
+  }).join('');
+
+  const svg = `
+    <svg viewBox="0 0 ${svgWidth} ${svgHeight}" class="w-full max-w-[800px] h-[110px]">
+      <defs>
+        <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+          <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+        </marker>
+      </defs>
+      ${arrows}
+      ${circles}
+    </svg>
+  `;
+  container.innerHTML = svg;
+}
+
+
+// --- FEATURE 3: C# CLR MEMORY & GC VISUALIZER ---
+async function openMemoryGcModal() {
+  const modal = document.getElementById('modal-memory-gc');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  await loadMemoryScenario('gc_generations');
+}
+
+async function loadMemoryScenario(scenario) {
+  V44_STATE.memoryScenario = scenario || 'gc_generations';
+  V44_STATE.memoryCurrentStep = 0;
+  if (V44_STATE.memoryAutoTimer) clearInterval(V44_STATE.memoryAutoTimer);
+
+  const select = document.getElementById('memory-scenario-select');
+  if (select) select.value = V44_STATE.memoryScenario;
+
+  try {
+    const res = await fetch('/api/code/memory-gc', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ scenario: V44_STATE.memoryScenario })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Lỗi tải mô phỏng bộ nhớ');
+
+    V44_STATE.memoryData = data;
+    const snippetEl = document.getElementById('memory-code-snippet');
+    if (snippetEl) snippetEl.textContent = data.code_snippet || '';
+
+    renderCurrentMemoryStep();
+  } catch (err) {
+    showToast('Lỗi tải mô phỏng CLR GC: ' + err.message, 'error');
+  }
+}
+
+function renderCurrentMemoryStep() {
+  if (!V44_STATE.memoryData || !V44_STATE.memoryData.steps) return;
+  const steps = V44_STATE.memoryData.steps;
+  const idx = Math.max(0, Math.min(steps.length - 1, V44_STATE.memoryCurrentStep));
+  const step = steps[idx];
+
+  setText('memory-step-indicator', `Bước ${idx + 1} / ${steps.length}`);
+  setText('memory-action-title', step.title || step.action || 'Hành động CLR');
+  setText('memory-action-explanation', step.explanation || '');
+
+  // Render Stack
+  const stackContainer = document.getElementById('memory-stack-container');
+  if (stackContainer) {
+    const stackItems = step.stack || [];
+    if (stackItems.length === 0) {
+      stackContainer.innerHTML = '<div class="text-slate-500 text-xs italic p-3">Stack trống (Scope đã kết thúc, giải phóng O(1))</div>';
+    } else {
+      stackContainer.innerHTML = stackItems.map(item => `
+        <div class="p-2 rounded-lg border border-emerald-500/40 bg-emerald-950/20 font-mono text-xs space-y-0.5">
+          <div class="flex items-center justify-between text-[10px]">
+            <span class="text-emerald-400 font-bold">${escapeHtml(item.frame || 'Frame')}</span>
+            <span class="text-slate-400">${escapeHtml(item.type || '')}</span>
+          </div>
+          <div class="flex items-center justify-between font-bold">
+            <span class="text-white">${escapeHtml(item.var || '')}</span>
+            <span class="text-cyan-300 text-[11px]">${escapeHtml(String(item.val || ''))}</span>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+
+  // Render Gen 0, 1, 2
+  const renderGen = (containerId, items) => {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!items || items.length === 0) {
+      container.innerHTML = '<div class="text-[10px] text-slate-500 italic p-2">Trống (0 object)</div>';
+      return;
+    }
+    container.innerHTML = items.map(obj => `
+      <div class="memory-heap-block ${obj.reachable ? 'memory-heap-reachable' : 'memory-heap-garbage'} text-[10px]">
+        <div class="flex items-center justify-between font-bold">
+          <span>${escapeHtml(obj.addr || '0xHeap')}</span>
+          <span>${escapeHtml(obj.size || '')}</span>
+        </div>
+        <div class="truncate text-[11px] font-extrabold">${escapeHtml(obj.type || '')}</div>
+        <div class="text-[9px] mt-0.5 ${obj.reachable ? 'text-emerald-400' : 'text-rose-400 font-bold'}">
+          ${obj.reachable ? '● Reachable (Có GC Root)' : '✕ Garbage (Chờ Sweep)'}
+        </div>
+      </div>
+    `).join('');
+  };
+
+  renderGen('memory-gen0-container', step.gen0 || []);
+  renderGen('memory-gen1-container', step.gen1 || []);
+  renderGen('memory-gen2-container', step.gen2 || []);
+}
+
+function prevMemoryStep() {
+  if (V44_STATE.memoryCurrentStep > 0) {
+    V44_STATE.memoryCurrentStep--;
+    renderCurrentMemoryStep();
+  }
+}
+
+function nextMemoryStep() {
+  if (V44_STATE.memoryData && V44_STATE.memoryCurrentStep < V44_STATE.memoryData.steps.length - 1) {
+    V44_STATE.memoryCurrentStep++;
+    renderCurrentMemoryStep();
+  } else {
+    showToast('Đã đến bước cuối cùng của kịch bản này!', 'info');
+  }
+}
+
+
+// --- FEATURE 4: METABOLIC BIOENERGETICS & ATP BALANCE STUDIO ---
+async function openMetabolicAtpModal() {
+  const modal = document.getElementById('modal-metabolic-atp');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  await runMetabolicCalculation();
+}
+
+async function runMetabolicCalculation() {
+  const substrate = document.getElementById('metabolic-substrate-select')?.value || 'glucose_aerobic';
+  const shuttle = document.getElementById('metabolic-shuttle-select')?.value || 'malate_aspartate';
+  const inhibitor = document.getElementById('metabolic-inhibitor-select')?.value || 'none';
+
+  V44_STATE.metabolicSubstrate = substrate;
+  V44_STATE.metabolicShuttle = shuttle;
+  V44_STATE.metabolicInhibitor = inhibitor;
+
+  try {
+    const res = await fetch('/api/biochem/metabolic-atp', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ substrate, shuttle, inhibitor })
+    });
+    const data = await res.json();
+    if (!data.ok) throw new Error(data.error || 'Lỗi tính toán ATP');
+
+    renderMetabolicResult(data);
+  } catch (err) {
+    showToast('Lỗi tính toán ATP: ' + err.message, 'error');
+  }
+}
+
+function renderMetabolicResult(data) {
+  // Banner
+  const banner = document.getElementById('metabolic-summary-banner');
+  if (banner) {
+    const totalAtp = data.total_atp;
+    const isZero = totalAtp === 0;
+    banner.innerHTML = `
+      <div class="space-y-1">
+        <div class="text-[10px] font-mono text-emerald-400 font-black uppercase tracking-wider">Tổng năng lượng thực nhận (Net ATP Yield)</div>
+        <div class="font-mono text-xs text-slate-300">Phương trình tổng quát: <strong class="text-white">${escapeHtml(data.reaction_formula || '')}</strong></div>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="text-right">
+          <div class="text-3xl font-black font-mono ${isZero ? 'text-rose-400' : 'text-amber-400'} atp-golden-glow px-4 py-1.5 rounded-xl border">
+            ${totalAtp} <span class="text-sm font-bold">ATP</span>
+          </div>
+          <div class="text-[10px] text-slate-400 mt-1">/ 1 phân tử cơ chất</div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Stages Table
+  const tbody = document.getElementById('metabolic-stages-tbody');
+  if (tbody) {
+    tbody.innerHTML = (data.energy_stages || []).map(s => `
+      <tr class="border-b border-slate-900/80 hover:bg-slate-900/40 transition-colors">
+        <td class="py-2.5 px-3">
+          <div class="font-extrabold text-white">${escapeHtml(s.phase || '')}</div>
+          <div class="text-[11px] text-slate-400 leading-snug">${escapeHtml(s.desc || '')}</div>
+        </td>
+        <td class="py-2.5 px-2 text-center font-mono font-bold ${s.atp_direct < 0 ? 'text-rose-400' : s.atp_direct > 0 ? 'text-emerald-400' : 'text-slate-500'}">
+          ${s.atp_direct > 0 ? '+' : ''}${s.atp_direct}
+        </td>
+        <td class="py-2.5 px-2 text-center font-mono font-bold text-cyan-300">${s.nadh}</td>
+        <td class="py-2.5 px-2 text-center font-mono font-bold text-amber-300">${s.fadh2}</td>
+        <td class="py-2.5 px-2 text-right font-mono font-black text-amber-400 text-sm">
+          ${s.subtotal > 0 ? '+' : ''}${s.subtotal}
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // Clinical Box
+  const clinBox = document.getElementById('metabolic-clinical-box');
+  if (clinBox) {
+    let inhibitorNotice = '';
+    if (data.inhibitor_effect) {
+      inhibitorNotice = `
+        <div class="p-2.5 rounded-lg bg-rose-950/60 border border-rose-500/40 text-rose-200 mt-2 space-y-1">
+          <div class="font-black flex items-center gap-1.5">
+            <span>☠️</span> Độc tính ty thể: ${escapeHtml(data.inhibitor_effect.target || '')}
+          </div>
+          <div><strong>Cơ chế:</strong> ${escapeHtml(data.inhibitor_effect.mechanism || '')}</div>
+          <div><strong>Hậu quả lâm sàng:</strong> ${escapeHtml(data.inhibitor_effect.consequence || '')}</div>
+        </div>
+      `;
+    }
+
+    clinBox.innerHTML = `
+      <div class="font-black text-indigo-300 flex items-center gap-1.5">
+        <span>🩺</span> Ý Nghĩa Lâm Sàng & Cơ Chế Bệnh Học:
+      </div>
+      <p class="text-slate-300 leading-relaxed text-[11px]">${escapeHtml(data.clinical_relevance || '')}</p>
+      ${inhibitorNotice}
+    `;
+  }
+}
+
+// Export V44 Globally for HTML Onclick handlers
+window.openClinicalSimModal = openClinicalSimModal;
+window.loadClinicalCase = loadClinicalCase;
+window.resetClinicalCase = resetClinicalCase;
+window.orderClinicalLab = orderClinicalLab;
+window.submitClinicalDiagnosis = submitClinicalDiagnosis;
+
+window.openRegexEngineModal = openRegexEngineModal;
+window.applyRegexPreset = applyRegexPreset;
+window.runRegexEvaluation = runRegexEvaluation;
+
+window.openMemoryGcModal = openMemoryGcModal;
+window.loadMemoryScenario = loadMemoryScenario;
+window.prevMemoryStep = prevMemoryStep;
+window.nextMemoryStep = nextMemoryStep;
+
+window.openMetabolicAtpModal = openMetabolicAtpModal;
+window.runMetabolicCalculation = runMetabolicCalculation;
+
 /* --- 1. AI DEVIL'S ADVOCATE ARENA (ĐẤU TRƯỜNG SĂN NGỤY BIỆN AI) --- */
 async function openDevilsAdvocateModal() {
   const modal = document.getElementById('modal-devils-advocate');
@@ -21656,6 +23282,28 @@ function renderPolyglotBigOSvgChart(activeCurve) {
 }
 
 /* --- 4. WEB AUDIO API BINAURAL BEATS & BROWN NOISE + FLOATING POMODORO DOCK --- */
+function _syncFloatingZenDockVisibility() {
+  const dock = document.getElementById('floating-zen-dock');
+  if (!dock) return;
+  const shouldShow = !V42_STATE.dockDismissed && (Boolean(V42_STATE.isAudioPlaying) || Boolean(V42_STATE.pomoRunning));
+  dock.classList.toggle('hidden', !shouldShow);
+}
+
+function dismissZenFloatingDock() {
+  V42_STATE.dockDismissed = true;
+  document.getElementById('floating-zen-dock')?.classList.add('hidden');
+}
+
+function copyElementText(elementId) {
+  const el = document.getElementById(elementId);
+  const text = el ? (el.value || el.textContent || '').trim() : '';
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    playSound('click');
+    showToast('📋 Đã sao chép nội dung!', 'success');
+  }).catch(() => {});
+}
+
 function openZenBinauralModal() {
   const modal = document.getElementById('modal-zen-binaural');
   if (modal) modal.classList.remove('hidden');
@@ -21667,32 +23315,44 @@ function closeZenBinauralModal() {
 }
 
 function _getWaveFrequencies(preset) {
-  if (preset === 'beta') return { left: 210, right: 228, label: 'Sóng Beta 18Hz (210Hz L / 228Hz R)' };
-  if (preset === 'gamma') return { left: 220, right: 260, label: 'Sóng Gamma 40Hz (220Hz L / 260Hz R)' };
-  return { left: 200, right: 210, label: 'Sóng Alpha 10Hz (200Hz L / 210Hz R)' };
+  if (preset === 'beta') return { left: 240, right: 258, short: 'Beta 18Hz', label: 'Sóng Beta 18Hz (Giải Thuật & Code)' };
+  if (preset === 'gamma') return { left: 220, right: 260, short: 'Gamma 40Hz', label: 'Sóng Gamma 40Hz (Thi Thực Chiến)' };
+  if (preset === 'brown_noise') return { left: 200, right: 200, short: 'Brown Noise', label: 'Tiếng Mưa Đêm & Brown Noise' };
+  return { left: 200, right: 210, short: 'Alpha 10Hz', label: 'Sóng Alpha 10Hz (Siêu Ghi Nhớ)' };
 }
 
 function selectBinauralWave(preset) {
   V42_STATE.wavePreset = preset;
-  ['alpha', 'beta', 'gamma'].forEach(k => {
-    const btn = document.getElementById(`zen-wave-${k}`);
+  const mapIds = {
+    alpha: 'binaural-btn-alpha',
+    beta: 'binaural-btn-beta',
+    gamma: 'binaural-btn-gamma',
+    brown_noise: 'binaural-btn-brown'
+  };
+  Object.entries(mapIds).forEach(([k, id]) => {
+    const btn = document.getElementById(id);
     if (!btn) return;
     if (k === preset) {
-      btn.className = 'p-3.5 rounded-2xl border-2 border-teal-500 bg-teal-500/15 text-left space-y-1 transition-all';
+      btn.className = 'p-3.5 rounded-2xl border-2 border-cyan-500 bg-cyan-500/15 text-left space-y-1 transition-all';
     } else {
-      btn.className = 'p-3.5 rounded-2xl border text-left space-y-1 transition-all hover:border-teal-500/50';
+      btn.className = 'p-3.5 rounded-2xl border text-left space-y-1 transition-all hover:border-cyan-500/40';
       btn.style.backgroundColor = 'var(--bg-subtle)';
       btn.style.borderColor = 'var(--border)';
     }
   });
 
   const freqInfo = _getWaveFrequencies(preset);
-  setText('zen-freq-readout', `${freqInfo.label} + Brown Noise`);
+  setText('zen-audio-status-text', `${V42_STATE.isAudioPlaying ? 'Đang phát: ' : 'Đã chọn: '}${freqInfo.label}`);
+  if (V42_STATE.isAudioPlaying) setText('dock-wave-indicator', freqInfo.short);
 
-  if (V42_STATE.isAudioPlaying && V42_STATE.leftOsc && V42_STATE.rightOsc && V42_STATE.audioCtx) {
+  if (V42_STATE.leftOsc && V42_STATE.rightOsc && V42_STATE.audioCtx) {
     const now = V42_STATE.audioCtx.currentTime;
     V42_STATE.leftOsc.frequency.setTargetAtTime(freqInfo.left, now, 0.08);
     V42_STATE.rightOsc.frequency.setTargetAtTime(freqInfo.right, now, 0.08);
+    if (V42_STATE.binauralGain) {
+      const vol = parseFloat(document.getElementById('zen-audio-volume')?.value || '25') / 100;
+      V42_STATE.binauralGain.gain.setTargetAtTime(preset === 'brown_noise' ? 0 : vol * 0.25, now, 0.05);
+    }
   }
 }
 
@@ -21709,8 +23369,8 @@ function _initWebAudioSynthesizer() {
 
     const freqInfo = _getWaveFrequencies(V42_STATE.wavePreset);
     const binGain = ctx.createGain();
-    const binVol = parseFloat(document.getElementById('zen-binaural-vol')?.value || '25') / 100;
-    binGain.gain.value = binVol * 0.25;
+    const volPct = parseFloat(document.getElementById('zen-audio-volume')?.value || '25') / 100;
+    binGain.gain.value = V42_STATE.wavePreset === 'brown_noise' ? 0 : volPct * 0.25;
 
     const leftOsc = ctx.createOscillator();
     const rightOsc = ctx.createOscillator();
@@ -21734,7 +23394,6 @@ function _initWebAudioSynthesizer() {
     leftOsc.start();
     rightOsc.start();
 
-    // Synthesize Warm Brown Noise Buffer (2 seconds loop)
     const bufferSize = ctx.sampleRate * 2;
     const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const output = noiseBuffer.getChannelData(0);
@@ -21755,8 +23414,7 @@ function _initWebAudioSynthesizer() {
     filter.frequency.value = 420;
 
     const noiseGain = ctx.createGain();
-    const noiseVol = parseFloat(document.getElementById('zen-noise-vol')?.value || '35') / 100;
-    noiseGain.gain.value = noiseVol * 0.35;
+    noiseGain.gain.value = volPct * 0.35;
 
     whiteNoise.connect(filter).connect(noiseGain).connect(ctx.destination);
     whiteNoise.start();
@@ -21771,6 +23429,7 @@ function _initWebAudioSynthesizer() {
 }
 
 function toggleBinauralAudioQuick() {
+  V42_STATE.dockDismissed = false;
   if (!V42_STATE.isAudioPlaying) {
     if (!_initWebAudioSynthesizer()) return;
     if (V42_STATE.audioCtx.state === 'suspended') {
@@ -21790,16 +23449,16 @@ function toggleBinauralAudioQuick() {
 }
 
 function updateBinauralAudioUI(playing) {
-  const playBtn = document.getElementById('zen-audio-play-btn');
+  const playBtn = document.getElementById('zen-audio-master-btn');
   const dot = document.getElementById('zen-dock-wave-dot');
   const modalCard = document.getElementById('modal-zen-binaural');
+  const freqInfo = _getWaveFrequencies(V42_STATE.wavePreset);
 
   if (playBtn) {
-    playBtn.textContent = playing ? '⏸ Tạm dừng Sóng Não' : '▶ Bật Sóng Não';
-    playBtn.className = playing
-      ? 'px-4 py-2 rounded-xl text-xs font-extrabold bg-rose-600 hover:bg-rose-500 text-white shadow-lg transition-all'
-      : 'px-4 py-2 rounded-xl text-xs font-extrabold bg-teal-600 hover:bg-teal-500 text-white shadow-lg transition-all';
+    playBtn.textContent = playing ? '⏸ Tạm Dừng Sóng Âm' : '🔊 Phát Sóng Âm Ngay';
   }
+  setText('zen-audio-status-text', playing ? `Đang phát: ${freqInfo.label}` : 'Đang tắt • Chọn chế độ để phát');
+  setText('dock-wave-indicator', playing ? freqInfo.short : 'Tắt âm');
   if (dot) {
     dot.className = playing
       ? 'w-2 h-2 rounded-full bg-teal-400 animate-ping'
@@ -21808,19 +23467,17 @@ function updateBinauralAudioUI(playing) {
   if (modalCard) {
     modalCard.classList.toggle('binaural-playing', playing);
   }
+  _syncFloatingZenDockVisibility();
 }
 
-function updateBinauralVolumes() {
-  const binVol = parseFloat(document.getElementById('zen-binaural-vol')?.value || '25');
-  const noiseVol = parseFloat(document.getElementById('zen-noise-vol')?.value || '35');
-  setText('zen-binaural-vol-label', `${binVol}%`);
-  setText('zen-noise-vol-label', `${noiseVol}%`);
-
+function updateBinauralVolumes(val) {
+  const vol = parseFloat(val || document.getElementById('zen-audio-volume')?.value || '25');
   if (V42_STATE.binauralGain && V42_STATE.audioCtx) {
-    V42_STATE.binauralGain.gain.setTargetAtTime((binVol / 100) * 0.25, V42_STATE.audioCtx.currentTime, 0.05);
+    const binGain = V42_STATE.wavePreset === 'brown_noise' ? 0 : (vol / 100) * 0.25;
+    V42_STATE.binauralGain.gain.setTargetAtTime(binGain, V42_STATE.audioCtx.currentTime, 0.05);
   }
   if (V42_STATE.noiseGain && V42_STATE.audioCtx) {
-    V42_STATE.noiseGain.gain.setTargetAtTime((noiseVol / 100) * 0.35, V42_STATE.audioCtx.currentTime, 0.05);
+    V42_STATE.noiseGain.gain.setTargetAtTime((vol / 100) * 0.35, V42_STATE.audioCtx.currentTime, 0.05);
   }
 }
 
@@ -21830,28 +23487,39 @@ function _formatPomoMMSS(sec) {
   return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
 }
 
+function setZenPomodoroMinutes(minutes = 25, label = '') {
+  resetZenPomodoroTimer(minutes);
+  if (label) setText('zen-pomo-phase-badge', label);
+  playSound('click');
+}
+
 function toggleZenPomodoroTimer() {
+  V42_STATE.dockDismissed = false;
   const btn = document.getElementById('zen-pomo-start-btn');
   if (V42_STATE.pomoRunning) {
     clearInterval(V42_STATE.pomoTimerId);
     V42_STATE.pomoRunning = false;
-    if (btn) btn.textContent = '▶ Tiếp tục';
+    if (btn) btn.textContent = '▶️ Tiếp tục';
+    _syncFloatingZenDockVisibility();
     return;
   }
 
   V42_STATE.pomoRunning = true;
   if (btn) btn.textContent = '⏸ Tạm dừng';
+  _syncFloatingZenDockVisibility();
   V42_STATE.pomoTimerId = setInterval(() => {
     if (V42_STATE.pomoSeconds > 0) {
       V42_STATE.pomoSeconds--;
       const txt = _formatPomoMMSS(V42_STATE.pomoSeconds);
       setText('zen-pomo-display', txt);
+      setText('dock-pomo-timer', txt);
       setText('zen-dock-timer', txt);
     } else {
       clearInterval(V42_STATE.pomoTimerId);
       V42_STATE.pomoRunning = false;
-      if (btn) btn.textContent = '▶ Bắt đầu 25p';
-      showToast('🎉 Hoàn thành phiên Pomodoro 25 phút tập trung sâu! Bạn nhận +25 XP!', 'success');
+      if (btn) btn.textContent = '▶️ Bắt Đầu Pomodoro';
+      _syncFloatingZenDockVisibility();
+      showToast('🎉 Hoàn thành phiên Pomodoro tập trung sâu! Bạn nhận +25 XP!', 'success');
       if (typeof playSound === 'function') playSound('success');
     }
   }, 1000);
@@ -21863,10 +23531,26 @@ function resetZenPomodoroTimer(minutes = 25) {
   V42_STATE.pomoSeconds = minutes * 60;
   const txt = _formatPomoMMSS(V42_STATE.pomoSeconds);
   setText('zen-pomo-display', txt);
+  setText('dock-pomo-timer', txt);
   setText('zen-dock-timer', txt);
   const btn = document.getElementById('zen-pomo-start-btn');
-  if (btn) btn.textContent = `▶ Bắt đầu ${minutes}p`;
+  if (btn) btn.textContent = `▶️ Bắt Đầu (${minutes}p)`;
+  _syncFloatingZenDockVisibility();
 }
+
+window.openAlgoVisualizerModal = openAlgoVisualizerModal;
+window.switchAlgoVisualizerTab = switchAlgoVisualizerTab;
+window.closeAlgoVisualizerModal = closeAlgoVisualizerModal;
+window.setZenPomodoroMinutes = setZenPomodoroMinutes;
+window.openCornellCustomModal = openCornellCustomModal;
+window.submitCustomCornellText = submitCustomCornellText;
+window.copyElementText = copyElementText;
+window.dismissZenFloatingDock = dismissZenFloatingDock;
+window.setSubjectCategoryFilter = setSubjectCategoryFilter;
+window.switchDashboardStudioTab = switchDashboardStudioTab;
+window.openExamForSubjectCode = openExamForSubjectCode;
+window.openFlashcardsForCode = openFlashcardsForCode;
+window.filterEssayPromptList = filterEssayPromptList;
 
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
@@ -21874,3 +23558,450 @@ document.addEventListener('DOMContentLoaded', () => {
     loadEbbinghausPredictorData(false);
   }, 600);
 });
+
+
+
+// =========================================================================
+// AI DEEP ANALYSIS PERSISTENT HISTORY & CACHE CONTROLLER
+// =========================================================================
+const DEEP_HIST_STATE = {
+  items: [],
+  selectedItem: null,
+  total: 0,
+  page: 0,
+  limit: 20,
+  search: '',
+  searchTimer: null
+};
+
+async function openDeepAnalysisHistoryModal() {
+  openModal('modal-deep-analysis-history');
+  populateDeepHistorySubjects();
+  await loadDeepAnalysisHistory(0);
+}
+
+function closeDeepAnalysisHistoryModal() {
+  closeModal('modal-deep-analysis-history');
+}
+
+function populateDeepHistorySubjects() {
+  const sel = document.getElementById('deep-hist-subject-select');
+  if (!sel) return;
+  const currentVal = sel.value;
+  sel.innerHTML = '<option value="">Tất cả môn học</option>';
+  if (Array.isArray(STATE.subjects)) {
+    STATE.subjects.forEach(sub => {
+      const opt = document.createElement('option');
+      opt.value = sub.id;
+      opt.textContent = sub.name;
+      sel.appendChild(opt);
+    });
+  }
+  sel.value = currentVal;
+}
+
+async function loadDeepAnalysisHistory(page = 0) {
+  DEEP_HIST_STATE.page = page;
+  const listEl = document.getElementById('deep-hist-list-container');
+  if (listEl) {
+    listEl.innerHTML = `
+      <div class="p-6 text-center text-slate-400 space-y-2">
+        <div class="w-6 h-6 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="text-xs">Đang tải kho lịch sử phân tích chuyên sâu...</p>
+      </div>
+    `;
+  }
+  
+  const subId = document.getElementById('deep-hist-subject-select')?.value || '';
+  const mode = document.getElementById('deep-hist-mode-select')?.value || '';
+  const search = DEEP_HIST_STATE.search || '';
+  const offset = page * DEEP_HIST_STATE.limit;
+  
+  try {
+    const query = new URLSearchParams({
+      limit: String(DEEP_HIST_STATE.limit),
+      offset: String(offset)
+    });
+    if (subId) query.set('subject_id', subId);
+    if (mode) query.set('mode', mode);
+    if (search) query.set('search', search);
+
+    const res = await apiFetch(`/api/ai/deep-analysis/history?${query.toString()}`);
+    if (res.success) {
+      DEEP_HIST_STATE.items = res.items || [];
+      DEEP_HIST_STATE.total = res.total || 0;
+      renderDeepHistoryList(DEEP_HIST_STATE.items);
+      updateDeepHistoryPagination();
+      setText('deep-hist-total-badge', `${DEEP_HIST_STATE.total} bài phân tích`);
+      
+      // Auto select first item if available
+      if (DEEP_HIST_STATE.items.length > 0) {
+        selectDeepHistoryItem(DEEP_HIST_STATE.items[0]);
+      } else {
+        document.getElementById('deep-hist-detail-empty')?.classList.remove('hidden');
+        document.getElementById('deep-hist-detail-view')?.classList.add('hidden');
+      }
+    }
+  } catch (err) {
+    if (listEl) {
+      listEl.innerHTML = `<div class="p-4 text-center text-xs text-red-400">Lỗi tải lịch sử: ${err.message}</div>`;
+    }
+  }
+}
+
+function debounceFilterDeepHistory() {
+  const val = document.getElementById('deep-hist-search')?.value.trim() || '';
+  const clearBtn = document.getElementById('deep-hist-search-clear');
+  if (clearBtn) {
+    if (val) clearBtn.classList.remove('hidden');
+    else clearBtn.classList.add('hidden');
+  }
+  clearTimeout(DEEP_HIST_STATE.searchTimer);
+  DEEP_HIST_STATE.searchTimer = setTimeout(() => {
+    DEEP_HIST_STATE.search = val;
+    loadDeepAnalysisHistory(0);
+  }, 280);
+}
+
+function clearDeepHistorySearch() {
+  const input = document.getElementById('deep-hist-search');
+  if (input) input.value = '';
+  document.getElementById('deep-hist-search-clear')?.classList.add('hidden');
+  DEEP_HIST_STATE.search = '';
+  loadDeepAnalysisHistory(0);
+}
+
+function renderDeepHistoryList(items) {
+  const container = document.getElementById('deep-hist-list-container');
+  if (!container) return;
+  if (!items || items.length === 0) {
+    container.innerHTML = `
+      <div class="p-8 text-center text-slate-500 space-y-2">
+        <div class="text-2xl">📭</div>
+        <div class="text-xs font-medium">Chưa có bài phân tích nào phù hợp</div>
+        <p class="text-[11px] text-slate-600">Khi làm bài thi hoặc ôn tập, nhấn "AI Phân tích chuyên sâu" để hệ thống tự động lưu trữ tại đây.</p>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = items.map((item) => {
+    const isSelected = DEEP_HIST_STATE.selectedItem?.id === item.id;
+    const cleanQ = (item.question_text || '').replace(/\s+/g, ' ').trim();
+    const shortQ = cleanQ.length > 75 ? cleanQ.slice(0, 75) + '...' : cleanQ;
+    const subName = item.subject_name || (item.subject_id ? `Môn #${item.subject_id}` : 'Tổng quát');
+    const timeStr = item.created_at ? item.created_at.slice(0, 16).replace('T', ' ') : '';
+    const activeClass = isSelected
+      ? 'border-indigo-500/70 bg-indigo-950/50 shadow-md'
+      : 'border-white/5 bg-slate-900/50 hover:bg-slate-900/80 hover:border-white/15';
+
+    const modeBadgeMap = {
+      standard: '<span class="px-1.5 py-0.2 rounded text-[10px] bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">🔬 Chuẩn</span>',
+      feynman: '<span class="px-1.5 py-0.2 rounded text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30">👶 Feynman</span>',
+      exam_trap: '<span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/30">🎯 Bẫy thi</span>',
+      socratic: '<span class="px-1.5 py-0.2 rounded text-[10px] bg-purple-500/20 text-purple-300 border border-purple-500/30">❓ Socrates</span>',
+      stem_clinical: '<span class="px-1.5 py-0.2 rounded text-[10px] bg-teal-500/20 text-teal-300 border border-teal-500/30">🧬 STEM</span>'
+    };
+    const modeBadge = modeBadgeMap[item.analysis_mode] || modeBadgeMap.standard;
+
+    return `
+      <div onclick="selectDeepHistoryItemById(${item.id})"
+           class="p-3 rounded-xl border ${activeClass} cursor-pointer transition-all text-left space-y-1.5 group relative">
+        <div class="flex items-center justify-between text-[11px]">
+          <span class="font-bold text-indigo-300 truncate max-w-[150px]">${subName}</span>
+          <span class="text-slate-500 text-[10px]">${timeStr}</span>
+        </div>
+        <p class="text-xs text-slate-200 line-clamp-2 leading-snug font-medium group-hover:text-white transition-colors">
+          ${escapeHtml(shortQ)}
+        </p>
+        <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+          <div class="flex items-center gap-1.5">
+            ${modeBadge}
+            <span class="inline-flex items-center gap-1 text-emerald-400">
+              <i data-lucide="check-circle" class="w-3 h-3"></i> ${escapeHtml(item.correct_option || 'N/A')}
+            </span>
+          </div>
+          <button onclick="event.stopPropagation(); deleteDeepHistoryItemById(${item.id})" class="opacity-0 group-hover:opacity-100 hover:text-red-400 p-0.5 transition-opacity" title="Xóa bản ghi này">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+  if (window.lucide) lucide.createIcons();
+}
+
+function selectDeepHistoryItemById(id) {
+  const item = DEEP_HIST_STATE.items.find(x => x.id === id);
+  if (item) selectDeepHistoryItem(item);
+}
+
+function selectDeepHistoryItem(item) {
+  DEEP_HIST_STATE.selectedItem = item;
+  renderDeepHistoryList(DEEP_HIST_STATE.items);
+
+  const emptyEl = document.getElementById('deep-hist-detail-empty');
+  const viewEl = document.getElementById('deep-hist-detail-view');
+  if (emptyEl) emptyEl.classList.add('hidden');
+  if (viewEl) viewEl.classList.remove('hidden');
+
+  const modeLabels = {
+    standard: '🔬 Chuẩn giáo sư',
+    feynman: '👶 Feynman đời sống',
+    exam_trap: '🎯 Mổ xẻ bẫy thi',
+    socratic: '❓ Socrates phản biện',
+    stem_clinical: '🧬 STEM & Lâm sàng'
+  };
+  setText('deep-detail-subject-pill', item.subject_name || (item.subject_id ? `Môn #${item.subject_id}` : 'Tổng quát'));
+  setText('deep-detail-mode-badge', modeLabels[item.analysis_mode] || '🔬 Chuẩn giáo sư');
+  setText('deep-detail-time', item.created_at || '');
+  setText('deep-detail-question-text', item.question_text || '');
+  setText('deep-detail-correct-opt', item.correct_option || 'Chưa thiết lập');
+
+  // Reset mindmap & followup chat on change
+  document.getElementById('deep-detail-mindmap-box')?.classList.add('hidden');
+  const followupContainer = document.getElementById('deep-detail-followup-messages');
+  if (followupContainer) followupContainer.innerHTML = '';
+  const followupInput = document.getElementById('deep-detail-followup-input');
+  if (followupInput) followupInput.value = '';
+  
+  const explEl = document.getElementById('deep-detail-explanation');
+  const explWrapper = document.getElementById('deep-detail-expl-wrapper');
+  if (explEl && explWrapper) {
+    if (item.explanation) {
+      explEl.textContent = item.explanation;
+      explWrapper.classList.remove('hidden');
+    } else {
+      explWrapper.classList.add('hidden');
+    }
+  }
+
+  const analysisEl = document.getElementById('deep-detail-analysis-content');
+  if (analysisEl) {
+    analysisEl.innerHTML = renderMarkdown(item.analysis || '');
+  }
+  if (window.lucide) lucide.createIcons();
+}
+
+async function deleteDeepHistoryItemById(id) {
+  if (!confirm('Bạn có chắc muốn xóa bài phân tích này khỏi kho lưu trữ?')) return;
+  try {
+    const res = await apiFetch(`/api/ai/deep-analysis/history/${id}`, { method: 'DELETE' });
+    if (res.success) {
+      showToast('Đã xóa bài phân tích khỏi kho', 'info');
+      await loadDeepAnalysisHistory(DEEP_HIST_STATE.page);
+    }
+  } catch (err) {
+    showToast('Lỗi khi xóa: ' + err.message, 'warning');
+  }
+}
+
+async function deleteCurrentDeepAnalysisItem() {
+  if (!DEEP_HIST_STATE.selectedItem) return;
+  await deleteDeepHistoryItemById(DEEP_HIST_STATE.selectedItem.id);
+}
+
+async function confirmClearDeepHistory() {
+  const subId = document.getElementById('deep-hist-subject-select')?.value || '';
+  const subLabel = subId ? 'môn học đã chọn' : 'TOÀN BỘ';
+  if (!confirm(`Bạn có chắc muốn xóa vĩnh viễn lịch sử phân tích của ${subLabel}? Thao tác này không thể hoàn tác!`)) return;
+
+  try {
+    const res = await apiFetch('/api/ai/deep-analysis/history/clear', {
+      method: 'POST',
+      body: JSON.stringify({ subject_id: subId || null })
+    });
+    if (res.success) {
+      showToast(`Đã dọn dẹp ${res.cleared_count || 0} bài phân tích khỏi kho`, 'success');
+      await loadDeepAnalysisHistory(0);
+    }
+  } catch (err) {
+    showToast('Lỗi khi xóa toàn bộ: ' + err.message, 'warning');
+  }
+}
+
+function updateDeepHistoryPagination() {
+  const totalPages = Math.ceil(DEEP_HIST_STATE.total / DEEP_HIST_STATE.limit) || 1;
+  const currentPage = DEEP_HIST_STATE.page + 1;
+  setText('deep-hist-page-info', `Trang ${currentPage} / ${totalPages} (${DEEP_HIST_STATE.total} kết quả)`);
+  
+  const prevBtn = document.getElementById('deep-hist-prev-btn');
+  const nextBtn = document.getElementById('deep-hist-next-btn');
+  if (prevBtn) prevBtn.disabled = DEEP_HIST_STATE.page <= 0;
+  if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+}
+
+function navDeepHistoryPage(delta) {
+  const newPage = DEEP_HIST_STATE.page + delta;
+  const maxPage = Math.max(0, Math.ceil(DEEP_HIST_STATE.total / DEEP_HIST_STATE.limit) - 1);
+  if (newPage >= 0 && newPage <= maxPage) {
+    loadDeepAnalysisHistory(newPage);
+  }
+}
+
+function copyCurrentDeepAnalysis() {
+  if (!DEEP_HIST_STATE.selectedItem) return;
+  const item = DEEP_HIST_STATE.selectedItem;
+  const text = `# Câu hỏi:\n${item.question_text}\n\n**Đáp án đúng:** ${item.correct_option}\n\n---\n\n## Phân tích AI Chuyên Sâu:\n${item.analysis}`;
+  navigator.clipboard.writeText(text).then(() => {
+    showToast('📋 Đã sao chép nội dung phân tích vào Clipboard!', 'success');
+  }).catch(() => {
+    showToast('Không thể sao chép tự động', 'warning');
+  });
+}
+
+function exportDeepHistoryMarkdown() {
+  if (!DEEP_HIST_STATE.items || DEEP_HIST_STATE.items.length === 0) {
+    showToast('Kho phân tích đang trống, không có dữ liệu xuất!', 'warning');
+    return;
+  }
+  let md = `# KHO TÀI LIỆU PHÂN TÍCH CHUYÊN SÂU UNIMASTER AI\n*Ngày xuất: ${new Date().toLocaleString('vi-VN')}*\n*Tổng số bài phân tích: ${DEEP_HIST_STATE.total}*\n\n---\n\n`;
+  DEEP_HIST_STATE.items.forEach((item, idx) => {
+    md += `### ${idx + 1}. [${item.subject_name || 'Môn học'}] ${item.question_text}\n\n`;
+    md += `- **Đáp án đúng:** ${item.correct_option || 'N/A'}\n`;
+    if (item.explanation) md += `- **Giải thích:** ${item.explanation}\n`;
+    md += `- **Thời gian phân tích:** ${item.created_at || ''}\n\n`;
+    md += `#### Chi tiết phân tích học thuật:\n\n${item.analysis}\n\n---\n\n`;
+  });
+
+  const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `UniMaster_AI_Deep_Analysis_${new Date().toISOString().slice(0, 10)}.md`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('📥 Đã tải file tài liệu Markdown phân tích chuyên sâu!', 'success');
+}
+
+async function generateMindmapFromCurrentAnalysis() {
+  if (!DEEP_HIST_STATE.selectedItem) {
+    showToast('Vui lòng chọn một bài phân tích trước!', 'warning');
+    return;
+  }
+  const item = DEEP_HIST_STATE.selectedItem;
+  const box = document.getElementById('deep-detail-mindmap-box');
+  const summaryEl = document.getElementById('deep-detail-mindmap-summary');
+  const renderEl = document.getElementById('deep-detail-mindmap-render');
+  if (!box || !renderEl) return;
+
+  box.classList.remove('hidden');
+  renderEl.textContent = '⏳ Đang cấu trúc hóa dữ liệu và trích xuất sơ đồ tư duy trực quan từ AI...';
+  if (summaryEl) summaryEl.textContent = '';
+
+  try {
+    const res = await apiFetch('/api/ai/deep-analysis/mindmap', {
+      method: 'POST',
+      body: JSON.stringify({
+        question_text: item.question_text || '',
+        analysis_context: item.analysis || ''
+      })
+    });
+
+    if (res.success && res.mindmap) {
+      if (summaryEl && res.summary) {
+        summaryEl.textContent = `💡 Tóm lược bản đồ: ${res.summary}`;
+      }
+      renderEl.textContent = res.mindmap;
+      showToast('🗺️ Đã tạo sơ đồ tư duy thành công!', 'success');
+    } else {
+      renderEl.textContent = 'Không thể tạo sơ đồ tư duy lúc này. Vui lòng thử lại!';
+    }
+  } catch (err) {
+    renderEl.textContent = 'Lỗi kết nối khi trích xuất Mindmap: ' + (err.message || 'Unknown error');
+    showToast('Lỗi trích xuất sơ đồ tư duy', 'warning');
+  }
+}
+
+async function sendDeepAnalysisFollowup() {
+  if (!DEEP_HIST_STATE.selectedItem) {
+    showToast('Vui lòng chọn một bài phân tích trước khi hỏi phản biện!', 'warning');
+    return;
+  }
+  const inputEl = document.getElementById('deep-detail-followup-input');
+  const messagesEl = document.getElementById('deep-detail-followup-messages');
+  const btnEl = document.getElementById('btn-deep-followup-send');
+  if (!inputEl || !messagesEl) return;
+
+  const query = (inputEl.value || '').trim();
+  if (!query) {
+    inputEl.focus();
+    return;
+  }
+
+  const item = DEEP_HIST_STATE.selectedItem;
+
+  // Append user bubble
+  const userMsgId = 'fup-user-' + Date.now();
+  const aiMsgId = 'fup-ai-' + Date.now();
+  messagesEl.insertAdjacentHTML('beforeend', `
+    <div id="${userMsgId}" class="flex justify-end animate-fade-in">
+      <div class="max-w-[85%] px-3.5 py-2 rounded-2xl rounded-tr-none bg-purple-600 text-white text-xs leading-relaxed shadow">
+        ${escapeHtml(query)}
+      </div>
+    </div>
+    <div id="${aiMsgId}" class="flex justify-start animate-fade-in">
+      <div class="max-w-[90%] px-3.5 py-2.5 rounded-2xl rounded-tl-none bg-slate-900 border border-purple-500/30 text-slate-200 text-xs leading-relaxed space-y-1 shadow">
+        <div class="flex items-center gap-2 text-purple-300 font-bold text-[11px]">
+          <div class="w-3 h-3 border-2 border-purple-400 border-t-transparent rounded-full animate-spin"></div>
+          <span>AI Socratic đang suy ngẫm phản biện...</span>
+        </div>
+      </div>
+    </div>
+  `);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  inputEl.value = '';
+  if (btnEl) btnEl.disabled = true;
+
+  try {
+    const res = await apiFetch('/api/ai/deep-analysis/followup', {
+      method: 'POST',
+      body: JSON.stringify({
+        question_text: item.question_text || '',
+        correct_option: item.correct_option || '',
+        analysis_context: item.analysis || '',
+        student_query: query,
+        code_snippet: item.code_snippet || ''
+      })
+    });
+
+    const aiBox = document.getElementById(aiMsgId);
+    if (aiBox) {
+      const ansText = res.answer || res.reply;
+      if (res.success && ansText) {
+        aiBox.innerHTML = `
+          <div class="max-w-[90%] px-3.5 py-2.5 rounded-2xl rounded-tl-none bg-slate-900 border border-purple-500/40 text-slate-200 text-xs leading-relaxed space-y-1 shadow">
+            <div class="flex items-center gap-1.5 text-purple-400 font-bold text-[11px]">
+              <span>🦉</span> AI Socratic Mentor:
+            </div>
+            <div class="markdown-body text-xs text-slate-200">${renderMarkdown(ansText)}</div>
+          </div>
+        `;
+      } else {
+        aiBox.innerHTML = `
+          <div class="max-w-[90%] px-3 py-2 rounded-2xl rounded-tl-none bg-red-950/40 border border-red-500/30 text-red-300 text-xs">
+            Không nhận được phản hồi phản biện từ AI. Vui lòng thử lại!
+          </div>
+        `;
+      }
+    }
+  } catch (err) {
+    const aiBox = document.getElementById(aiMsgId);
+    if (aiBox) {
+      aiBox.innerHTML = `
+        <div class="max-w-[90%] px-3 py-2 rounded-2xl rounded-tl-none bg-red-950/40 border border-red-500/30 text-red-300 text-xs">
+          Lỗi phản biện: ${escapeHtml(err.message || 'Lỗi mạng')}
+        </div>
+      `;
+    }
+  } finally {
+    if (btnEl) btnEl.disabled = false;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+}
+
+// Window globals
+window.generateMindmapFromCurrentAnalysis = generateMindmapFromCurrentAnalysis;
+window.sendDeepAnalysisFollowup = sendDeepAnalysisFollowup;

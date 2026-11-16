@@ -76,7 +76,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=42.0" />
+  <link rel="stylesheet" href="/static/style.css?v=45.0" />
   <link rel="stylesheet" href="/static/minimal.css?v=3.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
@@ -99,95 +99,64 @@
        ===================================================================== -->
   <header class="uni-top-header sticky top-0 z-40 backdrop-blur-2xl transition-colors border-b w-full max-w-full overflow-hidden"
     style="border-color: var(--border);">
-    <div class="max-w-7xl mx-auto px-3 sm:px-6 min-h-[3.5rem] sm:min-h-[4rem] py-1 flex items-center justify-between gap-2 sm:gap-4 overflow-hidden">
-      <!-- Left: Brand + Active Subject Selector (co giãn được, chỉ logo là cố định) -->
-      <div class="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+    <div class="max-w-[1440px] mx-auto px-3 sm:px-5 min-h-[3.5rem] sm:min-h-[4rem] py-1 flex items-center justify-between gap-2 sm:gap-3 overflow-hidden">
+      <!-- Left: Brand + Active Subject Selector -->
+      <div class="flex items-center gap-2 sm:gap-2.5 flex-1 lg:flex-initial min-w-0">
         <button onclick="switchTab('dashboard')" class="flex items-center gap-2 shrink-0 group relative z-10" title="Về trang Tổng quan">
           <div class="logo-orb w-8 h-8 rounded-xl flex items-center justify-center text-white font-black text-sm shadow-md transition-transform group-hover:scale-105 shrink-0"
             style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
             U
           </div>
-          <span class="font-black text-sm sm:text-base tracking-tight txt-main hidden sm:inline shrink-0">UniMaster</span>
+          <span class="font-black text-sm sm:text-base tracking-tight txt-main hidden 2xl:inline shrink-0">UniMaster</span>
         </button>
 
-        <!-- Global Active Subject Selector Pill (Never Squashed, Semantic Contrast) -->
+        <!-- Global Active Subject Selector Pill -->
         <button onclick="openSubjectPickerModal()" title="Bấm để đổi môn học đang ôn" id="header-active-subj-btn"
-          class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all text-xs font-bold min-w-0 shrink max-w-[150px] xs:max-w-[190px] sm:max-w-[260px] md:max-w-[340px] lg:max-w-[420px] shadow-sm hover:border-indigo-500"
+          class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all text-xs font-bold min-w-0 lg:min-w-[165px] max-w-[235px] shadow-sm hover:border-indigo-500"
           style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <span id="active-subj-icon" class="text-sm shrink-0">🔬</span>
-          <span id="active-subj-name" class="font-extrabold txt-main truncate min-w-0 flex-1 text-left">Thực Hành Hóa Sinh (CTUMP)</span>
-          <span id="active-subj-badge" class="badge-brand text-[10px] px-1.5 py-0.5 rounded font-mono font-bold hidden sm:inline-block shrink-0">522 câu</span>
+          <span id="active-subj-icon" class="text-sm shrink-0">📐</span>
+          <span id="active-subj-name" class="font-extrabold txt-main truncate min-w-0 flex-1 text-left">Chọn môn học</span>
+          <span id="active-subj-badge" class="badge-brand text-[10px] px-1.5 py-0.5 rounded font-mono font-bold hidden 2xl:inline-block shrink-0">--</span>
           <i data-lucide="chevron-down" class="w-3.5 h-3.5 opacity-60 shrink-0 txt-muted"></i>
         </button>
       </div>
 
-      <!-- Center: Clean Minimalist Navigation Pills with Exam Modules -->
-      <nav class="hidden lg:flex items-center gap-1 p-1 rounded-2xl shrink min-w-0 overflow-x-auto no-scrollbar border shadow-inner" style="background-color: var(--bg-subtle); border-color: var(--border);">
-        <!-- Thanh chỉ báo trượt: JS đặt vị trí/kích thước theo tab đang active -->
+      <!-- Center: Clean 7-Tab Navigation Pills -->
+      <nav class="hidden lg:flex items-center gap-0.5 p-1 rounded-2xl shrink min-w-0 overflow-x-auto no-scrollbar border shadow-inner" style="background-color: var(--bg-subtle); border-color: var(--border);">
         <span id="nav-indicator" class="nav-indicator" aria-hidden="true"></span>
-        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Tổng quan (Phím tắt: 1)">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Tổng quan (Phím tắt: 1)">
           <i data-lucide="home" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Tổng quan</span>
         </button>
-        <button onclick="switchTab('exam')" id="tab-exam" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Phòng thi (Phím tắt: 2)">
+        <button onclick="switchTab('exam')" id="tab-exam" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Phòng thi (Phím tắt: 2)">
           <i data-lucide="zap" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Phòng thi</span>
         </button>
-        <button onclick="switchTab('exercises')" id="tab-exercises" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Luyện Code (Phím tắt: 3)">
-          <i data-lucide="code-2" class="w-3.5 h-3.5 shrink-0 text-cyan-400"></i> <span class="nav-tab-text">Code C# &amp; Python</span>
+        <button onclick="switchTab('exercises')" id="tab-exercises" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Luyện Code (Phím tắt: 3)">
+          <i data-lucide="code-2" class="w-3.5 h-3.5 shrink-0 text-cyan-400"></i> <span class="nav-tab-text">Code</span>
         </button>
-        <button onclick="switchTab('essay')" id="tab-essay" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Luyện Tự luận (Phím tắt: 4)">
+        <button onclick="switchTab('essay')" id="tab-essay" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Luyện Tự luận (Phím tắt: 4)">
           <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-400"></i> <span class="nav-tab-text">Tự luận</span>
         </button>
-        <button onclick="switchTab('flashcards')" id="tab-flashcards" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Thẻ nhớ ôn tập (Phím tắt: 5)">
+        <button onclick="switchTab('flashcards')" id="tab-flashcards" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Thẻ nhớ ôn tập (Phím tắt: 5)">
           <i data-lucide="layers" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Thẻ nhớ</span>
         </button>
-        <button onclick="switchTab('mistakes')" id="tab-mistakes" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Sổ tay câu sai (Phím tắt: 6)">
-          <i data-lucide="book-open" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Sổ tay câu sai</span>
-        </button>
-        <button onclick="switchTab('lab')" id="tab-lab" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Phòng Lab ảo (Phím tắt: 7)">
+        <button onclick="switchTab('lab')" id="tab-lab" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Phòng Lab & Mô phỏng (Phím tắt: 7)">
           <i data-lucide="flask-conical" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Lab</span>
         </button>
-        <button onclick="switchTab('tutor')" id="tab-tutor" class="nav-tab px-3 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="AI Gia sư (Phím tắt: 8)">
+        <button onclick="switchTab('tutor')" id="tab-tutor" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="AI Gia sư (Phím tắt: 8)">
           <i data-lucide="bot" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">AI Gia sư</span>
         </button>
       </nav>
 
-      <!-- Right: User Account Menu & Unified Smart Studio Cluster (v42.0 UI Optimized) -->
-      <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        <div class="flex items-center gap-1 p-0.5 rounded-xl border shadow-sm" style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <!-- Command Palette Ctrl+K Omnisearch Pill -->
-          <button id="header-cmdk-btn" onclick="openCommandPaletteModal()" title="Tìm kiếm toàn hệ thống & Lệnh nhanh (Ctrl+K)"
-            class="px-2 h-7 sm:h-8 text-xs font-bold flex items-center gap-1.5 rounded-lg hover:bg-indigo-500/15 transition-all">
-            <span>🔍</span>
-            <span class="hidden xl:inline txt-main font-extrabold">Tìm nhanh</span>
-            <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-black rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Ctrl+K</kbd>
-          </button>
-          <span class="hidden sm:inline-block w-px h-4 bg-slate-700/60"></span>
-          <!-- Quick Viva Voce Oral Exam Button -->
-          <button id="header-viva-btn" onclick="openVivaSimulatorModal()" title="Phòng Thi Vấn Đáp 1-1 với Hội đồng Giám khảo AI"
-            class="hidden sm:flex px-2 h-7 sm:h-8 text-xs font-extrabold items-center gap-1 rounded-lg hover:bg-rose-500/15 transition-all text-rose-400">
-            <span>🎙️</span>
-            <span class="hidden 2xl:inline">Vấn Đáp</span>
-          </button>
-          <!-- Quick Devil's Advocate Button -->
-          <button id="header-da-btn" onclick="openDevilsAdvocateModal()" title="Đấu Trường Phản Biện Học Thuật Ngược Với AI (Săn Ngụy Biện)"
-            class="hidden md:flex px-2 h-7 sm:h-8 text-xs font-extrabold items-center gap-1 rounded-lg hover:bg-amber-500/15 transition-all text-amber-400">
-            <span>⚔️</span>
-            <span class="hidden 2xl:inline">Phản Biện</span>
-          </button>
-          <!-- Quick Zen Binaural Soundscape Button -->
-          <button id="header-zen-audio-btn" onclick="openZenBinauralModal()" title="Sóng Não Binaural Alpha/Beta & Đồng Hồ Tập Trung Pomodoro"
-            class="hidden sm:flex px-2 h-7 sm:h-8 text-xs font-extrabold items-center gap-1 rounded-lg hover:bg-cyan-500/15 transition-all text-cyan-400">
-            <span>🎧</span>
-            <span class="hidden 2xl:inline">Sóng Não</span>
-          </button>
-        </div>
-        <!-- Header Quick Zoom Pill: A- / 100% / A+ điều chỉnh tức thời cỡ chữ -->
-        <div class="hidden xl:flex items-center border rounded-xl p-0.5 shadow-sm text-xs" style="background-color: var(--bg-subtle); border-color: var(--border);" title="Phóng to / Thu nhỏ nhanh giao diện (Phím tắt: [ và ])">
-          <button onclick="quickStepZoom(-10)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 font-black text-xs transition-colors" title="Thu nhỏ chữ ([)">A-</button>
-          <button onclick="setGlobalZoomScale(100)" id="header-quick-zoom-label" class="px-1.5 h-7 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 font-bold text-[11px] tabular-nums transition-colors" title="Đặt lại 100% (Phím 0)">100%</button>
-          <button onclick="quickStepZoom(10)" class="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-black/10 dark:hover:bg-white/10 font-black text-xs transition-colors" title="Phóng to chữ (])">A+</button>
-        </div>
-        <!-- 1-Tap Dark/Light Switch (High Contrast Sun & Moon) -->
+      <!-- Right: Minimal 4-Control Bar (Search Ctrl+K, Theme, User, Settings) -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <button id="header-cmdk-btn" onclick="openCommandPaletteModal()" title="Tìm kiếm toàn hệ thống & Lệnh nhanh (Ctrl+K)"
+          class="btn-soft px-2 sm:px-2.5 h-8 sm:h-9 text-xs font-bold flex items-center gap-1.5 rounded-xl shadow-sm hover:border-indigo-500 transition-all"
+          style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <span>🔍</span>
+          <span class="hidden 2xl:inline txt-main font-extrabold">Tìm nhanh</span>
+          <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-black rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">Ctrl+K</kbd>
+        </button>
+
         <button id="quick-theme-btn" onclick="quickCycleDarkLight()" title="Đổi giao diện Sáng / Đen OLED"
           class="btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs flex items-center justify-center p-0 rounded-xl shadow-sm hover:scale-105 transition-transform"
           style="background-color: var(--bg-subtle); border-color: var(--border);">
@@ -195,28 +164,16 @@
           <span id="quick-theme-moon" class="inline-flex"><i data-lucide="moon" class="w-4 h-4 text-violet-400"></i></span>
         </button>
 
-        <!-- Global Fullscreen Toggle Button (Tránh vướng tab trình duyệt, gọn gàng không tràn màn hình) -->
-        <button id="header-fullscreen-btn" onclick="toggleAppFullscreen()" title="Chế độ Toàn Màn Hình (F11 hoặc bấm vào đây)"
-          class="btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs font-black flex items-center justify-center p-0 rounded-xl border shrink-0 shadow-sm hover:scale-105 transition-transform"
-          style="background-color: var(--bg-subtle); border-color: var(--border); color: var(--brand-text);">
-          <svg id="header-fs-icon" class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/>
-          </svg>
-          <span id="header-fs-label" class="sr-only">Toàn Màn Hình</span>
-        </button>
-
-        <!-- User Account Menu Button -->
         <button id="header-user-btn" onclick="openAccountModal()" title="Hồ sơ tài khoản & Quản trị"
-          class="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 rounded-xl border transition-all text-xs font-bold shrink-0 shadow-sm hover:border-indigo-500"
+          class="flex items-center gap-1.5 p-1 2xl:px-2.5 2xl:py-1 rounded-xl border transition-all text-xs font-bold shrink-0 shadow-sm hover:border-indigo-500"
           style="background-color: var(--bg-subtle); border-color: var(--border);">
           <div id="header-user-avatar" class="w-7 h-7 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-md">
             A
           </div>
-          <span id="header-user-name" class="font-extrabold txt-main hidden md:inline truncate max-w-[110px]">Admin</span>
+          <span id="header-user-name" class="font-extrabold txt-main hidden 2xl:inline truncate max-w-[90px]">Admin</span>
           <span id="header-user-role" class="badge-rose px-1.5 py-0.2 rounded text-[10px] font-black hidden 2xl:inline-block">Admin</span>
         </button>
 
-        <!-- Settings Cog (Luôn nổi bật, độ tương phản cao ở mọi chế độ sáng tối) -->
         <button id="header-settings-btn" onclick="openSettingsModal('appearance')" title="Cài đặt hệ thống & Giao diện"
           class="btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs flex items-center justify-center p-0 rounded-xl shrink-0 border shadow-sm hover:scale-105 transition-transform"
           style="background-color: var(--bg-subtle); border-color: var(--border); color: var(--brand-text);">
@@ -230,7 +187,7 @@
        MOBILE & IPAD NATIVE BOTTOM TAB BAR (< lg)
        ===================================================================== -->
   <nav class="lg:hidden fixed bottom-0 inset-x-0 z-40 mobile-bottom-nav px-2 pt-1.5 shadow-2xl">
-    <div class="grid grid-cols-6 gap-1 max-w-md mx-auto">
+    <div class="grid grid-cols-5 gap-1 max-w-md mx-auto">
       <button onclick="switchTab('dashboard')" data-mnav="dashboard" class="mobile-nav-item active-tab">
         <span class="m-icon-wrap w-8 h-6 rounded-lg flex items-center justify-center"><i data-lucide="home" class="w-4 h-4"></i></span>
         <span>Tổng quan</span>
@@ -238,10 +195,6 @@
       <button onclick="switchTab('exam')" data-mnav="exam" class="mobile-nav-item">
         <span class="m-icon-wrap w-8 h-6 rounded-lg flex items-center justify-center"><i data-lucide="zap" class="w-4 h-4"></i></span>
         <span>Phòng thi</span>
-      </button>
-      <button onclick="switchTab('lab')" data-mnav="lab" class="mobile-nav-item">
-        <span class="m-icon-wrap w-8 h-6 rounded-lg flex items-center justify-center"><i data-lucide="flask-conical" class="w-4 h-4"></i></span>
-        <span>Thực hành</span>
       </button>
       <button onclick="switchTab('flashcards')" data-mnav="flashcards" class="mobile-nav-item">
         <span class="m-icon-wrap w-8 h-6 rounded-lg flex items-center justify-center"><i data-lucide="layers" class="w-4 h-4"></i></span>
@@ -252,7 +205,7 @@
         <span>AI Gia sư</span>
       </button>
       <button onclick="openModal('modal-mobile-more')" data-mnav="more" class="mobile-nav-item">
-        <span class="m-icon-wrap w-8 h-6 rounded-lg flex items-center justify-center"><i data-lucide="more-horizontal" class="w-4 h-4"></i></span>
+        <span class="m-icon-wrap w-8 h-6 rounded-lg flex items-center justify-center"><i data-lucide="layout-grid" class="w-4 h-4"></i></span>
         <span>Thêm</span>
       </button>
     </div>
@@ -261,349 +214,330 @@
   <!-- =====================================================================
        MAIN CONTENT AREA
        ===================================================================== -->
-  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-6 space-y-6">
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24 lg:py-6 space-y-6">
 
     <!-- ===================================================================
          VIEW 1: DASHBOARD (CLEAN, COLORFUL, ZERO CLUTTER)
          =================================================================== -->
     <section id="view-dashboard" class="space-y-6 animate-fade-in">
-            <!-- Minimalist Luxury Context-Aware Subject Focus Hero -->
+      <!-- 1. Minimalist Context-Aware Subject Focus Hero -->
       <div class="uni-card hero-dashboard-card p-5 sm:p-6 relative overflow-hidden">
-        <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div class="space-y-1.5 max-w-xl">
+        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div class="space-y-2 max-w-2xl">
             <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold badge-brand">
               <span id="hero-rank-title">🎓 Sinh Viên</span>
               <span>•</span>
               <span id="hero-streak-badge">🔥 Chuỗi <span id="hero-streak-days">1</span> ngày ôn tập</span>
             </div>
-            <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2">
-              <span id="hero-active-icon">🔬</span>
-              <span id="hero-active-title">Thực Hành Hóa Sinh Y Khoa</span>
+            <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+              <span id="hero-active-icon" class="shrink-0">📐</span>
+              <span id="hero-active-title" class="truncate">Toán Rời Rạc</span>
             </h1>
-            <p id="hero-subject-desc" class="text-xs text-slate-300 leading-relaxed truncate max-w-lg">
+            <p id="hero-subject-desc" class="text-xs text-slate-300 leading-relaxed line-clamp-2 max-w-xl">
               Học phần trọng tâm • Luyện đề thông minh
             </p>
-          </div>
-
-          <!-- Live Clock + Exam Countdown Widget -->
-          <div class="flex flex-col gap-1.5 shrink-0">
-            <div class="hero-clock-box px-3 py-1.5 rounded-xl border">
-              <div class="hero-clock-label text-[10px] font-bold uppercase tracking-wider">🕒 Giờ hiện tại</div>
-              <div id="live-clock-time" class="hero-clock-val font-mono font-black text-lg leading-tight tabular-nums">--:--:--</div>
-              <div id="live-clock-date" class="hero-clock-sub text-[10px] font-bold">--</div>
-            </div>
-            <div class="hero-countdown-box px-3 py-1.5 rounded-xl border">
-              <div class="hero-countdown-label text-[10px] font-bold uppercase tracking-wider">⏳ Kỳ thi gần nhất</div>
-              <div id="live-exam-countdown" class="hero-countdown-val font-mono font-black text-base leading-tight tabular-nums">-- ngày --:--:--</div>
-              <div id="live-exam-name" class="hero-countdown-sub text-[10px] font-bold truncate max-w-[220px]">Đang tải...</div>
+            <div class="flex flex-wrap items-center gap-2.5 pt-1">
+              <button id="hero-btn-start-exam" onclick="startExamForActiveSubject()"
+                class="btn-primary px-5 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 shadow-xl hover:-translate-y-0.5 transition-all">
+                <span>⚡</span> <span id="hero-start-exam-text">Làm Bài Thi Ngay</span>
+              </button>
+              <button onclick="openSubjectPickerModal()"
+                class="btn-soft px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5">
+                <span>📚</span> Đổi Môn
+              </button>
             </div>
           </div>
 
-          <!-- 2 Clean Action Buttons -->
-          <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5 shrink-0">
-            <button id="hero-btn-start-exam" onclick="startExamForActiveSubject()"
-              class="btn-primary px-5 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 shadow-xl hover:-translate-y-0.5 transition-all">
-              <span>⚡</span> <span id="hero-start-exam-text">Làm Bài Thi Ngay</span>
-            </button>
-            <button onclick="openSubjectPickerModal()"
-              class="btn-soft px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5">
-              <span>📚</span> Đổi Môn
-            </button>
-            <button onclick="toggleAppFullscreen()"
-              class="btn-soft px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 text-indigo-400 hover:text-indigo-300 border border-indigo-500/30 shadow-sm"
-              title="Bật chế độ Toàn Màn Hình để không bị vướng các tab trình duyệt">
-              <span id="hero-fs-icon">⛶</span> <span id="hero-fs-label" class="hidden xs:inline">Toàn Màn Hình</span>
-            </button>
+          <!-- Compact Live Clock + Upcoming Exam Countdown -->
+          <div class="grid grid-cols-2 lg:flex lg:flex-col gap-2 shrink-0">
+            <div class="hero-clock-box px-3.5 py-2 rounded-xl border">
+              <div class="hero-clock-label text-[10px] font-bold uppercase tracking-wider">🕒 Hiện tại</div>
+              <div id="live-clock-time" class="hero-clock-val font-mono font-black text-base sm:text-lg leading-tight tabular-nums">--:--:--</div>
+              <div id="live-clock-date" class="hero-clock-sub text-[10px] font-bold truncate">--</div>
+            </div>
+            <div class="hero-countdown-box px-3.5 py-2 rounded-xl border">
+              <div class="hero-countdown-label text-[10px] font-bold uppercase tracking-wider">⏳ Mốc thi kế tiếp</div>
+              <div id="live-exam-countdown" class="hero-countdown-val font-mono font-black text-sm sm:text-base leading-tight tabular-nums">-- ngày --:--:--</div>
+              <div id="live-exam-name" class="hero-countdown-sub text-[10px] font-bold truncate max-w-[200px]">Đang tải...</div>
+            </div>
           </div>
         </div>
 
-        <!-- Quick Access: Exam History + Login History -->
-        <div class="flex flex-wrap items-center gap-2">
-          <button type="button" onclick="openLocalExamHistoryModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
-            📜 Lịch Sử Làm Bài
-          </button>
-          <button type="button" onclick="openLoginHistoryModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
-            🔐 Lịch Sử Đăng Nhập
-          </button>
-        </div>
-
-        <!-- Dynamic Contextual Sub-feature Pills Strip -->
-        <div id="dashboard-shortcuts-container" class="relative z-10 pt-3.5 mt-3.5 border-t flex flex-wrap items-center gap-2" style="border-color: rgba(255, 255, 255, 0.08);"></div>
+        <!-- Contextual Subject Shortcuts -->
+        <div id="dashboard-shortcuts-container" class="relative z-10 pt-3.5 mt-4 border-t flex flex-wrap items-center gap-2" style="border-color: rgba(255, 255, 255, 0.1);"></div>
       </div>
 
-      
-      <!-- ===================================================================
-           UNIMASTER v15.0: SURVIVAL PREDICTOR & PANIC COUNTDOWN WIDGET
-           =================================================================== -->
-      <div id="survival-predictor-widget" class="uni-card p-4 sm:p-5 relative overflow-hidden border-2 border-rose-500/50 bg-gradient-to-r from-rose-950/40 via-purple-950/30 to-slate-900/80 shadow-2xl">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div class="space-y-1">
-            <div class="flex items-center gap-2">
-              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/50 animate-pulse">
-                <span class="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-                🚨 BÁO ĐỘNG KỲ THI
-              </span>
-              <span id="survival-quota-badge" class="badge-amber text-xs font-mono font-bold px-2.5 py-0.5 rounded-md">Quota: 0 / 40 câu</span>
-            </div>
-            <h3 class="text-sm sm:text-base font-black text-white flex items-center gap-2">
-              <span>⏰</span> <span id="survival-urgent-title">15/11: OOP Thực Hành (6 ngày) • 16/11: Giữa Kỳ Giải Thuật (7 ngày)</span>
-            </h3>
-          </div>
-
-          <!-- Streamlined Urgent Exam Action Buttons (Zero Duplication, Clean Hierarchy) -->
-          <div class="flex flex-wrap items-center gap-2 shrink-0">
-            <button onclick="switchTab('exercises'); activateAntiCheat(true);" class="btn-primary !bg-gradient-to-r !from-rose-600 !to-amber-600 px-3.5 py-1.5 text-xs font-extrabold flex items-center gap-1.5 shadow-md hover:-translate-y-0.5 transition-all">
-              <span>💻</span> Thi Code 60p (15/11)
-            </button>
-            <button onclick="startTimedExamForSubject(21, 60, 40)" class="btn-primary !bg-gradient-to-r !from-indigo-600 !to-cyan-600 px-3.5 py-1.5 text-xs font-extrabold flex items-center gap-1.5 shadow-md hover:-translate-y-0.5 transition-all">
-              <span>⚡</span> Đề Giải Thuật 60p (16/11)
-            </button>
-            <button onclick="switchTab('essay')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
-              <span>📝</span> Tự Luận
-            </button>
-            <button onclick="openAlgoVisualizerModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1">
-              <span>📊</span> Mô Phỏng GT
-            </button>
-            <button onclick="openBugHunterModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1">
-              <span>🎯</span> Săn Lỗi 20s
-            </button>
-            <button onclick="openCheatSheetModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1">
-              <span>🖨️</span> Phao A4
-            </button>
-          </div>
-        </div>
-
-        <!-- UniMaster v42.0 Ultra-UX Bento Hub & Ebbinghaus + Daily Quests -->
-        <div id="dashboard-v41-hub" class="mt-3.5 pt-3.5 border-t grid grid-cols-1 lg:grid-cols-12 gap-3.5" style="border-color: var(--border);">
-          <!-- Left 8-Tile Bento Studio Grid -->
-          <div class="lg:col-span-7 p-4 rounded-2xl border border-indigo-500/30 bg-gradient-to-br from-indigo-950/45 via-purple-950/30 to-slate-900/60 space-y-3 shadow-inner">
-            <div class="flex flex-wrap items-center justify-between gap-2">
-              <div class="flex items-center gap-2">
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 text-white shadow">SIÊU CẤP v42.0</span>
-                <h3 class="text-xs sm:text-sm font-extrabold txt-main">✨ Trung Tâm Công Cụ Học Thuật Đa Giác Quan & Phản Biện AI</h3>
-              </div>
-              <span id="v41-xp-badge" class="badge-brand px-2.5 py-0.5 rounded-full text-[10px] font-mono font-black">Level 1 • 0 XP</span>
-            </div>
-
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              <button onclick="openVivaSimulatorModal()" class="bento-tool-tile p-2.5 rounded-xl border border-pink-500/30 bg-pink-500/10 hover:bg-pink-500/20 text-left transition-all group">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-base group-hover:scale-110 transition-transform">🎙️</span>
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-pink-500/20 text-pink-300">VOICE AI</span>
-                </div>
-                <div class="font-extrabold text-[11px] txt-main">Vấn Đáp 1-1 AI</div>
-                <div class="text-[10px] txt-muted truncate">Chấm Rubric 4 chiều</div>
-              </button>
-
-              <button onclick="openDevilsAdvocateModal()" class="bento-tool-tile p-2.5 rounded-xl border border-amber-500/35 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all group">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-base group-hover:scale-110 transition-transform">⚔️</span>
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300">MỚI v42</span>
-                </div>
-                <div class="font-extrabold text-[11px] txt-main">Phản Biện Ngược</div>
-                <div class="text-[10px] txt-muted truncate">Bắt lỗi ngụy biện AI</div>
-              </button>
-
-              <button onclick="openEbbinghausModal()" class="bento-tool-tile p-2.5 rounded-xl border border-violet-500/35 bg-violet-500/10 hover:bg-violet-500/20 text-left transition-all group">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-base group-hover:scale-110 transition-transform">📉</span>
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-violet-500/20 text-violet-300">DỰ BÁO</span>
-                </div>
-                <div class="font-extrabold text-[11px] txt-main">Đường Cong Nhớ</div>
-                <div class="text-[10px] txt-muted truncate">Ebbinghaus & Điểm thi</div>
-              </button>
-
-              <button onclick="openPolyglotModal()" class="bento-tool-tile p-2.5 rounded-xl border border-blue-500/35 bg-blue-500/10 hover:bg-blue-500/20 text-left transition-all group">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-base group-hover:scale-110 transition-transform">🔄</span>
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300">C# ↔ PY</span>
-                </div>
-                <div class="font-extrabold text-[11px] txt-main">Dịch Đa Ngôn Ngữ</div>
-                <div class="text-[10px] txt-muted truncate">So sánh Code & Big-O</div>
-              </button>
-
-              <button onclick="openZenBinauralModal()" class="bento-tool-tile p-2.5 rounded-xl border border-teal-500/35 bg-teal-500/10 hover:bg-teal-500/20 text-left transition-all group">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-base group-hover:scale-110 transition-transform">🎧</span>
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300">40Hz / 10Hz</span>
-                </div>
-                <div class="font-extrabold text-[11px] txt-main">Sóng Não Binaural</div>
-                <div class="text-[10px] txt-muted truncate">WebAudio + Pomodoro</div>
-              </button>
-
-              <button onclick="openMindmapFeynmanModal()" class="bento-tool-tile p-2.5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all group">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-base group-hover:scale-110 transition-transform">🧠</span>
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300">SVG MAP</span>
-                </div>
-                <div class="font-extrabold text-[11px] txt-main">Mindmap & Feynman</div>
-                <div class="text-[10px] txt-muted truncate">Sơ đồ & Giải thích</div>
-              </button>
-
-              <button onclick="switchTab('lab'); switchLabSubTab('kinetics');" class="bento-tool-tile p-2.5 rounded-xl border border-cyan-500/30 bg-cyan-500/10 hover:bg-cyan-500/20 text-left transition-all group">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-base group-hover:scale-110 transition-transform">🧬</span>
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">LAB #10</span>
-                </div>
-                <div class="font-extrabold text-[11px] txt-main">Động Học Enzyme</div>
-                <div class="text-[10px] txt-muted truncate">Michaelis-Menten & Km</div>
-              </button>
-
-              <button onclick="switchTab('lab'); switchLabSubTab('graphtheory');" class="bento-tool-tile p-2.5 rounded-xl border border-rose-500/30 bg-rose-500/10 hover:bg-rose-500/20 text-left transition-all group">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="text-base group-hover:scale-110 transition-transform">🕸️</span>
-                  <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300">LAB #11</span>
-                </div>
-                <div class="font-extrabold text-[11px] txt-main">Đồ Thị Dijkstra</div>
-                <div class="text-[10px] txt-muted truncate">Bảng Trace từng bước</div>
-              </button>
-            </div>
-          </div>
-
-          <!-- Right: Exam Score Predictor Strip + Daily Quests Progress -->
-          <div class="lg:col-span-5 p-4 rounded-2xl border flex flex-col justify-between gap-2.5" style="background-color: var(--bg-subtle); border-color: var(--border);">
-            <!-- Mini Exam Predictor & Retention Bar -->
-            <div onclick="openEbbinghausModal()" class="cursor-pointer p-2.5 rounded-xl border border-violet-500/30 bg-gradient-to-r from-violet-950/40 to-indigo-950/30 hover:border-violet-400 transition-all flex items-center justify-between gap-3">
-              <div class="space-y-0.5">
-                <div class="text-[10px] font-extrabold uppercase tracking-wider text-violet-300 flex items-center gap-1">
-                  <span>🔮</span> Dự Báo Điểm Thi Cuối Kỳ (95% CI)
-                </div>
-                <div class="text-[11px] txt-muted">Bấm để xem Đường cong quên lãng Ebbinghaus</div>
-              </div>
-              <div class="text-right shrink-0">
-                <div id="mini-predicted-score" class="text-base sm:text-lg font-mono font-black text-emerald-400">8.2 ± 0.5</div>
-                <div id="mini-retention-badge" class="text-[10px] font-mono font-bold text-violet-300">Độ bền S = 3.1</div>
-              </div>
-            </div>
-
-            <div class="space-y-1.5">
-              <div class="flex items-center justify-between">
-                <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
-                  <span>🎯</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
-                </div>
-                <button onclick="loadDailyQuestsWidget()" class="text-[10px] font-bold text-indigo-400 hover:underline">Làm mới</button>
-              </div>
-              <div id="daily-quests-list" class="space-y-1.5 max-h-[115px] overflow-y-auto pr-1 text-xs">
-                <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 6-Exam Urgent Countdown Grid (Includes 16/11 Giữa Kỳ Giải Thuật) -->
-        <div class="countdown-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 pt-3 mt-3 border-t text-xs" style="border-color: var(--border);">
-          <!-- 15/11 -->
-          <div class="countdown-card countdown-urgent p-2.5 rounded-xl border space-y-0.5">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>15/11/2026</span>
-              <span class="cd-badge cd-badge-solid px-1.5 py-0.5 rounded font-mono font-black">CỰC GẤP</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">OOP Thực hành C#</div>
-            <div id="countdown-15-11" class="cd-days font-mono font-black text-sm">6 ngày nữa</div>
-          </div>
-
-          <!-- 16/11: Giữa Kỳ Giải Thuật -->
-          <div class="countdown-card countdown-urgent p-2.5 rounded-xl border space-y-0.5">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>16/11/2026</span>
-              <span class="cd-badge cd-badge-solid px-1.5 py-0.5 rounded font-mono font-black animate-pulse">GIỮA KỲ</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">Giữa Kỳ Giải Thuật</div>
-            <div id="countdown-16-11" class="cd-days font-mono font-black text-sm">7 ngày nữa</div>
-          </div>
-
-          <!-- 26/11 -->
-          <div class="countdown-card countdown-amber p-2.5 rounded-xl border space-y-0.5">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>26/11/2026</span>
-              <span class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">17 NGÀY</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">OOP Trắc nghiệm &amp; TH</div>
-            <div id="countdown-26-11" class="cd-days font-mono font-black text-sm">17 ngày nữa</div>
-          </div>
-
-          <!-- 27/11 -->
-          <div class="countdown-card countdown-indigo p-2.5 rounded-xl border space-y-0.5">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>27/11/2026</span>
-              <span class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">18 NGÀY</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">Toán Rời Rạc &amp; GT</div>
-            <div id="countdown-27-11" class="cd-days font-mono font-black text-sm">18 ngày nữa</div>
-          </div>
-
-          <!-- 01/12 -->
-          <div class="countdown-card countdown-cyan p-2.5 rounded-xl border space-y-0.5">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>01/12/2026</span>
-              <span class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">22 NGÀY</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">NNLT 1 (Python)</div>
-            <div id="countdown-01-12" class="cd-days font-mono font-black text-sm">22 ngày nữa</div>
-          </div>
-
-          <!-- 04/12 -->
-          <div class="countdown-card countdown-emerald p-2.5 rounded-xl border space-y-0.5">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>04/12/2026</span>
-              <span class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">25 NGÀY</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">Anh Văn Cơ Bản 3</div>
-            <div id="countdown-04-12" class="cd-days font-mono font-black text-sm">25 ngày nữa</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 4 Colorful Stat Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-        <div class="uni-card stat-card-purple p-4 sm:p-5 flex items-center gap-3.5">
-          <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #7c3aed, #ec4899);">
+      <!-- 2. 4 Clean KPI Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div class="uni-card stat-card-purple p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #7c3aed, #ec4899);">
             <i data-lucide="book-open" class="w-5 h-5"></i>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="text-xs font-bold txt-muted">Môn học</div>
-            <div id="stat-subjects" class="text-2xl font-extrabold txt-main">13</div>
+            <div id="stat-subjects" class="text-xl sm:text-2xl font-extrabold txt-main tabular-nums">15</div>
           </div>
         </div>
 
-        <div class="uni-card stat-card-cyan p-4 sm:p-5 flex items-center gap-3.5">
-          <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">
+        <div class="uni-card stat-card-cyan p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">
             <i data-lucide="layers" class="w-5 h-5"></i>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="text-xs font-bold txt-muted">Ngân hàng câu</div>
-            <div id="stat-questions" class="text-2xl font-extrabold txt-main">3,670</div>
+            <div id="stat-questions" class="text-xl sm:text-2xl font-extrabold txt-main tabular-nums">0</div>
           </div>
         </div>
 
-        <div class="uni-card stat-card-emerald p-4 sm:p-5 flex items-center gap-3.5">
-          <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #10b981, #14b8a6);">
+        <div class="uni-card stat-card-emerald p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #10b981, #14b8a6);">
             <i data-lucide="check-circle-2" class="w-5 h-5"></i>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="text-xs font-bold txt-muted">Đề hoàn thành</div>
-            <div id="stat-exams" class="text-2xl font-extrabold txt-main">0</div>
+            <div id="stat-exams" class="text-xl sm:text-2xl font-extrabold txt-main tabular-nums">0</div>
           </div>
         </div>
 
-        <div class="uni-card stat-card-amber p-4 sm:p-5 flex items-center gap-3.5">
-          <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #f59e0b, #f43f5e);">
+        <div class="uni-card stat-card-amber p-4 flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #f59e0b, #f43f5e);">
             <i data-lucide="trophy" class="w-5 h-5"></i>
           </div>
-          <div>
-            <div class="text-xs font-bold txt-muted flex items-center gap-1">
-              <span>Điểm TB</span>
-              <span class="text-[10px] font-mono text-amber-400 font-extrabold">(Thang 10)</span>
-            </div>
-            <div class="flex items-baseline gap-1 mt-0.5">
-              <span id="stat-avg-score" class="text-2xl font-extrabold txt-main">0.0</span>
+          <div class="min-w-0">
+            <div class="text-xs font-bold txt-muted">Điểm TB (Hệ 10)</div>
+            <div class="flex items-baseline gap-1">
+              <span id="stat-avg-score" class="text-xl sm:text-2xl font-extrabold txt-main tabular-nums">0.0</span>
               <span class="text-xs font-bold txt-muted">/ 10</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Weekly Learning Activity & Accuracy Analytics (Feature 1) -->
+      <!-- 3. Subjects Section with Category Filter Pills (Toán Rời Rạc & Giải Thuật Tách Riêng Rõ Ràng) -->
+      <div class="space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <h2 class="text-base sm:text-lg font-extrabold txt-main flex items-center gap-2">
+            <i data-lucide="graduation-cap" class="w-5 h-5 txt-brand"></i> Học Phần Của Bạn
+          </h2>
+          <div class="flex flex-wrap items-center gap-1.5" id="subject-category-filters">
+            <button type="button" onclick="setSubjectCategoryFilter('all')" data-cat-filter="all" class="subj-cat-pill btn-primary px-3 py-1.5 text-xs font-bold rounded-xl">Tất cả</button>
+            <button type="button" onclick="setSubjectCategoryFilter('cntt')" data-cat-filter="cntt" class="subj-cat-pill btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">💻 CNTT &amp; Giải Thuật</button>
+            <button type="button" onclick="setSubjectCategoryFilter('toan_dc')" data-cat-filter="toan_dc" class="subj-cat-pill btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">📐 Toán &amp; Đại Cương</button>
+            <button type="button" onclick="setSubjectCategoryFilter('y_duoc')" data-cat-filter="y_duoc" class="subj-cat-pill btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">🩺 Y Dược</button>
+            <button type="button" onclick="openModal('modal-add-subject')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1 rounded-xl">
+              <i data-lucide="plus" class="w-3.5 h-3.5 txt-brand"></i> Thêm môn
+            </button>
+          </div>
+        </div>
+        <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+      </div>
+
+      <!-- 4. Calm Upcoming Exams & Daily Focus Widget (No Screaming Alarms) -->
+      <div id="survival-predictor-widget" class="uni-card p-4 sm:p-5 space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="badge-brand px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider">📅 Lịch Thi &amp; Mục Tiêu Hôm Nay</span>
+              <span id="survival-quota-badge" class="badge-amber text-xs font-mono font-bold px-2.5 py-0.5 rounded-md">Quota: 0 / 40 câu</span>
+              <span id="v41-xp-badge" class="badge-emerald px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">Level 1 • 0 XP</span>
+            </div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              <span>🎯</span> <span id="survival-urgent-title">Theo dõi tiến độ Toán Rời Rạc, Giải Thuật &amp; các học phần sắp thi</span>
+            </h3>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button onclick="openExamForSubjectCode('TOAN_RR', 21)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-indigo-500/35">
+              <span>📐</span> Đề Toán Rời Rạc
+            </button>
+            <button onclick="openExamForSubjectCode('CTDL_GT', 82)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-cyan-500/35">
+              <span>⚡</span> Đề Giải Thuật
+            </button>
+            <button onclick="switchTab('exercises')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+              <span>💻</span> Code IDE
+            </button>
+            <button onclick="switchTab('essay')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+              <span>✍️</span> Tự Luận
+            </button>
+          </div>
+        </div>
+
+        <!-- 6-Exam Countdown Row (Separated Toán Rời Rạc vs Giải Thuật) -->
+        <div class="countdown-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+          <div class="countdown-card countdown-slate p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-15-11">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>15/11/2026</span>
+              <span id="cd-badge-15-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Luyện thêm</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">OOP Thực hành C#</div>
+            <div id="countdown-15-11" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-cyan p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-16-11">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>16/11/2026</span>
+              <span id="cd-badge-16-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Giải Thuật</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">Giải Thuật (CTDL &amp; GT)</div>
+            <div id="countdown-16-11" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-amber p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-26-11">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>26/11/2026</span>
+              <span id="cd-badge-26-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">OOP Trắc nghiệm &amp; TH</div>
+            <div id="countdown-26-11" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-indigo p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-27-11">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>27/11/2026</span>
+              <span id="cd-badge-27-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">Toán Rời Rạc</div>
+            <div id="countdown-27-11" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-cyan p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-01-12">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>01/12/2026</span>
+              <span id="cd-badge-01-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">NNLT 1 (Python)</div>
+            <div id="countdown-01-12" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-emerald p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-04-12">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>04/12/2026</span>
+              <span id="cd-badge-04-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">Anh Văn Cơ Bản 3</div>
+            <div id="countdown-04-12" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+        </div>
+
+        <!-- Daily Quests Strip -->
+        <div class="pt-3 border-t space-y-2" style="border-color: var(--border);">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
+              <span>✅</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
+            </div>
+            <button onclick="loadDailyQuestsWidget()" class="text-[11px] font-bold txt-brand hover:underline">Làm mới</button>
+          </div>
+          <div id="daily-quests-list" class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+            <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Clean 3-Tab Studio Công Cụ Hub (No Cluttered 14-tile Neon Wall) -->
+      <div id="dashboard-v41-hub" class="uni-card p-4 sm:p-5 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2.5">
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              <span>🧰</span> Trung Tâm Công Cụ &amp; Mô Phỏng AI
+            </h3>
+            <p class="text-[11px] txt-muted">Chia gọn theo nhóm chuyên ngành để mở nhanh không rối mắt</p>
+          </div>
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" onclick="switchDashboardStudioTab('cntt')" data-studio-tab="cntt" class="studio-hub-tab btn-primary px-3 py-1.5 text-xs font-bold rounded-xl">💻 CNTT &amp; Giải Thuật</button>
+            <button type="button" onclick="switchDashboardStudioTab('medical')" data-studio-tab="medical" class="studio-hub-tab btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">🩺 Y Dược &amp; Lâm Sàng</button>
+            <button type="button" onclick="switchDashboardStudioTab('study')" data-studio-tab="study" class="studio-hub-tab btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">🧠 Ghi Nhớ &amp; Ôn Thi</button>
+          </div>
+        </div>
+
+        <!-- Panel 1: CNTT & Giải Thuật -->
+        <div id="studio-panel-cntt" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 text-xs">
+          <button onclick="openAlgoVisualizerModal('steps')" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">⏳</div>
+            <div class="font-extrabold text-xs txt-main">Mô Phỏng &amp; Tua Giải Thuật</div>
+            <div class="text-[11px] txt-muted truncate">Sort, Search &amp; Call Stack</div>
+          </button>
+          <button onclick="openSqlSandboxModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">🗄️</div>
+            <div class="font-extrabold text-xs txt-main">SQL &amp; LINQ Sandbox</div>
+            <div class="text-[11px] txt-muted truncate">Thực hành truy vấn &amp; JOIN</div>
+          </button>
+          <button onclick="openRegexEngineModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">🔣</div>
+            <div class="font-extrabold text-xs txt-main">Regex &amp; Máy Trạng Thái</div>
+            <div class="text-[11px] txt-muted truncate">Automata &amp; Biểu thức</div>
+          </button>
+          <button onclick="openMemoryGcModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">💾</div>
+            <div class="font-extrabold text-xs txt-main">Bộ Nhớ CLR &amp; GC</div>
+            <div class="text-[11px] txt-muted truncate">Stack vs Heap Gen 0-2</div>
+          </button>
+          <button onclick="openPolyglotModal(false)" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">🔄</div>
+            <div class="font-extrabold text-xs txt-main">So Sánh C# ↔ Python</div>
+            <div class="text-[11px] txt-muted truncate">Cú pháp &amp; Độ phức tạp</div>
+          </button>
+        </div>
+
+        <!-- Panel 2: Y Dược & Lâm Sàng -->
+        <div id="studio-panel-medical" class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 text-xs">
+          <button onclick="openClinicalSimModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">🩺</div>
+            <div class="font-extrabold text-xs txt-main">Khám Bệnh Lâm Sàng</div>
+            <div class="text-[11px] txt-muted truncate">Case DKA, STEMI &amp; Gan</div>
+          </button>
+          <button onclick="openMetabolicAtpModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">⚡</div>
+            <div class="font-extrabold text-xs txt-main">Cân Bằng ATP Ty Thể</div>
+            <div class="text-[11px] txt-muted truncate">Krebs, Con thoi &amp; Chất độc</div>
+          </button>
+          <button onclick="switchTab('lab'); if (typeof switchLabSubTab==='function') switchLabSubTab('kinetics');" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">🧬</div>
+            <div class="font-extrabold text-xs txt-main">Động Học Enzyme</div>
+            <div class="text-[11px] txt-muted truncate">Michaelis-Menten &amp; Vmax</div>
+          </button>
+          <button onclick="openMindmapFeynmanModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">🧠</div>
+            <div class="font-extrabold text-xs txt-main">Sơ Đồ Mindmap &amp; Feynman</div>
+            <div class="text-[11px] txt-muted truncate">Hệ thống hóa cơ chế</div>
+          </button>
+        </div>
+
+        <!-- Panel 3: Ghi Nhớ & Lộ Trình -->
+        <div id="studio-panel-study" class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+          <button onclick="openCornellStudioModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">📑</div>
+            <div class="font-extrabold text-xs txt-main">Sổ Tay Cornell</div>
+            <div class="text-[11px] txt-muted truncate">Che đáp án Active Recall</div>
+          </button>
+          <button onclick="openCramRoadmapModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">🧭</div>
+            <div class="font-extrabold text-xs txt-main">Lộ Trình &amp; Radar 6D</div>
+            <div class="text-[11px] txt-muted truncate">Ưu tiên theo điểm yếu</div>
+          </button>
+          <button onclick="openEbbinghausModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">📉</div>
+            <div class="font-extrabold text-xs txt-main">Đường Cong Ebbinghaus</div>
+            <div class="text-[11px] txt-muted truncate">Nhịp độ quên lãng</div>
+          </button>
+          <button onclick="openDevilsAdvocateModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">⚔️</div>
+            <div class="font-extrabold text-xs txt-main">Săn Ngụy Biện AI</div>
+            <div class="text-[11px] txt-muted truncate">Phản biện lập luận sai</div>
+          </button>
+          <button onclick="openVivaSimulatorModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">🎙️</div>
+            <div class="font-extrabold text-xs txt-main">Vấn Đáp 1-1 AI</div>
+            <div class="text-[11px] txt-muted truncate">Luyện thi nói &amp; Rubric</div>
+          </button>
+          <button onclick="openZenBinauralModal()" class="bento-tool-tile p-3 rounded-xl border text-left transition-all" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-lg mb-1">🎧</div>
+            <div class="font-extrabold text-xs txt-main">Zen Focus &amp; Pomodoro</div>
+            <div class="text-[11px] txt-muted truncate">Sóng Alpha/Gamma &amp; Timer</div>
+          </button>
+        </div>
+      </div>
+
+      <!-- 6. Weekly Analytics & Personal Progress -->
       <div id="weekly-analytics-widget" class="uni-card p-4 sm:p-5 space-y-3">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2">
@@ -621,19 +555,18 @@
         <div id="weekly-chart-bars" class="pt-2"></div>
       </div>
 
-      <!-- Personal Learning Progress -->
       <section id="learning-progress-widget" class="uni-card p-4 sm:p-5 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2">
             <span class="text-lg">📈</span>
             <div>
               <h3 class="text-sm font-extrabold txt-main">Bảng Tiến Độ Học Tập</h3>
-              <p class="text-[11px] txt-muted">Theo dõi kết quả, streak và nội dung cần ôn tiếp theo</p>
+              <p class="text-[11px] txt-muted">Theo dõi kết quả theo từng môn và nội dung cần ôn tiếp</p>
             </div>
           </div>
           <span id="learning-progress-status" class="badge-brand px-2.5 py-1 rounded-lg text-xs font-bold">Đang cập nhật</span>
         </div>
-        <div id="learning-progress-summary" class="grid grid-cols-2 sm:grid-cols-4 gap-2.5"></div>
+        <div id="learning-progress-summary" class="grid grid-cols-1 sm:grid-cols-3 gap-2.5"></div>
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
           <div>
             <div class="flex items-center justify-between mb-2">
@@ -652,65 +585,52 @@
         </div>
       </section>
 
-      <!-- Subjects Section -->
-      <div class="space-y-3.5">
-        <div class="flex items-center justify-between gap-2">
-          <h2 class="text-lg font-extrabold txt-main flex items-center gap-2">
-            <i data-lucide="graduation-cap" class="w-5 h-5 txt-brand"></i> Học Phần Của Bạn
-          </h2>
-          <button onclick="openModal('modal-add-subject')" class="btn-soft px-3.5 py-1.5 text-xs flex items-center gap-1">
-            <i data-lucide="plus" class="w-3.5 h-3.5 txt-brand"></i> Thêm môn
-          </button>
-        </div>
-        <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
-      </div>
-
-      <!-- AI 4-Level Bloom Competency Analytics & Personalized Study Roadmap -->
+      <!-- 7. Unified Bloom Competency, Single Score Predictor & Heatmap -->
       <div class="uni-card p-5 sm:p-6 space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h3 class="font-extrabold text-sm sm:text-base txt-main flex items-center gap-2">
-              <i data-lucide="brain-circuit" class="w-5 h-5 txt-brand"></i> Năng Lực Bloom & Lộ Trình Ôn Tập
+              <i data-lucide="brain-circuit" class="w-5 h-5 txt-brand"></i> Năng Lực Bloom &amp; Dự Báo Điểm
             </h3>
-            <p class="text-xs txt-muted mt-0.5">Thống kê mức độ thông hiểu & lấp lỗ hổng kiến thức</p>
+            <p class="text-xs txt-muted mt-0.5">Phân tích theo môn học đang chọn • Lấp lỗ hổng trước khi thi</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <select id="roadmap-subject-select" onchange="renderBloomCompetencyChart()" class="uni-input px-3 py-1.5 text-xs font-bold"></select>
             <button onclick="generateAiStudyRoadmap()" class="btn-primary px-4 py-2 text-xs flex items-center gap-1.5">
-              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> AI Lập Lộ Trình 5 Ngày
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Lập Lộ Trình 5 Ngày
             </button>
           </div>
         </div>
 
         <div id="bloom-competency-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3"></div>
 
-        <!-- v8.0: AI Score Predictor (Counterfactual NLG) + Knowledge Heatmap + Dynamic Study Planner -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-2" style="border-top: 1px solid var(--border);">
-          <!-- AI Score Predictor & Counterfactual Advice -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 pt-3" style="border-top: 1px solid var(--border);">
+          <!-- Unified AI Score Predictor & Ebbinghaus Summary -->
           <div class="lg:col-span-5 p-4 rounded-2xl space-y-3" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
             <div class="flex items-center justify-between">
-              <span class="text-xs font-extrabold uppercase tracking-wider txt-muted">🎯 Dự Báo Điểm Thi Thật</span>
+              <span class="text-xs font-extrabold uppercase tracking-wider txt-muted">🎯 Dự Báo Điểm &amp; Trí Nhớ</span>
               <span id="pred-confidence-badge" class="badge-emerald px-2 py-0.5 rounded-full text-[11px] font-bold">Độ tin cậy ±0.4đ</span>
             </div>
-            <div class="flex items-baseline gap-2">
-              <span id="pred-score-value" class="text-3xl font-extrabold txt-brand">7.8</span>
-              <span class="text-xs font-bold txt-muted">/ 10.0 điểm dự kiến</span>
+            <div class="flex items-baseline justify-between gap-2">
+              <div class="flex items-baseline gap-2">
+                <span id="pred-score-value" class="text-3xl font-extrabold txt-brand tabular-nums">7.8</span>
+                <span class="text-xs font-bold txt-muted">/ 10.0 điểm</span>
+              </div>
+              <button onclick="openEbbinghausModal()" class="text-[11px] font-bold txt-brand hover:underline" id="mini-retention-badge">Đường cong Ebbinghaus →</button>
             </div>
+            <span id="mini-predicted-score" class="sr-only">8.2 ± 0.5</span>
             <div id="pred-counterfactual-text" class="p-3 rounded-xl text-xs leading-relaxed font-semibold" style="background-color: var(--bg-surface); border: 1px solid var(--border);"></div>
 
-            <!-- Dynamic Exam Countdown & Daily Study Planner -->
             <div class="pt-2 space-y-2" style="border-top: 1px solid var(--border);">
               <div class="flex items-center justify-between gap-2">
-                <span class="text-xs font-extrabold txt-main">📅 Lịch Trình Ôn Thi Động</span>
-                <div class="flex items-center gap-1.5">
-                  <input id="planner-exam-date" type="date" onchange="updateDynamicStudyPlanner()" class="uni-input px-2 py-1 !text-[11px] font-bold" style="background-color: var(--bg-surface);" />
-                </div>
+                <span class="text-xs font-extrabold txt-main">📅 Kế Hoạch Ôn Theo Ngày Thi</span>
+                <input id="planner-exam-date" type="date" onchange="updateDynamicStudyPlanner()" class="uni-input px-2 py-1 !text-[11px] font-bold" style="background-color: var(--bg-surface);" />
               </div>
               <div id="dynamic-planner-checklist" class="space-y-1.5 text-xs"></div>
             </div>
           </div>
 
-          <!-- Knowledge Heatmap by Topic/Chapter -->
+          <!-- Knowledge Heatmap by Topic/Chapter (Clean Grid, No Scroll-Trap) -->
           <div class="lg:col-span-7 p-4 rounded-2xl space-y-3" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div>
@@ -723,14 +643,14 @@
                 <span class="badge-rose px-2 py-0.5 rounded">🔴 &lt;50%</span>
               </div>
             </div>
-            <div id="knowledge-heatmap-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 max-h-64 overflow-y-auto pr-1"></div>
+            <div id="knowledge-heatmap-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5"></div>
           </div>
         </div>
 
         <div id="dashboard-ai-roadmap-wrap" class="hidden space-y-2.5 pt-1 animate-fade-in">
           <div class="flex flex-wrap items-center justify-between gap-2 px-1">
             <span class="text-xs font-extrabold txt-brand flex items-center gap-1.5">
-              <span>🗺️</span> Bản Đồ Năng Lực & Lộ Trình 5 Ngày Cá Nhân Hóa
+              <span>🗺️</span> Bản Đồ Năng Lực &amp; Lộ Trình 5 Ngày Cá Nhân Hóa
             </span>
             <div class="flex items-center gap-1.5">
               <button type="button" onclick="copyRoadmapText()" class="btn-soft px-2.5 py-1 text-[11px]">📋 Sao chép</button>
@@ -742,12 +662,15 @@
         </div>
       </div>
 
-      <!-- Personal Notebook & Recent History -->
+      <!-- 8. Personal Notebook & Recent History -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div class="uni-card p-5 space-y-4">
-          <h3 class="font-extrabold text-sm txt-main flex items-center gap-2">
-            <i data-lucide="sparkles" class="w-4 h-4 txt-amber"></i> Sổ Tay Thông Minh
-          </h3>
+          <div class="flex items-center justify-between">
+            <h3 class="font-extrabold text-sm txt-main flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-4 h-4 txt-amber"></i> Sổ Tay Thông Minh
+            </h3>
+            <button onclick="openLoginHistoryModal()" class="text-[11px] font-bold txt-muted hover:underline" title="Xem lịch sử đăng nhập & thiết bị">🔐 Nhật ký TB</button>
+          </div>
           <div class="grid grid-cols-3 gap-2.5 text-center">
             <button onclick="startSpecialDrill('mistakes')" class="p-3 rounded-2xl transition-transform hover:-translate-y-0.5" style="background-color: var(--rose-bg); border: 1px solid var(--rose-border);">
               <div id="notebook-mistake-count" class="text-xl font-extrabold txt-rose">0</div>
@@ -779,7 +702,10 @@
             <h3 class="font-extrabold text-sm txt-main flex items-center gap-2">
               <i data-lucide="history" class="w-4 h-4 txt-brand"></i> Lịch Sử Làm Bài
             </h3>
-            <button onclick="switchTab('exam')" class="text-xs font-bold txt-brand hover:underline">Luyện đề mới →</button>
+            <div class="flex items-center gap-3">
+              <button onclick="openLocalExamHistoryModal()" class="text-xs font-bold txt-muted hover:underline">Xem chi tiết</button>
+              <button onclick="switchTab('exam')" class="text-xs font-bold txt-brand hover:underline">Luyện đề mới →</button>
+            </div>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-left text-xs">
@@ -795,23 +721,6 @@
               <tbody id="recent-exams-tbody"></tbody>
             </table>
           </div>
-        </div>
-      </div>
-
-      <div class="uni-card p-5 space-y-3">
-        <div class="flex items-center justify-between">
-          <h3 class="font-extrabold text-sm txt-main flex items-center gap-2">
-            <i data-lucide="shield-check" class="w-4 h-4 txt-cyan"></i> Lịch Sử Đăng Nhập & Thiết Bị
-          </h3>
-          <button onclick="refreshLoginHistoryInline()" class="btn-soft px-2.5 py-1 text-[11px] font-bold flex items-center gap-1">
-            <i data-lucide="refresh-cw" class="w-3 h-3"></i> Tải lại
-          </button>
-        </div>
-        <div id="login-history-inline" class="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-          <div class="text-center py-6 txt-muted text-xs font-bold">Đang tải lịch sử đăng nhập…</div>
-        </div>
-        <div class="text-[11px] txt-muted leading-relaxed pt-2" style="border-top: 1px solid var(--border);">
-          🔒 MAC address (địa chỉ phần cứng) <strong>không thể đọc</strong> từ trình duyệt vì lý do bảo mật của thiết bị. Hệ thống định danh thiết bị bằng <strong>IP công khai</strong> + <strong>User-Agent</strong> trình duyệt.
         </div>
       </div>
     </section>
@@ -929,7 +838,7 @@
               <span class="badge-emerald text-xs px-2 py-1 rounded-lg font-bold">Mở ↗</span>
             </button>
 
-            <button type="button" onclick="openCtumpOriginalPartsModal()" class="uni-card p-4 flex items-center justify-between gap-3 text-left hover:scale-[1.01] transition-all" style="border: 1.5px solid rgba(99, 102, 241, 0.4); background: var(--bg-surface);">
+            <button id="exam-ctump-parts-card" type="button" onclick="openCtumpOriginalPartsModal()" class="uni-card p-4 flex items-center justify-between gap-3 text-left hover:scale-[1.01] transition-all" style="border: 1.5px solid rgba(99, 102, 241, 0.4); background: var(--bg-surface);">
               <div class="flex items-center gap-2.5">
                 <span class="text-2xl">🏛️</span>
                 <div>
@@ -987,19 +896,6 @@
                 <button type="button" onclick="selectCountPreset(60)" data-count="60" class="preset-pill">60</button>
                 <button type="button" onclick="selectCountPreset(9999)" data-count="9999" class="preset-pill">Tất cả</button>
               </div>
-            </div>
-
-            <div class="lg:col-span-6 space-y-1.5">
-              <label class="text-xs font-bold txt-sub">Phạm vi câu hỏi <span class="txt-muted font-normal">(tùy chọn)</span></label>
-              <div class="flex items-center gap-2">
-                <input id="exam-range-from" type="number" min="1" placeholder="Từ câu"
-                  class="uni-input w-24 px-2 py-1.5 text-center font-bold !text-xs" style="background-color: var(--bg-surface);" aria-label="Câu bắt đầu" />
-                <span class="txt-muted text-xs">đến</span>
-                <input id="exam-range-to" type="number" min="1" placeholder="Đến câu"
-                  class="uni-input w-24 px-2 py-1.5 text-center font-bold !text-xs" style="background-color: var(--bg-surface);" aria-label="Câu kết thúc" />
-                <button type="button" onclick="document.getElementById('exam-range-from').value=''; document.getElementById('exam-range-to').value='';" class="txt-muted text-xs hover:underline">Xóa</button>
-              </div>
-              <p class="txt-muted text-[10px]">Ví dụ: nhập 50 và 100 để thi từ câu 50 đến câu 100.</p>
             </div>
           </div>
 
@@ -1238,8 +1134,21 @@
               <button onclick="askAiAboutCurrentExamQuestion()" class="btn-primary !bg-gradient-to-r !from-indigo-600 !to-purple-600 px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm hover:scale-105 active:scale-95 transition-all">
                 <span>🤖</span> Hỏi Gia Sư AI Chi Tiết
               </button>
-              <button onclick="triggerDeepAnalysis()" class="ai-chip-btn">
-                <i data-lucide="microscope" class="w-3.5 h-3.5"></i> AI Phân tích chuyên sâu
+              <!-- AI Phân tích chuyên sâu Đa Chế Độ -->
+              <div class="inline-flex items-center rounded-xl bg-slate-800/80 p-0.5 border border-indigo-500/30 shadow-sm">
+                <button onclick="triggerDeepAnalysis()" class="px-2.5 py-1 text-xs font-bold text-indigo-300 hover:text-white flex items-center gap-1.5 transition-colors" title="Kích hoạt phân tích AI theo lăng kính được chọn">
+                  <i data-lucide="microscope" class="w-3.5 h-3.5"></i> AI Phân tích
+                </button>
+                <select id="deep-analysis-mode-select" class="bg-transparent text-[11px] text-indigo-200 border-none outline-none pr-1.5 font-medium cursor-pointer hover:text-white" onchange="triggerDeepAnalysis(false, this.value)">
+                  <option value="standard" class="bg-slate-900 text-white">🔬 Chuyên sâu chuẩn</option>
+                  <option value="feynman" class="bg-slate-900 text-white">👶 Kỹ thuật Feynman</option>
+                  <option value="exam_trap" class="bg-slate-900 text-white">🎯 Mổ xẻ bẫy đề thi</option>
+                  <option value="socratic" class="bg-slate-900 text-white">❓ Phương pháp Socrates</option>
+                  <option value="stem_clinical" class="bg-slate-900 text-white">🧬 Lâm sàng / Thuật toán</option>
+                </select>
+              </div>
+              <button onclick="openDeepAnalysisHistoryModal()" class="ai-chip-btn !border-emerald-500/40 text-emerald-400 hover:!bg-emerald-500/10" title="Xem lại các câu hỏi đã được AI phân tích chuyên sâu">
+                <i data-lucide="archive" class="w-3.5 h-3.5"></i> Kho Lịch Sử AI
               </button>
               <button id="btn-explain-mistake" onclick="triggerExplainMyMistake()" class="ai-chip-btn">
                 <span>🩺</span> Sao tôi chọn nhầm?
@@ -1403,48 +1312,48 @@
             <p class="text-[10px] txt-muted leading-tight">Unit Test tự động • Soi rò rỉ bộ nhớ & OOP</p>
           </div>
         </div>
-        <div class="flex items-center gap-1 flex-wrap">
-          <select id="exercise-subject-select" onchange="loadExercisesView()" class="uni-input px-2.5 py-1.5 text-[10px] font-bold">
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <select id="exercise-subject-select" onchange="loadExercisesView()" class="uni-input px-2.5 py-1.5 text-xs font-bold">
             <option value="5">💻 OOP (C#)</option>
             <option value="22">⚙️ NNLT 1 (Python)</option>
           </select>
-          <button onclick="submitCodeTestCases()" class="btn-primary px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md">
+          <button onclick="submitCodeTestCases()" class="btn-primary px-3 py-1.5 text-xs flex items-center gap-1 font-bold shadow-md">
             <span>🧪</span> Chấm Test
           </button>
-          <button id="btn-toggle-ide-expand" type="button" onclick="toggleExerciseSidebarList()" class="btn-soft px-2.5 py-1.5 text-[10px] flex items-center gap-1 font-bold" title="Mở rộng IDE toàn màn hình / Hiện danh sách bài tập">
-            <span id="ide-expand-btn-icon">🖥️</span> <span id="ide-expand-btn-text">Mở Rộng IDE</span>
+          <button id="btn-toggle-ide-expand" type="button" onclick="toggleExerciseSidebarList()" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold" title="Ẩn / Hiện danh sách bài tập">
+            <span id="ide-expand-btn-icon">📂</span> <span id="ide-expand-btn-text">Thu gọn DS</span>
           </button>
-          <button onclick="nextExercise()" class="btn-primary px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Chuyển sang câu hỏi tiếp theo">
-            <span>⏭️</span> <span class="hidden sm:inline">Câu Tiếp Theo</span>
+          <button onclick="nextExercise()" class="btn-soft px-3 py-1.5 text-xs flex items-center gap-1 font-bold" title="Chuyển sang bài tiếp theo">
+            <span>⏭️</span> <span class="hidden sm:inline">Bài tiếp</span>
           </button>
-          <button onclick="analyzeCurrentCodeComplexity()" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-rose-500 px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Phân tích Big-O & OOP">
-            <span>⚡</span> AI Big-O & OOP
+          <button onclick="analyzeCurrentCodeComplexity()" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold" title="Phân tích Big-O & OOP">
+            <span>⚡</span> <span class="hidden md:inline">Big-O</span>
           </button>
-          <button onclick="openUmlMemoryModal()" class="btn-primary !bg-gradient-to-r !from-violet-600 !to-cyan-600 px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Tự động vẽ Sơ đồ lớp UML & Mô phỏng Bộ nhớ Stack/Heap">
-            <span>🔬</span> Sơ Đồ UML & Stack/Heap
+          <button onclick="openUmlMemoryModal()" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold" title="Sơ đồ lớp UML & Stack/Heap">
+            <span>🔬</span> <span class="hidden md:inline">UML &amp; Heap</span>
           </button>
-          <button onclick="openPolyglotModal(true)" class="btn-primary !bg-gradient-to-r !from-blue-600 !to-indigo-600 px-3 py-1.5 text-[10px] flex items-center gap-1 font-bold shadow-md" title="Đối chiếu song song C# ↔ Python ↔ SQL & Đồ thị Big-O">
-            <span>🔄</span> C# ↔ Python & Big-O
+          <button onclick="openPolyglotModal(true)" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold" title="Đối chiếu C# ↔ Python">
+            <span>🔄</span> <span class="hidden lg:inline">C# ↔ Python</span>
           </button>
         </div>
       </div>
 
-      <!-- Main Split Layout: Hỗ trợ mở rộng 100% diện tích cho VS Code IDE -->
+      <!-- Main Split Layout: IDE Workspace -->
       <div id="exercise-workspace-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        <!-- Left: Exercise List (Có thể thu gọn 1-click để giải phóng 100% diện tích cho Editor) -->
-        <div id="exercise-sidebar-col" class="lg:col-span-3 uni-card p-2.5 space-y-2 h-fit transition-all duration-300">
-          <div class="flex items-center justify-between text-[10px] font-bold pb-1 border-b" style="border-color: var(--border);">
+        <!-- Sidebar List (Ordered after Editor on Mobile or Collapsible cleanly) -->
+        <div id="exercise-sidebar-col" class="lg:col-span-3 uni-card p-3 space-y-2 h-fit transition-all duration-300">
+          <div class="flex items-center justify-between text-xs font-bold pb-1 border-b" style="border-color: var(--border);">
             <span class="txt-main flex items-center gap-1">
-              <span>📁</span> <span>20 Bài</span>
+              <span>📁</span> <span>Danh sách bài tập</span>
             </span>
             <div class="flex items-center gap-1">
-              <span id="exercise-count-badge" class="badge-soft px-1 py-0.5 rounded text-[9px]">20 bài</span>
-              <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-soft px-1.5 py-0.5 text-[9px] font-bold hover:text-white" title="Thu gọn danh sách để IDE mở rộng toàn màn hình">◀ Ẩn</button>
+              <span id="exercise-count-badge" class="badge-soft px-1.5 py-0.5 rounded text-[10px]">20 bài</span>
+              <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-soft px-1.5 py-0.5 text-[10px] font-bold" title="Thu gọn danh sách">◀ Ẩn</button>
             </div>
           </div>
           <input id="exercise-search" type="text" oninput="renderExerciseList()"
-            placeholder="🔍 Tìm bài..." class="uni-input w-full px-2.5 py-1 !text-[10px]" />
-          <div id="exercise-list" class="space-y-1 max-h-[640px] overflow-y-auto pr-1"></div>
+            placeholder="🔍 Tìm bài..." class="uni-input w-full px-2.5 py-1.5 !text-xs" />
+          <div id="exercise-list" class="space-y-1 max-h-[260px] lg:max-h-[640px] overflow-y-auto pr-1"></div>
         </div>
 
         <!-- Right: Problem Description & Interactive Code Editor & Test Runner -->
@@ -1502,33 +1411,42 @@
 
     <section id="view-essay" class="hidden space-y-5 animate-fade-in">
       <!-- Top Bar -->
-      <div class="uni-card p-4 sm:p-5 flex flex-wrap items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md">
-            <i data-lucide="award" class="w-5 h-5"></i>
+      <div class="uni-card p-4 sm:p-5 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 to-rose-500 flex items-center justify-center text-white shadow-md">
+              <i data-lucide="award" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <h2 class="text-base sm:text-lg font-extrabold txt-main flex items-center gap-2">
+                Chấm Tự Luận Toán Rời Rạc &amp; Giải Thuật
+                <span class="badge-amber text-[10px] px-2 py-0.5 rounded-full font-mono">Barem 10.0</span>
+              </h2>
+              <p class="text-xs txt-muted">Tách riêng 2 học phần • Hỗ trợ LaTeX &amp; mã giả • AI phát hiện sai sót logic</p>
+            </div>
           </div>
-          <div>
-            <h2 class="text-base sm:text-lg font-extrabold txt-main flex items-center gap-2">
-              Chấm Tự Luận Toán & Giải Thuật
-              <span class="badge-amber text-[10px] px-2 py-0.5 rounded-full font-mono">Barem 10.0</span>
-            </h2>
-            <p class="text-xs txt-muted">Hỗ trợ LaTeX & mã giả • AI chấm điểm & phát hiện sai sót logic</p>
+          <div class="flex items-center gap-2 flex-wrap">
+            <select id="essay-prompt-select" onchange="loadSelectedEssayPrompt()" class="uni-input px-3 py-2 text-xs font-bold max-w-xs">
+              <option value="ESSAY_01">Đề 1: Logic Mệnh Đề & Quy Tắc Suy Diễn</option>
+              <option value="ESSAY_02">Đề 2: Quy Nạp Toán Học & Dirichlet</option>
+              <option value="ESSAY_03">Đề 3: Cây Khung Kruskal, Prim & Euler</option>
+              <option value="ESSAY_04">Đề 4: Merge Sort & Master Theorem</option>
+              <option value="ESSAY_05">Đề 5: Dijkstra, Truy Vết & Cạnh Âm</option>
+            </select>
+            <button onclick="triggerGradeEssay()" class="btn-primary px-4 py-2 text-xs flex items-center gap-1.5 font-bold shadow-md">
+              <span>✨</span> Chấm Điểm (10đ)
+            </button>
+            <button onclick="triggerStepByStepEssayValidation()" class="btn-soft px-3.5 py-2 text-xs flex items-center gap-1.5 font-bold border border-amber-500/40">
+              <span>🔍</span> Soi Lỗi Từng Bước
+            </button>
           </div>
         </div>
-        <div class="flex items-center gap-2 flex-wrap">
-          <select id="essay-prompt-select" onchange="loadSelectedEssayPrompt()" class="uni-input px-3 py-2 text-xs font-bold max-w-xs">
-            <option value="ESSAY_01">Đề 1: Logic Mệnh Đề & Quy Tắc Suy Diễn</option>
-            <option value="ESSAY_02">Đề 2: Quy Nạp Toán Học & Dirichlet</option>
-            <option value="ESSAY_03">Đề 3: Cây Khung Kruskal, Prim & Euler</option>
-            <option value="ESSAY_04">Đề 4: Merge Sort & Master Theorem</option>
-            <option value="ESSAY_05">Đề 5: Dijkstra, Truy Vết & Cạnh Âm</option>
-          </select>
-          <button onclick="triggerGradeEssay()" class="btn-primary px-4 py-2 text-xs flex items-center gap-1.5 font-bold shadow-md">
-            <span>✨</span> Chấm Điểm (10đ)
-          </button>
-          <button onclick="triggerStepByStepEssayValidation()" class="btn-primary !bg-gradient-to-r !from-amber-600 !to-rose-600 px-4 py-2 text-xs flex items-center gap-1.5 font-bold shadow-md">
-            <span>🔍</span> Soi Lỗi Từng Bước
-          </button>
+        <!-- Separate Subject Filter Pills -->
+        <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t" style="border-color: var(--border);">
+          <span class="text-[11px] font-bold txt-muted mr-1">Lọc theo môn:</span>
+          <button type="button" onclick="filterEssayPromptList('all')" data-essay-filter="all" class="essay-subj-pill btn-primary px-3 py-1 text-xs font-bold rounded-xl">Tất cả (6 đề)</button>
+          <button type="button" onclick="filterEssayPromptList('toan_rr')" data-essay-filter="toan_rr" class="essay-subj-pill btn-soft px-3 py-1 text-xs font-bold rounded-xl">📐 Toán Rời Rạc (3 đề)</button>
+          <button type="button" onclick="filterEssayPromptList('ctdl_gt')" data-essay-filter="ctdl_gt" class="essay-subj-pill btn-soft px-3 py-1 text-xs font-bold rounded-xl">⚡ Giải Thuật &amp; CTDL (3 đề)</button>
         </div>
       </div>
 
@@ -1588,9 +1506,9 @@
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <textarea id="essay-student-input" oninput="updateEssayLivePreview()"
                 placeholder="Gõ bài làm tự luận hoặc mã giả tại đây... Có thể dùng $...$ cho công thức toán."
-                class="uni-input w-full h-80 p-3 text-xs font-mono resize-y leading-relaxed"
+                class="uni-input w-full h-64 sm:h-72 p-3 text-xs font-mono resize-y leading-relaxed"
                 style="background-color: var(--bg-subtle); border-color: var(--border);"></textarea>
-              <div id="essay-live-preview" class="p-3.5 rounded-xl border h-80 overflow-y-auto text-xs leading-relaxed markdown-body"
+              <div id="essay-live-preview" class="p-3.5 rounded-xl border h-64 sm:h-72 overflow-y-auto text-xs leading-relaxed markdown-body"
                 style="background-color: var(--bg-subtle); border-color: var(--border);">
                 <p class="txt-muted italic">Xem trước công thức KaTeX...</p>
               </div>
@@ -1756,23 +1674,23 @@
          VIEW 6: AI GIA SƯ 1-1 (4 CHẾ ĐỘ GIẢNG VIÊN & ĐA MÔN STEM/IT)
          =================================================================== -->
     <section id="view-tutor" class="hidden space-y-4 animate-fade-in">
-      <!-- Gemini Clean Top Navigation Bar -->
-      <div class="gemini-header-bar flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl border" style="background: rgba(25, 26, 30, 0.85); backdrop-filter: blur(16px); border-color: rgba(255, 255, 255, 0.08);">
+      <!-- Theme-Aware AI Tutor Top Navigation Bar -->
+      <div class="gemini-header-bar flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-2xl border shadow-sm" style="background: var(--bg-surface); border-color: var(--border);">
         <div class="flex items-center gap-3">
           <div class="gemini-sparkle-icon" style="width: 28px; height: 28px;"></div>
           <div>
             <div class="flex items-center gap-2">
-              <span class="font-extrabold text-sm sm:text-base tracking-tight gemini-gradient-text">Gemini 1.5 Pro</span>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 font-mono border border-indigo-500/30">Gia Sư 1-1</span>
+              <span class="font-extrabold text-sm sm:text-base tracking-tight gemini-gradient-text">Gia Sư AI UniMaster</span>
+              <span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">Gia Sư 1-1</span>
             </div>
-            <div class="text-[11px] text-slate-400">Trợ lý học thuật đa khối ngành: Y Dược, Toán Rời Rạc, Lập Trình OOP</div>
+            <div class="text-[11px] txt-muted">Trợ lý học thuật đa khối ngành: Y Dược, Toán Rời Rạc, Giải Thuật &amp; Lập Trình</div>
           </div>
         </div>
 
         <div class="flex items-center gap-2 flex-wrap">
-          <div class="flex items-center gap-1.5 bg-[#1e1f24] px-2.5 py-1 rounded-xl border border-white/10">
+          <div class="flex items-center gap-1.5 px-2.5 py-1 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
             <span class="text-xs">📚</span>
-            <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="bg-transparent text-xs font-bold text-white outline-none cursor-pointer pr-1"></select>
+            <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="bg-transparent text-xs font-bold txt-main outline-none cursor-pointer pr-1"></select>
           </div>
           <button type="button" onclick="toggleTutorAdvancedSettings()" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1" title="Tùy chỉnh chế độ sư phạm, giọng giảng & phong cách">
             <span>⚙️</span> <span class="hidden sm:inline">Cài Đặt</span>
@@ -1782,21 +1700,21 @@
             <span class="hidden sm:inline">Lịch Sử</span>
             <span id="tutor-sessions-badge" class="badge-brand text-[10px] px-1.5 py-0.2 rounded-full font-mono">0</span>
           </button>
-          <button type="button" onclick="clearTutorChat()" class="btn-primary !bg-[#2a2b32] hover:!bg-[#353740] !text-slate-200 border border-white/15 px-3 py-1.5 text-xs font-bold flex items-center gap-1" title="Bắt đầu phiên trò chuyện mới">
+          <button type="button" onclick="clearTutorChat()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1" title="Bắt đầu phiên trò chuyện mới">
             <span>✨</span> <span>Chat Mới</span>
           </button>
         </div>
       </div>
 
-      <!-- Collapsible Gemini Settings Drawer -->
-      <div id="tutor-advanced-settings" class="hidden uni-card p-4 space-y-3 animate-fade-in border border-indigo-500/20" style="background: rgba(22, 23, 28, 0.95);">
-        <div class="flex items-center justify-between text-xs font-bold pb-2 border-b border-white/10 text-slate-300">
-          <span class="flex items-center gap-1.5"><span>⚙️</span> Tùy Chỉnh Sư Phạm & Giọng Giảng Gemini</span>
-          <button type="button" onclick="toggleTutorAdvancedSettings(false)" class="text-slate-400 hover:text-white text-xs">✕ Đóng</button>
+      <!-- Collapsible Tutor Settings Drawer -->
+      <div id="tutor-advanced-settings" class="hidden uni-card p-4 space-y-3 animate-fade-in">
+        <div class="flex items-center justify-between text-xs font-bold pb-2 border-b txt-main" style="border-color: var(--border);">
+          <span class="flex items-center gap-1.5"><span>⚙️</span> Tùy Chỉnh Sư Phạm &amp; Giọng Giảng AI</span>
+          <button type="button" onclick="toggleTutorAdvancedSettings(false)" class="txt-muted hover:opacity-80 text-xs">✕ Đóng</button>
         </div>
         <!-- Pedagogy Mode Selector -->
         <div class="flex flex-wrap items-center gap-1.5">
-          <span class="text-[11px] font-extrabold text-slate-400 mr-1">Chế độ sư phạm:</span>
+          <span class="text-[11px] font-extrabold txt-muted mr-1">Chế độ sư phạm:</span>
           <button type="button" onclick="setTutorMode('explain')" data-tutor-mode="explain" class="tutor-mode-pill active">🧠 Giải sâu & Mẹo nhớ</button>
           <button type="button" onclick="setTutorMode('eliminate')" data-tutor-mode="eliminate" class="tutor-mode-pill">🔍 Loại trừ A/B/C/D</button>
           <button type="button" onclick="setTutorMode('socratic')" data-tutor-mode="socratic" class="tutor-mode-pill">💡 Gợi mở Socratic</button>
@@ -1804,8 +1722,8 @@
           <button type="button" onclick="setTutorMode('debug')" data-tutor-mode="debug" class="tutor-mode-pill">💻 Debug Code</button>
         </div>
         <!-- Persona -->
-        <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t border-white/5">
-          <span class="text-[11px] font-bold text-slate-400 mr-1">Giọng giảng:</span>
+        <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t" style="border-color: var(--border);">
+          <span class="text-[11px] font-bold txt-muted mr-1">Giọng giảng:</span>
           <button type="button" onclick="setTutorPersona('professor')" data-persona="professor" class="preset-pill active !py-1 !px-2.5 !text-xs">🎓 Giáo sư</button>
           <button type="button" onclick="setTutorPersona('feynman')" data-persona="feynman" class="preset-pill !py-1 !px-2.5 !text-xs">🧒 Feynman</button>
           <button type="button" onclick="setTutorPersona('speed')" data-persona="speed" class="preset-pill !py-1 !px-2.5 !text-xs">⚡ Giải nhanh 10s</button>
@@ -1814,8 +1732,8 @@
           <button type="button" onclick="generateSubjectMindmap()" class="ai-chip-btn !py-1 !px-2.5 !text-xs">🗺️ Sơ đồ tư duy</button>
         </div>
         <!-- Custom Style Prompt -->
-        <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-white/5">
-          <span class="text-[11px] font-bold text-slate-400">Prompt bổ sung:</span>
+        <div class="flex flex-wrap items-center gap-2 pt-2 border-t" style="border-color: var(--border);">
+          <span class="text-[11px] font-bold txt-muted">Prompt bổ sung:</span>
           <input id="tutor-style-prompt" value="" oninput="tutorCustomStyle=this.value;localStorage.setItem(TUTOR_STYLE_KEY,this.value)" class="uni-input flex-1 min-w-[200px] px-3 py-1 text-xs" placeholder="Ví dụ: dùng ví dụ đời thường, giọng Gen Z, nhấn mạnh câu bẫy..." />
           <button type="button" onclick="setTutorCustomStyle('Giải thích thật dễ hiểu như cho người mất gốc, dùng ví dụ đời thường và giọng Gen Z thân thiện.')" class="btn-soft px-2.5 py-1 text-xs">✨ Gen Z dễ hiểu</button>
           <button type="button" onclick="setTutorCustomStyle('')" class="btn-soft px-2 py-1 text-xs">Xóa</button>
@@ -2417,13 +2335,13 @@
               📊 Thống Kê Y Sinh
             </button>
             <button type="button" onclick="switchLabSubTab('export')" data-labtab="export" class="preset-pill text-xs">
-              📥 9. Xuất Anki & In Đề A4
+              📥 Xuất Anki &amp; In Đề A4
             </button>
-            <button type="button" onclick="switchLabSubTab('kinetics')" data-labtab="kinetics" class="preset-pill text-xs font-extrabold text-cyan-300 border-cyan-500/40">
-              🧬 10. Động Học Enzyme (Km/Vmax)
+            <button type="button" onclick="switchLabSubTab('kinetics')" data-labtab="kinetics" class="preset-pill text-xs font-extrabold">
+              🧬 Động Học Enzyme (Km/Vmax)
             </button>
-            <button type="button" onclick="switchLabSubTab('graphtheory')" data-labtab="graphtheory" class="preset-pill text-xs font-extrabold text-amber-300 border-amber-500/40">
-              🕸️ 11. Đồ Thị Dijkstra & MST
+            <button type="button" onclick="switchLabSubTab('graphtheory')" data-labtab="graphtheory" class="preset-pill text-xs font-extrabold">
+              🕸️ Đồ Thị &amp; Giải Thuật
             </button>
 
           </div>
@@ -3208,11 +3126,14 @@
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
           <!-- Left: Algorithm Controls & Matrix Output -->
           <div class="lg:col-span-5 uni-card p-5 space-y-4">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between gap-2">
               <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
-                <span>🕸️</span> Phòng Lab Lý Thuyết Đồ Thị & Đường Đi Ngắn Nhất
+                <span>🕸️</span> Phòng Lab Lý Thuyết Đồ Thị &amp; Đường Đi Ngắn Nhất
               </h3>
-              <span class="badge-amber px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">Toán Rời Rạc</span>
+              <div class="flex items-center gap-1.5">
+                <span class="badge-amber px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold">Toán Rời Rạc • Giải Thuật</span>
+                <button type="button" onclick="openAlgoVisualizerModal('steps')" class="btn-soft px-2.5 py-0.5 text-[10px] font-bold">⏳ Tua Bước Giải Thuật ↗</button>
+              </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -3394,9 +3315,21 @@
             </div>
           </div>
 
+          <!-- Collapsible Advanced Appearance Studio (Gọn gàng, không rối mắt mặc định) -->
+          <details class="rounded-2xl border p-4 group" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <summary class="cursor-pointer list-none flex items-center justify-between text-xs font-extrabold txt-main select-none">
+              <span class="flex items-center gap-2">
+                <span>🎛️</span>
+                <span>Tùy chỉnh nâng cao (Bo góc, Màu câu hỏi, Zoom, Thanh Menu)</span>
+              </span>
+              <span class="text-[11px] txt-brand font-bold group-open:hidden">Mở rộng ▾</span>
+              <span class="text-[11px] txt-muted font-bold hidden group-open:inline">Thu gọn ▴</span>
+            </summary>
+
+          <div class="space-y-5 mt-4 pt-4 border-t" style="border-color: var(--border);">
           <!-- UI Shape & Corner Radius -->
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div class="p-4 rounded-2xl space-y-2.5" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+            <div class="p-4 rounded-2xl space-y-2.5" style="background-color: var(--bg-surface); border: 1px solid var(--border);">
               <div class="flex justify-between items-center text-xs font-bold">
                 <span class="txt-main flex items-center gap-1.5"><span>📐</span> Bo tròn góc khung thẻ (Radius)</span>
                 <span id="lbl-card-radius" class="txt-brand font-mono font-extrabold">18px</span>
@@ -3410,7 +3343,7 @@
               </div>
             </div>
 
-            <div class="p-4 rounded-2xl space-y-2.5" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+            <div class="p-4 rounded-2xl space-y-2.5" style="background-color: var(--bg-surface); border: 1px solid var(--border);">
               <div class="flex justify-between items-center text-xs font-bold">
                 <span class="txt-main flex items-center gap-1.5"><span>🔮</span> Độ sâu bóng đổ 3D (Shadow)</span>
                 <span class="text-[11px] txt-brand font-bold">Nổi khối</span>
@@ -3423,16 +3356,14 @@
             </div>
           </div>
 
-          <!-- ===================================================================
-               STUDIO TINH CHỈNH MÀU SẮC SÂU & CHI TIẾT TỪNG PHẦN (DEEP COLOR STUDIO)
-               =================================================================== -->
-          <div class="p-5 rounded-2xl space-y-4 border border-indigo-500/30" style="background: color-mix(in srgb, var(--bg-surface) 96%, transparent);">
+          <!-- Deep Color Studio -->
+          <div class="p-4 sm:p-5 rounded-2xl space-y-4 border border-indigo-500/30" style="background: color-mix(in srgb, var(--bg-surface) 96%, transparent);">
             <div class="flex items-center justify-between border-b pb-2.5" style="border-color: var(--border);">
               <div class="flex items-center gap-2">
                 <span class="text-xl">🎨</span>
                 <div>
-                  <h4 class="text-xs font-black txt-main">Studio Tinh Chỉnh Màu Sắc Sâu & Chi Tiết Từng Phần</h4>
-                  <p class="text-[10px] txt-muted">Tùy biến màu nền câu hỏi, 4 phương án A-B-C-D, màu đúng/sai và độ tương phản</p>
+                  <h4 class="text-xs font-black txt-main">Studio Tinh Chỉnh Màu Sắc Từng Phần</h4>
+                  <p class="text-[10px] txt-muted">Màu nền câu hỏi, 4 phương án A-B-C-D và màu báo đúng/sai</p>
                 </div>
               </div>
               <button type="button" onclick="resetDeepColorCustomization()" class="btn-soft px-2.5 py-1 text-[11px] font-bold text-rose-400 hover:text-rose-300">
@@ -3582,6 +3513,8 @@
               </label>
             </div>
           </div>
+          </div>
+          </details>
         </div>
 
         <!-- ==========================================
@@ -4418,65 +4351,65 @@
       </div>
 
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-[70vh] overflow-y-auto pr-1">
-        <button onclick="switchTab('exercises'); closeModal('modal-mobile-more'); activateAntiCheat(true);" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center border-rose-500/30 hover:border-rose-500">
+        <button onclick="switchTab('exercises'); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center border-cyan-500/30 hover:border-cyan-500">
           <span class="text-xl">💻</span>
-          <span class="text-xs font-extrabold text-rose-300">Thi Code 60m</span>
-          <span class="text-[10px] txt-muted">OOP C# &amp; Python</span>
+          <span class="text-xs font-extrabold text-cyan-400">Luyện Code IDE</span>
+          <span class="text-[10px] txt-muted">C#, Python &amp; CTDL</span>
         </button>
         <button onclick="switchTab('essay'); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center border-amber-500/30 hover:border-amber-500">
           <span class="text-xl">📝</span>
-          <span class="text-xs font-extrabold text-amber-300">Bảng Tự Luận</span>
-          <span class="text-[10px] txt-muted">Toán Rời Rạc &amp; GT</span>
+          <span class="text-xs font-extrabold text-amber-400">Bảng Tự Luận</span>
+          <span class="text-[10px] txt-muted">Toán Rời Rạc &bull; Giải Thuật</span>
         </button>
-        <button onclick="openBugHunterModal(); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center border-violet-500/30 hover:border-violet-500">
-          <span class="text-xl">🎯</span>
-          <span class="text-xs font-extrabold text-violet-300">Săn Lỗi (20s)</span>
-          <span class="text-[10px] txt-muted">Minigame Bắt Bug</span>
+        <button onclick="switchTab('mistakes'); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center border-rose-500/30 hover:border-rose-500">
+          <span class="text-xl">📓</span>
+          <span class="text-xs font-extrabold text-rose-400">Sổ Tay Câu Sai</span>
+          <span class="text-[10px] txt-muted">Ôn lại lỗ hổng</span>
         </button>
-        <button onclick="openAlgoVisualizerModal(); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center border-cyan-500/30 hover:border-cyan-500">
+        <button onclick="switchTab('lab'); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center border-indigo-500/30 hover:border-indigo-500">
+          <span class="text-xl">🧪</span>
+          <span class="text-xs font-extrabold text-indigo-400">Phòng Lab Ảo</span>
+          <span class="text-[10px] txt-muted">Đồ thị, Y Sinh, SQL</span>
+        </button>
+        <button onclick="openAlgoVisualizerModal('steps'); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
           <span class="text-xl">📊</span>
-          <span class="text-xs font-extrabold text-cyan-300">Mô Phỏng GT</span>
-          <span class="text-[10px] txt-muted">Sort &amp; Search Visual</span>
+          <span class="text-xs font-bold txt-main">Mô Phỏng GT</span>
+          <span class="text-[10px] txt-muted">Sort, Search &amp; Stack</span>
         </button>
-        <button onclick="openBoilerplateTrainerModal(); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center border-emerald-500/30 hover:border-emerald-500">
-          <span class="text-xl">⌨️</span>
-          <span class="text-xs font-extrabold text-emerald-300">Gõ Class C#</span>
-          <span class="text-[10px] txt-muted">&lt; 2 Phút + WPM</span>
+        <button onclick="openVivaSimulatorModal(); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
+          <span class="text-xl">🎙️</span>
+          <span class="text-xs font-bold txt-main">Vấn Đáp AI</span>
+          <span class="text-[10px] txt-muted">Thi nói 1-1</span>
         </button>
-        <button onclick="openCheatSheetModal(); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center border-indigo-500/30 hover:border-indigo-500">
-          <span class="text-xl">🖨️</span>
-          <span class="text-xs font-extrabold text-indigo-300">Phao In A4</span>
-          <span class="text-[10px] txt-muted">Tổng Ôn Phút Chót</span>
+        <button onclick="openDevilsAdvocateModal(); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
+          <span class="text-xl">⚔️</span>
+          <span class="text-xs font-bold txt-main">Phản Biện AI</span>
+          <span class="text-[10px] txt-muted">Săn ngụy biện</span>
         </button>
-        <button onclick="switchTab('arena'); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
-          <span class="text-xl">🏆</span>
-          <span class="text-xs font-bold txt-main">Đấu Trường</span>
-          <span class="text-[10px] txt-muted">Quiz Battle Live</span>
+        <button onclick="openZenBinauralModal(); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
+          <span class="text-xl">🎧</span>
+          <span class="text-xs font-bold txt-main">Zen Focus</span>
+          <span class="text-[10px] txt-muted">Sóng não &amp; Pomodoro</span>
         </button>
-        <button onclick="switchTab('search'); closeModal('modal-mobile-more');" class="btn-soft p-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center">
-          <span class="text-2xl">🔍</span>
-          <span class="text-xs font-bold txt-main">Tra Cứu Y Khoa</span>
-          <span class="text-[10px] txt-muted">Tra cứu dược & ngân hàng</span>
+        <button onclick="switchTab('search'); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
+          <span class="text-xl">🔍</span>
+          <span class="text-xs font-bold txt-main">Ngân Hàng Câu</span>
+          <span class="text-[10px] txt-muted">Tra cứu câu hỏi</span>
         </button>
-        <button onclick="switchTab('generator'); closeModal('modal-mobile-more');" class="btn-soft p-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center">
-          <span class="text-2xl">✨</span>
+        <button onclick="switchTab('generator'); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
+          <span class="text-xl">✨</span>
           <span class="text-xs font-bold txt-main">Soạn Đề AI</span>
-          <span class="text-[10px] txt-muted">Upload slide bài giảng</span>
+          <span class="text-[10px] txt-muted">Tạo đề từ slide</span>
         </button>
-        <button onclick="openSubjectPickerModal(); closeModal('modal-mobile-more');" class="btn-soft p-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center">
-          <span class="text-2xl">📚</span>
-          <span class="text-xs font-bold txt-main">Đổi Môn Học</span>
-          <span class="text-[10px] txt-muted">Hóa Sinh, Giải Phẫu...</span>
+        <button onclick="openSettingsModal('appearance'); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
+          <span class="text-xl">🎨</span>
+          <span class="text-xs font-bold txt-main">Giao Diện</span>
+          <span class="text-[10px] txt-muted">Theme, Cỡ chữ</span>
         </button>
-        <button onclick="openSettingsModal('appearance'); closeModal('modal-mobile-more');" class="btn-soft p-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center">
-          <span class="text-2xl">🎨</span>
-          <span class="text-xs font-bold txt-main">Tùy Chỉnh Màu</span>
-          <span class="text-[10px] txt-muted">OLED, Cỡ chữ, Phông</span>
-        </button>
-        <button onclick="openAccountModal(); closeModal('modal-mobile-more');" class="btn-soft p-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center">
-          <span class="text-2xl">👤</span>
-          <span class="text-xs font-bold txt-main">Hồ Sơ & Quản Trị</span>
-          <span class="text-[10px] txt-muted">Admin & Đổi mật khẩu</span>
+        <button onclick="openAccountModal(); closeModal('modal-mobile-more');" class="btn-soft p-3 rounded-xl flex flex-col items-center justify-center gap-1 text-center">
+          <span class="text-xl">👤</span>
+          <span class="text-xs font-bold txt-main">Tài Khoản</span>
+          <span class="text-[10px] txt-muted">Hồ sơ &amp; Quản trị</span>
         </button>
       </div>
     </div>
@@ -4679,7 +4612,7 @@
           📖 Khối Đại Cương
         </button>
         <button type="button" onclick="selectAllSubjects(true)" class="px-2.5 py-1 rounded-xl bg-emerald-500/10 text-emerald-300 border border-emerald-500/30 hover:bg-emerald-500/20 whitespace-nowrap">
-          ✨ Chọn Tất Cả (12 môn)
+          ✨ Chọn Tất Cả (<span id="acc-subj-total-count-btn">--</span> môn)
         </button>
         <button type="button" onclick="selectAllSubjects(false)" class="px-2.5 py-1 rounded-xl btn-soft whitespace-nowrap text-rose-400">
           🧹 Bỏ Chọn
@@ -4968,68 +4901,6 @@
       <!-- Exam Result Modal Overlay -->
       <div id="timed-exam-result-pane" class="hidden uni-card p-6 sm:p-8 space-y-6 my-auto text-center border-2 border-violet-500/40">
         <!-- Dynamically rendered on submit -->
-      </div>
-    </div>
-  </div>
-
-
-  <!-- ===================================================================
-       MODAL 1: ALGO VISUALIZER (TRỰC QUAN HÓA THUẬT TOÁN)
-       =================================================================== -->
-  <div id="modal-algo-visualizer" class="hidden fixed inset-0 z-50 overflow-y-auto" style="background: rgba(5,6,10,0.96);">
-    <div class="max-w-5xl mx-auto px-4 py-6 min-h-screen flex flex-col justify-between">
-      <div class="p-4 rounded-2xl flex items-center justify-between gap-3 shadow-xl border mb-4"
-        style="background: rgba(15,23,42,0.95); border-color: rgba(255,255,255,0.1);">
-        <div class="flex items-center gap-3">
-          <span class="text-2xl">📊</span>
-          <div>
-            <h3 class="font-black text-base txt-main">AlgoVisualizer: Mô Phỏng Luồng Chạy Thuật Toán</h3>
-            <p class="text-xs txt-muted font-bold">Mô phỏng từng bước thuật toán kèm mã giả</p>
-          </div>
-        </div>
-        <button onclick="closeAlgoVisualizerModal()" class="btn-soft p-2 text-xs"><i data-lucide="x" class="w-4 h-4"></i></button>
-      </div>
-
-      <!-- Main Visualizer Area -->
-      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 mb-auto">
-        <!-- Visual Canvas (8 cols) -->
-        <div class="lg:col-span-8 uni-card p-5 space-y-4">
-          <div class="flex items-center justify-between flex-wrap gap-2">
-            <div class="flex items-center gap-2">
-              <label class="text-xs font-bold txt-muted">Thuật toán:</label>
-              <select id="algo-type-select" onchange="initSelectedAlgo()" class="uni-input px-3 py-1.5 text-xs font-bold">
-                <option value="bubble">Bubble Sort (Sắp xếp nổi bọt)</option>
-                <option value="quick">Quick Sort (Phân hoạch Pivot)</option>
-                <option value="binary_search">Binary Search (Tìm kiếm nhị phân)</option>
-                <option value="bfs">BFS / DFS (Duyệt đồ thị)</option>
-              </select>
-            </div>
-            <button onclick="resetAlgoArray()" class="btn-soft px-3 py-1.5 text-xs font-bold">🔀 Tạo Mảng Mới</button>
-          </div>
-
-          <!-- Array Bar Chart Container -->
-          <div id="algo-bars-container" class="h-64 rounded-xl border flex items-end justify-center gap-2 p-4 pt-10"
-            style="background: #07090e; border-color: var(--border);">
-            <!-- Bars rendered dynamically -->
-          </div>
-
-          <!-- Playback Controls -->
-          <div class="flex items-center justify-center gap-3 pt-2">
-            <button onclick="algoPrevStep()" class="btn-soft px-3 py-2 text-xs font-bold">⏮ Bước trước</button>
-            <button onclick="algoTogglePlay()" id="algo-play-btn" class="btn-primary px-5 py-2 text-xs font-bold">▶ Chạy (Play)</button>
-            <button onclick="algoNextStep()" class="btn-soft px-3 py-2 text-xs font-bold">Bước tiếp ⏭</button>
-            <span id="algo-step-counter" class="text-xs font-mono font-bold text-cyan-400 ml-3">Bước: 0 / 0</span>
-          </div>
-        </div>
-
-        <!-- Synchronized Pseudocode (4 cols) -->
-        <div class="lg:col-span-4 uni-card p-4 space-y-3">
-          <h4 class="text-xs font-bold uppercase tracking-wider txt-muted">Mã Giả (Pseudocode Chạy Ngầm):</h4>
-          <div id="algo-pseudocode-pane" class="font-mono text-xs rounded-xl p-3 border space-y-1 h-80 overflow-y-auto"
-            style="background: #07090e; border-color: var(--border);">
-            <!-- Lines highlighted dynamically -->
-          </div>
-        </div>
       </div>
     </div>
   </div>
@@ -5848,8 +5719,9 @@ public class Student {
             <select id="viva-domain-select" onchange="requestNextVivaQuestion()" class="uni-input w-full px-3 py-2 text-xs font-bold mt-1">
               <option value="biochem">🔬 Hóa Sinh Y Khoa & Lâm Sàng (CTUMP/YDS)</option>
               <option value="csharp_oop">💻 Lập Trình Hướng Đối Tượng C# (.NET)</option>
-              <option value="discrete_math">🕸️ Toán Rời Rạc & Lý Thuyết Đồ Thị</option>
-              <option value="python">🐍 Cấu Trúc Dữ Liệu & Lập Trình Python</option>
+              <option value="discrete_math">📐 Toán Rời Rạc (Logic, Euler, Quan Hệ)</option>
+              <option value="algorithms">⚡ Giải Thuật & CTDL (Dijkstra, QuickSort, AVL)</option>
+              <option value="python">🐍 Lập Trình Python (NNLT 1)</option>
             </select>
           </div>
           <div>
@@ -6009,10 +5881,10 @@ public class Student {
   </div>
 
   <!-- ---------------------------------------------------------------------
-       FLOATING ZEN POMODORO & WEBAUDIO BINAURAL DOCK (v42.0 ULTRA-UX)
+       FLOATING ZEN POMODORO & WEBAUDIO BINAURAL DOCK (v42.0 & v43.0 ULTRA-UX)
        --------------------------------------------------------------------- -->
-  <div id="floating-zen-dock" class="fixed bottom-16 lg:bottom-5 right-4 z-[75] flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-2xl backdrop-blur-xl transition-all duration-300 hover:scale-[1.02]"
-    style="background: rgba(15, 23, 42, 0.88); border-color: rgba(56, 189, 248, 0.35);">
+  <div id="floating-zen-dock" class="hidden fixed bottom-20 left-3 lg:bottom-5 lg:left-5 z-[60] flex items-center gap-2 px-3 py-2 rounded-2xl border shadow-2xl backdrop-blur-xl transition-all duration-300 hover:scale-[1.02]"
+    style="background: color-mix(in srgb, var(--bg-surface) 92%, transparent); border-color: var(--border-strong);">
     <button type="button" onclick="toggleBinauralAudioQuick()" id="dock-audio-toggle-btn"
       class="w-8 h-8 rounded-xl bg-gradient-to-br from-cyan-500 to-indigo-600 text-white flex items-center justify-center text-sm font-black shadow-md"
       title="Bật/Tắt nhanh Sóng não Binaural Tập trung (WebAudio)">
@@ -6020,11 +5892,14 @@ public class Student {
     </button>
     <div onclick="openZenBinauralModal()" class="cursor-pointer pr-1">
       <div class="flex items-center gap-1.5">
-        <span id="dock-pomo-timer" class="font-mono font-black text-xs text-white tabular-nums">25:00</span>
-        <span id="dock-wave-indicator" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300">Tắt âm</span>
+        <span id="dock-pomo-timer" class="font-mono font-black text-xs txt-main tabular-nums">25:00</span>
+        <span id="zen-dock-timer" class="hidden font-mono font-black text-xs txt-main tabular-nums">25:00</span>
+        <span id="dock-wave-indicator" class="text-[9px] font-mono font-bold px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400">Tắt âm</span>
+        <span id="zen-dock-wave-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
       </div>
-      <div class="text-[9px] text-slate-400 font-bold">Zen Focus & Sóng Não</div>
+      <div class="text-[9px] txt-muted font-bold">Zen Focus & Sóng Não</div>
     </div>
+    <button type="button" onclick="dismissZenFloatingDock()" class="w-6 h-6 rounded-lg flex items-center justify-center txt-muted hover:text-rose-400 hover:bg-rose-500/10 text-xs font-bold" title="Ẩn thanh Zen">✕</button>
   </div>
 
   <!-- ---------------------------------------------------------------------
@@ -6050,14 +5925,15 @@ public class Student {
         <div class="flex flex-wrap items-center justify-between gap-2">
           <div class="flex items-center gap-2">
             <label class="text-xs font-extrabold txt-main">Lĩnh vực săn ngụy biện:</label>
-            <select id="da-domain-select" onchange="loadDevilsAdvocateChallenge('challenge')" class="uni-input px-3 py-1.5 text-xs font-bold">
+            <select id="da-domain-select" onchange="requestNextDevilsAdvocateChallenge()" class="uni-input px-3 py-1.5 text-xs font-bold">
               <option value="biochem">🔬 Hóa Sinh Lâm Sàng & Chuyển Hóa (CTUMP)</option>
               <option value="csharp_oop">💻 Lập Trình Hướng Đối Tượng C# (.NET CLR)</option>
-              <option value="discrete_math">🕸️ Toán Rời Rạc & Lý Thuyết Đồ Thị</option>
+              <option value="discrete_math">📐 Toán Rời Rạc (Logic, Tập hợp, Euler)</option>
+              <option value="algorithms">⚡ Giải Thuật & CTDL (Dijkstra, Big-O, AVL)</option>
               <option value="python">🐍 Ngôn Ngữ Lập Trình Python Chuyên Sâu</option>
             </select>
           </div>
-          <button type="button" onclick="loadDevilsAdvocateChallenge('next')" class="btn-soft px-3 py-1.5 text-xs font-extrabold flex items-center gap-1.5">
+          <button type="button" onclick="requestNextDevilsAdvocateChallenge()" class="btn-soft px-3 py-1.5 text-xs font-extrabold flex items-center gap-1.5">
             <span>🎲</span> Đổi Luận Điểm Ngụy Biện Khác
           </button>
         </div>
@@ -6068,10 +5944,12 @@ public class Student {
             <span id="da-topic-badge" class="badge-amber px-2.5 py-0.5 rounded-full text-[11px] font-extrabold">Chủ đề...</span>
             <span id="da-trap-badge" class="text-[11px] font-mono font-bold text-rose-300">Loại bẫy tư duy...</span>
           </div>
+          <div id="da-hint-box" class="text-[11px] text-amber-200/80 font-medium"></div>
           <div class="text-xs font-bold text-amber-300 uppercase tracking-wider">😈 Lập luận ngụy biện của AI (Chứa lỗi sai cố ý):</div>
-          <blockquote id="da-fallacy-claim" class="text-sm sm:text-base font-extrabold text-white leading-relaxed pl-3 border-l-4 border-amber-500">
+          <blockquote id="da-claim-text" class="text-sm sm:text-base font-extrabold text-white leading-relaxed pl-3 border-l-4 border-amber-500">
             Đang tải nhận định...
           </blockquote>
+          <blockquote id="da-fallacy-claim" class="hidden"></blockquote>
         </div>
 
         <!-- Student Rebuttal Area -->
@@ -6088,7 +5966,8 @@ public class Student {
         </div>
 
         <!-- Evaluation Result -->
-        <div id="da-eval-result" class="hidden space-y-3 pt-3 border-t" style="border-color: var(--border);"></div>
+        <div id="da-evaluation-box" class="hidden space-y-3 pt-3 border-t" style="border-color: var(--border);"></div>
+        <div id="da-eval-result" class="hidden"></div>
       </div>
     </div>
   </div>
@@ -6110,7 +5989,54 @@ public class Student {
       </div>
 
       <div id="ebbinghaus-modal-body" class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
-        <div class="text-xs txt-muted">Đang phân tích dữ liệu trí nhớ...</div>
+        <!-- Top Metric Indicators -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+          <div class="p-3 rounded-2xl border border-emerald-500/30 bg-emerald-500/10 space-y-0.5">
+            <div class="text-[10px] font-bold uppercase text-slate-400">Dự Báo Điểm Cuối Kỳ</div>
+            <div id="ebb-predicted-score" class="text-xl sm:text-2xl font-black text-emerald-400">8.2 / 10</div>
+            <span id="ebb-ci95-badge" class="badge-emerald px-2 py-0.2 rounded-full text-[9px] font-mono">95% CI: [7.7 - 8.7]</span>
+          </div>
+
+          <div class="p-3 rounded-2xl border border-violet-500/30 bg-violet-500/10 space-y-0.5">
+            <div class="text-[10px] font-bold uppercase text-slate-400">Tỷ Lệ Lưu Giữ Hiện Tại R(t)</div>
+            <div id="ebb-current-retention" class="text-xl sm:text-2xl font-black text-violet-300">76.4%</div>
+            <span class="text-[10px] font-mono text-slate-400">Dựa trên nhật ký ôn</span>
+          </div>
+
+          <div class="p-3 rounded-2xl border border-cyan-500/30 bg-cyan-500/10 space-y-0.5">
+            <div class="text-[10px] font-bold uppercase text-slate-400">Độ Bền Trí Nhớ (S)</div>
+            <div id="ebb-memory-s" class="text-xl sm:text-2xl font-black text-cyan-300">3.8 Ngày</div>
+            <span class="text-[10px] font-mono text-cyan-200">Hệ số suy giảm λ = 0.26</span>
+          </div>
+
+          <div class="p-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 space-y-0.5">
+            <div class="text-[10px] font-bold uppercase text-slate-400">Thẻ Nhớ Đến Hạn (SM-2)</div>
+            <div id="ebb-due-cards" class="text-xl sm:text-2xl font-black text-amber-400">12 Thẻ</div>
+            <button onclick="closeModal('modal-ebbinghaus-predictor'); switchTab('flashcards');" class="text-[10px] font-bold text-amber-300 hover:underline">Ôn ngay bây giờ →</button>
+          </div>
+        </div>
+
+        <!-- SVG Curve Canvas -->
+        <div class="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <h4 class="text-xs sm:text-sm font-extrabold text-white flex items-center gap-1.5">
+              <span>📈</span> Đồ Thị Suy Giảm R(t) Sau 14 Ngày (Học Vẹt vs. Lặp Lại Ngắt Quãng SM-2)
+            </h4>
+            <div class="flex items-center gap-3 text-[10px] font-mono">
+              <span class="flex items-center gap-1"><span class="w-3 h-1 bg-rose-500 inline-block rounded"></span> Học 1 lần (Quên 80% sau 3 ngày)</span>
+              <span class="flex items-center gap-1"><span class="w-3 h-1 bg-emerald-400 inline-block rounded"></span> Lặp lại ngắt quãng SM-2 (Giữ vững > 90%)</span>
+            </div>
+          </div>
+          <div id="ebbinghaus-svg-canvas" class="w-full h-auto overflow-x-auto"></div>
+        </div>
+
+        <!-- Recommendation Box -->
+        <div id="ebb-recommendation-box" class="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/40 text-xs text-slate-200 space-y-1">
+          <div class="font-extrabold text-indigo-300 flex items-center gap-1.5">
+            <span>💡</span> Lời khuyên khoa học thần kinh (Neuroscience Study Strategy):
+          </div>
+          <p id="ebb-recommendation-text" class="leading-relaxed">Đang tải lời khuyên tối ưu chu kỳ...</p>
+        </div>
       </div>
     </div>
   </div>
@@ -6132,20 +6058,75 @@ public class Student {
       </div>
 
       <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
-        <div class="flex flex-wrap items-center gap-2">
-          <label class="text-xs font-extrabold txt-main">Mẫu đối chiếu kinh điển:</label>
-          <select id="polyglot-preset-select" onchange="loadPolyglotComparison(this.value)" class="uni-input px-3 py-2 text-xs font-bold flex-1 min-w-[240px]">
-            <option value="linq_filter">1. Lọc, Sắp xếp & Ánh xạ (C# LINQ vs Python List Comprehension vs SQL)</option>
-            <option value="hash_lookup">2. Đếm tần suất Bảng băm O(N) (C# Dictionary vs Python Counter vs SQL GROUP BY)</option>
-            <option value="binary_search">3. Tìm kiếm nhị phân O(log N) & Chống tràn số nguyên 32-bit</option>
-            <option value="oop_polymorphism">4. Kế thừa, Lớp trừu tượng & Đa hình (C# virtual/override vs Python ABC)</option>
-          </select>
-          <button type="button" onclick="transpileCurrentEditorCode()" class="btn-primary !bg-gradient-to-r !from-blue-600 !to-cyan-600 px-4 py-2 text-xs font-extrabold">
-            ⚡ Dịch Mã Nguồn Từ Editor Hiện Tại
-          </button>
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2 flex-1 min-w-[260px]">
+            <label class="text-xs font-extrabold txt-main shrink-0">Thuật toán đối chiếu:</label>
+            <select id="polyglot-algorithm-select" onchange="loadPolyglotAlgorithm(false)" class="uni-input px-3 py-2 text-xs font-bold flex-1">
+              <option value="binary_search">1. Tìm kiếm nhị phân O(log N) & Chống tràn số nguyên</option>
+              <option value="linq_aggregation">2. Gom nhóm & Thống kê (C# LINQ GroupBy vs Python vs SQL)</option>
+              <option value="dijkstra_mst">3. Đồ thị: Tìm đường đi ngắn nhất Dijkstra (Min-Heap)</option>
+              <option value="dp_knapsack">4. Quy hoạch động: Balo 0/1 (Knapsack DP)</option>
+              <option value="two_sum_hash">5. Cặp phần tử & Bảng băm O(N) (C# Dictionary vs Python Dict)</option>
+            </select>
+            <select id="polyglot-preset-select" class="hidden"></select>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="poly-time-badge" class="badge-brand px-2.5 py-1 rounded-lg text-xs font-mono font-black">Time: O(log N)</span>
+            <span id="poly-space-badge" class="badge-amber px-2.5 py-1 rounded-lg text-xs font-mono font-black">Space: O(1)</span>
+            <button type="button" onclick="loadPolyglotAlgorithm(true)" class="btn-primary !bg-gradient-to-r !from-blue-600 !to-cyan-600 px-3.5 py-2 text-xs font-extrabold flex items-center gap-1.5">
+              <span>⚡</span> Dịch Code Từ Editor
+            </button>
+          </div>
         </div>
 
-        <div id="polyglot-comparison-body" class="space-y-4"></div>
+        <!-- 3-Column Code Panels -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-3">
+          <div class="rounded-2xl border border-indigo-500/40 bg-slate-950 overflow-hidden shadow-lg flex flex-col">
+            <div class="px-3.5 py-2 bg-indigo-950/60 border-b border-indigo-500/30 flex items-center justify-between">
+              <span class="text-xs font-bold text-indigo-300 flex items-center gap-1.5"><span>💠</span> C# (.NET Core)</span>
+              <button onclick="copyElementText('poly-code-csharp')" class="text-[10px] text-slate-400 hover:text-white">Copy</button>
+            </div>
+            <pre class="p-3.5 text-[11px] font-mono leading-relaxed text-indigo-100 overflow-x-auto flex-1 custom-scrollbar"><code id="poly-code-csharp">// C# code...</code></pre>
+          </div>
+
+          <div class="rounded-2xl border border-emerald-500/40 bg-slate-950 overflow-hidden shadow-lg flex flex-col">
+            <div class="px-3.5 py-2 bg-emerald-950/60 border-b border-emerald-500/30 flex items-center justify-between">
+              <span class="text-xs font-bold text-emerald-300 flex items-center gap-1.5"><span>🐍</span> Python 3 (Scientific)</span>
+              <button onclick="copyElementText('poly-code-python')" class="text-[10px] text-slate-400 hover:text-white">Copy</button>
+            </div>
+            <pre class="p-3.5 text-[11px] font-mono leading-relaxed text-emerald-100 overflow-x-auto flex-1 custom-scrollbar"><code id="poly-code-python"># Python code...</code></pre>
+          </div>
+
+          <div class="rounded-2xl border border-cyan-500/40 bg-slate-950 overflow-hidden shadow-lg flex flex-col">
+            <div class="px-3.5 py-2 bg-cyan-950/60 border-b border-cyan-500/30 flex items-center justify-between">
+              <span class="text-xs font-bold text-cyan-300 flex items-center gap-1.5"><span>📊</span> SQL / Mã Giả Giáo Trình</span>
+              <button onclick="copyElementText('poly-code-sql')" class="text-[10px] text-slate-400 hover:text-white">Copy</button>
+            </div>
+            <pre class="p-3.5 text-[11px] font-mono leading-relaxed text-cyan-100 overflow-x-auto flex-1 custom-scrollbar"><code id="poly-code-sql">-- SQL / Pseudo code...</code></pre>
+          </div>
+        </div>
+
+        <!-- Big-O SVG Growth Canvas & Notes -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+          <div class="lg:col-span-6 p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+            <div class="flex items-center justify-between">
+              <h4 class="text-xs font-extrabold text-white">📈 Đồ Thị Tốc Độ Tăng Trưởng Big-O</h4>
+              <span class="text-[10px] font-mono text-slate-400">O(1) < O(log N) < O(N) < O(N log N) < O(N²)</span>
+            </div>
+            <div id="polyglot-bigo-svg-canvas" class="w-full h-auto"></div>
+          </div>
+
+          <div class="lg:col-span-6 p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
+            <h4 class="font-extrabold text-amber-400 flex items-center gap-1.5">
+              <span>💡</span> Bản Chất Cú Pháp & Điểm Bẫy Đề Thi:
+            </h4>
+            <div id="poly-insight-box" class="text-slate-300 leading-relaxed space-y-1.5">
+              Đang phân tích cú pháp...
+            </div>
+          </div>
+        </div>
+
+        <div id="polyglot-comparison-body" class="hidden"></div>
       </div>
     </div>
   </div>
@@ -6192,12 +6173,12 @@ public class Student {
             <label class="text-xs font-extrabold txt-main">🧠 Chọn Chế Độ Tổng Hợp Sóng Não (WebAudio Oscillator + Noise Filter):</label>
             <div class="flex items-center gap-2">
               <span class="text-[11px] txt-muted font-bold">Âm lượng:</span>
-              <input id="zen-audio-volume" type="range" min="5" max="80" value="25" oninput="updateZenAudioVolume(this.value)" class="w-24 accent-cyan-400" />
+              <input id="zen-audio-volume" type="range" min="5" max="80" value="25" oninput="updateBinauralVolumes(this.value)" class="w-24 accent-cyan-400" />
             </div>
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
-            <button type="button" onclick="selectBinauralPreset('alpha_10hz')" id="binaural-btn-alpha_10hz"
+            <button type="button" onclick="selectBinauralWave('alpha')" id="binaural-btn-alpha"
               class="p-3.5 rounded-2xl border border-cyan-500/40 bg-cyan-500/10 text-left space-y-1 transition-all">
               <div class="flex items-center justify-between">
                 <span class="font-extrabold text-cyan-300">🌊 Sóng Alpha 10 Hz (Siêu Ghi Nhớ)</span>
@@ -6206,7 +6187,7 @@ public class Student {
               <p class="text-[11px] txt-muted leading-relaxed">Đồng bộ bán cầu não ở tần số chênh lệch 10Hz, lý tưởng khi học thuộc lòng Hóa Sinh, Giải Phẫu và Flashcards.</p>
             </button>
 
-            <button type="button" onclick="selectBinauralPreset('beta_18hz')" id="binaural-btn-beta_18hz"
+            <button type="button" onclick="selectBinauralWave('beta')" id="binaural-btn-beta"
               class="p-3.5 rounded-2xl border border-indigo-500/30 bg-slate-900/60 text-left space-y-1 transition-all">
               <div class="flex items-center justify-between">
                 <span class="font-extrabold text-indigo-300">⚡ Sóng Beta 18 Hz (Giải Thuật & Code)</span>
@@ -6215,7 +6196,7 @@ public class Student {
               <p class="text-[11px] txt-muted leading-relaxed">Kích hoạt vùng vỏ não trước trán xử lý logic tốc độ cao, chống buồn ngủ khi code C# / Python và giải Toán Rời Rạc.</p>
             </button>
 
-            <button type="button" onclick="selectBinauralPreset('gamma_40hz')" id="binaural-btn-gamma_40hz"
+            <button type="button" onclick="selectBinauralWave('gamma')" id="binaural-btn-gamma"
               class="p-3.5 rounded-2xl border border-purple-500/30 bg-slate-900/60 text-left space-y-1 transition-all">
               <div class="flex items-center justify-between">
                 <span class="font-extrabold text-purple-300">🔮 Sóng Gamma 40 Hz (Thi Thực Chiến)</span>
@@ -6224,7 +6205,7 @@ public class Student {
               <p class="text-[11px] txt-muted leading-relaxed">Tần số nhận thức đỉnh cao 40Hz (nghiên cứu MIT) tăng cường liên kết nơ-ron và tốc độ phản xạ trắc nghiệm.</p>
             </button>
 
-            <button type="button" onclick="selectBinauralPreset('brown_rain')" id="binaural-btn-brown_rain"
+            <button type="button" onclick="selectBinauralWave('brown_noise')" id="binaural-btn-brown"
               class="p-3.5 rounded-2xl border border-emerald-500/30 bg-slate-900/60 text-left space-y-1 transition-all">
               <div class="flex items-center justify-between">
                 <span class="font-extrabold text-emerald-300">🌧️ Tiếng Mưa Đêm & Brown Noise</span>
@@ -6256,6 +6237,845 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=42.0"></script>
+  <!-- =====================================================================
+       UNIMASTER AI v43.0 MODALS:
+       1. SQL SANDBOX & EXECUTION PLAN / LINQ TRANSPILER
+       2. STEP-BY-STEP ALGORITHM TIME-TRAVEL & CALL-STACK VISUALIZER
+       3. CORNELL ACTIVE RECALL STUDIO
+       4. 6-AXIS COMPETENCY RADAR & CRAM ROADMAP
+       ===================================================================== -->
+
+  <!-- MODAL v43.0 #1: SQL SANDBOX & LINQ TRANSPILER -->
+  <div id="modal-sql-sandbox" class="hidden fixed inset-0 z-[93] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-sql-sandbox')">
+    <div class="uni-card w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-amber-500/45">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white flex items-center justify-center text-lg shadow-md">🗄️</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              Phòng Lab SQL Trực Quan & Trình Đối Chiếu C# LINQ
+              <span class="badge-amber text-[10px] px-2 py-0.5 rounded-full font-mono">SQLite In-Memory</span>
+            </h3>
+            <p class="text-[11px] txt-muted">Viết truy vấn SQL thực tế, phân tích thứ tự thực thi (Execution Order), giải mã JOIN Venn và đối chiếu LINQ tương đương</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-sql-sandbox')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+        <!-- Preset Selector & Run Button -->
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2 flex-1 min-w-[280px]">
+            <label class="text-xs font-extrabold txt-main shrink-0">Truy vấn mẫu giáo trình:</label>
+            <select id="sql-sandbox-preset-select" onchange="loadSqlSandboxPreset(this.value)" class="uni-input px-3 py-1.5 text-xs font-bold flex-1">
+              <option value="inner_join">1. INNER JOIN Sinh viên, Điểm thi & Môn học (Điểm TK >= 8.0)</option>
+              <option value="group_by_having">2. GROUP BY Khoa & HAVING Tính GPA trung bình từng khoa</option>
+              <option value="left_join">3. LEFT JOIN Tìm sinh viên chưa có điểm môn học nào</option>
+              <option value="clinical_lab">4. Truy vấn Lâm Sàng: Bệnh nhân Glucose cao & AST/ALT gan</option>
+            </select>
+          </div>
+          <button type="button" onclick="runSqlSandboxQuery()" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-orange-600 px-4 py-2 text-xs font-black shadow-lg flex items-center gap-1.5">
+            <span>▶️</span> Chạy Query SQL (F5)
+          </button>
+        </div>
+
+        <!-- SQL Editor Area -->
+        <div class="space-y-1">
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="font-extrabold text-amber-300">Cửa sổ soạn thảo SQL:</span>
+            <span class="font-mono text-slate-400">Bảng có sẵn: SinhVien, MonHoc, DiemThi, XetNghiemHoaSinh</span>
+          </div>
+          <textarea id="sql-sandbox-editor" rows="5" class="uni-input w-full p-3 font-mono text-xs leading-relaxed bg-slate-950 text-amber-200 border border-amber-500/30 rounded-xl" spellcheck="false"></textarea>
+        </div>
+
+        <!-- SQL Execution Pipeline / Execution Order Strip -->
+        <div class="p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold text-slate-200 flex items-center gap-1.5">
+              <span>⚡</span> Thứ Tự Thực Thi Chuẩn Của Database Engine (Execution Order vs Syntax Order):
+            </span>
+            <span id="sql-exec-time-badge" class="font-mono text-[11px] text-emerald-400">0.00 ms</span>
+          </div>
+          <div id="sql-execution-pipeline" class="flex flex-wrap items-center gap-1.5 text-[10px] font-mono">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Split View: Table Result + LINQ Transpilation -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <!-- Left: Result Table -->
+          <div class="lg:col-span-7 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold txt-main flex items-center gap-1.5">
+                <span>📊</span> Kết Quả Dữ Liệu Thực Thi (<span id="sql-row-count">0</span> dòng):
+              </span>
+              <span id="sql-join-badge" class="badge-amber text-[10px] px-2 py-0.5 rounded-full font-mono">INNER JOIN</span>
+            </div>
+            <div id="sql-result-table-box" class="rounded-xl border border-slate-800 bg-slate-950 overflow-x-auto max-h-[260px] custom-scrollbar">
+              <div class="p-4 text-center text-xs txt-muted">Bấm "Chạy Query SQL" để xem kết quả</div>
+            </div>
+          </div>
+
+          <!-- Right: C# LINQ Equivalent & Query Plan -->
+          <div class="lg:col-span-5 space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-extrabold text-cyan-300 flex items-center gap-1.5">
+                <span>💠</span> C# LINQ Tương Đương (Entity Framework Core):
+              </span>
+              <button onclick="copyElementText('sql-linq-code')" class="text-[10px] text-slate-400 hover:text-white">Copy LINQ</button>
+            </div>
+            <pre class="p-3.5 rounded-xl border border-cyan-500/30 bg-slate-950 text-[11px] font-mono text-cyan-200 overflow-x-auto max-h-[160px] custom-scrollbar leading-relaxed"><code id="sql-linq-code">// LINQ tương đương...</code></pre>
+
+            <div class="p-3 rounded-xl border border-slate-800 bg-slate-950 space-y-1 text-xs">
+              <div class="font-extrabold text-slate-300">🔍 Kế hoạch thực thi (Query Plan):</div>
+              <ul id="sql-query-plan-list" class="text-[11px] font-mono text-slate-400 space-y-0.5">
+                <li>• SCAN TABLE SinhVien</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UNIFIED ALGO VISUALIZER & STEP TIME-TRAVEL DEBUGGER -->
+  <div id="modal-algo-visualizer" class="hidden fixed inset-0 z-[93] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeAlgoVisualizerModal()">
+    <div class="uni-card w-full max-w-5xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-cyan-500/45">
+      <div class="px-5 py-3.5 border-b flex flex-wrap items-center justify-between gap-3 shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white flex items-center justify-center text-lg shadow-md">⏳</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              Mô Phỏng Giải Thuật &amp; Call Stack
+              <span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">CTDL &amp; GT</span>
+            </h3>
+            <p class="text-[11px] txt-muted">Chuyển mượt giữa Tua bước Time-Travel &amp; Đồ thị cột mảng trực quan</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button type="button" id="algo-tab-btn-steps" onclick="switchAlgoVisualizerTab('steps')" class="btn-primary px-3 py-1.5 text-xs font-bold rounded-xl">⏳ Tua Bước &amp; Stack</button>
+          <button type="button" id="algo-tab-btn-bars" onclick="switchAlgoVisualizerTab('bars')" class="btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">📊 Đồ Thị Cột</button>
+          <button type="button" onclick="closeAlgoVisualizerModal()" class="btn-soft px-2.5 py-1.5 text-xs font-bold">✕ Đóng</button>
+        </div>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+        <!-- TAB 1: STEP-BY-STEP TIME TRAVEL & CALL STACK -->
+        <div id="algo-panel-steps" class="space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2 flex-1 min-w-[260px]">
+              <label class="text-xs font-extrabold txt-main shrink-0">Giải thuật:</label>
+              <select id="algo-select" onchange="loadAlgoStepVisualizer()" class="uni-input px-3 py-1.5 text-xs font-bold flex-1">
+                <option value="binary_search">1. Tìm kiếm nhị phân (Binary Search O(log N))</option>
+                <option value="quicksort">2. Phân hoạch QuickSort Lomuto (O(N log N))</option>
+                <option value="recursion_fib">3. Đệ quy Fibonacci &amp; Ngăn xếp Call Stack LIFO</option>
+                <option value="knapsack_dp">4. Quy hoạch động Balo 0/1 (0/1 Knapsack DP Table)</option>
+              </select>
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <button type="button" onclick="stepAlgoVisualizer(-1)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1">
+                <span>⏮️</span> Trước
+              </button>
+              <span id="algo-step-indicator" class="px-2.5 py-1 rounded-lg border font-mono text-xs font-bold txt-main" style="border-color: var(--border);">0 / 0</span>
+              <button type="button" onclick="stepAlgoVisualizer(1)" class="btn-primary px-3.5 py-1.5 text-xs font-black shadow-md flex items-center gap-1">
+                Sau <span>⏭️</span>
+              </button>
+              <button type="button" onclick="autoPlayAlgoVisualizer()" id="algo-autoplay-btn" class="btn-soft px-3 py-1.5 text-xs font-bold">
+                ▶️ Tự Chạy
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3.5 rounded-2xl border space-y-1" style="background-color: var(--bg-subtle); border-color: var(--brand-border);">
+            <div id="algo-frame-title" class="text-xs sm:text-sm font-extrabold txt-brand">Khởi tạo biên tìm kiếm</div>
+            <div id="algo-frame-explanation" class="text-xs txt-main leading-relaxed">Đang tải khung dữ liệu giải thuật...</div>
+          </div>
+
+          <div class="p-5 rounded-2xl bg-slate-950 border border-slate-800 space-y-3 min-h-[140px] flex flex-col justify-center">
+            <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Trạng Thái Ô Nhớ Mảng (Memory Cells):</div>
+            <div id="algo-array-stage" class="flex flex-wrap items-center justify-center gap-2 sm:gap-3"></div>
+            <div id="algo-pointers-row" class="flex flex-wrap items-center justify-center gap-4 text-xs font-mono font-bold text-slate-300 pt-1"></div>
+          </div>
+
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+            <div class="lg:col-span-8 p-3.5 rounded-2xl bg-slate-950 border border-slate-800 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
+                  <span>📚</span> Khung Ngăn Xếp LIFO &amp; Dòng Lệnh (Call Stack):
+                </span>
+                <span class="text-[10px] font-mono text-slate-400">Đỉnh Stack</span>
+              </div>
+              <div id="algo-call-stack-box" class="space-y-1 text-xs font-mono text-slate-200 max-h-[140px] overflow-y-auto custom-scrollbar"></div>
+            </div>
+
+            <div class="lg:col-span-4 p-3.5 rounded-2xl bg-slate-950 border border-slate-800 flex flex-col justify-between gap-2 text-xs">
+              <div>
+                <div class="text-[10px] font-bold uppercase text-slate-400">Độ Phức Tạp</div>
+                <div id="algo-complexity-title" class="text-sm font-black text-cyan-400">O(log2 N)</div>
+              </div>
+              <div class="p-2 rounded-xl bg-white/5 border border-white/10 text-[11px] text-slate-300 leading-relaxed" id="algo-complexity-note">
+                Sau mỗi phép so sánh, không gian bài toán giảm một nửa.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 2: CLASSIC ARRAY BAR ANIMATOR -->
+        <div id="algo-panel-bars" class="hidden space-y-4">
+          <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <div class="lg:col-span-8 space-y-4">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <div class="flex items-center gap-2">
+                  <label class="text-xs font-bold txt-muted">Thuật toán:</label>
+                  <select id="algo-type-select" onchange="initSelectedAlgo()" class="uni-input px-3 py-1.5 text-xs font-bold">
+                    <option value="bubble">Bubble Sort (Sắp xếp nổi bọt)</option>
+                    <option value="quick">Quick Sort (Phân hoạch Pivot)</option>
+                    <option value="binary_search">Binary Search (Tìm kiếm nhị phân)</option>
+                    <option value="bfs">BFS / DFS (Duyệt đồ thị)</option>
+                  </select>
+                </div>
+                <button type="button" onclick="resetAlgoArray()" class="btn-soft px-3 py-1.5 text-xs font-bold">🔀 Tạo Mảng Mới</button>
+              </div>
+              <div id="algo-bars-container" class="h-64 rounded-xl border flex items-end justify-center gap-2 p-4 pt-10 bg-slate-950 border-slate-800"></div>
+              <div class="flex items-center justify-center gap-3 pt-1">
+                <button type="button" onclick="algoPrevStep()" class="btn-soft px-3 py-2 text-xs font-bold">⏮ Bước trước</button>
+                <button type="button" onclick="algoTogglePlay()" id="algo-play-btn" class="btn-primary px-5 py-2 text-xs font-bold">▶ Chạy (Play)</button>
+                <button type="button" onclick="algoNextStep()" class="btn-soft px-3 py-2 text-xs font-bold">Bước tiếp ⏭</button>
+                <span id="algo-step-counter" class="text-xs font-mono font-bold text-cyan-400 ml-3">Bước: 0 / 0</span>
+              </div>
+            </div>
+            <div class="lg:col-span-4 space-y-2">
+              <h4 class="text-xs font-bold uppercase tracking-wider txt-muted">Mã Giả (Pseudocode):</h4>
+              <div id="algo-pseudocode-pane" class="font-mono text-xs rounded-xl p-3 border space-y-1 h-80 overflow-y-auto bg-slate-950 border-slate-800 text-slate-200"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL v43.0 #3: CORNELL ACTIVE RECALL STUDIO -->
+  <div id="modal-cornell-studio" class="hidden fixed inset-0 z-[93] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-cornell-studio')">
+    <div class="uni-card w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-emerald-500/45">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-md">📑</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              Sổ Tay Ghi Chép Cornell Thông Minh & Chế Độ Tự Nhẩm (Active Recall)
+              <span class="badge-emerald text-[10px] px-2 py-0.5 rounded-full font-mono">Cornell Notes</span>
+            </h3>
+            <p class="text-[11px] txt-muted">Cột Trái (Gợi ý/Câu hỏi) + Cột Phải (Nội dung/Bẫy thi) + Phần Đáy (Tóm tắt bản chất) kèm nút che cột để tự kiểm tra</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-cornell-studio')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+        <!-- Top Toolbar -->
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="flex items-center gap-2 flex-1 min-w-[280px]">
+            <label class="text-xs font-extrabold txt-main shrink-0">Chuyên đề chuẩn:</label>
+            <select id="cornell-preset-select" onchange="loadCornellPreset(this.value)" class="uni-input px-3 py-1.5 text-xs font-bold flex-1">
+              <option value="biochem_enzyme">1. Hóa Sinh: Động học Enzyme Michaelis-Menten &amp; 3 cơ chế ức chế</option>
+              <option value="csharp_oop_solid">2. C# OOP: 4 Trụ cột, virtual/override vs new và V-Table</option>
+              <option value="discrete_graph">3. Toán Rời Rạc: Định lý Euler, Cây Khung MST &amp; Logic</option>
+              <option value="algorithms_ctdl">4. Giải Thuật &amp; CTDL: Dijkstra, QuickSort, MergeSort &amp; AVL</option>
+            </select>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <!-- Active Recall Toggle Button -->
+            <button type="button" id="cornell-active-recall-btn" onclick="toggleCornellActiveRecallCover()" class="btn-soft px-3.5 py-1.5 text-xs font-black flex items-center gap-1.5 border-emerald-500/40 text-emerald-300">
+              <span id="cornell-cover-icon">🙈</span> <span id="cornell-cover-label">Bật Chế Độ Che Đáp Án (Tự Nhẩm)</span>
+            </button>
+            <button type="button" onclick="openCornellCustomModal()" class="btn-primary !bg-gradient-to-r !from-emerald-500 !to-teal-600 px-3.5 py-1.5 text-xs font-black shadow-md flex items-center gap-1">
+              <span>✍️</span> Nhập Tài Liệu Mới
+            </button>
+          </div>
+        </div>
+
+        <!-- Inline Custom Cornell Generator Box -->
+        <div id="cornell-custom-box" class="hidden p-4 rounded-2xl border space-y-3" style="background-color: var(--bg-subtle); border-color: var(--border-strong);">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-extrabold txt-main">✍️ Chuyển Văn Bản / Đề Cương Thành Sổ Tay Cornell</span>
+            <button type="button" onclick="openCornellCustomModal(false)" class="text-xs font-bold txt-muted hover:opacity-80">✕ Đóng</button>
+          </div>
+          <input id="cornell-custom-title" type="text" placeholder="Tiêu đề tài liệu (VD: Ôn tập Cây AVL & Bảng Băm)" class="uni-input w-full px-3 py-2 text-xs font-bold" />
+          <textarea id="cornell-custom-text" rows="4" placeholder="Dán tóm tắt lý thuyết hoặc các ý gạch đầu dòng cần học vào đây..." class="uni-input w-full p-3 text-xs leading-relaxed"></textarea>
+          <div class="flex justify-end gap-2">
+            <button type="button" onclick="submitCustomCornellText()" class="btn-primary px-4 py-2 text-xs font-bold">✨ Tạo Sổ Tay Cornell Ngay</button>
+          </div>
+        </div>
+
+        <div id="cornell-note-container" class="space-y-4">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL v43.0 #4: 6-AXIS RADAR & 7-DAY CRAMMING ROADMAP -->
+  <div id="modal-cram-roadmap" class="hidden fixed inset-0 z-[93] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-cram-roadmap')">
+    <div class="uni-card w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-fuchsia-500/45">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between shrink-0" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-fuchsia-500 to-pink-600 text-white flex items-center justify-center text-lg shadow-md">🧭</div>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              Bản Đồ Năng Lực 6 Chiều & Lộ Trình Vượt Vũ Môn Cấp Tốc (7-Day Cramming)
+              <span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">Neuro-Roadmap</span>
+            </h3>
+            <p class="text-[11px] txt-muted">Phân tích radar 6 trục năng lực cá nhân hóa và xếp lịch ôn tập 4 chặng trước kỳ thi</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-cram-roadmap')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto flex-1 space-y-5">
+        <!-- Top: 6-Axis Radar SVG & Priority Weaknesses -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
+          <div class="lg:col-span-5 p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 text-center">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-extrabold text-white">📊 Radar Năng Lực 6 Chiều (0 - 100%)</span>
+              <span id="cram-overall-stat" class="text-[11px] font-mono font-bold text-fuchsia-300">Chuẩn Bloom &amp; SM-2</span>
+            </div>
+            <div id="cram-radar-svg-canvas" class="w-full flex justify-center"></div>
+          </div>
+
+          <div class="lg:col-span-7 space-y-2.5">
+            <div class="text-xs font-extrabold txt-main flex items-center justify-between">
+              <span>🎯 Danh Sách Môn Học Ưu Tiên Cần Cứu Nguy Trước:</span>
+              <span class="text-[10px] font-mono text-slate-400">Dựa trên kết quả thi gần nhất</span>
+            </div>
+            <div id="cram-priorities-box" class="space-y-2">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 4-Phase Cramming Roadmap Timeline -->
+        <div class="space-y-2.5">
+          <h4 class="text-xs sm:text-sm font-extrabold txt-main flex items-center gap-2">
+            <span>📅</span> Kế Hoạch Vượt Vũ Môn 4 Chặng (Tối Ưu Trí Nhớ & Đạt Điểm Cao):
+          </h4>
+          <div id="cram-schedule-timeline" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL v44.0 #1: INTERACTIVE CLINICAL CASE SIMULATOR -->
+  <div id="modal-clinical-sim" class="hidden fixed inset-0 z-[95] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-clinical-sim')">
+    <div class="uni-card w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-rose-500/40">
+      <div class="p-3 sm:p-4 border-b flex items-center justify-between gap-3 shrink-0" style="background-color: var(--bg-card); border-color: var(--border);">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 rounded-xl bg-rose-500/20 text-rose-400 text-lg">🩺</span>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              <span>Mô Phỏng Khám Bệnh & Biện Luận Lâm Sàng Thực Nghiệm</span>
+              <span class="badge-brand text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300">v44.0 CLINICAL OS</span>
+            </h3>
+            <p class="text-[11px] txt-muted">Hỏi bệnh, đo sinh hiệu, chỉ định xét nghiệm động & phòng ngừa bẫy thi tử vong</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-clinical-sim')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-3 sm:p-4 overflow-y-auto space-y-4 flex-1">
+        <!-- Top Toolbar: Case Switcher -->
+        <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl border border-rose-500/20 bg-rose-500/5">
+          <div class="flex items-center gap-2 flex-1 min-w-[240px]">
+            <label class="text-xs font-black txt-main shrink-0">Hồ sơ bệnh án:</label>
+            <select id="clinical-case-select" onchange="loadClinicalCase(this.value)" class="uni-input px-3 py-1.5 text-xs font-bold flex-1">
+              <option value="dka">Case 1: Toan Ceton Do Đái Tháo Đường (DKA)</option>
+              <option value="stemi">Case 2: Nhồi Máu Cơ Tim Cấp ST Chênh Lên (STEMI)</option>
+              <option value="cirrhosis_he">Case 3: Bệnh Não Gan & Xơ Gan Mất Bù</option>
+            </select>
+          </div>
+          <button onclick="resetClinicalCase()" class="btn-soft px-3 py-1.5 text-xs font-bold text-rose-300">🔄 Khám lại từ đầu</button>
+        </div>
+
+        <!-- Patient Demographics & Vitals Card -->
+        <div id="clinical-patient-card" class="p-3.5 rounded-xl border border-slate-700 bg-slate-900/60 grid grid-cols-1 md:grid-cols-3 gap-3 text-xs">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Examination & Lab Orders Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <!-- Left: Orderable Lab Buttons -->
+          <div class="lg:col-span-4 p-3 rounded-xl border border-slate-800 bg-slate-950/70 space-y-2">
+            <div class="text-xs font-black txt-main flex items-center justify-between">
+              <span>🧪 Danh Mục Cận Lâm Sàng Khẩn:</span>
+              <span id="clinical-labs-ordered-count" class="text-[10px] text-cyan-300 font-mono">0 Đã làm</span>
+            </div>
+            <p class="text-[10px] txt-muted">Bấm vào từng xét nghiệm để bác sĩ gửi chỉ định xuống phòng Lab:</p>
+            <div id="clinical-lab-buttons" class="space-y-1.5">
+              <!-- Dynamically populated buttons -->
+            </div>
+          </div>
+
+          <!-- Right: Revealed Lab Results & Pathophysiology Feed -->
+          <div class="lg:col-span-8 p-3 rounded-xl border border-slate-800 bg-slate-950/70 space-y-2">
+            <div class="text-xs font-black txt-main flex items-center justify-between">
+              <span>📋 Phiếu Trả Kết Quả & Cơ Chế Bệnh Sinh (Pathophysiology):</span>
+              <span class="text-[10px] text-amber-300 font-mono">Real-time Lab Feed</span>
+            </div>
+            <div id="clinical-labs-feed" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+              <div class="p-4 text-center text-xs txt-muted italic border border-dashed border-slate-800 rounded-lg">
+                Chưa có chỉ định cận lâm sàng nào. Hãy chọn xét nghiệm ở cột bên trái để phân tích!
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Diagnosis & Differential Management Submission -->
+        <div class="p-3.5 rounded-xl border border-rose-500/30 bg-slate-950/90 space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black text-rose-300">💡 Biện Luận Chẩn Đoán & Phác Đồ Xử Trí Khẩn:</span>
+            <span class="text-[10px] text-slate-400">Chuẩn Guideline Bộ Y Tế & Quốc Tế</span>
+          </div>
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input type="text" id="clinical-user-diag-input" class="uni-input px-3 py-2 text-xs font-bold flex-1" placeholder="Nhập chẩn đoán xác định của bạn (ví dụ: Toan Ceton do ĐTĐ, STEMI, Bệnh não gan...)..." />
+            <button onclick="submitClinicalDiagnosis()" class="btn-brand px-4 py-2 text-xs font-black bg-gradient-to-r from-rose-600 to-pink-600 shadow-md">
+              ⚡ Gửi Biện Luận & Đối Chiếu Chuẩn
+            </button>
+          </div>
+          <div id="clinical-diagnosis-result" class="hidden p-3.5 rounded-xl border border-rose-500/40 bg-slate-900/90 space-y-3 text-xs">
+            <!-- Dynamically populated benchmark & traps -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL v44.0 #2: REGEX VISUALIZER & FINITE STATE AUTOMATA (DFA/NFA) -->
+  <div id="modal-regex-engine" class="hidden fixed inset-0 z-[95] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-regex-engine')">
+    <div class="uni-card w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-violet-500/40">
+      <div class="p-3 sm:p-4 border-b flex items-center justify-between gap-3 shrink-0" style="background-color: var(--bg-card); border-color: var(--border);">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 rounded-xl bg-violet-500/20 text-violet-400 text-lg">🔣</span>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              <span>Trực Quan Hóa Regex & Máy Trạng Thái Hữu Hạn (DFA/NFA)</span>
+              <span class="badge-brand text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300">v44.0 AUTOMATA</span>
+            </h3>
+            <p class="text-[11px] txt-muted">Biên dịch Regular Expression thời gian thực, bóc tách Token & vẽ đồ thị trạng thái</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-regex-engine')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-3 sm:p-4 overflow-y-auto space-y-4 flex-1">
+        <!-- Input Controls & Presets -->
+        <div class="p-3 rounded-xl border border-violet-500/20 bg-slate-950/70 space-y-2.5 text-xs">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <span class="font-extrabold text-violet-300">Chọn mẫu Regex thực tế phổ biến:</span>
+            <select id="regex-preset-select" onchange="applyRegexPreset(this.value)" class="uni-input px-3 py-1 text-xs font-bold">
+              <option value="email">1. Xác thực Email chuẩn RFC (ctump.edu.vn)</option>
+              <option value="phone_vn">2. Số điện thoại di động Việt Nam (+84 / 09x)</option>
+              <option value="password_strong">3. Mật khẩu mạnh (Chữ hoa, thường, số, ký tự đặc biệt)</option>
+              <option value="csharp_identifier">4. Định danh C# Valid Identifier</option>
+              <option value="sql_injection">5. Phát hiện tấn công SQL Injection</option>
+            </select>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-2 items-center">
+            <div class="md:col-span-9 flex items-center gap-2">
+              <span class="font-mono text-slate-400 font-bold">/</span>
+              <input type="text" id="regex-pattern-input" oninput="runRegexEvaluation()" class="uni-input px-3 py-2 text-xs font-mono font-bold flex-1 text-emerald-400" value="^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" placeholder="Nhập Regex pattern..." />
+              <span class="font-mono text-slate-400 font-bold">/</span>
+            </div>
+            <div class="md:col-span-3 flex items-center gap-2">
+              <label class="flex items-center gap-1 text-[11px] font-mono cursor-pointer"><input type="checkbox" id="regex-flag-i" onchange="runRegexEvaluation()" /> i (ignoreCase)</label>
+              <label class="flex items-center gap-1 text-[11px] font-mono cursor-pointer"><input type="checkbox" id="regex-flag-m" onchange="runRegexEvaluation()" /> m (multiLine)</label>
+              <label class="flex items-center gap-1 text-[11px] font-mono cursor-pointer"><input type="checkbox" id="regex-flag-s" onchange="runRegexEvaluation()" /> s (dotAll)</label>
+            </div>
+          </div>
+
+          <div>
+            <label class="font-bold txt-muted block mb-1">Chuỗi văn bản kiểm thử (Test String):</label>
+            <input type="text" id="regex-test-string" oninput="runRegexEvaluation()" class="uni-input px-3 py-2 text-xs font-mono w-full" value="contact_alice@ctump.edu.vn" placeholder="Chuỗi để test khớp regex..." />
+          </div>
+        </div>
+
+        <!-- Match Status Banner -->
+        <div id="regex-match-status-banner" class="p-3 rounded-xl border flex items-center justify-between text-xs font-bold">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- DFA Graph Canvas -->
+        <div class="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-black text-violet-300">🗺️ Đồ Thị Trạng Thái Hữu Hạn Tuyến Tính (DFA State Machine):</span>
+            <span class="text-[10px] text-slate-400 font-mono">Lý thuyết Otomat & Ngôn ngữ hình thức</span>
+          </div>
+          <div id="regex-dfa-canvas" class="w-full flex justify-center py-2 overflow-x-auto">
+            <!-- Dynamic SVG DFA diagram -->
+          </div>
+        </div>
+
+        <!-- Token Breakdown Table -->
+        <div class="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-2">
+          <span class="text-xs font-black txt-main">📖 Bóc Tách Cú Pháp & Giải Nghĩa Token Regex (Tiếng Việt):</span>
+          <div id="regex-tokens-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+            <!-- Dynamic tokens -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL v44.0 #3: C# CLR MEMORY & GENERATIONAL GC VISUALIZER -->
+  <div id="modal-memory-gc" class="hidden fixed inset-0 z-[95] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-memory-gc')">
+    <div class="uni-card w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-sky-500/40">
+      <div class="p-3 sm:p-4 border-b flex items-center justify-between gap-3 shrink-0" style="background-color: var(--bg-card); border-color: var(--border);">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 rounded-xl bg-sky-500/20 text-sky-400 text-lg">💾</span>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              <span>Trực Quan Hóa Bộ Nhớ C# CLR & Thu Gom Rác (GC Generations)</span>
+              <span class="badge-brand text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300">v44.0 CLR HEAP</span>
+            </h3>
+            <p class="text-[11px] txt-muted">Phân biệt Stack vs Heap, Mark-Sweep-Compact thế hệ Gen 0, 1, 2 & bẫy rò rỉ bộ nhớ</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-memory-gc')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-3 sm:p-4 overflow-y-auto space-y-4 flex-1">
+        <!-- Scenario Switcher & Controls -->
+        <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 rounded-xl border border-sky-500/20 bg-sky-500/5">
+          <div class="flex items-center gap-2 flex-1 min-w-[260px]">
+            <label class="text-xs font-black txt-main shrink-0">Tình huống kiến trúc:</label>
+            <select id="memory-scenario-select" onchange="loadMemoryScenario(this.value)" class="uni-input px-3 py-1.5 text-xs font-bold flex-1">
+              <option value="gc_generations">1. Chu Trình GC Thế Hệ: Gen 0 -> Gen 1 -> Gen 2</option>
+              <option value="value_vs_ref">2. Kiểu Giá Trị (Struct/int) vs Kiểu Tham Chiếu (Class)</option>
+              <option value="event_leak">3. Bẫy Rò Rỉ Bộ Nhớ: Event Handler dính giữ tham chiếu sống</option>
+            </select>
+          </div>
+
+          <!-- Stepper controls -->
+          <div class="flex items-center gap-1.5 text-xs">
+            <button onclick="prevMemoryStep()" class="btn-soft px-3 py-1.5 font-bold">◀ Bước Trước</button>
+            <span id="memory-step-indicator" class="font-mono font-black text-sky-300 px-2 py-1 bg-slate-900 border border-slate-700 rounded">Bước 1/4</span>
+            <button onclick="nextMemoryStep()" class="btn-brand px-3 py-1.5 font-bold bg-sky-600">Bước Kế ▶</button>
+          </div>
+        </div>
+
+        <!-- Code Snippet & Step Action Banner -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-3 items-center">
+          <div class="lg:col-span-6 p-3 rounded-xl bg-slate-950 border border-slate-800">
+            <span class="text-[10px] font-mono text-slate-400 block mb-1">Mã Nguồn C# Đang Khảo Sát:</span>
+            <pre id="memory-code-snippet" class="text-xs font-mono text-emerald-400 whitespace-pre overflow-x-auto p-1"></pre>
+          </div>
+          <div class="lg:col-span-6 p-3 rounded-xl bg-slate-900/80 border border-sky-500/30 space-y-1 text-xs">
+            <div class="font-black text-sky-300 flex items-center justify-between">
+              <span id="memory-action-title">Hành động CLR</span>
+              <span class="text-[10px] font-mono text-slate-400">Step Explanation</span>
+            </div>
+            <p id="memory-action-explanation" class="text-slate-200 leading-relaxed"></p>
+          </div>
+        </div>
+
+        <!-- Dual-Panel Memory Layout: Call Stack vs Managed Heap -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <!-- Call Stack (Left) -->
+          <div class="lg:col-span-4 p-3 rounded-xl border border-slate-800 bg-slate-950 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-black text-emerald-300">🧵 Call Stack (Bộ nhớ Ngăn xếp)</span>
+              <span class="text-[10px] text-slate-400 font-mono">Tự giải phóng khi ra khỏi scope</span>
+            </div>
+            <div id="memory-stack-container" class="space-y-1.5 max-h-[260px] overflow-y-auto">
+              <!-- Dynamically populated stack frames -->
+            </div>
+          </div>
+
+          <!-- Managed Heap with Gen 0, 1, 2 (Right) -->
+          <div class="lg:col-span-8 p-3 rounded-xl border border-slate-800 bg-slate-950 space-y-2">
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-black text-amber-300">🏢 Managed Heap (Bộ nhớ Đống có GC quản lý)</span>
+              <span class="text-[10px] text-slate-400 font-mono">Mark & Sweep & Compact</span>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2">
+              <div class="p-2 rounded-lg border border-slate-800 bg-slate-900/50 space-y-1.5">
+                <div class="text-[10px] font-black text-emerald-300 uppercase">Generation 0 (Mới sinh)</div>
+                <div id="memory-gen0-container" class="space-y-1 min-h-[160px] max-h-[220px] overflow-y-auto"></div>
+              </div>
+              <div class="p-2 rounded-lg border border-slate-800 bg-slate-900/50 space-y-1.5">
+                <div class="text-[10px] font-black text-yellow-300 uppercase">Generation 1 (Đệm trung gian)</div>
+                <div id="memory-gen1-container" class="space-y-1 min-h-[160px] max-h-[220px] overflow-y-auto"></div>
+              </div>
+              <div class="p-2 rounded-lg border border-slate-800 bg-slate-900/50 space-y-1.5">
+                <div class="text-[10px] font-black text-rose-300 uppercase">Generation 2 (Sống thọ / GC Root)</div>
+                <div id="memory-gen2-container" class="space-y-1 min-h-[160px] max-h-[220px] overflow-y-auto"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL v44.0 #4: METABOLIC BIOENERGETICS & ATP BALANCE STUDIO -->
+  <div id="modal-metabolic-atp" class="hidden fixed inset-0 z-[95] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-metabolic-atp')">
+    <div class="uni-card w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-emerald-500/40">
+      <div class="p-3 sm:p-4 border-b flex items-center justify-between gap-3 shrink-0" style="background-color: var(--bg-card); border-color: var(--border);">
+        <div class="flex items-center gap-2.5">
+          <span class="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 text-lg">⚡</span>
+          <div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              <span>Hóa Sinh Năng Lượng & Cân Bằng ATP Ty Thể (Bioenergetics)</span>
+              <span class="badge-brand text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">v44.0 BIOCHEM ATP</span>
+            </h3>
+            <p class="text-[11px] txt-muted">Đường phân, Krebs, Chuỗi Hô Hấp Tế Bào, Hệ số P/O hiện đại & Chất độc ức chế</p>
+          </div>
+        </div>
+        <button onclick="closeModal('modal-metabolic-atp')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
+      </div>
+
+      <div class="p-3 sm:p-4 overflow-y-auto space-y-4 flex-1">
+        <!-- Interactive Controls (Substrate, Shuttle, Inhibitor) -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 p-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 text-xs">
+          <div>
+            <label class="font-extrabold text-emerald-300 block mb-1">Cơ chất chuyển hóa:</label>
+            <select id="metabolic-substrate-select" onchange="runMetabolicCalculation()" class="uni-input px-3 py-1.5 text-xs font-bold w-full">
+              <option value="glucose_aerobic">1. Glucose - Ái khí hoàn toàn (CO2 + H2O)</option>
+              <option value="glucose_anaerobic">2. Glucose - Yếm khí (Lactate / Cơ & Hồng cầu)</option>
+              <option value="palmitic_acid">3. Axit Béo Palmitate 16C (Beta-Oxy hóa)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-extrabold text-emerald-300 block mb-1">Con thoi vận chuyển NADH bào tương:</label>
+            <select id="metabolic-shuttle-select" onchange="runMetabolicCalculation()" class="uni-input px-3 py-1.5 text-xs font-bold w-full">
+              <option value="malate_aspartate">Malate-Aspartate (Tim, Gan, Thận - 2.5 ATP/NADH)</option>
+              <option value="glycerol_phosphate">Glycerol-3-Phosphate (Não, Cơ xương - 1.5 ATP/NADH)</option>
+            </select>
+          </div>
+          <div>
+            <label class="font-extrabold text-rose-300 block mb-1">Chất độc / Chất tách đôi ty thể:</label>
+            <select id="metabolic-inhibitor-select" onchange="runMetabolicCalculation()" class="uni-input px-3 py-1.5 text-xs font-bold w-full">
+              <option value="none">Không có độc chất (Bình thường)</option>
+              <option value="cyanide_co">Cyanide (CN-) & Khí CO (Ức chế Phức hợp IV)</option>
+              <option value="rotenone_amytal">Rotenone & Amytal (Ức chế Phức hợp I)</option>
+              <option value="dnp_uncoupler">2,4-DNP / Thermogenin (Tách đôi OXPHOS, chỉ sinh nhiệt)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Net ATP Total Banner -->
+        <div id="metabolic-summary-banner" class="p-4 rounded-xl border border-emerald-500/40 bg-gradient-to-r from-emerald-950/60 to-slate-950 flex flex-wrap items-center justify-between gap-3 text-xs">
+          <!-- Dynamically populated -->
+        </div>
+
+        <!-- Stage Breakdown Table -->
+        <div class="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-2">
+          <div class="flex items-center justify-between text-xs">
+            <span class="font-black text-emerald-300">📊 Chi Tiết Năng Lượng Từng Giai Đoạn (P/O Hiện Đại: 1 NADH = 2.5 ATP, 1 FADH2 = 1.5 ATP):</span>
+            <span class="text-[10px] text-slate-400 font-mono">Biochemical Yield Matrix</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-xs text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-800 text-slate-400 font-bold">
+                  <th class="py-2 px-3">Giai Đoạn Phản Ứng</th>
+                  <th class="py-2 px-2 text-center">ATP Cơ Chất</th>
+                  <th class="py-2 px-2 text-center">NADH Sinh Ra</th>
+                  <th class="py-2 px-2 text-center">FADH2 Sinh Ra</th>
+                  <th class="py-2 px-2 text-right">Tổng Năng Lượng (ATP)</th>
+                </tr>
+              </thead>
+              <tbody id="metabolic-stages-tbody">
+                <!-- Dynamically populated rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Clinical & Pathophysiology Insight Box -->
+        <div id="metabolic-clinical-box" class="p-3.5 rounded-xl border border-indigo-500/30 bg-indigo-950/20 space-y-1.5 text-xs">
+          <!-- Dynamically populated clinical relevance -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  
+  <!-- =====================================================================
+       MODAL: KHO LƯU TRỮ LỊCH SỬ AI PHÂN TÍCH CHUYÊN SÂU (PERSISTENT HISTORY)
+       ===================================================================== -->
+  <div id="modal-deep-analysis-history" class="hidden fixed inset-0 z-[96] bg-black/80 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeDeepAnalysisHistoryModal()">
+    <div class="uni-card w-full max-w-6xl h-[92vh] flex flex-col overflow-hidden shadow-2xl border border-indigo-500/40 bg-slate-900/95">
+      <!-- Modal Header -->
+      <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 shadow-inner">
+            <i data-lucide="microscope" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h3 class="text-base sm:text-lg font-bold text-white tracking-wide">Kho Lưu Trữ AI Phân Tích Chuyên Sâu</h3>
+              <span id="deep-hist-total-badge" class="px-2 py-0.5 rounded-full text-xs font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">0 bài phân tích</span>
+              <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                <i data-lucide="zap" class="w-3 h-3"></i> Tự động Cache
+              </span>
+            </div>
+            <p class="text-xs text-slate-400 mt-0.5">Lưu trữ bền vững các phân tích học thuật, giải thích chuyên sâu và bẫy đề thi từ AI</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <button onclick="exportDeepHistoryMarkdown()" class="btn-subtle text-xs px-3 py-1.5 rounded-lg border border-indigo-500/30 hover:bg-indigo-500/10 text-indigo-300 flex items-center gap-1.5 transition-all" title="Tải toàn bộ kho phân tích thành file Markdown">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Xuất Markdown
+          </button>
+          <button onclick="confirmClearDeepHistory()" class="btn-subtle text-xs px-3 py-1.5 rounded-lg border border-red-500/30 hover:bg-red-500/10 text-red-400 flex items-center gap-1.5 transition-all" title="Xóa toàn bộ lịch sử phân tích">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Xóa Kho
+          </button>
+          <button onclick="closeDeepAnalysisHistoryModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-colors">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Filter & Search Toolbar -->
+      <div class="px-5 py-3 border-b border-white/10 bg-slate-900/60 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex-1 min-w-[240px] relative">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+          <input id="deep-hist-search" type="text" placeholder="Tìm kiếm câu hỏi, nội dung phân tích, kiến thức y khoa, giải thuật..." 
+                 oninput="debounceFilterDeepHistory()" 
+                 class="w-full pl-9 pr-8 py-2 bg-slate-950/70 border border-white/15 rounded-xl text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-400 transition-all">
+          <button id="deep-hist-search-clear" onclick="clearDeepHistorySearch()" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+            <i data-lucide="x-circle" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <select id="deep-hist-subject-select" onchange="loadDeepAnalysisHistory(0)" class="bg-slate-950/70 border border-white/15 rounded-xl px-2.5 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-indigo-400">
+            <option value="">Tất cả môn học</option>
+          </select>
+          <select id="deep-hist-mode-select" onchange="loadDeepAnalysisHistory(0)" class="bg-slate-950/70 border border-white/15 rounded-xl px-2.5 py-2 text-xs sm:text-sm text-slate-200 focus:outline-none focus:border-indigo-400">
+            <option value="">Tất cả chế độ</option>
+            <option value="standard">🔬 Chuẩn giáo sư</option>
+            <option value="feynman">👶 Feynman đời sống</option>
+            <option value="exam_trap">🎯 Mổ xẻ bẫy thi</option>
+            <option value="socratic">❓ Socrates phản biện</option>
+            <option value="stem_clinical">🧬 STEM & Lâm sàng</option>
+          </select>
+          <button onclick="loadDeepAnalysisHistory(0)" class="px-3 py-2 rounded-xl bg-indigo-600/30 border border-indigo-500/40 text-indigo-200 hover:bg-indigo-600/50 text-xs font-semibold flex items-center gap-1.5 transition-all">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Làm mới
+          </button>
+        </div>
+      </div>
+
+      <!-- Modal Body: Split-View Grid -->
+      <div class="flex-1 grid grid-cols-1 md:grid-cols-12 min-h-0 overflow-hidden">
+        <!-- Left Column: History Items List (5 cols) -->
+        <div class="md:col-span-5 border-r border-white/10 flex flex-col min-h-0 bg-slate-950/40">
+          <div id="deep-hist-list-container" class="flex-1 overflow-y-auto p-3 space-y-2 divide-y divide-transparent">
+            <!-- Render list items dynamically -->
+          </div>
+          <!-- Pagination bar -->
+          <div id="deep-hist-pagination" class="px-4 py-2 border-t border-white/10 bg-slate-950/80 flex items-center justify-between text-xs text-slate-400">
+            <span id="deep-hist-page-info">Trang 1</span>
+            <div class="flex items-center gap-1">
+              <button id="deep-hist-prev-btn" onclick="navDeepHistoryPage(-1)" class="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none">Trước</button>
+              <button id="deep-hist-next-btn" onclick="navDeepHistoryPage(1)" class="px-2.5 py-1 rounded bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:pointer-events-none">Sau</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Detail Reader Area (7 cols) -->
+        <div class="md:col-span-7 flex flex-col min-h-0 bg-slate-900/40">
+          <div id="deep-hist-detail-empty" class="flex-1 flex flex-col items-center justify-center p-8 text-center text-slate-400 space-y-3">
+            <div class="w-16 h-16 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
+              <i data-lucide="book-open" class="w-8 h-8"></i>
+            </div>
+            <h4 class="text-sm sm:text-base font-bold text-slate-200">Chọn một bài phân tích bên trái để đọc</h4>
+            <p class="text-xs max-w-sm text-slate-500">Toàn bộ cấu trúc phân tích 4 vai (Giáo sư, Feynman, Bác sĩ/Kỹ sư, Huấn luyện viên) sẽ hiển thị đầy đủ với công thức toán và mã nguồn.</p>
+          </div>
+
+          <div id="deep-hist-detail-view" class="hidden flex-1 flex flex-col min-h-0">
+            <!-- Detail Header Toolbar -->
+            <div class="px-5 py-3 border-b border-white/10 flex items-center justify-between bg-slate-900/80">
+              <div class="flex items-center gap-2 text-xs flex-wrap">
+                <span id="deep-detail-subject-pill" class="px-2 py-0.5 rounded font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Môn học</span>
+                <span id="deep-detail-mode-badge" class="px-2 py-0.5 rounded font-semibold bg-purple-500/20 text-purple-300 border border-purple-500/30">🔬 Chuẩn</span>
+                <span id="deep-detail-time" class="text-slate-400">--:--</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <button onclick="generateMindmapFromCurrentAnalysis()" class="btn-subtle text-xs px-2.5 py-1 rounded border border-amber-500/30 hover:bg-amber-500/10 text-amber-300 flex items-center gap-1.5 transition-all" title="Trích xuất sơ đồ tư duy trực quan">
+                  <span>🗺️</span> Mindmap
+                </button>
+                <button onclick="copyCurrentDeepAnalysis()" class="btn-subtle text-xs px-2.5 py-1 rounded border border-white/15 hover:bg-white/10 text-slate-300 flex items-center gap-1.5 transition-all">
+                  <i data-lucide="copy" class="w-3.5 h-3.5"></i> Sao chép
+                </button>
+                <button onclick="deleteCurrentDeepAnalysisItem()" class="btn-subtle text-xs px-2.5 py-1 rounded border border-red-500/30 hover:bg-red-500/10 text-red-400 flex items-center gap-1.5 transition-all">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Xóa
+                </button>
+              </div>
+            </div>
+
+            <!-- Detail Scrollable Body -->
+            <div class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+              <!-- Question Card -->
+              <div class="p-4 rounded-xl bg-slate-950/70 border border-white/10 space-y-2">
+                <div class="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">Câu hỏi gốc:</div>
+                <div id="deep-detail-question-text" class="text-sm font-medium text-slate-200 leading-relaxed"></div>
+                <div id="deep-detail-meta-box" class="pt-2 border-t border-white/5 flex flex-wrap items-center gap-3 text-xs text-slate-400">
+                  <div>Đáp án đúng: <span id="deep-detail-correct-opt" class="font-bold text-emerald-400"></span></div>
+                  <div id="deep-detail-expl-wrapper" class="hidden">Giải thích đề: <span id="deep-detail-explanation" class="text-slate-300"></span></div>
+                </div>
+              </div>
+
+              <!-- AI Deep Analysis Content -->
+              <div class="space-y-2">
+                <div class="flex items-center gap-2 text-xs font-bold text-indigo-300 uppercase tracking-wider">
+                  <i data-lucide="sparkles" class="w-4 h-4 text-indigo-400"></i> Bài phân tích chuyên sâu của AI:
+                </div>
+                <div id="deep-detail-analysis-content" class="markdown-body p-4 sm:p-5 rounded-2xl bg-indigo-950/20 border border-indigo-500/30 text-slate-200 text-sm leading-relaxed space-y-3">
+                </div>
+              </div>
+
+              <!-- AI Mindmap / Flowchart Container (Hidden by default) -->
+              <div id="deep-detail-mindmap-box" class="hidden p-4 rounded-xl bg-slate-950/80 border border-amber-500/30 space-y-2 animate-fade-in">
+                <div class="flex items-center justify-between">
+                  <div class="text-xs font-bold text-amber-300 flex items-center gap-1.5 uppercase">
+                    <span>🗺️</span> Sơ đồ tư duy trực quan (Mindmap Logic)
+                  </div>
+                  <button onclick="document.getElementById('deep-detail-mindmap-box').classList.add('hidden')" class="text-slate-400 hover:text-white text-xs">✕ Đóng</button>
+                </div>
+                <div id="deep-detail-mindmap-summary" class="text-xs text-slate-300 italic"></div>
+                <pre id="deep-detail-mindmap-render" class="overflow-x-auto p-3 bg-slate-900 rounded-lg text-slate-200 text-xs font-mono border border-white/10"></pre>
+              </div>
+
+              <!-- Interactive Socratic Follow-up Area -->
+              <div class="p-4 rounded-2xl bg-slate-950/70 border border-purple-500/30 space-y-3">
+                <div class="flex items-center justify-between">
+                  <div class="text-xs font-bold text-purple-300 flex items-center gap-1.5 uppercase">
+                    <span>💬</span> Hỏi sâu / Phản biện cùng AI Socratic
+                  </div>
+                  <span class="text-[11px] text-slate-400">Đặt câu hỏi xoáy vào điểm băn khoăn</span>
+                </div>
+                <div id="deep-detail-followup-messages" class="space-y-2 max-h-60 overflow-y-auto pr-1"></div>
+                <div class="flex gap-2">
+                  <input id="deep-detail-followup-input" type="text" placeholder="Ví dụ: Tại sao ở bước 2 không nhân 2? Nếu đổi giả thiết X thành Y thì kết quả ra sao?..."
+                         onkeydown="if(event.key==='Enter') sendDeepAnalysisFollowup()"
+                         class="flex-1 px-3 py-2 bg-slate-900 border border-white/10 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 transition-all">
+                  <button onclick="sendDeepAnalysisFollowup()" id="btn-deep-followup-send" class="px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1 transition-all">
+                    <span>Hỏi AI</span>
+                    <i data-lucide="send" class="w-3.5 h-3.5"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=45.0"></script>
 </body>
 </html>
