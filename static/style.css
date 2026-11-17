@@ -400,8 +400,9 @@ header > div {
   }
 
   #header-active-subj-btn {
-    max-width: min(215px, 55vw) !important;
-    flex: 1 1 auto !important;
+    max-width: min(158px, calc(100vw - 230px)) !important;
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
     padding-left: 0.5rem !important;
     padding-right: 0.5rem !important;
     gap: 0.3rem !important;
@@ -858,9 +859,9 @@ html.dark .opt-C .opt-badge { color: #34d399; }
 html.dark .opt-D .opt-badge { color: #fbbf24; }
 .opt-D:hover:not(.disabled) { border-color: #f59e0b; background-color: rgba(245, 158, 11, 0.07); transform: translateY(-2px); box-shadow: 0 8px 20px -6px rgba(245, 158, 11, 0.3); }
 
-.option-row:active:not(.disabled):not(.is-eliminated),
+.option-row:active:not(.disabled):not(.is-eliminated):not(:has(.opt-elim-btn:hover)):not(:has(.opt-elim-btn:active)),
 .option-row.key-bounce {
-  transform: scale(0.98);
+  transform: scale(0.985);
 }
 
 .option-row.selected {
@@ -901,6 +902,52 @@ html.dark .opt-D .opt-badge { color: #fbbf24; }
   opacity: 0.25;
   text-decoration: line-through;
   pointer-events: none;
+}
+
+.option-row.is-user-eliminated {
+  opacity: 0.46;
+  border-style: dashed;
+}
+.option-row.is-user-eliminated .option-text {
+  text-decoration: line-through;
+  opacity: 0.75;
+}
+.opt-elim-btn {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  background: transparent;
+  opacity: 0.45;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+.option-row:hover .opt-elim-btn,
+.opt-elim-btn:focus-visible {
+  opacity: 0.95;
+  background-color: var(--bg-subtle);
+  border-color: var(--border);
+}
+.opt-elim-btn:hover {
+  opacity: 1 !important;
+  color: var(--rose-text);
+  background-color: var(--rose-bg) !important;
+  border-color: var(--rose-border) !important;
+}
+.option-row.is-user-eliminated .opt-elim-btn {
+  opacity: 1;
+  color: var(--rose-text);
+  background-color: var(--rose-bg);
+  border-color: var(--rose-border);
+}
+.option-row.disabled .opt-elim-btn {
+  display: none;
 }
 
 .kbd-hint {

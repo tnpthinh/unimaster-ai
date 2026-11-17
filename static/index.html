@@ -76,7 +76,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=45.0" />
+  <link rel="stylesheet" href="/static/style.css?v=46.2" />
   <link rel="stylesheet" href="/static/minimal.css?v=3.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
@@ -112,7 +112,7 @@
 
         <!-- Global Active Subject Selector Pill -->
         <button onclick="openSubjectPickerModal()" title="Bấm để đổi môn học đang ôn" id="header-active-subj-btn"
-          class="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-xl border transition-all text-xs font-bold min-w-0 lg:min-w-[165px] max-w-[235px] shadow-sm hover:border-indigo-500"
+          class="flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-xl border transition-all text-xs font-bold min-w-0 lg:min-w-[165px] max-w-[146px] sm:max-w-[235px] overflow-hidden shadow-sm hover:border-indigo-500"
           style="background-color: var(--bg-subtle); border-color: var(--border);">
           <span id="active-subj-icon" class="text-sm shrink-0">📐</span>
           <span id="active-subj-name" class="font-extrabold txt-main truncate min-w-0 flex-1 text-left">Chọn môn học</span>
@@ -240,6 +240,11 @@
               <button id="hero-btn-start-exam" onclick="startExamForActiveSubject()"
                 class="btn-primary px-5 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-2 shadow-xl hover:-translate-y-0.5 transition-all">
                 <span>⚡</span> <span id="hero-start-exam-text">Làm Bài Thi Ngay</span>
+              </button>
+              <button onclick="startAdaptiveSmartExam()"
+                class="btn-soft px-3.5 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-1.5 border border-cyan-500/40 text-cyan-300 hover:border-cyan-400"
+                title="AI tự chọn 20 câu trọng tâm: ưu tiên câu từng sai, câu chưa làm &amp; câu bẫy NGOẠI TRỪ">
+                <span>🧠</span> Luyện Thông Minh
               </button>
               <button onclick="openSubjectPickerModal()"
                 class="btn-soft px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5">
@@ -736,9 +741,14 @@
           <h2 class="text-xl font-extrabold txt-main flex items-center gap-2">
             <i data-lucide="zap" class="w-6 h-6 txt-brand"></i> Phòng Thi Thông Minh
           </h2>
-          <button onclick="openAddQuestionModal()" class="btn-soft px-3.5 py-1.5 text-xs flex items-center gap-1.5">
-            <i data-lucide="plus-circle" class="w-4 h-4 txt-brand"></i> Thêm câu hỏi
-          </button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="startAdaptiveSmartExam()" class="btn-primary px-4 py-1.5 text-xs font-extrabold flex items-center gap-1.5 shadow-md" title="Tự động chọn 20 câu tối ưu theo lỗ hổng cá nhân, câu chưa ôn và câu bẫy NGOẠI TRỪ">
+              <span>🧠</span> Đề Thông Minh Cá Nhân Hóa (20 câu)
+            </button>
+            <button type="button" onclick="openAddQuestionModal()" class="btn-soft px-3.5 py-1.5 text-xs flex items-center gap-1.5">
+              <i data-lucide="plus-circle" class="w-4 h-4 txt-brand"></i> Thêm câu hỏi
+            </button>
+          </div>
         </div>
 
         <!-- Subject + 4 Crisp Modes -->
@@ -1027,47 +1037,56 @@
 
         <!-- Question Card (Swipeable on Mobile/iPad!) -->
         <div id="exam-question-stage" class="uni-card p-5 sm:p-7 space-y-5">
-          <!-- Compact Top Toolbar -->
-          <div class="flex items-center justify-between gap-2 flex-wrap">
-            <div id="q-meta-badges" class="flex flex-wrap items-center gap-1.5"></div>
+          <!-- Clean Primary Question Toolbar + Collapsible Secondary Tools -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between gap-2 flex-wrap">
+              <div id="q-meta-badges" class="flex flex-wrap items-center gap-1.5"></div>
 
-            <div class="flex flex-wrap items-center gap-1">
-              <button onclick="openModal('modal-stem-reference')" title="Tra nhanh Công thức Toán • Lý • Hóa • Sinh" class="btn-soft px-2 py-1.5 text-xs">
-                🧪
-              </button>
-              <button onclick="speakCurrentQuestion()" title="Đọc câu hỏi bằng giọng nói" class="btn-soft p-2 text-xs">
-                <i data-lucide="volume-2" class="w-3.5 h-3.5"></i>
-              </button>
-              <button id="btn-podcast-mode" onclick="toggleHandsFreeAudioMode()" title="Podcast ôn thi rảnh tay" class="btn-soft px-2.5 py-1.5 text-xs">
-                🎧 Podcast
-              </button>
-              <button id="btn-osce-mode" onclick="toggleOsceBlindMode()" title="Chế độ Chạy trạm OSCE / Che đáp án A-B-C-D để tự nhớ chủ động trước khi lật mở" class="btn-soft px-2.5 py-1.5 text-xs">
-                🕵️ Chạy trạm OSCE
-              </button>
-              <button onclick="toggleNoteBox()" title="Ghi chú cá nhân cho câu này" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1">
-                <span>📌</span> <span id="note-indicator" class="hidden sm:inline">Ghi chú</span>
-              </button>
-              <button id="btn-5050" onclick="useLifeline5050()" title="Loại 2 đáp án sai (Phím F)" class="btn-soft px-2.5 py-1.5 text-xs">
-                ✂️ 50/50
-              </button>
-              <button id="btn-toggle-discussion" onclick="toggleQuestionDiscussionBox()" title="Bình luận & Mẹo nhớ sinh viên câu này" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1.5 text-cyan-400 hover:text-cyan-300">
-                <span>💬</span>
-                <span class="hidden sm:inline">Bình luận</span>
-                <span id="q-toolbar-disc-count" class="badge-brand px-1.5 py-0.2 rounded-full text-[10px] font-bold">0</span>
-              </button>
-              <button id="btn-ai-concept" onclick="requestAiConceptRecall()" title="AI nhắc lại Công thức & Định luật nền (không lộ đáp án)" class="ai-chip-btn">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button id="btn-5050" onclick="useLifeline5050()" title="Loại 2 đáp án sai (Phím F)" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
+                  ✂️ 50/50
+                </button>
+                <button id="btn-ai-hint" onclick="requestAiHint()" title="Gợi ý tư duy AI (Phím H)" class="ai-chip-btn">
+                  💡 Gợi ý
+                </button>
+                <button id="btn-ask-ai-current" onclick="askAiAboutCurrentExamQuestion()" title="Hỏi ngay Gia Sư AI về câu hỏi này (Phím T)" class="btn-primary !bg-gradient-to-r !from-indigo-600 !via-purple-600 !to-pink-600 px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md hover:scale-105 active:scale-95 transition-all">
+                  <span>🤖</span>
+                  <span>Hỏi AI</span>
+                  <span class="hidden md:inline text-[10px] opacity-75 bg-black/30 px-1 py-0.2 rounded font-mono">T</span>
+                </button>
+                <button id="btn-bookmark" onclick="toggleBookmarkCurrent()" title="Lưu câu hỏi (Phím S)" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
+                  <span id="bookmark-star-icon">☆</span>
+                </button>
+                <button type="button" onclick="toggleExamExtraToolsBar()" id="btn-exam-more-tools" title="Mở rộng công cụ hỗ trợ học thuật" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
+                  <span>🛠️</span> <span class="hidden sm:inline">Công cụ</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Collapsible Secondary Tools Strip (Zero Clutter Default) -->
+            <div id="q-extra-tools-strip" class="hidden flex flex-wrap items-center gap-1.5 p-2 rounded-xl border animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--border);">
+              <button id="btn-ai-concept" onclick="requestAiConceptRecall()" title="AI nhắc lại Công thức &amp; Định luật nền (không lộ đáp án)" class="ai-chip-btn">
                 🧠 Công thức nền
               </button>
-              <button id="btn-ask-ai-current" onclick="askAiAboutCurrentExamQuestion()" title="Hỏi ngay Gia Sư AI về câu hỏi này (Phím T)" class="btn-primary !bg-gradient-to-r !from-indigo-600 !via-purple-600 !to-pink-600 px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md hover:scale-105 active:scale-95 transition-all">
-                <span class="animate-pulse">🤖</span>
-                <span>Hỏi AI Câu Này</span>
-                <span class="hidden md:inline text-[10px] opacity-75 bg-black/30 px-1 py-0.2 rounded font-mono">T</span>
+              <button onclick="openModal('modal-stem-reference')" title="Tra nhanh Công thức Toán • Lý • Hóa • Sinh • CNTT" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
+                🧪 Bảng tham chiếu STEM
               </button>
-              <button id="btn-ai-hint" onclick="requestAiHint()" title="Gợi ý tư duy AI (Phím H)" class="ai-chip-btn">
-                💡 Gợi ý AI
+              <button id="btn-osce-mode" onclick="toggleOsceBlindMode()" title="Che đáp án A-B-C-D để tự nhớ chủ động trước khi lật mở" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
+                🕵️ Che đáp án OSCE
               </button>
-              <button id="btn-bookmark" onclick="toggleBookmarkCurrent()" title="Lưu câu hỏi (Phím S)" class="btn-soft px-2.5 py-1.5 text-xs">
-                <span id="bookmark-star-icon">☆</span>
+              <button onclick="toggleNoteBox()" title="Ghi chú cá nhân cho câu này" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
+                <span>📌</span> <span id="note-indicator">Ghi chú</span>
+              </button>
+              <button onclick="speakCurrentQuestion()" title="Đọc câu hỏi bằng giọng nói" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
+                <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> <span>Đọc câu</span>
+              </button>
+              <button id="btn-podcast-mode" onclick="toggleHandsFreeAudioMode()" title="Podcast ôn thi rảnh tay" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
+                🎧 Podcast
+              </button>
+              <button id="btn-toggle-discussion" onclick="toggleQuestionDiscussionBox()" title="Bình luận &amp; Mẹo nhớ sinh viên câu này" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1.5 text-cyan-400">
+                <span>💬</span>
+                <span>Thảo luận</span>
+                <span id="q-toolbar-disc-count" class="badge-brand px-1.5 py-0.2 rounded-full text-[10px] font-bold">0</span>
               </button>
             </div>
           </div>
@@ -1211,9 +1230,9 @@
               <i data-lucide="chevron-left" class="w-4 h-4"></i> <span>Câu Trước</span>
             </button>
             <div class="flex items-center gap-2">
-              <span class="hidden sm:inline text-[11px] txt-muted font-bold">Phím 1–4: chọn đáp án • Enter / →: chuyển câu</span>
+              <span class="hidden sm:inline text-[11px] txt-muted font-bold">Phím 1–4: chọn • Chuột phải / ✕: gạch loại trừ • →: câu tiếp</span>
               <button type="button" onclick="openModal('modal-study-break')" class="btn-soft px-2.5 py-1.5 text-xs font-extrabold text-amber-400 hover:text-amber-300 rounded-xl flex items-center gap-1" title="Chán làm bài quá? Bấm vào đây đổi gió giải trí">
-                <span>🎮</span> <span class="hidden md:inline">Chán học?</span>
+                <span>🎮</span> <span class="hidden md:inline">Giải lao</span>
               </button>
             </div>
           </div>
@@ -1307,15 +1326,16 @@
           <div>
             <h2 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-1.5">
               Thực Hành Code
-              <span class="badge-brand text-[9px] px-1.5 py-0.5 rounded-full font-mono">20 bài</span>
+              <span id="exercise-total-tracks-badge" class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">30 bài • 3 chuyên ngành</span>
             </h2>
-            <p class="text-[10px] txt-muted leading-tight">Unit Test tự động • Soi rò rỉ bộ nhớ & OOP</p>
+            <p class="text-[10px] txt-muted leading-tight">Unit Test tự động • C# OOP, Python 3 &amp; Giải Thuật CTDL</p>
           </div>
         </div>
         <div class="flex items-center gap-1.5 flex-wrap">
           <select id="exercise-subject-select" onchange="loadExercisesView()" class="uni-input px-2.5 py-1.5 text-xs font-bold">
-            <option value="5">💻 OOP (C#)</option>
-            <option value="22">⚙️ NNLT 1 (Python)</option>
+            <option value="5">💻 OOP (C#) — 10 bài</option>
+            <option value="82">⚡ Giải Thuật &amp; CTDL — 10 bài</option>
+            <option value="22">🐍 NNLT 1 (Python) — 10 bài</option>
           </select>
           <button onclick="submitCodeTestCases()" class="btn-primary px-3 py-1.5 text-xs flex items-center gap-1 font-bold shadow-md">
             <span>🧪</span> Chấm Test
@@ -1444,9 +1464,9 @@
         <!-- Separate Subject Filter Pills -->
         <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t" style="border-color: var(--border);">
           <span class="text-[11px] font-bold txt-muted mr-1">Lọc theo môn:</span>
-          <button type="button" onclick="filterEssayPromptList('all')" data-essay-filter="all" class="essay-subj-pill btn-primary px-3 py-1 text-xs font-bold rounded-xl">Tất cả (6 đề)</button>
-          <button type="button" onclick="filterEssayPromptList('toan_rr')" data-essay-filter="toan_rr" class="essay-subj-pill btn-soft px-3 py-1 text-xs font-bold rounded-xl">📐 Toán Rời Rạc (3 đề)</button>
-          <button type="button" onclick="filterEssayPromptList('ctdl_gt')" data-essay-filter="ctdl_gt" class="essay-subj-pill btn-soft px-3 py-1 text-xs font-bold rounded-xl">⚡ Giải Thuật &amp; CTDL (3 đề)</button>
+          <button type="button" onclick="filterEssayPromptList('all')" data-essay-filter="all" class="essay-subj-pill btn-primary px-3 py-1 text-xs font-bold rounded-xl">Tất cả (10 đề)</button>
+          <button type="button" onclick="filterEssayPromptList('toan_rr')" data-essay-filter="toan_rr" class="essay-subj-pill btn-soft px-3 py-1 text-xs font-bold rounded-xl">📐 Toán Rời Rạc (5 đề)</button>
+          <button type="button" onclick="filterEssayPromptList('ctdl_gt')" data-essay-filter="ctdl_gt" class="essay-subj-pill btn-soft px-3 py-1 text-xs font-bold rounded-xl">⚡ Giải Thuật &amp; CTDL (5 đề)</button>
         </div>
       </div>
 
@@ -4656,10 +4676,10 @@
     <div class="flex items-center gap-2">
       <!-- Nút nổi Câu Tiếp Theo (Floating Action Button kế bên nút AI) -->
       <button id="floating-next-q-btn" onclick="triggerFloatingNextAction()"
-        class="hidden group px-3.5 py-2.5 rounded-full sm:rounded-xl shadow-2xl flex items-center gap-2 hover:scale-105 active:scale-95 transition-all relative cursor-pointer font-black text-xs text-white"
+        class="hidden group px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-full sm:rounded-xl shadow-2xl flex items-center gap-1.5 sm:gap-2 hover:scale-105 active:scale-95 transition-all relative cursor-pointer font-black text-[11px] sm:text-xs text-white"
         style="background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%); border: 1.5px solid rgba(255, 255, 255, 0.25); box-shadow: 0 10px 25px -4px rgba(16, 185, 129, 0.5);"
         title="Câu tiếp theo (hoặc Nộp bài khi hoàn thành)">
-        <span class="animate-pulse text-base">➔</span>
+        <span class="animate-pulse text-sm sm:text-base">➔</span>
         <span id="floating-next-q-text" class="font-bold">Câu Tiếp Theo</span>
       </button>
 
@@ -5680,14 +5700,14 @@ public class Student {
       <div class="p-3.5 border-b flex items-center gap-3" style="border-color: var(--border); background-color: var(--bg-surface);">
         <span class="text-lg">🔍</span>
         <input id="cmd-palette-input" type="text" oninput="renderCommandPaletteResults()" onkeydown="handleCommandPaletteKeydown(event)"
-          placeholder="Gõ tên môn học, bài tập C#/Python, câu hỏi hoặc lệnh nhanh (VD: Vấn đáp, Mindmap, Enzyme, Dijkstra)..."
+          placeholder="Tìm 7.018 câu hỏi, 334 thẻ nhớ, 30 bài code C#/Python/Giải thuật hoặc lệnh nhanh (VD: Dijkstra, AVL, Enzyme)..."
           class="w-full bg-transparent text-sm font-bold txt-main focus:outline-none" autocomplete="off" />
         <kbd class="px-2 py-0.5 text-[10px] font-mono rounded border txt-muted shrink-0" style="border-color: var(--border);">ESC</kbd>
       </div>
       <div id="cmd-palette-results" class="p-2.5 overflow-y-auto space-y-1 flex-1 max-h-[60vh]"></div>
       <div class="px-4 py-2 border-t text-[11px] txt-muted flex items-center justify-between" style="border-color: var(--border); background-color: var(--bg-subtle);">
         <span>Mẹo: Dùng phím <kbd class="px-1 py-0.5 rounded bg-black/20 font-mono">↑</kbd> <kbd class="px-1 py-0.5 rounded bg-black/20 font-mono">↓</kbd> để di chuyển, <kbd class="px-1 py-0.5 rounded bg-black/20 font-mono">Enter</kbd> để mở ngay</span>
-        <span class="font-mono font-bold text-indigo-400">UniMaster Spotlight v41.0</span>
+        <span class="font-mono font-bold text-indigo-400">Omnisearch • 7.018 Q + 30 Code</span>
       </div>
     </div>
   </div>
@@ -7076,6 +7096,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=45.0"></script>
+  <script src="/static/app.js?v=46.2"></script>
 </body>
 </html>

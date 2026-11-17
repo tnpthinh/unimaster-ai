@@ -1634,16 +1634,17 @@ const SUBJECT_SHORTCUTS = {
     { icon: '🤖', label: 'AI Soi Rò Rỉ RAM', action: "switchTab('exercises')" }
   ],
   TOAN_RR: [
-    { icon: '📐', label: 'Đề Toán Rời Rạc (27/11)', action: 'openExamForSubjectCode("TOAN_RR", 21)' },
+    { icon: '📐', label: 'Đề Toán Rời Rạc (100 câu)', action: 'openExamForSubjectCode("TOAN_RR", 21)' },
+    { icon: '🧠', label: 'Đề Thông Minh (20 câu)', action: 'startAdaptiveSmartExam(21)' },
     { icon: '🕸️', label: 'Lab Đồ Thị Euler & MST', action: "switchTab('lab'); switchLabSubTab('graphtheory');" },
-    { icon: '✍️', label: 'Tự Luận Logic & Đồ Thị', action: "switchTab('essay'); setTimeout(() => filterEssayPromptList('toan_rr'), 120);" },
+    { icon: '✍️', label: 'Tự Luận Logic & Đồ Thị (5 đề)', action: "switchTab('essay'); setTimeout(() => filterEssayPromptList('toan_rr'), 120);" },
     { icon: '🗂️', label: 'Flashcard Toán Rời Rạc', action: 'openFlashcardsForCode("TOAN_RR", 21)' }
   ],
   CTDL_GT: [
-    { icon: '⚡', label: 'Đề Giải Thuật (60 câu)', action: 'openExamForSubjectCode("CTDL_GT", 82)' },
+    { icon: '⚡', label: 'Đề Giải Thuật (100 câu)', action: 'openExamForSubjectCode("CTDL_GT", 82)' },
+    { icon: '💻', label: '10 Bài Code Giải Thuật', action: "switchTab('exercises'); selectExerciseBySubject(82);" },
     { icon: '⏳', label: 'Tua Bước & Call Stack', action: "openAlgoVisualizerModal('steps')" },
-    { icon: '📊', label: 'Mô Phỏng Sort & Search', action: "openAlgoVisualizerModal('bars')" },
-    { icon: '✍️', label: 'Tự Luận Big-O & Dijkstra', action: "switchTab('essay'); setTimeout(() => filterEssayPromptList('ctdl_gt'), 120);" },
+    { icon: '✍️', label: 'Tự Luận Big-O & DP (5 đề)', action: "switchTab('essay'); setTimeout(() => filterEssayPromptList('ctdl_gt'), 120);" },
     { icon: '🗂️', label: 'Flashcard Giải Thuật', action: 'openFlashcardsForCode("CTDL_GT", 82)' }
   ],
   DISCRETE_MATH_ALGO: [
@@ -3021,6 +3022,7 @@ function formatRichText(raw, allowCodeKeywords = null) {
       );
     }
 
+    safe = safe.replace(/\*\*([^\n*]+?)\*\*/g, '<strong class="font-extrabold txt-main">$1</strong>');
     safe = safe.replace(/\n/g, '<br />');
     return safe.replace(/\x00TOK(\d+)\x00/g, (_, idx) => tokens[Number(idx)] || '');
   } catch (err) {
@@ -3380,7 +3382,6 @@ async function loadSubjectsAndStats() {
 function populateAllSubjectSelects() {
   const ids = [
     'exam-subject-select',
-    'exercise-subject-select',
     'fc-subject-select',
     'bank-subject-select',
     'tutor-subject-select',
@@ -3407,6 +3408,28 @@ function populateAllSubjectSelects() {
     if (preferred) sel.value = String(preferred.id);
     else if (prev && STATE.subjects.some((s) => String(s.id) === String(prev))) sel.value = prev;
   });
+
+  // Coding IDE dropdown ONLY lists subjects with live auto-graded coding exercises
+  const exSel = document.getElementById('exercise-subject-select');
+  if (exSel) {
+    const prevEx = exSel.value;
+    const codingOrder = [5, 82, 22];
+    const codingSubjects = codingOrder
+      .map((cid) => STATE.subjects.find((s) => Number(s.id) === cid))
+      .filter(Boolean);
+    if (codingSubjects.length) {
+      exSel.innerHTML = codingSubjects
+        .map((s) => `<option value="${s.id}">${s.icon || '💻'} ${escapeHtml(s.name)} — ${s.exercise_count || 10} bài</option>`)
+        .join('');
+    }
+    if (preferred && codingOrder.includes(Number(preferred.id))) {
+      exSel.value = String(preferred.id);
+    } else if (prevEx && codingOrder.includes(Number(prevEx))) {
+      exSel.value = String(prevEx);
+    } else {
+      exSel.value = '5';
+    }
+  }
 }
 
 /* ===== Chỉ báo trượt cho thanh nav trên header =====
@@ -4529,6 +4552,100 @@ async function startCustomExam() {
   launchExamWithQuestions(list.slice(0, Math.min(list.length, count)), sub ? sub.name : 'Phòng thi', false);
 }
 
+async function startAdaptiveSmartExam(customSid = null) {
+  const fallbackSub = STATE.subjects.find((s) => s.code === 'HOASINH_CTUMP') || STATE.subjects[0];
+  const sid = Number(
+    customSid ||
+      document.getElementById('exam-subject-select')?.value ||
+      STATE.activeSubjectId ||
+      STATE.examConfig.subjectId ||
+      fallbackSub?.id ||
+      5
+  );
+  try {
+    const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+    const pool = (res && res.questions) || [];
+    if (!pool.length) {
+      showToast('Môn học này chưa có câu hỏi để tạo Đề Thông Minh!', 'warning');
+      return;
+    }
+
+    const mistakeIds = new Set(
+      (Array.isArray(STATE.mistakes) ? STATE.mistakes : []).map((m) => Number(typeof m === 'object' ? (m.question_id || m.id) : m))
+    );
+    const bookmarkIds = new Set(
+      (Array.isArray(STATE.bookmarks) ? STATE.bookmarks : []).map((b) => Number(typeof b === 'object' ? b.id : b))
+    );
+
+    let mistakePicked = 0;
+    let diagramPicked = 0;
+    let trapPicked = 0;
+
+    const scored = pool.map((q) => {
+      const qid = Number(q.id);
+      const txt = String(q.question_text || '');
+      const isMistake = mistakeIds.has(qid);
+      const isBookmarked = bookmarkIds.has(qid);
+      const hasImg = Boolean(q.image_url && String(q.image_url).trim());
+      const isTrap = /NGOẠI TRỪ|KHÔNG ĐÚNG|\bSAI\b/i.test(txt);
+      const bloomKey = typeof getBloomInfo === 'function' ? getBloomInfo(q.difficulty, txt).key : 'understand';
+      const bloomBonus = bloomKey === 'analyze' ? 18 : bloomKey === 'apply' ? 12 : 4;
+
+      const score =
+        (isMistake ? 130 : 0) +
+        (isBookmarked ? 42 : 0) +
+        (hasImg ? 26 : 0) +
+        (isTrap ? 20 : 0) +
+        bloomBonus +
+        Math.random() * 32;
+
+      return { q, score, isMistake, hasImg, isTrap };
+    });
+
+    scored.sort((a, b) => b.score - a.score);
+    const topSlice = scored.slice(0, Math.min(20, scored.length));
+    topSlice.forEach((item) => {
+      if (item.isMistake) mistakePicked++;
+      if (item.hasImg) diagramPicked++;
+      if (item.isTrap) trapPicked++;
+    });
+
+    const picked = topSlice.map((item) => item.q);
+    STATE.examConfig.subjectId = sid;
+    STATE.examConfig.mode = 'practice';
+    const timeEl = document.getElementById('exam-custom-time');
+    if (timeEl) timeEl.value = '0';
+
+    const sub = STATE.subjects.find((s) => Number(s.id) === sid);
+    const subName = sub ? sub.name : 'Chuyên đề';
+    launchExamWithQuestions(picked, `🧠 Đề Thông Minh: ${subName}`, false);
+
+    const highlights = [];
+    if (mistakePicked > 0) highlights.push(`${mistakePicked} câu hay sai`);
+    if (diagramPicked > 0) highlights.push(`${diagramPicked} câu sơ đồ/tiêu bản`);
+    if (trapPicked > 0) highlights.push(`${trapPicked} câu bẫy NGOẠI TRỪ`);
+    showToast(
+      `🧠 Đã cá nhân hóa ${picked.length} câu${highlights.length ? ' (' + highlights.join(' • ') + ')' : ''}!`,
+      'success'
+    );
+  } catch (err) {
+    console.error('startAdaptiveSmartExam error:', err);
+    showToast('Không thể khởi tạo Đề Thông Minh lúc này.', 'error');
+  }
+}
+
+function toggleExamExtraToolsBar() {
+  const strip = document.getElementById('q-extra-tools-strip');
+  const btn = document.getElementById('btn-exam-more-tools');
+  if (!strip) return;
+  const nowHidden = strip.classList.toggle('hidden');
+  if (btn) {
+    btn.classList.toggle('btn-primary', !nowHidden);
+    btn.classList.toggle('btn-soft', nowHidden);
+  }
+  playSound('click');
+}
+
 function normalizeCorrectLetter(q) {
   const raw = String(q.correct_option ?? '').trim();
   if (q.q_type === 'mcq' || q.q_type === 'true_false') {
@@ -4582,6 +4699,7 @@ function launchExamWithQuestions(rawQuestions, title, forceNoShuffle = false) {
     graded: {},
     correctMap,
     eliminated: {},
+    userEliminated: {},
     hints: {},
     concepts: {},
     deepAnalysis: {},
@@ -4960,6 +5078,8 @@ function renderQuestionAnswerArea(q) {
   const userAns = STATE.exam.answers[q.id] ?? '';
   const isGraded = Boolean(STATE.exam.graded[q.id]);
   const elimList = STATE.exam.eliminated[q.id] || [];
+  if (!STATE.exam.userEliminated) STATE.exam.userEliminated = {};
+  const userElimList = STATE.exam.userEliminated[q.id] || [];
 
   if (STATE.osceBlindMode && !isGraded && !userAns && !(STATE.osceRevealedMap && STATE.osceRevealedMap[q.id])) {
     area.innerHTML = `
@@ -5001,11 +5121,13 @@ function renderQuestionAnswerArea(q) {
         const isPicked = String(userAns).toUpperCase() === opt.letter;
         const isCorrectOpt = q._effectiveCorrect === opt.letter;
         const isElim = elimList.includes(opt.letter);
+        const isUserElim = !isGraded && !isElim && userElimList.includes(opt.letter);
 
         let cls = `option-row opt-${opt.letter}`;
         let iconRight = '';
 
         if (isElim) cls += ' is-eliminated';
+        if (isUserElim) cls += ' is-user-eliminated';
         if (isGraded) {
           cls += ' disabled';
           if (isCorrectOpt) {
@@ -5019,13 +5141,21 @@ function renderQuestionAnswerArea(q) {
           cls += ' selected';
         }
 
+        const elimBtnHtml =
+          !isGraded && !isElim
+            ? `<button type="button" onmousedown="event.stopPropagation()" onpointerdown="event.stopPropagation()" onclick="toggleUserEliminateOption(event, '${opt.letter}')" class="opt-elim-btn" title="${
+                isUserElim ? 'Bỏ gạch loại trừ phương án này' : 'Gạch loại trừ phương án nhiễu (hoặc Chuột phải)'
+              }" aria-label="Loại trừ phương án ${opt.letter}">${isUserElim ? '↺' : '✕'}</button>`
+            : '';
+
         return `
-          <div id="opt-row-${opt.letter}" onclick="selectExamOption('${opt.letter}')" class="${cls}">
+          <div id="opt-row-${opt.letter}" onclick="if (!event.target.closest('.opt-elim-btn')) selectExamOption('${opt.letter}')" oncontextmenu="toggleUserEliminateOption(event, '${opt.letter}'); return false;" class="${cls}">
             <div class="opt-badge">
               ${opt.letter}
               <span class="opt-key-micro">${opt.keyNum}</span>
             </div>
             <div class="option-text flex-1">${formatRichText(opt.text)}</div>
+            ${elimBtnHtml}
             ${iconRight}
           </div>
         `;
@@ -5068,6 +5198,31 @@ function renderQuestionAnswerArea(q) {
   }
 }
 
+function toggleUserEliminateOption(ev, letter) {
+  if (ev) {
+    ev.preventDefault();
+    ev.stopPropagation();
+  }
+  if (!STATE.exam || !STATE.exam.active || STATE.exam.paused) return;
+  const q = STATE.exam.questions[STATE.exam.currentIndex];
+  if (!q || STATE.exam.graded[q.id]) return;
+  if ((STATE.exam.eliminated[q.id] || []).includes(letter)) return;
+  if (!STATE.exam.userEliminated) STATE.exam.userEliminated = {};
+  const cur = STATE.exam.userEliminated[q.id] || [];
+  const idx = cur.indexOf(letter);
+  if (idx >= 0) {
+    cur.splice(idx, 1);
+  } else {
+    cur.push(letter);
+    if (STATE.exam.answers[q.id] === letter && STATE.exam.mode === 'real') {
+      delete STATE.exam.answers[q.id];
+    }
+  }
+  STATE.exam.userEliminated[q.id] = cur;
+  renderQuestionAnswerArea(q);
+  playSound('click');
+}
+
 function selectExamOption(letter, fromKeyboard = false) {
   if (!STATE.exam.active || STATE.exam.paused) return;
   const q = STATE.exam.questions[STATE.exam.currentIndex];
@@ -5075,6 +5230,10 @@ function selectExamOption(letter, fromKeyboard = false) {
   if (q.q_type === 'true_false' && (letter === 'C' || letter === 'D')) return;
   if ((STATE.exam.eliminated[q.id] || []).includes(letter)) return;
   if (STATE.exam.graded[q.id]) return;
+
+  if (STATE.exam.userEliminated && Array.isArray(STATE.exam.userEliminated[q.id])) {
+    STATE.exam.userEliminated[q.id] = STATE.exam.userEliminated[q.id].filter((x) => x !== letter);
+  }
 
   const rowEl = document.getElementById(`opt-row-${letter}`);
   if (rowEl && fromKeyboard) {
@@ -11145,7 +11304,6 @@ function selectActiveSubject(subjectId, notify = true) {
   // Sync all select dropdowns across tabs
   const ids = [
     'exam-subject-select',
-    'exercise-subject-select',
     'fc-subject-select',
     'bank-subject-select',
     'tutor-subject-select',
@@ -11162,6 +11320,10 @@ function selectActiveSubject(subjectId, notify = true) {
       sel.value = String(sub.id);
     }
   });
+  const exSel = document.getElementById('exercise-subject-select');
+  if (exSel && [5, 22, 82].includes(Number(sub.id))) {
+    exSel.value = String(sub.id);
+  }
 
   closeModal('modal-subject-picker');
 
@@ -11285,10 +11447,11 @@ function getCurrentEditorLanguage(ex) {
 
 async function loadExercisesView() {
   const sel = document.getElementById('exercise-subject-select');
-  let sid = 5; // default OOP
-  if (sel && sel.value) {
+  const validCodingSids = [5, 22, 82];
+  let sid = 5; // default OOP C#
+  if (sel && validCodingSids.includes(Number(sel.value))) {
     sid = Number(sel.value);
-  } else if (STATE.activeSubjectId) {
+  } else if (validCodingSids.includes(Number(STATE.activeSubjectId))) {
     sid = Number(STATE.activeSubjectId);
   }
 
@@ -11300,6 +11463,9 @@ async function loadExercisesView() {
       sid = 5;
       res = await apiFetch('/api/subjects/5/exercises');
       list = res && res.exercises ? res.exercises : [];
+    }
+    if (sel && sel.value !== String(sid)) {
+      sel.value = String(sid);
     }
 
     // --- QUAN TRONG: bai Playground (id 9999) ton tai o CA 2 mon (5 va 22)
@@ -12399,7 +12565,7 @@ function _getEssayCategory(p) {
   const topic = String(p?.topic || '').toLowerCase();
   const title = String(p?.title || '').toLowerCase();
   const sid = Number(p?.subject_id || 0);
-  if (sid === 82 || id === 'ESSAY_04' || id === 'ESSAY_05' || id === 'ESSAY_06' || topic.includes('giải thuật') || topic.includes('đệ quy') || topic.includes('quy hoạch') || title.includes('merge sort') || title.includes('dijkstra') || title.includes('dp') || title.includes('quy hoạch')) {
+  if (sid === 82 || id === 'ESSAY_04' || id === 'ESSAY_05' || id === 'ESSAY_06' || id === 'ESSAY_09' || id === 'ESSAY_10' || topic.includes('giải thuật') || topic.includes('đệ quy') || topic.includes('quy hoạch') || title.includes('merge sort') || title.includes('dijkstra') || title.includes('dp') || title.includes('quy hoạch') || title.includes('avl')) {
     return 'ctdl_gt';
   }
   return 'toan_rr';
@@ -20359,7 +20525,11 @@ const V41_STATE = {
   graphEdges: []
 };
 
-/* --- 1. COMMAND PALETTE & OMNISEARCH (Ctrl+K) --- */
+/* --- 1. COMMAND PALETTE & GLOBAL ACADEMIC OMNISEARCH (Ctrl+K) --- */
+if (!V41_STATE.omniCache) {
+  V41_STATE.omniCache = { query: '', items: [], timer: null, loading: false };
+}
+
 function openCommandPaletteModal() {
   const modal = document.getElementById('modal-command-palette');
   if (!modal) return;
@@ -20370,19 +20540,159 @@ function openCommandPaletteModal() {
     setTimeout(() => input.focus(), 40);
   }
   V41_STATE.cmdPaletteIndex = 0;
-  renderCommandPaletteResults();
+  V41_STATE.omniCache = { query: '', items: [], timer: null, loading: false };
+  renderCommandPaletteResults(true);
 }
 
 function closeCommandPaletteModal() {
+  if (V41_STATE.omniCache && V41_STATE.omniCache.timer) {
+    clearTimeout(V41_STATE.omniCache.timer);
+  }
   document.getElementById('modal-command-palette')?.classList.add('hidden');
 }
 
+async function openOmnisearchExercise(subjectId, exerciseId) {
+  const sid = Number(subjectId || 5);
+  switchTab('exercises');
+  const sel = document.getElementById('exercise-subject-select');
+  if (sel) sel.value = String(sid);
+  await loadExercisesView();
+  const idx = (STATE.exercises.list || []).findIndex((ex) => Number(ex.id) === Number(exerciseId));
+  if (idx >= 0 && typeof selectExercise === 'function') {
+    selectExercise(idx);
+  }
+}
+
+async function openOmnisearchQuestion(subjectId, questionId) {
+  const sid = Number(subjectId || STATE.activeSubjectId || 5);
+  if (typeof selectActiveSubject === 'function') selectActiveSubject(sid, false);
+  const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  const pool = (res && res.questions) || [];
+  const target = pool.find((q) => Number(q.id) === Number(questionId));
+  if (!target) {
+    switchTab('exam');
+    return;
+  }
+  const sameTopic = pool.filter(
+    (q) => Number(q.id) !== Number(questionId) && q.topic_tag && q.topic_tag === target.topic_tag
+  );
+  const rest = pool.filter((q) => Number(q.id) !== Number(questionId) && (!q.topic_tag || q.topic_tag !== target.topic_tag));
+  const pack = [target, ...sameTopic.slice(0, 6), ...rest.slice(0, 3)].slice(0, 10);
+  STATE.examConfig.subjectId = sid;
+  STATE.examConfig.mode = 'practice';
+  const timeEl = document.getElementById('exam-custom-time');
+  if (timeEl) timeEl.value = '0';
+  const sub = (STATE.subjects || []).find((s) => Number(s.id) === sid);
+  launchExamWithQuestions(pack, `🔍 Tra cứu & Luyện: ${sub ? sub.name : 'Câu hỏi'}`, true);
+}
+
+async function openOmnisearchFlashcard(subjectId, flashcardId) {
+  const sid = Number(subjectId || STATE.activeSubjectId || 5);
+  if (typeof selectActiveSubject === 'function') selectActiveSubject(sid, false);
+  switchTab('flashcards');
+  const fcSel = document.getElementById('fc-subject-select');
+  if (fcSel) fcSel.value = String(sid);
+  await loadFlashcardsView();
+  const idx = (STATE.flashcards.cards || []).findIndex((c) => Number(c.id) === Number(flashcardId));
+  if (idx >= 0) {
+    STATE.flashcards.index = idx;
+    STATE.flashcards.flipped = false;
+    renderCurrentFlashcard();
+  }
+}
+
+async function fetchOmnisearchResults(rawQuery) {
+  const q = String(rawQuery || '').trim();
+  if (q.length < 2) return;
+  V41_STATE.omniCache.loading = true;
+  try {
+    let data = null;
+    if (STATE.isOfflineStandalone && window.__UNIMASTER_OFFLINE_DB__) {
+      const db = window.__UNIMASTER_OFFLINE_DB__;
+      const ql = q.toLowerCase();
+      const subMap = Object.fromEntries((db.subjects || []).map((s) => [s.id, s]));
+      const qs = [];
+      Object.entries(db.questions_by_subject || {}).forEach(([sid, arr]) => {
+        (arr || []).forEach((row) => {
+          if (qs.length < 6 && ((row.question_text || '').toLowerCase().includes(ql) || (row.topic_tag || '').toLowerCase().includes(ql))) {
+            const sm = subMap[Number(sid)] || {};
+            qs.push({ id: row.id, subject_id: Number(sid), question_text: row.question_text, topic_tag: row.topic_tag, subject_name: sm.name || '', subject_icon: sm.icon || '📘' });
+          }
+        });
+      });
+      const fcs = [];
+      Object.entries(db.flashcards_by_subject || {}).forEach(([sid, arr]) => {
+        (arr || []).forEach((row) => {
+          if (fcs.length < 4 && ((row.front || '').toLowerCase().includes(ql) || (row.back || '').toLowerCase().includes(ql))) {
+            const sm = subMap[Number(sid)] || {};
+            fcs.push({ id: row.id, subject_id: Number(sid), front: row.front, back: row.back, subject_name: sm.name || '', subject_icon: sm.icon || '🃏' });
+          }
+        });
+      });
+      const exs = [];
+      Object.entries(db.exercises_by_subject || {}).forEach(([sid, arr]) => {
+        (arr || []).forEach((row) => {
+          if (exs.length < 4 && ((row.title || '').toLowerCase().includes(ql) || (row.problem || '').toLowerCase().includes(ql))) {
+            const sm = subMap[Number(sid)] || {};
+            exs.push({ id: row.id, subject_id: Number(sid), title: row.title, difficulty: row.difficulty, language: row.language, subject_name: sm.name || '', subject_icon: sm.icon || '💻' });
+          }
+        });
+      });
+      data = { success: true, questions: qs, flashcards: fcs, exercises: exs };
+    } else {
+      data = await apiFetch(`/api/omnisearch?q=${encodeURIComponent(q)}&limit=6`);
+    }
+
+    const curInput = document.getElementById('cmd-palette-input');
+    if (!curInput || curInput.value.trim() !== q) return;
+
+    const dyn = [];
+    if (data && data.success) {
+      (data.exercises || []).forEach((ex) => {
+        dyn.push({
+          icon: ex.subject_icon || '💻',
+          title: `Bài Code: ${ex.title}`,
+          sub: `${ex.subject_name || 'IDE'} • ${(ex.language || 'code').toUpperCase()} • Độ khó: ${ex.difficulty || 'Medium'}`,
+          badge: '💻 BÀI CODE',
+          action: () => openOmnisearchExercise(ex.subject_id, ex.id)
+        });
+      });
+      (data.questions || []).forEach((row) => {
+        const cleanTxt = String(row.question_text || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        dyn.push({
+          icon: row.subject_icon || '🎯',
+          title: cleanTxt.length > 92 ? cleanTxt.slice(0, 92) + '…' : cleanTxt,
+          sub: `${row.subject_name || 'Ngân hàng đề'}${row.topic_tag ? ' • ' + row.topic_tag : ''} • Bấm để làm ngay câu này`,
+          badge: '🎯 CÂU HỎI',
+          action: () => openOmnisearchQuestion(row.subject_id, row.id)
+        });
+      });
+      (data.flashcards || []).forEach((fc) => {
+        const cleanFront = String(fc.front || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        dyn.push({
+          icon: fc.subject_icon || '🃏',
+          title: `Thẻ nhớ: ${cleanFront.length > 80 ? cleanFront.slice(0, 80) + '…' : cleanFront}`,
+          sub: `${fc.subject_name || 'Flashcard SM-2'} • Bấm để mở thẻ lật 3D`,
+          badge: '🃏 THẺ NHỚ',
+          action: () => openOmnisearchFlashcard(fc.subject_id, fc.id)
+        });
+      });
+    }
+    V41_STATE.omniCache = { query: q, items: dyn, timer: null, loading: false };
+    renderCommandPaletteResults(true);
+  } catch (_) {
+    V41_STATE.omniCache.loading = false;
+  }
+}
+
 function buildCommandPaletteCatalog(query) {
-  const q = (query || '').trim().toLowerCase();
+  const rawTrim = (query || '').trim();
+  const q = rawTrim.toLowerCase();
   const items = [];
 
-  // Core System, v41.0, v42.0 & v43.0 Actions
+  // Core System & Pinnacle Actions
   const coreCommands = [
+    { icon: '🧠', title: 'Tạo Đề Luyện Thông Minh Cá Nhân Hóa (20 câu)', sub: 'Tự động gom câu từng làm sai, câu sơ đồ/tiêu bản & bẫy NGOẠI TRỪ', badge: 'ADAPTIVE', action: () => startAdaptiveSmartExam() },
     { icon: '🩺', title: 'Mô Phỏng Khám Bệnh & Biện Luận Lâm Sàng Thực Nghiệm', sub: 'Hỏi bệnh, đo sinh hiệu, chỉ định xét nghiệm động & phòng ngừa bẫy tử vong', badge: 'MỚI v44', action: () => openClinicalSimModal() },
     { icon: '🔣', title: 'Trực Quan Hóa Regex & Máy Trạng Thái Hữu Hạn (DFA/NFA)', sub: 'Biên dịch Regex thời gian thực, bóc tách Token & vẽ đồ thị trạng thái automata', badge: 'MỚI v44', action: () => openRegexEngineModal() },
     { icon: '💾', title: 'Trực Quan Hóa Bộ Nhớ C# CLR & Thu Gom Rác (GC Generations)', sub: 'Phân biệt Stack vs Heap, Mark-Sweep-Compact thế hệ Gen 0, 1, 2 & bẫy leak', badge: 'MỚI v44', action: () => openMemoryGcModal() },
@@ -20401,24 +20711,18 @@ function buildCommandPaletteCatalog(query) {
     { icon: '🧬', title: 'Phòng Lab Động Học Enzyme Michaelis-Menten & Lineweaver-Burk', sub: 'Mô phỏng Km, Vmax và 4 loại chất ức chế enzyme', badge: 'LAB #10', action: () => { switchTab('lab'); switchLabSubTab('kinetics'); } },
     { icon: '🕸️', title: 'Phòng Lab Lý Thuyết Đồ Thị: Dijkstra, BFS, DFS & MST', sub: 'Chạy từng bước bảng Trace & Ma trận kề chuẩn giáo trình', badge: 'LAB #11', action: () => { switchTab('lab'); switchLabSubTab('graphtheory'); } },
     { icon: '⚡', title: 'Vào Phòng Thi Thông Minh (Smart Exam Room)', sub: 'Luyện đề trắc nghiệm, Thi thực chiến, Blitz 3 Mạng', badge: 'PHÍM 2', action: () => switchTab('exam') },
-    { icon: '💻', title: 'Mở Trình Biên Dịch Code C# (.NET) & Python', sub: '20 bài thực hành OOP & Giải thuật có chấm Unit Test', badge: 'PHÍM 3', action: () => switchTab('exercises') },
-    { icon: '📝', title: 'Chấm Tự Luận Toán Rời Rạc & Giải Thuật AI', sub: 'Xem trước công thức LaTeX & Chấm từng bước chứng minh', badge: 'PHÍM 4', action: () => switchTab('essay') },
+    { icon: '💻', title: 'Mở Trình Biên Dịch Code C# (.NET), Python & Giải Thuật', sub: '30 bài thực hành OOP, Python & Giải thuật có chấm Unit Test tự động', badge: 'PHÍM 3', action: () => switchTab('exercises') },
+    { icon: '📝', title: 'Chấm Tự Luận Toán Rời Rạc & Giải Thuật AI (10 đề)', sub: 'Xem trước công thức LaTeX & Chấm từng bước chứng minh', badge: 'PHÍM 4', action: () => switchTab('essay') },
     { icon: '🃏', title: 'Ôn Tập Thẻ Nhớ 3D Flashcards (Thuật toán SM-2)', sub: 'Lặp lại ngắt quãng chống quên kiến thức', badge: 'PHÍM 5', action: () => switchTab('flashcards') },
     { icon: '🤖', title: 'Hỏi Đáp Gia Sư AI 1-1 (Gemini Pro Tutor)', sub: 'Giải đáp chuyên sâu mọi bài tập & cơ chế y sinh', badge: 'PHÍM 8', action: () => switchTab('tutor') },
     { icon: '🌓', title: 'Chuyển Đổi Giao Diện Sáng / Đen OLED / Sepia', sub: 'Tối ưu thị lực khi học đêm', badge: 'THEME', action: () => quickCycleDarkLight() }
   ];
 
-  coreCommands.forEach((c) => {
-    if (!q || c.title.toLowerCase().includes(q) || c.sub.toLowerCase().includes(q) || c.badge.toLowerCase().includes(q)) {
-      items.push(c);
-    }
-  });
-
   // Subjects from STATE
   if (Array.isArray(STATE.subjects)) {
     STATE.subjects.forEach((s) => {
       const name = s.name || '';
-      if (!q || name.toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q)) {
+      if (!q || name.toLowerCase().includes(q) || (s.code || '').toLowerCase().includes(q) || (s.description || '').toLowerCase().includes(q)) {
         items.push({
           icon: s.icon || '📚',
           title: `Môn học: ${name}`,
@@ -20433,48 +20737,54 @@ function buildCommandPaletteCatalog(query) {
     });
   }
 
-  // Coding Exercises from STATE
-  if (STATE.exercises && Array.isArray(STATE.exercises.list)) {
-    STATE.exercises.list.forEach((ex, idx) => {
-      const title = ex.title || '';
-      if (q && (title.toLowerCase().includes(q) || (ex.description || '').toLowerCase().includes(q))) {
-        items.push({
-          icon: '💻',
-          title: `Bài tập Code: ${title}`,
-          sub: `Độ khó: ${ex.difficulty || 'Medium'} • Nhảy thẳng vào trình soạn thảo IDE`,
-          badge: 'CODE IDE',
-          action: () => {
-            switchTab('exercises');
-            setTimeout(() => {
-              if (typeof selectExercise === 'function') selectExercise(idx);
-            }, 150);
-          }
-        });
-      }
-    });
+  // Merge live academic Omnisearch results (7,018 questions + 334 flashcards + 30 exercises)
+  if (rawTrim.length >= 2 && V41_STATE.omniCache && V41_STATE.omniCache.query === rawTrim) {
+    V41_STATE.omniCache.items.forEach((dynItem) => items.push(dynItem));
   }
 
-  return items.slice(0, 14);
+  coreCommands.forEach((c) => {
+    if (!q || c.title.toLowerCase().includes(q) || c.sub.toLowerCase().includes(q) || c.badge.toLowerCase().includes(q)) {
+      items.push(c);
+    }
+  });
+
+  return items.slice(0, 18);
 }
 
-function renderCommandPaletteResults() {
+function renderCommandPaletteResults(skipNetwork = false) {
   const input = document.getElementById('cmd-palette-input');
   const box = document.getElementById('cmd-palette-results');
   if (!box) return;
 
-  const list = buildCommandPaletteCatalog(input ? input.value : '');
+  const rawVal = input ? input.value : '';
+  const trimmed = rawVal.trim();
+
+  if (!skipNetwork) {
+    V41_STATE.cmdPaletteIndex = 0;
+    if (V41_STATE.omniCache && V41_STATE.omniCache.timer) {
+      clearTimeout(V41_STATE.omniCache.timer);
+    }
+    if (trimmed.length >= 2 && (!V41_STATE.omniCache || V41_STATE.omniCache.query !== trimmed)) {
+      V41_STATE.omniCache.timer = setTimeout(() => fetchOmnisearchResults(trimmed), 110);
+    }
+  }
+
+  const list = buildCommandPaletteCatalog(rawVal);
   V41_STATE.cmdPaletteItems = list;
   if (V41_STATE.cmdPaletteIndex >= list.length) V41_STATE.cmdPaletteIndex = 0;
 
   if (!list.length) {
-    box.innerHTML = `<div class="p-6 text-center text-xs txt-muted">Không tìm thấy lệnh hoặc môn học phù hợp. Hãy thử từ khóa khác!</div>`;
+    const searchingHint = trimmed.length >= 2 && (!V41_STATE.omniCache || V41_STATE.omniCache.query !== trimmed)
+      ? '⏳ Đang quét toàn bộ 7.018 câu hỏi, 334 flashcards & 30 bài code...'
+      : 'Không tìm thấy lệnh, câu hỏi hoặc môn học phù hợp. Hãy thử từ khóa khác!';
+    box.innerHTML = `<div class="p-6 text-center text-xs txt-muted">${searchingHint}</div>`;
     return;
   }
 
   box.innerHTML = list.map((item, idx) => {
     const active = idx === V41_STATE.cmdPaletteIndex;
     return `
-      <div onclick="executeCommandPaletteItem(${idx})"
+      <div id="cmd-pal-item-${idx}" onclick="executeCommandPaletteItem(${idx})"
         onmouseenter="V41_STATE.cmdPaletteIndex=${idx}"
         class="p-2.5 px-3 rounded-xl flex items-center justify-between gap-3 cursor-pointer transition-all ${active ? 'bg-indigo-600/25 border border-indigo-500/50' : 'hover:bg-white/5 border border-transparent'}">
         <div class="flex items-center gap-3 min-w-0">
@@ -20492,15 +20802,23 @@ function renderCommandPaletteResults() {
 
 function handleCommandPaletteKeydown(e) {
   const len = V41_STATE.cmdPaletteItems.length;
-  if (!len) return;
+  if (!len) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeCommandPaletteModal();
+    }
+    return;
+  }
   if (e.key === 'ArrowDown') {
     e.preventDefault();
     V41_STATE.cmdPaletteIndex = (V41_STATE.cmdPaletteIndex + 1) % len;
-    renderCommandPaletteResults();
+    renderCommandPaletteResults(true);
+    document.getElementById(`cmd-pal-item-${V41_STATE.cmdPaletteIndex}`)?.scrollIntoView({ block: 'nearest' });
   } else if (e.key === 'ArrowUp') {
     e.preventDefault();
     V41_STATE.cmdPaletteIndex = (V41_STATE.cmdPaletteIndex - 1 + len) % len;
-    renderCommandPaletteResults();
+    renderCommandPaletteResults(true);
+    document.getElementById(`cmd-pal-item-${V41_STATE.cmdPaletteIndex}`)?.scrollIntoView({ block: 'nearest' });
   } else if (e.key === 'Enter') {
     e.preventDefault();
     executeCommandPaletteItem(V41_STATE.cmdPaletteIndex);
@@ -24005,3 +24323,9 @@ async function sendDeepAnalysisFollowup() {
 // Window globals
 window.generateMindmapFromCurrentAnalysis = generateMindmapFromCurrentAnalysis;
 window.sendDeepAnalysisFollowup = sendDeepAnalysisFollowup;
+window.startAdaptiveSmartExam = startAdaptiveSmartExam;
+window.toggleExamExtraToolsBar = toggleExamExtraToolsBar;
+window.toggleUserEliminateOption = toggleUserEliminateOption;
+window.openOmnisearchExercise = openOmnisearchExercise;
+window.openOmnisearchQuestion = openOmnisearchQuestion;
+window.openOmnisearchFlashcard = openOmnisearchFlashcard;

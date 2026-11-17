@@ -45,6 +45,7 @@ PERSONAL_TABLES = (
     "ai_api_keys",
     "ai_chat_sessions",
     "tutor_chats",
+    "ai_analysis_history",
 )
 
 

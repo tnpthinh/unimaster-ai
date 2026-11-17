@@ -987,20 +987,19 @@ async def get_exam_detail(request):
 def _inject_playground_exercise(exercises, sid):
     """Them bai Playground ao (id=9999) vao danh sach bai tap.
 
-    LUU Y: chi them cho 2 mon co ho tro chay code that su:
+    Ho tro 3 mon thuc hanh code:
       - Mon 5  : Lap trinh huong doi tuong (C#)
-      - Mon 22 : Nhap mon lap trinh (Python)
-    Truoc day ham nay them Playground Python vao BAT KY mon nao khac 5
-    (vi du mon 21, mon 50...), khien sinh vien thay bai "Playground" khong lien quan.
+      - Mon 22 : Ngon ngu lap trinh 1 (Python)
+      - Mon 82 : Giai Thuat & CTDL (Python 3 + Benchmark)
     """
-    if sid not in (5, 22):
+    if sid not in (5, 22, 82):
         return exercises
 
     has_play = any(e.get("id") == 9999 or "[TỰ DO]" in str(e.get("title", "")) for e in exercises)
     if not has_play:
         lang = "csharp" if sid == 5 else "python"
-        sample = (
-"""using System;
+        if sid == 5:
+            sample = """using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -1013,9 +1012,31 @@ public class Program {
         Console.WriteLine($"Xin chào, {user}! Môi trường C# .NET đang thực thi hoàn hảo.");
     }
 }"""
-            if sid == 5
-            else
-"""# 🚀 PLAYGROUND PYTHON 3 - TỰ DO SÁNG TẠO & XỬ LÝ DỮ LIỆU
+            exp_out = "=== UniMaster C# Sandbox ===\nXin chào, UniMaster! Môi trường C# .NET đang thực thi hoàn hảo."
+            title_txt = "🚀 [TỰ DO] Playground Lập Trình C# & Python (Code Tùy Thích)"
+        elif sid == 82:
+            sample = """# ⚡ PLAYGROUND GIẢI THUẬT & CTDL (Heap, BFS/DFS, Binary Search, DP)
+import sys
+import bisect
+import heapq
+from collections import deque, Counter
+
+def main():
+    print("=== UniMaster Algorithms Sandbox ===")
+    line = sys.stdin.readline().strip()
+    tag = line if line else "Algorithms Pro"
+    arr = [42, 7, 19, 88, 3, 25]
+    arr.sort()
+    idx = bisect.bisect_left(arr, 19)
+    print(f"Xin chào, {tag}! Binary Search tìm 19 tại chỉ số {idx} trên {arr}.")
+
+if __name__ == '__main__':
+    main()
+"""
+            exp_out = "=== UniMaster Algorithms Sandbox ===\nXin chào, UniMaster! Binary Search tìm 19 tại chỉ số 2 trên [3, 7, 19, 25, 42, 88]."
+            title_txt = "⚡ [TỰ DO] Playground Giải Thuật & Đo Phức Tạp Big-O"
+        else:
+            sample = """# 🚀 PLAYGROUND PYTHON 3 - TỰ DO SÁNG TẠO & XỬ LÝ DỮ LIỆU
 import sys
 import math
 from collections import Counter
@@ -1029,11 +1050,13 @@ def main():
 if __name__ == '__main__':
     main()
 """
-        )
+            exp_out = "=== UniMaster Python Sandbox ===\nXin chào, UniMaster! Môi trường Python 3 sẵn sàng thực thi."
+            title_txt = "🚀 [TỰ DO] Playground Lập Trình Python 3 (Code Tùy Thích)"
+
         play_ex = {
             "id": 9999,
             "subject_id": sid,
-            "title": "🚀 [TỰ DO] Playground Lập Trình C# & Python (Code Tùy Thích)",
+            "title": title_txt,
             "difficulty": "easy",
             "language": lang,
             "problem": "Không gian thực hành tự do không giới hạn: Bạn có thể viết bất kỳ thuật toán, bài toán thực tế, cấu trúc dữ liệu hoặc class OOP nào bằng C# (.NET) hoặc Python 3. Bạn có thể tự do nhập STDIN, bấm Chạy Thử, xem kết quả console, hoặc dùng AI để tự động sửa lỗi và nâng cấp code theo chuẩn kiến trúc.",
@@ -1046,7 +1069,7 @@ if __name__ == '__main__':
             "sample_code": sample,
             "solution_code": sample,
             "test_cases": [
-                {"input": "UniMaster", "expected_output": f"=== UniMaster {'C# Sandbox' if sid == 5 else 'Python Sandbox'} ===\nXin chào, UniMaster! {'Môi trường C# .NET đang thực thi hoàn hảo.' if sid == 5 else 'Môi trường Python 3 sẵn sàng thực thi.'}", "is_hidden": False}
+                {"input": "UniMaster", "expected_output": exp_out, "is_hidden": False}
             ]
         }
         return [play_ex] + list(exercises)
@@ -1081,7 +1104,7 @@ async def get_exercise_detail(request):
         raw_sid = request.rel_url.query.get("subject_id")
         sid = int(raw_sid) if raw_sid and str(raw_sid).isdigit() else 5
         if ex_id == 9999:
-            injected = _inject_playground_exercise([], sid if sid in (5, 22) else 5)
+            injected = _inject_playground_exercise([], sid if sid in (5, 22, 82) else 5)
             if injected:
                 return json_resp({"success": True, "exercise": injected[0]})
         ex = db.get_exercise_by_id(ex_id)
@@ -1376,9 +1399,73 @@ async def api_stem_reference(request):
         {"category": "Gan mật", "name": "Bilirubin toàn phần", "normal_range": "3.4 – 17.1 µmol/L (0.2 – 1.0 mg/dL)", "clinical_note": "> 34 µmol/L (2 mg/dL) biểu hiện vàng da trên lâm sàng"},
         {"category": "Mỡ máu (Lipid)", "name": "Cholesterol toàn phần", "normal_range": "< 5.2 mmol/L (< 200 mg/dL)", "clinical_note": "Công thức Friedewald: LDL-C = TC - HDL-C - (TG / 2.2) mmol/L (khi TG < 4.5 mmol/L)"},
         {"category": "Lập trình C# OOP", "name": "4 Tính chất OOP", "normal_range": "Đóng gói, Kế thừa, Đa hình, Trừu tượng", "clinical_note": "virtual/override dùng cho đa hình động (Runtime Polymorphism)"},
-        {"category": "Lập trình Python", "name": "Độ phức tạp cấu trúc dữ liệu", "normal_range": "dict/set lookup: O(1) | list sort: O(n log n)", "clinical_note": "Sử dụng list comprehension và generator để tối ưu bộ nhớ"}
+        {"category": "Lập trình Python", "name": "Độ phức tạp cấu trúc dữ liệu", "normal_range": "dict/set lookup: O(1) | list sort: O(n log n)", "clinical_note": "Sử dụng list comprehension và generator để tối ưu bộ nhớ"},
+        {"category": "Toán Rời Rạc", "name": "Định lý Euler & Đồ thị phẳng", "normal_range": "Chu trình Euler ⇔ mọi đỉnh bậc chẵn | V - E + R = 2", "clinical_note": "Cây N đỉnh có N - 1 cạnh; Cayley: n^(n-2) cây khung trên K_n"},
+        {"category": "Giải Thuật & CTDL", "name": "Master Theorem & Đường đi ngắn nhất", "normal_range": "T(n)=aT(n/b)+f(n) vs n^(log_b a) | Build-Heap: O(n)", "clinical_note": "Dijkstra (w >= 0): O((V+E)log V) | Bellman-Ford (cạnh âm): O(V*E) | AVL: O(log n)"},
+        {"category": "Giải Tích & ĐSTT", "name": "Cực trị, Tích phân & Trị riêng", "normal_range": "det(A - λI) = 0 | dim(ker f) + dim(Im f) = dim(V)", "clinical_note": "Tích phân suy rộng ∫(1..∞) dx/x^p hội tụ ⇔ p > 1 | Đổi cực Jacobi: r dr dφ"},
+        {"category": "Vật Lý & Hóa Học", "name": "Nhiệt động học & Huyết động Poiseuille", "normal_range": "ΔG = ΔH - TΔS | Q = π·ΔP·r^4 / (8ηL)", "clinical_note": "pH đệm Henderson-Hasselbalch = pKa + log([A-]/[HA]) | Carnot: η = 1 - T_lạnh/T_nóng"}
     ]
     return json_resp({"success": True, "references": items, "items": items})
+
+
+async def api_omnisearch_handler(request):
+    """GET /api/omnisearch?q=... — tìm kiếm tức thì toàn hệ thống trên câu hỏi, thẻ nhớ & bài code."""
+    q = (request.rel_url.query.get("q") or "").strip()
+    limit = max(3, min(20, int(request.rel_url.query.get("limit") or 10)))
+    if len(q) < 2:
+        return json_resp({"success": True, "query": q, "questions": [], "flashcards": [], "exercises": []})
+
+    def _query_db():
+        conn = db.get_connection()
+        like_pat = f"%{q}%"
+        q_rows = conn.execute(
+            """
+            SELECT q.id, q.subject_id, q.question_text, q.topic_tag, q.difficulty,
+                   s.name AS subject_name, s.icon AS subject_icon
+            FROM questions q
+            JOIN subjects s ON s.id = q.subject_id
+            WHERE q.question_text LIKE ? OR q.topic_tag LIKE ? OR q.explanation LIKE ?
+            ORDER BY CASE WHEN q.topic_tag LIKE ? THEN 0 ELSE 1 END, q.id DESC
+            LIMIT ?
+            """,
+            (like_pat, like_pat, like_pat, like_pat, limit),
+        ).fetchall()
+        fc_rows = conn.execute(
+            """
+            SELECT f.id, f.subject_id, f.front, f.back,
+                   s.name AS subject_name, s.icon AS subject_icon
+            FROM flashcards f
+            JOIN subjects s ON s.id = f.subject_id
+            WHERE f.front LIKE ? OR f.back LIKE ?
+            LIMIT 6
+            """,
+            (like_pat, like_pat),
+        ).fetchall()
+        ex_rows = conn.execute(
+            """
+            SELECT e.id, e.subject_id, e.title, e.difficulty,
+                   s.name AS subject_name, s.icon AS subject_icon
+            FROM exercises e
+            JOIN subjects s ON s.id = e.subject_id
+            WHERE e.title LIKE ? OR e.problem LIKE ?
+            LIMIT 5
+            """,
+            (like_pat, like_pat),
+        ).fetchall()
+        conn.close()
+        return [dict(r) for r in q_rows], [dict(r) for r in fc_rows], [dict(r) for r in ex_rows]
+
+    try:
+        questions, flashcards, exercises = await asyncio.to_thread(_query_db)
+        return json_resp({
+            "success": True,
+            "query": q,
+            "questions": questions,
+            "flashcards": flashcards,
+            "exercises": exercises,
+        })
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
 
 
 async def api_exam_ctump_parts(request):
@@ -2912,11 +2999,12 @@ def build_full_snapshot(include_api_key=False, embed_images_base64=False):
         user_state = {}
 
     snap = {
-        "version": "10.0",
+        "version": "46.0",
         "subjects": subjects,
         "questions_by_subject": questions_by_sub,
         "exercises_by_subject": exercises_by_sub,
         "flashcards_by_subject": flashcards_by_sub,
+        "essay_prompts": db.get_essay_prompts(),
         "stats": db.get_stats(),
         "user_state": user_state,
         "image_base64_map": img_cache,
@@ -3079,6 +3167,8 @@ def generate_standalone_html_string() -> str:
         js = f.read()
 
     snap = build_full_snapshot(include_api_key=False, embed_images_base64=True)
+    snap["user_state"] = {}
+    snap["ai_key_count"] = 0
     snap_json = json.dumps(snap, ensure_ascii=False).replace("</script>", "<\\/script>")
 
     html = re.sub(
@@ -3142,11 +3232,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v40';
+    const CACHE_NAME = 'unimaster-pwa-v46-2';
     const CORE_ASSETS = [
-      '/static/style.css?v=40.0',
+      '/static/style.css?v=46.2',
       '/static/minimal.css?v=3.0',
-      '/static/app.js?v=40.0',
+      '/static/app.js?v=46.2',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -6453,6 +6543,7 @@ def create_app():
     app.router.add_get("/api/network/qr-info", api_network_qr_info)
     app.router.add_get("/api/battle/leaderboard", api_battle_leaderboard)
     app.router.add_get("/api/stem/reference", api_stem_reference)
+    app.router.add_get("/api/omnisearch", api_omnisearch_handler)
     app.router.add_get("/api/exam/ctump-parts", api_exam_ctump_parts)
 
     # UniMaster AI v41.0, v42.0 & v43.0 Super-Suite Routes
