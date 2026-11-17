@@ -4865,3 +4865,85 @@ main:has(#view-tutor:not(.hidden)) {
 #deep-detail-analysis-content::-webkit-scrollbar-track {
   background: transparent;
 }
+
+/* ==============================================================================
+   UniMaster AI v47.0 Super-Suite: K-Map, AVL Tree, ABG & Flashcard Match Styles
+   ============================================================================== */
+.kmap-cell {
+  width: 3.4rem;
+  height: 3.1rem;
+  border: 1.5px solid var(--border);
+  background-color: var(--bg-surface);
+  color: var(--text-muted);
+  font-family: var(--font-code);
+  font-weight: 800;
+  font-size: 0.95rem;
+  position: relative;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.14s ease;
+}
+.kmap-cell:hover {
+  border-color: var(--brand);
+  transform: scale(1.04);
+  z-index: 2;
+}
+.kmap-cell.is-one {
+  background-color: var(--emerald-bg);
+  border-color: var(--emerald-border);
+  color: var(--emerald-text);
+  box-shadow: inset 0 0 12px rgba(16, 185, 129, 0.16);
+}
+.kmap-idx-micro {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.58rem;
+  font-weight: 700;
+  opacity: 0.55;
+}
+
+.fc-match-tile {
+  min-height: 5.5rem;
+  padding: 0.75rem;
+  border-radius: 1rem;
+  border: 1.5px solid var(--border);
+  background-color: var(--bg-subtle);
+  color: var(--text-main);
+  font-size: 0.76rem;
+  line-height: 1.4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.16s ease;
+}
+.fc-match-tile:hover:not(.is-matched) {
+  border-color: var(--brand);
+  transform: translateY(-2px);
+}
+.fc-match-tile.is-selected {
+  border-color: var(--brand) !important;
+  background-color: var(--brand-subtle) !important;
+  box-shadow: 0 0 0 2px var(--brand);
+}
+.fc-match-tile.is-matched {
+  opacity: 0.28;
+  border-color: var(--emerald-border) !important;
+  background-color: var(--emerald-bg) !important;
+  pointer-events: none;
+  transform: scale(0.95);
+}
+.fc-match-tile.is-mismatch {
+  border-color: var(--rose-border) !important;
+  background-color: var(--rose-bg) !important;
+  animation: shake-x 0.28s ease;
+}
+@keyframes shake-x {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}

@@ -1468,6 +1468,388 @@ async def api_omnisearch_handler(request):
         return json_resp({"success": False, "error": str(e)}, 500)
 
 
+def _quine_mccluskey_minimize(num_vars: int, minterms: list, vars_names: list):
+    """Exact Quine-McCluskey + minimal prime implicant cover for 2..4 variables."""
+    total_rows = 1 << num_vars
+    mset = sorted({m for m in minterms if 0 <= m < total_rows})
+    if not mset:
+        return "0", []
+    if len(mset) == total_rows:
+        return "1", [{"mask": "-" * num_vars, "term": "1", "covered": mset}]
+
+    groups = {}
+    for m in mset:
+        bits = format(m, f"0{num_vars}b")
+        groups.setdefault(bits.count("1"), {})[bits] = frozenset([m])
+
+    prime_implicants = {}
+    while groups:
+        next_groups = {}
+        used = set()
+        keys = sorted(groups.keys())
+        for idx, k in enumerate(keys):
+            for pat1, cov1 in groups[k].items():
+                if idx + 1 < len(keys) and keys[idx + 1] == k + 1:
+                    for pat2, cov2 in groups[k + 1].items():
+                        diffs = [i for i in range(num_vars) if pat1[i] != pat2[i]]
+                        if len(diffs) == 1 and pat1[diffs[0]] != "-" and pat2[diffs[0]] != "-":
+                            d = diffs[0]
+                            merged = pat1[:d] + "-" + pat1[d + 1 :]
+                            ones = merged.count("1")
+                            prev_cov = next_groups.setdefault(ones, {}).get(merged, frozenset())
+                            next_groups[ones][merged] = prev_cov | cov1 | cov2
+                            used.add(pat1)
+                            used.add(pat2)
+                if pat1 not in used:
+                    prime_implicants[pat1] = prime_implicants.get(pat1, frozenset()) | cov1
+        groups = next_groups
+
+    pi_list = sorted(prime_implicants.items(), key=lambda kv: (len(kv[0].replace("-", "")), kv[0]))
+
+    def _pat_to_term(pat: str) -> str:
+        parts = []
+        for ch, v in zip(pat, vars_names):
+            if ch == "1":
+                parts.append(v)
+            elif ch == "0":
+                parts.append(f"{v}'")
+        return "".join(parts) if parts else "1"
+
+    from itertools import combinations
+
+    chosen = pi_list
+    target = frozenset(mset)
+    for r in range(1, len(pi_list) + 1):
+        best_combo = None
+        best_lits = 10**9
+        for combo in combinations(pi_list, r):
+            union_cov = frozenset().union(*(c[1] for c in combo))
+            if union_cov == target:
+                lits = sum(len(c[0].replace("-", "")) for c in combo)
+                if lits < best_lits:
+                    best_lits = lits
+                    best_combo = combo
+        if best_combo is not None:
+            chosen = list(best_combo)
+            break
+
+    implicant_objs = [
+        {"mask": pat, "term": _pat_to_term(pat), "covered": sorted(cov)}
+        for pat, cov in chosen
+    ]
+    expr = " + ".join(item["term"] for item in implicant_objs)
+    return expr, implicant_objs
+
+
+def _eval_bool_expression_safe(expr: str, env: dict) -> bool:
+    """Safe recursive-descent Boolean evaluator supporting ->, <->, |, ^, &, !, ', 0, 1."""
+    s = expr
+    replacements = [
+        ("<->", " ↔ "), ("<=>", " ↔ "), ("≡", " ↔ "),
+        ("->", " → "), ("=>", " → "),
+        ("&&", " & "), ("∧", " & "), ("*", " & "),
+        ("||", " | "), ("∨", " | "), ("+", " | "),
+        ("⊕", " ^ "),
+        ("¬", " ! "), ("~", " ! "),
+    ]
+    for old, new in replacements:
+        s = s.replace(old, new)
+    s = re.sub(r"\bNOT\b", " ! ", s, flags=re.I)
+    s = re.sub(r"\bAND\b", " & ", s, flags=re.I)
+    s = re.sub(r"\bXOR\b", " ^ ", s, flags=re.I)
+    s = re.sub(r"\bOR\b", " | ", s, flags=re.I)
+    s = re.sub(r"\bTRUE\b", " 1 ", s, flags=re.I)
+    s = re.sub(r"\bFALSE\b", " 0 ", s, flags=re.I)
+
+    raw_tokens = re.findall(r"[A-Za-z]|0|1|[()!&|^→↔']", s)
+    tokens = []
+    for tok in raw_tokens:
+        if tokens:
+            prev = tokens[-1]
+            prev_is_val = prev in ("0", "1", ")", "'") or prev.isalpha()
+            cur_is_start = tok in ("0", "1", "(", "!") or tok.isalpha()
+            if prev_is_val and cur_is_start and tok != "'":
+                tokens.append("&")
+        tokens.append(tok)
+
+    pos = [0]
+
+    def peek():
+        return tokens[pos[0]] if pos[0] < len(tokens) else None
+
+    def consume():
+        t = peek()
+        pos[0] += 1
+        return t
+
+    def parse_iff():
+        val = parse_imp()
+        while peek() == "↔":
+            consume()
+            rhs = parse_imp()
+            val = (val == rhs)
+        return val
+
+    def parse_imp():
+        val = parse_or()
+        if peek() == "→":
+            consume()
+            rhs = parse_imp()
+            val = (not val) or rhs
+        return val
+
+    def parse_or():
+        val = parse_xor()
+        while peek() == "|":
+            consume()
+            rhs = parse_xor()
+            val = val or rhs
+        return val
+
+    def parse_xor():
+        val = parse_and()
+        while peek() == "^":
+            consume()
+            rhs = parse_and()
+            val = (val != rhs)
+        return val
+
+    def parse_and():
+        val = parse_unary()
+        while peek() == "&":
+            consume()
+            rhs = parse_unary()
+            val = val and rhs
+        return val
+
+    def parse_unary():
+        if peek() == "!":
+            consume()
+            val = not parse_unary()
+        else:
+            val = parse_atom()
+        while peek() == "'":
+            consume()
+            val = not val
+        return val
+
+    def parse_atom():
+        t = peek()
+        if t == "(":
+            consume()
+            val = parse_iff()
+            if peek() == ")":
+                consume()
+            return val
+        if t in ("0", "1"):
+            consume()
+            return t == "1"
+        if t and t.isalpha():
+            consume()
+            return bool(env.get(t.upper(), False))
+        raise ValueError(f"Cú pháp biểu thức không hợp lệ tại '{t}'")
+
+    res = parse_iff()
+    if pos[0] != len(tokens):
+        raise ValueError(f"Dư ký tự '{tokens[pos[0]]}' trong biểu thức")
+    return bool(res)
+
+
+async def api_math_logic_kmap_handler(request):
+    """POST /api/math/logic-kmap — Bảng chân trị, DNF/CNF & Tối thiểu hóa Bìa Karnaugh 2-4 biến."""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+
+    expr = str(body.get("expression") or "").strip()
+    custom_minterms = body.get("minterms")
+    req_vars = body.get("variables")
+
+    try:
+        if isinstance(custom_minterms, list):
+            vars_list = [str(v).upper() for v in (req_vars or ["A", "B", "C", "D"])][:4]
+            if len(vars_list) < 2:
+                vars_list = ["A", "B"]
+            n = len(vars_list)
+            mset = {int(x) for x in custom_minterms if isinstance(x, (int, float)) or str(x).isdigit()}
+            table = []
+            for idx in range(1 << n):
+                bits = [(idx >> (n - 1 - b)) & 1 for b in range(n)]
+                table.append({"index": idx, "bits": bits, "result": 1 if idx in mset else 0})
+        else:
+            if not expr:
+                expr = "A'B + BC + AB'C'"
+            cleaned_words = re.sub(r"\b(AND|OR|NOT|XOR|TRUE|FALSE)\b", " ", expr, flags=re.I)
+            found_vars = sorted({ch.upper() for ch in re.findall(r"[A-Za-z]", cleaned_words)})
+            if not found_vars:
+                found_vars = ["A", "B"]
+            if len(found_vars) == 1:
+                found_vars = [found_vars[0], "B" if found_vars[0] != "B" else "A"]
+            if len(found_vars) > 4:
+                return json_resp({"success": False, "error": "Bìa Karnaugh hỗ trợ tối đa 4 biến độc lập (VD: A, B, C, D hoặc P, Q, R, S)."}, 400)
+            vars_list = found_vars
+            n = len(vars_list)
+            table = []
+            for idx in range(1 << n):
+                bits = [(idx >> (n - 1 - b)) & 1 for b in range(n)]
+                env = {vars_list[b]: bool(bits[b]) for b in range(n)}
+                val = 1 if _eval_bool_expression_safe(expr, env) else 0
+                table.append({"index": idx, "bits": bits, "result": val})
+
+        minterms = [r["index"] for r in table if r["result"] == 1]
+        maxterms = [r["index"] for r in table if r["result"] == 0]
+
+        if len(minterms) == (1 << n):
+            classification = "tautology"
+            class_label = "Hằng đúng (Tautology — Luôn đúng với mọi phép gán)"
+        elif len(minterms) == 0:
+            classification = "contradiction"
+            class_label = "Hằng sai / Mâu thuẫn (Contradiction)"
+        else:
+            classification = "contingency"
+            class_label = "Tiếp ngẫu (Contingency — Phụ thuộc giá trị biến)"
+
+        dnf_terms = [
+            "".join(vars_list[i] if r["bits"][i] == 1 else f"{vars_list[i]}'" for i in range(n))
+            for r in table if r["result"] == 1
+        ]
+        cnf_terms = [
+            "(" + "+".join(vars_list[i] if r["bits"][i] == 0 else f"{vars_list[i]}'" for i in range(n)) + ")"
+            for r in table if r["result"] == 0
+        ]
+        canonical_dnf = " + ".join(dnf_terms) if dnf_terms else "0"
+        canonical_cnf = "".join(cnf_terms) if cnf_terms else "1"
+        minimal_sop, implicants = _quine_mccluskey_minimize(n, minterms, vars_list)
+
+        return json_resp({
+            "success": True,
+            "variables": vars_list,
+            "truth_table": table,
+            "classification": classification,
+            "classification_label": class_label,
+            "minterms": minterms,
+            "maxterms": maxterms,
+            "canonical_dnf": canonical_dnf,
+            "canonical_cnf": canonical_cnf,
+            "minimal_sop": minimal_sop,
+            "prime_implicants": implicants,
+        })
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 400)
+
+
+async def api_clinical_abg_handler(request):
+    """POST /api/clinical/abg-analyzer — Giải mã Khí máu động mạch ABG, Winter, Anion Gap & Delta Ratio."""
+    try:
+        b = await request.json()
+    except Exception:
+        b = {}
+
+    try:
+        ph = float(b.get("ph", 7.22))
+        paco2 = float(b.get("paco2", 24.0))
+        hco3 = float(b.get("hco3", 10.0))
+        na = float(b.get("na", 138.0))
+        cl = float(b.get("cl", 100.0))
+        alb = float(b.get("albumin", 4.0))
+        lactate = float(b.get("lactate", 1.8))
+        is_chronic = bool(b.get("chronic", False))
+
+        ag = round(na - (cl + hco3), 2)
+        ag_corr = round(ag + 2.5 * (4.0 - alb), 2)
+
+        if ph < 7.35:
+            ph_state = "Nhiễm toan máu (Acidemia, pH < 7.35)"
+        elif ph > 7.45:
+            ph_state = "Nhiễm kiềm máu (Alkalemia, pH > 7.45)"
+        else:
+            ph_state = "pH máu trong giới hạn tham chiếu (7.35 – 7.45)"
+
+        comp_detail = ""
+        if (ph < 7.40 and hco3 < 22) or (hco3 < 20 and paco2 <= 45):
+            primary = "Toan chuyển hóa nguyên phát (Metabolic Acidosis)"
+            exp_paco2 = round(1.5 * hco3 + 8.0, 1)
+            low_p, high_p = round(exp_paco2 - 2.0, 1), round(exp_paco2 + 2.0, 1)
+            if paco2 > high_p:
+                comp_detail = f"Công thức Winter dự đoán PaCO₂ = {low_p}–{high_p} mmHg, thực tế {paco2} mmHg cao hơn → KÈM TOAN HÔ HẤP PHỐI HỢP (giảm thông khí/mệt cơ hô hấp)!"
+            elif paco2 < low_p:
+                comp_detail = f"Công thức Winter dự đoán PaCO₂ = {low_p}–{high_p} mmHg, thực tế {paco2} mmHg thấp hơn → KÈM KIỀM HÔ HẤP PHỐI HỢP (VD: ngộ độc Salicylate, nhiễm trùng huyết)!"
+            else:
+                comp_detail = f"Bù hô hấp phù hợp theo công thức Winter (PaCO₂ dự đoán {low_p}–{high_p} mmHg, thực tế {paco2} mmHg)."
+        elif (ph > 7.40 and hco3 > 26) or (hco3 > 28 and paco2 >= 35):
+            primary = "Kiềm chuyển hóa nguyên phát (Metabolic Alkalosis)"
+            exp_paco2 = round(0.7 * (hco3 - 24.0) + 40.0, 1)
+            low_p, high_p = round(exp_paco2 - 5.0, 1), round(exp_paco2 + 5.0, 1)
+            if paco2 > high_p:
+                comp_detail = f"PaCO₂ dự đoán bù = {low_p}–{high_p} mmHg, thực tế {paco2} mmHg → KÈM TOAN HÔ HẤP PHỐI HỢP."
+            elif paco2 < low_p:
+                comp_detail = f"PaCO₂ dự đoán bù = {low_p}–{high_p} mmHg, thực tế {paco2} mmHg → KÈM KIỀM HÔ HẤP PHỐI HỢP."
+            else:
+                comp_detail = f"Bù giảm thông khí phế nang phù hợp (PaCO₂ dự đoán {low_p}–{high_p} mmHg)."
+        elif paco2 > 45:
+            mode_lbl = "Mạn tính" if is_chronic else "Cấp tính"
+            primary = f"Toan hô hấp nguyên phát ({mode_lbl} — Respiratory Acidosis)"
+            delta_co2 = paco2 - 40.0
+            exp_hco3 = round(24.0 + (0.35 if is_chronic else 0.10) * delta_co2, 1)
+            comp_detail = f"Với ΔPaCO₂ = +{delta_co2:.1f} mmHg ({mode_lbl.lower()}), HCO₃⁻ bù thận dự kiến ≈ {exp_hco3} mmol/L (thực tế {hco3} mmol/L)."
+        elif paco2 < 35:
+            mode_lbl = "Mạn tính" if is_chronic else "Cấp tính"
+            primary = f"Kiềm hô hấp nguyên phát ({mode_lbl} — Respiratory Alkalosis)"
+            delta_co2 = 40.0 - paco2
+            exp_hco3 = round(24.0 - (0.50 if is_chronic else 0.20) * delta_co2, 1)
+            comp_detail = f"Với ΔPaCO₂ = -{delta_co2:.1f} mmHg ({mode_lbl.lower()}), HCO₃⁻ bù thận dự kiến ≈ {exp_hco3} mmol/L (thực tế {hco3} mmol/L)."
+        else:
+            primary = "Cân bằng Kiềm - Toan bình thường (hoặc rối loạn hỗn hợp bù trừ kín đáo)"
+            comp_detail = "PaCO₂ (35–45 mmHg) và HCO₃⁻ (22–26 mmol/L) nằm trong khoảng sinh lý, vẫn cần kiểm tra Anion Gap để không bỏ sót toan tăng AG ẩn!"
+
+        delta_ratio = None
+        delta_verdict = "Anion Gap hiệu chỉnh ≤ 12 mEq/L (Không tăng Anion Gap)"
+        if ag_corr > 12.0:
+            denom = 24.0 - hco3
+            if denom > 0.5:
+                delta_ratio = round((ag_corr - 12.0) / denom, 2)
+                if delta_ratio < 1.0:
+                    delta_verdict = f"Tỷ số ΔAG/ΔHCO₃⁻ = {delta_ratio} (< 1.0) → Toan chuyển hóa TĂNG AG phối hợp Toan chuyển hóa AG BÌNH THƯỜNG (tăng Cl⁻ máu, VD: tiêu chảy kèm sốc/DKA giai đoạn hồi sức NaCl 0.9%)."
+                elif delta_ratio <= 2.0:
+                    delta_verdict = f"Tỷ số ΔAG/ΔHCO₃⁻ = {delta_ratio} (1.0 – 2.0) → Toan chuyển hóa TĂNG ANION GAP đơn thuần điển hình (DKA, Toan Lactate, Suy thận cấp, Ngộ độc)."
+                else:
+                    delta_verdict = f"Tỷ số ΔAG/ΔHCO₃⁻ = {delta_ratio} (> 2.0) → Toan chuyển hóa TĂNG AG kèm KIỀM CHUYỂN HÓA ẨN (VD: DKA có nôn ói nhiều hoặc dùng lợi tiểu) hoặc bù thận của Toan hô hấp mạn!"
+            else:
+                delta_verdict = f"AG hiệu chỉnh tăng ({ag_corr} mEq/L) nhưng HCO₃⁻ không giảm ({hco3} mmol/L) → RỐI LOẠN KÉP: Toan chuyển hóa tăng AG + Kiềm chuyển hóa đồng thời triệt tiêu pH!"
+
+        causes = []
+        if ag_corr > 12:
+            if lactate >= 2.5:
+                causes.append(f"Toan Lactic (Lactate = {lactate} mmol/L tăng cao: thiếu oxy mô, sốc nhiễm trùng, suy tuần hoàn)")
+            causes.append("Nhiễm toan Ceton đái tháo đường / rượu / nhịn đói (Ketoacidosis: β-hydroxybutyrate & acetoacetate)")
+            causes.append("Hội chứng Urê huyết cao / Suy thận nặng giảm thải H⁺ & acid hữu cơ; hoặc Ngộ độc Methanol, Ethylene glycol, Salicylate (GOLDMARK)")
+        elif hco3 < 22 and ph <= 7.40:
+            causes.append("Toan chuyển hóa tăng Clo máu (Normal AG): Tiêu chảy cấp mất HCO₃⁻, Dò tụy/mật, hoặc Toan hóa ống thận (RTA type 1, 2, 4)")
+        elif hco3 > 26 and ph >= 7.40:
+            causes.append("Kiềm chuyển hóa: Nôn ói dịch vị HCl (hẹp môn vị), hút dịch dạ dày, dùng lợi tiểu quai/Thiazide hoặc cường Aldosterone")
+        elif paco2 > 45:
+            causes.append("Giảm thông khí phế nang: Đợt cấp COPD, hen phế quản nguy kịch, ức chế trung tâm hô hấp (Opioid/an thần), nhược cơ")
+        elif paco2 < 35:
+            causes.append("Tăng thông khí phế nang: Thuyên tắc phổi, thiếu oxy mô sớm, sốt cao, kích thích trung tâm hô hấp, lo âu")
+        else:
+            causes.append("Các chỉ số khí máu và khoảng trống Anion nằm trong giới hạn sinh lý bình thường.")
+
+        return json_resp({
+            "success": True,
+            "ph_state": ph_state,
+            "primary": primary,
+            "compensation": comp_detail,
+            "ag": ag,
+            "ag_corrected": ag_corr,
+            "delta_ratio": delta_ratio,
+            "delta_verdict": delta_verdict,
+            "causes": causes,
+        })
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 400)
+
+
 async def api_exam_ctump_parts(request):
     """GET /api/exam/ctump-parts — trả danh sách phần thi CTUMP từ DB."""
     try:
@@ -3232,11 +3614,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v46-2';
+    const CACHE_NAME = 'unimaster-pwa-v47-1';
     const CORE_ASSETS = [
-      '/static/style.css?v=46.2',
+      '/static/style.css?v=47.1',
       '/static/minimal.css?v=3.0',
-      '/static/app.js?v=46.2',
+      '/static/app.js?v=47.1',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -6544,6 +6926,8 @@ def create_app():
     app.router.add_get("/api/battle/leaderboard", api_battle_leaderboard)
     app.router.add_get("/api/stem/reference", api_stem_reference)
     app.router.add_get("/api/omnisearch", api_omnisearch_handler)
+    app.router.add_post("/api/math/logic-kmap", api_math_logic_kmap_handler)
+    app.router.add_post("/api/clinical/abg-analyzer", api_clinical_abg_handler)
     app.router.add_get("/api/exam/ctump-parts", api_exam_ctump_parts)
 
     # UniMaster AI v41.0, v42.0 & v43.0 Super-Suite Routes

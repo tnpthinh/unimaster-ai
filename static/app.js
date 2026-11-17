@@ -1635,17 +1635,17 @@ const SUBJECT_SHORTCUTS = {
   ],
   TOAN_RR: [
     { icon: '📐', label: 'Đề Toán Rời Rạc (100 câu)', action: 'openExamForSubjectCode("TOAN_RR", 21)' },
-    { icon: '🧠', label: 'Đề Thông Minh (20 câu)', action: 'startAdaptiveSmartExam(21)' },
+    { icon: '🧮', label: 'Bảng Chân Trị & K-Map', action: 'openLogicKmapModal()' },
     { icon: '🕸️', label: 'Lab Đồ Thị Euler & MST', action: "switchTab('lab'); switchLabSubTab('graphtheory');" },
     { icon: '✍️', label: 'Tự Luận Logic & Đồ Thị (5 đề)', action: "switchTab('essay'); setTimeout(() => filterEssayPromptList('toan_rr'), 120);" },
     { icon: '🗂️', label: 'Flashcard Toán Rời Rạc', action: 'openFlashcardsForCode("TOAN_RR", 21)' }
   ],
   CTDL_GT: [
     { icon: '⚡', label: 'Đề Giải Thuật (100 câu)', action: 'openExamForSubjectCode("CTDL_GT", 82)' },
+    { icon: '🌳', label: 'Mô Phỏng Cây AVL & Heap', action: 'openTreeHeapStudioModal()' },
     { icon: '💻', label: '10 Bài Code Giải Thuật', action: "switchTab('exercises'); selectExerciseBySubject(82);" },
     { icon: '⏳', label: 'Tua Bước & Call Stack', action: "openAlgoVisualizerModal('steps')" },
-    { icon: '✍️', label: 'Tự Luận Big-O & DP (5 đề)', action: "switchTab('essay'); setTimeout(() => filterEssayPromptList('ctdl_gt'), 120);" },
-    { icon: '🗂️', label: 'Flashcard Giải Thuật', action: 'openFlashcardsForCode("CTDL_GT", 82)' }
+    { icon: '✍️', label: 'Tự Luận Big-O & DP (5 đề)', action: "switchTab('essay'); setTimeout(() => filterEssayPromptList('ctdl_gt'), 120);" }
   ],
   DISCRETE_MATH_ALGO: [
     { icon: '📐', label: 'Ôn Toán Rời Rạc', action: 'openExamForSubjectCode("TOAN_RR", 21)' },
@@ -1664,13 +1664,12 @@ const SUBJECT_SHORTCUTS = {
     { icon: '🤖', label: 'AI Luyện Ngữ Pháp', action: "openFloatingTutorWithPrompt('Hãy giải thích cấu trúc Đảo ngữ và Câu điều kiện trong đề AVCB 3!')" }
   ],
   HOASINH_CTUMP: [
+    { icon: '🩸', label: 'Khí Máu ABG & Anion Gap', action: 'openAbgAnalyzerModal()' },
     { icon: '🫀', label: '200 Câu Lipid & Nước Tiểu', action: 'openBai4PartsModal()' },
     { icon: '🍬', label: '200 Câu Glucid & ĐTĐ', action: 'openBai3PartsModal()' },
-    { icon: '🩸', label: '200 Câu Protid & Thận', action: 'quickStartBai2Protid()' },
     { icon: '🔬', label: 'Máy Quang Phổ', action: "switchTab('lab'); switchLabSubTab('spectro');" },
     { icon: '⏱️', label: 'Chạy Trạm OSCE', action: "switchTab('lab'); switchLabSubTab('osce');" },
-    { icon: '🩺', label: 'Bệnh Nhân Ảo', action: "switchTab('lab'); switchLabSubTab('patient');" },
-    { icon: '💊', label: 'Hiệu Chỉnh Liều', action: "switchTab('lab'); switchLabSubTab('dosing');" }
+    { icon: '🩺', label: 'Khám Bệnh Lâm Sàng', action: 'openClinicalSimModal()' }
   ],
   CS101: [
     { icon: '💻', label: 'Trắc Nghiệm CTDL', action: 'openSubjectExam(4)' },
@@ -6533,6 +6532,11 @@ async function loadFlashcardsView() {
   STATE.flashcards.index = 0;
   STATE.flashcards.flipped = false;
   renderCurrentFlashcard();
+  if (STATE.flashcards.arena === 'match' && typeof initFlashcardMatchGame === 'function') {
+    initFlashcardMatchGame();
+  } else if (STATE.flashcards.arena === 'quiz' && typeof initFlashcardQuizArena === 'function') {
+    initFlashcardQuizArena();
+  }
 }
 
 function renderCurrentFlashcard() {
@@ -20692,6 +20696,10 @@ function buildCommandPaletteCatalog(query) {
 
   // Core System & Pinnacle Actions
   const coreCommands = [
+    { icon: '🧮', title: 'Phòng Lab Đại Số Boole, Bảng Chân Trị & Bìa Karnaugh (2–4 Biến)', sub: 'Rút gọn Quine-McCluskey, DNF/CNF & kiểm tra Hằng đúng / Mâu thuẫn', badge: 'MỚI v47', action: () => openLogicKmapModal() },
+    { icon: '🌳', title: 'Phòng Mô Phỏng Cây Tự Cân Bằng AVL, BST & Đống Heap (SVG)', sub: 'Quan sát trực quan phép quay LL/RR/LR/RL, hệ số BF & 4 phép duyệt cây', badge: 'MỚI v47', action: () => openTreeHeapStudioModal() },
+    { icon: '🩸', title: 'Giải Mã Khí Máu Động Mạch (ABG), Winter & Tỷ Số Delta-Delta', sub: 'Biện luận 5 bước ICU/Hóa Sinh, Anion Gap hiệu chỉnh Albumin & Giản đồ pH', badge: 'MỚI v47', action: () => openAbgAnalyzerModal() },
+    { icon: '🖨️', title: 'Xuất Đề Thi PDF / In Giấy Kèm Phiếu Tô Trắc Nghiệm OMR', sub: 'Tạo đề thi chuẩn đại học có khung tên/MSSV, phiếu tô A-B-C-D & lời giải', badge: 'MỚI v47', action: () => openPrintableExamModal('config') },
     { icon: '🧠', title: 'Tạo Đề Luyện Thông Minh Cá Nhân Hóa (20 câu)', sub: 'Tự động gom câu từng làm sai, câu sơ đồ/tiêu bản & bẫy NGOẠI TRỪ', badge: 'ADAPTIVE', action: () => startAdaptiveSmartExam() },
     { icon: '🩺', title: 'Mô Phỏng Khám Bệnh & Biện Luận Lâm Sàng Thực Nghiệm', sub: 'Hỏi bệnh, đo sinh hiệu, chỉ định xét nghiệm động & phòng ngừa bẫy tử vong', badge: 'MỚI v44', action: () => openClinicalSimModal() },
     { icon: '🔣', title: 'Trực Quan Hóa Regex & Máy Trạng Thái Hữu Hạn (DFA/NFA)', sub: 'Biên dịch Regex thời gian thực, bóc tách Token & vẽ đồ thị trạng thái automata', badge: 'MỚI v44', action: () => openRegexEngineModal() },
@@ -24329,3 +24337,1476 @@ window.toggleUserEliminateOption = toggleUserEliminateOption;
 window.openOmnisearchExercise = openOmnisearchExercise;
 window.openOmnisearchQuestion = openOmnisearchQuestion;
 window.openOmnisearchFlashcard = openOmnisearchFlashcard;
+
+// =========================================================================
+// UNIMASTER v47.0 SUPER-SUITE:
+// 1. LOGIC TRUTH TABLE, DNF/CNF & KARNAUGH MAP MINIMIZER (2-4 VARS)
+// 2. INTERACTIVE AVL TREE, BST & BINARY HEAP SVG STUDIO
+// 3. CLINICAL ARTERIAL BLOOD GAS (ABG), WINTER & ANION GAP ANALYZER
+// 4. MULTI-MODE FLASHCARDS: 12-TILE SPEED MATCH & 4-OPTION QUIZ SPRINT
+// 5. PRINTABLE UNIVERSITY EXAM PAPER + OMR BUBBLE SHEET EXPORTER
+// =========================================================================
+
+const V47_LOGIC_STATE = {
+  variables: ['A', 'B', 'C'],
+  minterms: [1, 2, 3, 4, 7],
+  lastData: null
+};
+
+function _localEvalBoolSafe(expr, env) {
+  let s = String(expr || '')
+    .replace(/<->|<=>|≡/g, ' ↔ ')
+    .replace(/->|=>/g, ' → ')
+    .replace(/&&|∧|\*/g, ' & ')
+    .replace(/\|\||∨|\+/g, ' | ')
+    .replace(/⊕/g, ' ^ ')
+    .replace(/¬|~/g, ' ! ')
+    .replace(/\bNOT\b/gi, ' ! ')
+    .replace(/\bAND\b/gi, ' & ')
+    .replace(/\bXOR\b/gi, ' ^ ')
+    .replace(/\bOR\b/gi, ' | ')
+    .replace(/\bTRUE\b/gi, ' 1 ')
+    .replace(/\bFALSE\b/gi, ' 0 ');
+
+  const rawTokens = s.match(/[A-Za-z]|0|1|[()!&|^→↔']/g) || [];
+  const tokens = [];
+  rawTokens.forEach((tok) => {
+    if (tokens.length) {
+      const prev = tokens[tokens.length - 1];
+      const prevIsVal = prev === '0' || prev === '1' || prev === ')' || prev === "'" || /^[A-Za-z]$/.test(prev);
+      const curIsStart = tok === '0' || tok === '1' || tok === '(' || tok === '!' || /^[A-Za-z]$/.test(tok);
+      if (prevIsVal && curIsStart && tok !== "'") tokens.push('&');
+    }
+    tokens.push(tok);
+  });
+
+  let pos = 0;
+  const peek = () => (pos < tokens.length ? tokens[pos] : null);
+  const consume = () => tokens[pos++];
+
+  function parseIff() {
+    let v = parseImp();
+    while (peek() === '↔') {
+      consume();
+      v = v === parseImp();
+    }
+    return v;
+  }
+  function parseImp() {
+    let v = parseOr();
+    if (peek() === '→') {
+      consume();
+      const r = parseImp();
+      v = !v || r;
+    }
+    return v;
+  }
+  function parseOr() {
+    let v = parseXor();
+    while (peek() === '|') {
+      consume();
+      const r = parseXor();
+      v = v || r;
+    }
+    return v;
+  }
+  function parseXor() {
+    let v = parseAnd();
+    while (peek() === '^') {
+      consume();
+      v = v !== parseAnd();
+    }
+    return v;
+  }
+  function parseAnd() {
+    let v = parseUnary();
+    while (peek() === '&') {
+      consume();
+      const r = parseUnary();
+      v = v && r;
+    }
+    return v;
+  }
+  function parseUnary() {
+    let v;
+    if (peek() === '!') {
+      consume();
+      v = !parseUnary();
+    } else {
+      v = parseAtom();
+    }
+    while (peek() === "'") {
+      consume();
+      v = !v;
+    }
+    return v;
+  }
+  function parseAtom() {
+    const t = peek();
+    if (t === '(') {
+      consume();
+      const v = parseIff();
+      if (peek() === ')') consume();
+      return v;
+    }
+    if (t === '0' || t === '1') {
+      consume();
+      return t === '1';
+    }
+    if (t && /^[A-Za-z]$/.test(t)) {
+      consume();
+      return Boolean(env[t.toUpperCase()]);
+    }
+    throw new Error(`Cú pháp không hợp lệ tại '${t || 'cuối biểu thức'}'`);
+  }
+  const ans = parseIff();
+  if (pos !== tokens.length) throw new Error(`Dư ký tự '${tokens[pos]}'`);
+  return Boolean(ans);
+}
+
+function _localQuineMcCluskey(n, minterms, varsList) {
+  const total = 1 << n;
+  const mset = Array.from(new Set(minterms.filter((m) => m >= 0 && m < total))).sort((a, b) => a - b);
+  if (!mset.length) return { expr: '0', implicants: [] };
+  if (mset.length === total) return { expr: '1', implicants: [{ mask: '-'.repeat(n), term: '1', covered: mset }] };
+
+  let groups = new Map();
+  mset.forEach((m) => {
+    const bits = m.toString(2).padStart(n, '0');
+    const ones = bits.split('').filter((c) => c === '1').length;
+    if (!groups.has(ones)) groups.set(ones, new Map());
+    groups.get(ones).set(bits, new Set([m]));
+  });
+
+  const primeMap = new Map();
+  while (groups.size > 0) {
+    const nextGroups = new Map();
+    const used = new Set();
+    const keys = Array.from(groups.keys()).sort((a, b) => a - b);
+    keys.forEach((k) => {
+      groups.get(k).forEach((cov1, pat1) => {
+        if (groups.has(k + 1)) {
+          groups.get(k + 1).forEach((cov2, pat2) => {
+            let diffIdx = -1;
+            let diffs = 0;
+            for (let i = 0; i < n; i++) {
+              if (pat1[i] !== pat2[i]) {
+                diffs++;
+                diffIdx = i;
+              }
+            }
+            if (diffs === 1 && pat1[diffIdx] !== '-' && pat2[diffIdx] !== '-') {
+              const merged = pat1.slice(0, diffIdx) + '-' + pat1.slice(diffIdx + 1);
+              const ones = merged.split('').filter((c) => c === '1').length;
+              if (!nextGroups.has(ones)) nextGroups.set(ones, new Map());
+              const ex = nextGroups.get(ones).get(merged) || new Set();
+              cov1.forEach((v) => ex.add(v));
+              cov2.forEach((v) => ex.add(v));
+              nextGroups.get(ones).set(merged, ex);
+              used.add(pat1);
+              used.add(pat2);
+            }
+          });
+        }
+        if (!used.has(pat1)) {
+          const ex = primeMap.get(pat1) || new Set();
+          cov1.forEach((v) => ex.add(v));
+          primeMap.set(pat1, ex);
+        }
+      });
+    });
+    groups = nextGroups;
+  }
+
+  const patToTerm = (pat) => {
+    const parts = [];
+    for (let i = 0; i < n; i++) {
+      if (pat[i] === '1') parts.push(varsList[i]);
+      else if (pat[i] === '0') parts.push(varsList[i] + "'");
+    }
+    return parts.length ? parts.join('') : '1';
+  };
+
+  const pis = Array.from(primeMap.entries()).map(([mask, covSet]) => ({
+    mask,
+    term: patToTerm(mask),
+    covered: Array.from(covSet).sort((a, b) => a - b),
+    lits: mask.replace(/-/g, '').length
+  }));
+  pis.sort((a, b) => a.lits - b.lits || a.mask.localeCompare(b.mask));
+
+  // Greedy essential + minimal cover
+  const uncovered = new Set(mset);
+  const chosen = [];
+  while (uncovered.size > 0) {
+    let best = null;
+    let bestGain = -1;
+    for (const pi of pis) {
+      let gain = 0;
+      pi.covered.forEach((m) => { if (uncovered.has(m)) gain++; });
+      if (gain > bestGain || (gain === bestGain && best && pi.lits < best.lits)) {
+        bestGain = gain;
+        best = pi;
+      }
+    }
+    if (!best || bestGain <= 0) break;
+    chosen.push(best);
+    best.covered.forEach((m) => uncovered.delete(m));
+  }
+  return {
+    expr: chosen.map((c) => c.term).join(' + ') || '0',
+    implicants: chosen
+  };
+}
+
+function _computeLogicKmapLocal(payload) {
+  let varsList = [];
+  let table = [];
+  if (Array.isArray(payload.minterms)) {
+    varsList = (payload.variables || ['A', 'B', 'C']).slice(0, 4).map((v) => String(v).toUpperCase());
+    if (varsList.length < 2) varsList = ['A', 'B'];
+    const n = varsList.length;
+    const mset = new Set(payload.minterms.map(Number));
+    for (let idx = 0; idx < 1 << n; idx++) {
+      const bits = Array.from({ length: n }, (_, b) => (idx >> (n - 1 - b)) & 1);
+      table.push({ index: idx, bits, result: mset.has(idx) ? 1 : 0 });
+    }
+  } else {
+    const expr = String(payload.expression || "A'B + BC + AB'C'").trim();
+    const cleaned = expr.replace(/\b(AND|OR|NOT|XOR|TRUE|FALSE)\b/gi, ' ');
+    const found = Array.from(new Set((cleaned.match(/[A-Za-z]/g) || []).map((c) => c.toUpperCase()))).sort();
+    varsList = found.length ? found : ['A', 'B'];
+    if (varsList.length === 1) varsList.push(varsList[0] === 'A' ? 'B' : 'A');
+    if (varsList.length > 4) throw new Error('Bìa Karnaugh hỗ trợ tối đa 4 biến (VD: A, B, C, D).');
+    const n = varsList.length;
+    for (let idx = 0; idx < 1 << n; idx++) {
+      const bits = Array.from({ length: n }, (_, b) => (idx >> (n - 1 - b)) & 1);
+      const env = {};
+      varsList.forEach((v, b) => { env[v] = Boolean(bits[b]); });
+      table.push({ index: idx, bits, result: _localEvalBoolSafe(expr, env) ? 1 : 0 });
+    }
+  }
+  const n = varsList.length;
+  const minterms = table.filter((r) => r.result === 1).map((r) => r.index);
+  const maxterms = table.filter((r) => r.result === 0).map((r) => r.index);
+  const classification_label =
+    minterms.length === 1 << n
+      ? 'Hằng đúng (Tautology — Luôn đúng với mọi phép gán)'
+      : minterms.length === 0
+      ? 'Hằng sai / Mâu thuẫn (Contradiction)'
+      : 'Tiếp ngẫu (Contingency — Phụ thuộc giá trị biến)';
+  const dnf = table
+    .filter((r) => r.result === 1)
+    .map((r) => varsList.map((v, i) => (r.bits[i] ? v : v + "'")).join(''))
+    .join(' + ') || '0';
+  const cnf = table
+    .filter((r) => r.result === 0)
+    .map((r) => '(' + varsList.map((v, i) => (r.bits[i] === 0 ? v : v + "'")).join('+') + ')')
+    .join('') || '1';
+  const qm = _localQuineMcCluskey(n, minterms, varsList);
+  return {
+    success: true,
+    variables: varsList,
+    truth_table: table,
+    classification_label,
+    minterms,
+    maxterms,
+    canonical_dnf: dnf,
+    canonical_cnf: cnf,
+    minimal_sop: qm.expr,
+    prime_implicants: qm.implicants
+  };
+}
+
+function openLogicKmapModal() {
+  const m = document.getElementById('modal-logic-kmap');
+  if (!m) return;
+  m.classList.remove('hidden');
+  evaluateLogicKmapExpression();
+}
+
+function loadLogicPreset(expr) {
+  const inp = document.getElementById('logic-expr-input');
+  if (inp) inp.value = expr;
+  evaluateLogicKmapExpression();
+}
+
+async function evaluateLogicKmapExpression(customPayload = null) {
+  const inp = document.getElementById('logic-expr-input');
+  const payload = customPayload || { expression: inp ? inp.value : "A'B + BC + AB'C'" };
+  let data = null;
+  try {
+    if (!STATE.isOfflineStandalone) {
+      data = await apiFetch('/api/math/logic-kmap', {
+        method: 'POST',
+        body: JSON.stringify(payload)
+      });
+    }
+  } catch (_) {}
+  if (!data || !data.success) {
+    try {
+      data = _computeLogicKmapLocal(payload);
+    } catch (err) {
+      showToast(err.message || 'Biểu thức logic không hợp lệ!', 'warning');
+      return;
+    }
+  }
+  V47_LOGIC_STATE.variables = data.variables;
+  V47_LOGIC_STATE.minterms = data.minterms;
+  V47_LOGIC_STATE.lastData = data;
+  renderLogicKmapResult(data);
+}
+
+function toggleKmapCell(mintermIdx) {
+  const cur = new Set(V47_LOGIC_STATE.minterms || []);
+  if (cur.has(mintermIdx)) cur.delete(mintermIdx);
+  else cur.add(mintermIdx);
+  const nextMinterms = Array.from(cur).sort((a, b) => a - b);
+  evaluateLogicKmapExpression({
+    variables: V47_LOGIC_STATE.variables,
+    minterms: nextMinterms
+  });
+  playSound('click');
+}
+
+function renderLogicKmapResult(d) {
+  setText('logic-class-badge', d.classification_label || '--');
+  setText(
+    'logic-minterm-summary',
+    `∑m(${(d.minterms || []).join(', ')})  •  ∏M(${(d.maxterms || []).join(', ')})`
+  );
+  setText('logic-minimal-sop', `F(${(d.variables || []).join(', ')}) = ${d.minimal_sop || '0'}`);
+  setText('logic-dnf-text', d.canonical_dnf || '0');
+  setText('logic-cnf-text', d.canonical_cnf || '1');
+
+  const impBox = document.getElementById('logic-implicants-badges');
+  if (impBox) {
+    impBox.innerHTML = (d.prime_implicants || [])
+      .map(
+        (pi) =>
+          `<span class="badge-brand px-2 py-0.5 rounded-lg text-[11px] font-mono font-bold">${escapeHtml(
+            pi.term
+          )} ← m(${(pi.covered || []).join(',')})</span>`
+      )
+      .join('');
+  }
+
+  // Render Truth Table
+  const vars = d.variables || ['A', 'B'];
+  const head = document.getElementById('logic-tt-head');
+  const body = document.getElementById('logic-tt-body');
+  if (head && body) {
+    head.innerHTML = `<tr><th class="p-2 border-b txt-muted" style="border-color:var(--border);">#</th>${vars
+      .map((v) => `<th class="p-2 border-b font-extrabold txt-main" style="border-color:var(--border);">${escapeHtml(v)}</th>`)
+      .join('')}<th class="p-2 border-b font-black txt-brand" style="border-color:var(--border);">F</th></tr>`;
+    body.innerHTML = (d.truth_table || [])
+      .map((r) => {
+        const rowCls = r.result === 1 ? 'bg-emerald-500/10 text-emerald-400 font-bold' : 'txt-muted';
+        return `<tr class="${rowCls} border-b" style="border-color:var(--border);">
+          <td class="p-1.5 opacity-60">m${r.index}</td>
+          ${r.bits.map((b) => `<td class="p-1.5">${b}</td>`).join('')}
+          <td class="p-1.5 font-extrabold">${r.result}</td>
+        </tr>`;
+      })
+      .join('');
+  }
+
+  // Render Gray-Code Karnaugh Map (2, 3, or 4 variables)
+  const wrap = document.getElementById('logic-kmap-grid-wrap');
+  if (!wrap) return;
+  const n = vars.length;
+  const mset = new Set(d.minterms || []);
+  let rowVars = '';
+  let colVars = '';
+  let rowGray = [];
+  let colGray = [];
+
+  if (n === 2) {
+    rowVars = vars[0];
+    colVars = vars[1];
+    rowGray = ['0', '1'];
+    colGray = ['0', '1'];
+  } else if (n === 3) {
+    rowVars = vars[0];
+    colVars = vars[1] + vars[2];
+    rowGray = ['0', '1'];
+    colGray = ['00', '01', '11', '10'];
+  } else {
+    rowVars = vars[0] + vars[1];
+    colVars = vars[2] + vars[3];
+    rowGray = ['00', '01', '11', '10'];
+    colGray = ['00', '01', '11', '10'];
+  }
+
+  let html = `<table class="border-collapse text-center"><thead><tr>
+    <th class="p-2 text-[11px] font-mono font-extrabold txt-brand">${escapeHtml(rowVars)} \\ ${escapeHtml(colVars)}</th>
+    ${colGray.map((cg) => `<th class="p-2 text-xs font-mono font-extrabold txt-sub">${cg}</th>`).join('')}
+  </tr></thead><tbody>`;
+
+  rowGray.forEach((rg) => {
+    html += `<tr><th class="p-2 text-xs font-mono font-extrabold txt-sub">${rg}</th>`;
+    colGray.forEach((cg) => {
+      const mIdx = parseInt(rg + cg, 2);
+      const isOne = mset.has(mIdx);
+      html += `<td onclick="toggleKmapCell(${mIdx})" class="kmap-cell ${isOne ? 'is-one' : ''}" title="Minterm m${mIdx} (${rg}${cg}) — Bấm để đảo 0/1">
+        <span class="kmap-idx-micro">m${mIdx}</span>
+        ${isOne ? '1' : '0'}
+      </td>`;
+    });
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  wrap.innerHTML = html;
+}
+
+/* --- 2. INTERACTIVE AVL, BST & BINARY HEAP STUDIO --- */
+const V47_TREE_STATE = {
+  mode: 'avl', // 'avl' | 'bst' | 'maxheap' | 'minheap'
+  root: null,
+  heap: [],
+  logs: []
+};
+
+function _treeHeight(node) {
+  return node ? node.h : 0;
+}
+function _treeBf(node) {
+  return node ? _treeHeight(node.left) - _treeHeight(node.right) : 0;
+}
+function _updateNodeHeight(node) {
+  if (node) node.h = 1 + Math.max(_treeHeight(node.left), _treeHeight(node.right));
+}
+function _rotateRight(y) {
+  const x = y.left;
+  const T2 = x.right;
+  x.right = y;
+  y.left = T2;
+  _updateNodeHeight(y);
+  _updateNodeHeight(x);
+  return x;
+}
+function _rotateLeft(x) {
+  const y = x.right;
+  const T2 = y.left;
+  y.left = x;
+  x.right = T2;
+  _updateNodeHeight(x);
+  _updateNodeHeight(y);
+  return y;
+}
+function _bstInsertNode(node, key, isAvl) {
+  if (!node) return { key, left: null, right: null, h: 1 };
+  if (key === node.key) return node;
+  if (key < node.key) node.left = _bstInsertNode(node.left, key, isAvl);
+  else node.right = _bstInsertNode(node.right, key, isAvl);
+
+  _updateNodeHeight(node);
+  if (!isAvl) return node;
+
+  const bf = _treeBf(node);
+  if (bf > 1 && key < node.left.key) {
+    V47_TREE_STATE.logs.unshift(`🔄 Xoay phải đơn (LL) tại nút ${node.key} (BF = +${bf})`);
+    return _rotateRight(node);
+  }
+  if (bf < -1 && key > node.right.key) {
+    V47_TREE_STATE.logs.unshift(`🔄 Xoay trái đơn (RR) tại nút ${node.key} (BF = ${bf})`);
+    return _rotateLeft(node);
+  }
+  if (bf > 1 && key > node.left.key) {
+    V47_TREE_STATE.logs.unshift(`⚡ Xoay kép Trái–Phải (LR) tại nút ${node.key} (BF = +${bf})`);
+    node.left = _rotateLeft(node.left);
+    return _rotateRight(node);
+  }
+  if (bf < -1 && key < node.right.key) {
+    V47_TREE_STATE.logs.unshift(`⚡ Xoay kép Phải–Trái (RL) tại nút ${node.key} (BF = ${bf})`);
+    node.right = _rotateRight(node.right);
+    return _rotateLeft(node);
+  }
+  return node;
+}
+
+function _minValueNode(n) {
+  let c = n;
+  while (c && c.left) c = c.left;
+  return c;
+}
+
+function _bstDeleteNode(root, key, isAvl) {
+  if (!root) return null;
+  if (key < root.key) root.left = _bstDeleteNode(root.left, key, isAvl);
+  else if (key > root.key) root.right = _bstDeleteNode(root.right, key, isAvl);
+  else {
+    if (!root.left || !root.right) {
+      root = root.left || root.right;
+    } else {
+      const succ = _minValueNode(root.right);
+      root.key = succ.key;
+      root.right = _bstDeleteNode(root.right, succ.key, isAvl);
+    }
+  }
+  if (!root) return null;
+  _updateNodeHeight(root);
+  if (!isAvl) return root;
+
+  const bf = _treeBf(root);
+  if (bf > 1 && _treeBf(root.left) >= 0) {
+    V47_TREE_STATE.logs.unshift(`🔄 Tái cân bằng sau xóa: Xoay phải LL tại ${root.key}`);
+    return _rotateRight(root);
+  }
+  if (bf > 1 && _treeBf(root.left) < 0) {
+    V47_TREE_STATE.logs.unshift(`⚡ Tái cân bằng sau xóa: Xoay kép LR tại ${root.key}`);
+    root.left = _rotateLeft(root.left);
+    return _rotateRight(root);
+  }
+  if (bf < -1 && _treeBf(root.right) <= 0) {
+    V47_TREE_STATE.logs.unshift(`🔄 Tái cân bằng sau xóa: Xoay trái RR tại ${root.key}`);
+    return _rotateLeft(root);
+  }
+  if (bf < -1 && _treeBf(root.right) > 0) {
+    V47_TREE_STATE.logs.unshift(`⚡ Tái cân bằng sau xóa: Xoay kép RL tại ${root.key}`);
+    root.right = _rotateRight(root.right);
+    return _rotateLeft(root);
+  }
+  return root;
+}
+
+function _heapCompare(a, b) {
+  return V47_TREE_STATE.mode === 'maxheap' ? a > b : a < b;
+}
+
+function _heapPush(val) {
+  const h = V47_TREE_STATE.heap;
+  h.push(val);
+  let i = h.length - 1;
+  let swaps = 0;
+  while (i > 0) {
+    const p = Math.floor((i - 1) / 2);
+    if (_heapCompare(h[i], h[p])) {
+      [h[i], h[p]] = [h[p], h[i]];
+      i = p;
+      swaps++;
+    } else break;
+  }
+  V47_TREE_STATE.logs.unshift(`⬆️ Chèn ${val} vào Heap (Sift-Up ${swaps} bước)`);
+}
+
+function _heapPop() {
+  const h = V47_TREE_STATE.heap;
+  if (!h.length) return null;
+  const top = h[0];
+  const last = h.pop();
+  if (h.length > 0) {
+    h[0] = last;
+    let i = 0;
+    while (true) {
+      const l = 2 * i + 1;
+      const r = 2 * i + 2;
+      let best = i;
+      if (l < h.length && _heapCompare(h[l], h[best])) best = l;
+      if (r < h.length && _heapCompare(h[r], h[best])) best = r;
+      if (best !== i) {
+        [h[i], h[best]] = [h[best], h[i]];
+        i = best;
+      } else break;
+    }
+  }
+  V47_TREE_STATE.logs.unshift(`⬇️ Extract đỉnh ${top} & Heapify-Down lại đống`);
+  return top;
+}
+
+function _heapToTree(idx = 0) {
+  const h = V47_TREE_STATE.heap;
+  if (idx >= h.length) return null;
+  const left = _heapToTree(2 * idx + 1);
+  const right = _heapToTree(2 * idx + 2);
+  return {
+    key: h[idx],
+    left,
+    right,
+    h: 1 + Math.max(_treeHeight(left), _treeHeight(right)),
+    heapIdx: idx
+  };
+}
+
+function openTreeHeapStudioModal() {
+  const m = document.getElementById('modal-tree-heap-studio');
+  if (!m) return;
+  m.classList.remove('hidden');
+  if (!V47_TREE_STATE.root && !V47_TREE_STATE.heap.length) {
+    loadTreeStudioPreset('rotation_demo');
+  } else {
+    renderTreeStudioSvg();
+  }
+}
+
+function setTreeStudioMode(mode) {
+  V47_TREE_STATE.mode = mode;
+  document.querySelectorAll('.tree-mode-pill').forEach((btn) => {
+    const active = btn.getAttribute('data-tree-mode') === mode;
+    btn.classList.toggle('btn-primary', active);
+    btn.classList.toggle('btn-soft', !active);
+  });
+  const rmBtn = document.getElementById('btn-tree-remove-action');
+  if (rmBtn) {
+    rmBtn.textContent = mode.includes('heap') ? '⬇️ Extract Đỉnh' : '− Xóa Khóa';
+  }
+  loadTreeStudioPreset('rotation_demo');
+}
+
+function clearTreeStudio() {
+  V47_TREE_STATE.root = null;
+  V47_TREE_STATE.heap = [];
+  V47_TREE_STATE.logs = ['✨ Đã làm mới cây rỗng. Hãy nhập các khóa số nguyên để bắt đầu!'];
+  renderTreeStudioSvg();
+}
+
+function loadTreeStudioPreset(kind) {
+  V47_TREE_STATE.root = null;
+  V47_TREE_STATE.heap = [];
+  V47_TREE_STATE.logs = [];
+  const seq =
+    V47_TREE_STATE.mode.includes('heap')
+      ? [45, 80, 32, 92, 60, 74, 51]
+      : kind === 'rotation_demo'
+      ? [30, 20, 10, 25, 40, 50, 45]
+      : [50, 30, 70, 20, 40, 60, 80];
+  seq.forEach((v) => {
+    if (V47_TREE_STATE.mode.includes('heap')) _heapPush(v);
+    else {
+      V47_TREE_STATE.logs.unshift(`➕ Chèn khóa ${v}`);
+      V47_TREE_STATE.root = _bstInsertNode(V47_TREE_STATE.root, v, V47_TREE_STATE.mode === 'avl');
+    }
+  });
+  renderTreeStudioSvg();
+}
+
+function insertTreeStudioInput() {
+  const inp = document.getElementById('tree-studio-val-input');
+  if (!inp) return;
+  const nums = (inp.value.match(/-?\d+/g) || []).map(Number).slice(0, 18);
+  if (!nums.length) {
+    showToast('Hãy nhập ít nhất 1 số nguyên (VD: 25 hoặc 30, 20, 10)!', 'info');
+    return;
+  }
+  nums.forEach((v) => {
+    if (V47_TREE_STATE.mode.includes('heap')) {
+      if (V47_TREE_STATE.heap.length < 31) _heapPush(v);
+    } else {
+      V47_TREE_STATE.logs.unshift(`➕ Chèn khóa ${v}`);
+      V47_TREE_STATE.root = _bstInsertNode(V47_TREE_STATE.root, v, V47_TREE_STATE.mode === 'avl');
+    }
+  });
+  inp.value = '';
+  renderTreeStudioSvg();
+  playSound('click');
+}
+
+function removeTreeStudioInput() {
+  if (V47_TREE_STATE.mode.includes('heap')) {
+    const popped = _heapPop();
+    if (popped === null) showToast('Đống Heap hiện đang rỗng!', 'info');
+    renderTreeStudioSvg();
+    playSound('click');
+    return;
+  }
+  const inp = document.getElementById('tree-studio-val-input');
+  const nums = inp ? (inp.value.match(/-?\d+/g) || []).map(Number) : [];
+  if (!nums.length) {
+    showToast('Nhập khóa cần xóa vào ô số rồi bấm "− Xóa Khóa"!', 'info');
+    return;
+  }
+  nums.forEach((v) => {
+    V47_TREE_STATE.logs.unshift(`➖ Xóa khóa ${v}`);
+    V47_TREE_STATE.root = _bstDeleteNode(V47_TREE_STATE.root, v, V47_TREE_STATE.mode === 'avl');
+  });
+  if (inp) inp.value = '';
+  renderTreeStudioSvg();
+  playSound('click');
+}
+
+function renderTreeStudioSvg() {
+  const wrap = document.getElementById('tree-studio-svg-wrap');
+  const travEl = document.getElementById('tree-studio-traversals');
+  const logEl = document.getElementById('tree-studio-log');
+  if (!wrap) return;
+
+  const activeRoot = V47_TREE_STATE.mode.includes('heap') ? _heapToTree(0) : V47_TREE_STATE.root;
+  if (!activeRoot) {
+    wrap.innerHTML = `<div class="text-xs txt-muted py-12">Cây hiện đang rỗng. Hãy nhập số hoặc bấm "⚡ Mẫu Xoay AVL"!</div>`;
+    setText('tree-studio-stats', 'Nút: 0 • Cao: 0');
+    if (travEl) travEl.innerHTML = '<div>Chưa có phần tử nào.</div>';
+    if (logEl) logEl.innerHTML = V47_TREE_STATE.logs.map((l) => `<div>• ${escapeHtml(l)}</div>`).join('');
+    return;
+  }
+
+  // Assign inorder X coordinates and depth Y coordinates
+  const nodes = [];
+  const edges = [];
+  let orderX = 0;
+  function layout(n, depth) {
+    if (!n) return null;
+    const l = layout(n.left, depth + 1);
+    const cur = {
+      key: n.key,
+      bf: _treeBf(n),
+      heapIdx: n.heapIdx,
+      ix: orderX++,
+      depth
+    };
+    nodes.push(cur);
+    const r = layout(n.right, depth + 1);
+    if (l) edges.push([cur, l]);
+    if (r) edges.push([cur, r]);
+    return cur;
+  }
+  layout(activeRoot, 0);
+
+  const maxDepth = Math.max(...nodes.map((n) => n.depth), 0);
+  const svgW = Math.max(620, nodes.length * 64 + 80);
+  const svgH = Math.max(230, (maxDepth + 1) * 74 + 40);
+  const stepX = (svgW - 80) / Math.max(1, nodes.length - 1 || 1);
+  nodes.forEach((n) => {
+    n.cx = nodes.length === 1 ? svgW / 2 : 40 + n.ix * stepX;
+    n.cy = 38 + n.depth * 70;
+  });
+
+  const isHeap = V47_TREE_STATE.mode.includes('heap');
+  let svg = `<svg viewBox="0 0 ${svgW} ${svgH}" class="w-full max-w-4xl h-auto select-none">`;
+  edges.forEach(([p, c]) => {
+    svg += `<line x1="${p.cx}" y1="${p.cy}" x2="${c.cx}" y2="${c.cy}" stroke="#6366f1" stroke-opacity="0.65" stroke-width="2.4" />`;
+  });
+  nodes.forEach((n) => {
+    const strokeCol = isHeap ? '#f59e0b' : Math.abs(n.bf) <= 1 ? '#10b981' : '#f43f5e';
+    const subTag = isHeap ? `[${n.heapIdx}]` : `BF:${n.bf > 0 ? '+' + n.bf : n.bf}`;
+    svg += `
+      <g>
+        <circle cx="${n.cx}" cy="${n.cy}" r="21" fill="#0f172a" stroke="${strokeCol}" stroke-width="2.6" />
+        <text x="${n.cx}" y="${n.cy + 4}" text-anchor="middle" fill="#f8fafc" font-size="13" font-weight="800" font-family="monospace">${n.key}</text>
+        <rect x="${n.cx + 12}" y="${n.cy - 26}" width="38" height="15" rx="5" fill="#1e293b" stroke="${strokeCol}" stroke-width="1" />
+        <text x="${n.cx + 31}" y="${n.cy - 15}" text-anchor="middle" fill="${strokeCol}" font-size="9.5" font-weight="800" font-family="monospace">${subTag}</text>
+      </g>
+    `;
+  });
+  svg += `</svg>`;
+  wrap.innerHTML = svg;
+
+  // Traversals
+  const pre = [], ino = [], post = [], bfs = [];
+  (function walk(n) {
+    if (!n) return;
+    pre.push(n.key);
+    walk(n.left);
+    ino.push(n.key);
+    walk(n.right);
+    post.push(n.key);
+  })(activeRoot);
+  const q = [activeRoot];
+  while (q.length) {
+    const cur = q.shift();
+    bfs.push(cur.key);
+    if (cur.left) q.push(cur.left);
+    if (cur.right) q.push(cur.right);
+  }
+
+  setText('tree-studio-stats', `Nút: ${nodes.length} • Chiều cao: ${maxDepth + 1}`);
+  if (travEl) {
+    travEl.innerHTML = isHeap
+      ? `<div><strong class="txt-main">Mảng Heap 0-index:</strong> [${V47_TREE_STATE.heap.join(', ')}]</div>
+         <div><strong class="txt-main">Công thức chỉ số:</strong> Cha = ⌊(i-1)/2⌋ • Trái = 2i+1 • Phải = 2i+2</div>
+         <div><strong class="txt-main">Level-order (BFS):</strong> ${bfs.join(' → ')}</div>`
+      : `<div><strong class="txt-main">In-order (LNR - Tăng dần):</strong> ${ino.join(' → ')}</div>
+         <div><strong class="txt-main">Pre-order (NLR):</strong> ${pre.join(' → ')}</div>
+         <div><strong class="txt-main">Post-order (LRN):</strong> ${post.join(' → ')}</div>
+         <div><strong class="txt-main">Level-order (BFS):</strong> ${bfs.join(' → ')}</div>`;
+  }
+  if (logEl) {
+    logEl.innerHTML = V47_TREE_STATE.logs
+      .slice(0, 16)
+      .map((l) => `<div class="py-0.5 border-b border-white/5">${escapeHtml(l)}</div>`)
+      .join('');
+  }
+}
+
+/* --- 3. CLINICAL ARTERIAL BLOOD GAS (ABG), WINTER & ANION GAP ANALYZER --- */
+const ABG_PRESETS = {
+  dka: { ph: 7.18, paco2: 21, hco3: 8.0, na: 135, cl: 97, alb: 4.0, lac: 2.1, chronic: false },
+  dka_vomiting: { ph: 7.41, paco2: 39, hco3: 24.0, na: 140, cl: 90, alb: 4.0, lac: 1.8, chronic: false },
+  salicylate: { ph: 7.36, paco2: 18, hco3: 10.0, na: 139, cl: 103, alb: 4.1, lac: 2.0, chronic: false },
+  copd: { ph: 7.31, paco2: 68, hco3: 34.0, na: 138, cl: 94, alb: 3.6, lac: 1.4, chronic: true },
+  diarrhea: { ph: 7.26, paco2: 27, hco3: 12.0, na: 136, cl: 114, alb: 4.0, lac: 1.2, chronic: false },
+  vomiting: { ph: 7.52, paco2: 47, hco3: 37.0, na: 137, cl: 86, alb: 4.2, lac: 1.1, chronic: false }
+};
+
+function openAbgAnalyzerModal() {
+  const m = document.getElementById('modal-abg-analyzer');
+  if (!m) return;
+  m.classList.remove('hidden');
+  runAbgAnalysis();
+}
+
+function loadAbgPreset(key) {
+  const p = ABG_PRESETS[key];
+  if (!p) return;
+  const setVal = (id, v) => {
+    const el = document.getElementById(id);
+    if (el) el.value = v;
+  };
+  setVal('abg-in-ph', p.ph);
+  setVal('abg-in-paco2', p.paco2);
+  setVal('abg-in-hco3', p.hco3);
+  setVal('abg-in-na', p.na);
+  setVal('abg-in-cl', p.cl);
+  setVal('abg-in-alb', p.alb);
+  setVal('abg-in-lac', p.lac);
+  const ch = document.getElementById('abg-in-chronic');
+  if (ch) ch.checked = Boolean(p.chronic);
+  runAbgAnalysis();
+  playSound('click');
+}
+
+function _computeAbgLocal(b) {
+  const ph = Number(b.ph || 7.4);
+  const paco2 = Number(b.paco2 || 40);
+  const hco3 = Number(b.hco3 || 24);
+  const na = Number(b.na || 140);
+  const cl = Number(b.cl || 104);
+  const alb = Number(b.albumin || 4.0);
+  const lac = Number(b.lactate || 1.2);
+  const isChronic = Boolean(b.chronic);
+
+  const ag = Math.round((na - (cl + hco3)) * 100) / 100;
+  const agCorr = Math.round((ag + 2.5 * (4.0 - alb)) * 100) / 100;
+
+  const phState =
+    ph < 7.35
+      ? 'Nhiễm toan máu (Acidemia, pH < 7.35)'
+      : ph > 7.45
+      ? 'Nhiễm kiềm máu (Alkalemia, pH > 7.45)'
+      : 'pH máu trong khoảng tham chiếu (7.35 – 7.45)';
+
+  let primary = '';
+  let comp = '';
+  if ((ph < 7.4 && hco3 < 22) || (hco3 < 20 && paco2 <= 45)) {
+    primary = 'Toan chuyển hóa nguyên phát (Metabolic Acidosis)';
+    const exp = +(1.5 * hco3 + 8).toFixed(1);
+    const lo = +(exp - 2).toFixed(1);
+    const hi = +(exp + 2).toFixed(1);
+    if (paco2 > hi) comp = `Winter dự đoán PaCO₂ = ${lo}–${hi} mmHg, thực tế ${paco2} mmHg cao hơn → KÈM TOAN HÔ HẤP PHỐI HỢP!`;
+    else if (paco2 < lo) comp = `Winter dự đoán PaCO₂ = ${lo}–${hi} mmHg, thực tế ${paco2} mmHg thấp hơn → KÈM KIỀM HÔ HẤP PHỐI HỢP (VD: Salicylate, nhiễm trùng huyết)!`;
+    else comp = `Bù hô hấp đạt chuẩn công thức Winter (PaCO₂ dự đoán ${lo}–${hi} mmHg, thực tế ${paco2} mmHg).`;
+  } else if ((ph > 7.4 && hco3 > 26) || (hco3 > 28 && paco2 >= 35)) {
+    primary = 'Kiềm chuyển hóa nguyên phát (Metabolic Alkalosis)';
+    const exp = +(0.7 * (hco3 - 24) + 40).toFixed(1);
+    const lo = +(exp - 5).toFixed(1);
+    const hi = +(exp + 5).toFixed(1);
+    comp =
+      paco2 > hi
+        ? `PaCO₂ dự đoán ${lo}–${hi} mmHg, thực tế ${paco2} mmHg → KÈM TOAN HÔ HẤP PHỐI HỢP.`
+        : paco2 < lo
+        ? `PaCO₂ dự đoán ${lo}–${hi} mmHg, thực tế ${paco2} mmHg → KÈM KIỀM HÔ HẤP PHỐI HỢP.`
+        : `Bù giảm thông khí phù hợp (PaCO₂ dự đoán ${lo}–${hi} mmHg).`;
+  } else if (paco2 > 45) {
+    const lbl = isChronic ? 'Mạn tính' : 'Cấp tính';
+    primary = `Toan hô hấp nguyên phát (${lbl})`;
+    const expH = +(24 + (isChronic ? 0.35 : 0.1) * (paco2 - 40)).toFixed(1);
+    comp = `HCO₃⁻ bù thận dự kiến (${lbl.toLowerCase()}) ≈ ${expH} mmol/L (thực tế ${hco3} mmol/L).`;
+  } else if (paco2 < 35) {
+    const lbl = isChronic ? 'Mạn tính' : 'Cấp tính';
+    primary = `Kiềm hô hấp nguyên phát (${lbl})`;
+    const expH = +(24 - (isChronic ? 0.5 : 0.2) * (40 - paco2)).toFixed(1);
+    comp = `HCO₃⁻ bù thận dự kiến (${lbl.toLowerCase()}) ≈ ${expH} mmol/L (thực tế ${hco3} mmol/L).`;
+  } else {
+    primary = 'Cân bằng Kiềm - Toan bình thường (hoặc rối loạn hỗn hợp bù trừ kín đáo)';
+    comp = 'PaCO₂ và HCO₃⁻ nằm trong giới hạn sinh lý, vẫn bắt buộc kiểm tra Anion Gap hiệu chỉnh!';
+  }
+
+  let deltaVerdict = 'Anion Gap hiệu chỉnh ≤ 12 mEq/L (Không tăng Anion Gap)';
+  if (agCorr > 12) {
+    const denom = 24 - hco3;
+    if (denom > 0.5) {
+      const dr = Math.round(((agCorr - 12) / denom) * 100) / 100;
+      if (dr < 1.0) deltaVerdict = `ΔAG/ΔHCO₃⁻ = ${dr} (< 1.0) → Toan tăng AG + Toan tăng Cl⁻ (Normal AG) phối hợp!`;
+      else if (dr <= 2.0) deltaVerdict = `ΔAG/ΔHCO₃⁻ = ${dr} (1.0 – 2.0) → Toan chuyển hóa TĂNG ANION GAP đơn thuần điển hình!`;
+      else deltaVerdict = `ΔAG/ΔHCO₃⁻ = ${dr} (> 2.0) → Toan tăng AG kèm KIỀM CHUYỂN HÓA ẨN (VD: DKA kèm nôn ói)!`;
+    } else {
+      deltaVerdict = `AG hiệu chỉnh tăng cao (${agCorr} mEq/L) dù HCO₃⁻ = ${hco3} mmol/L → RỐI LOẠN KÉP: Toan chuyển hóa tăng AG + Kiềm chuyển hóa triệt tiêu pH!`;
+    }
+  }
+
+  const causes = [];
+  if (agCorr > 12) {
+    if (lac >= 2.5) causes.push(`Toan Lactic (Lactate = ${lac} mmol/L tăng cao: thiếu oxy mô / sốc nhiễm trùng)`);
+    causes.push('Nhiễm toan Ceton (DKA đái tháo đường, rượu, nhịn đói) hoặc Suy thận cấp/mạn giữ acid hữu cơ');
+    causes.push('Ngộ độc ngoại sinh (GOLDMARK: Methanol, Ethylene glycol, Salicylate)');
+  } else if (hco3 < 22 && ph <= 7.4) {
+    causes.push('Mất HCO₃⁻ qua tiêu hóa (Tiêu chảy cấp, dò tụy/mật) hoặc Toan hóa ống thận (RTA)');
+  } else if (hco3 > 26 && ph >= 7.4) {
+    causes.push('Mất H⁺ dịch vị (Nôn ói hẹp môn vị, hút dạ dày), lợi tiểu quai/Thiazide, cường Aldosterone');
+  } else {
+    causes.push('Theo dõi sát lâm sàng, điện giải đồ (K⁺, Cl⁻) và nguyên nhân nền.');
+  }
+
+  return {
+    ph_state: phState,
+    primary,
+    compensation: comp,
+    ag,
+    ag_corrected: agCorr,
+    delta_verdict: deltaVerdict,
+    causes
+  };
+}
+
+let _abgTimer = null;
+function runAbgAnalysis() {
+  const payload = {
+    ph: parseFloat(document.getElementById('abg-in-ph')?.value || '7.22'),
+    paco2: parseFloat(document.getElementById('abg-in-paco2')?.value || '23'),
+    hco3: parseFloat(document.getElementById('abg-in-hco3')?.value || '9.5'),
+    na: parseFloat(document.getElementById('abg-in-na')?.value || '136'),
+    cl: parseFloat(document.getElementById('abg-in-cl')?.value || '98'),
+    albumin: parseFloat(document.getElementById('abg-in-alb')?.value || '4.0'),
+    lactate: parseFloat(document.getElementById('abg-in-lac')?.value || '1.6'),
+    chronic: Boolean(document.getElementById('abg-in-chronic')?.checked)
+  };
+
+  // Instant 0ms local render + Davenport SVG
+  const localRes = _computeAbgLocal(payload);
+  _renderAbgUI(payload, localRes);
+
+  if (!STATE.isOfflineStandalone) {
+    clearTimeout(_abgTimer);
+    _abgTimer = setTimeout(async () => {
+      try {
+        const srv = await apiFetch('/api/clinical/abg-analyzer', {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        if (srv && srv.success) _renderAbgUI(payload, srv);
+      } catch (_) {}
+    }, 180);
+  }
+}
+
+function _renderAbgUI(inp, res) {
+  const panel = document.getElementById('abg-verdict-panel');
+  if (panel) {
+    const agTone = res.ag_corrected > 12 ? 'badge-rose' : 'badge-emerald';
+    panel.innerHTML = `
+      <div class="p-3.5 rounded-xl border space-y-1" style="background-color: var(--bg-subtle); border-color: var(--border);">
+        <div class="text-[10px] font-extrabold uppercase tracking-wider txt-muted">Bước 1 &amp; 2 • Tình trạng pH &amp; Rối loạn nguyên phát</div>
+        <div class="text-sm font-black txt-main">${escapeHtml(res.primary)}</div>
+        <div class="text-[11px] txt-sub">${escapeHtml(res.ph_state)}</div>
+      </div>
+      <div class="p-3.5 rounded-xl border space-y-1" style="background-color: var(--bg-subtle); border-color: var(--border);">
+        <div class="text-[10px] font-extrabold uppercase tracking-wider txt-muted">Bước 3 • Đánh giá bù trừ sinh lý (Winter / Thận / Phổi)</div>
+        <div class="text-xs font-semibold txt-main leading-relaxed">${escapeHtml(res.compensation)}</div>
+      </div>
+      <div class="p-3.5 rounded-xl border space-y-1.5" style="background-color: var(--bg-subtle); border-color: var(--border);">
+        <div class="flex items-center justify-between gap-2 flex-wrap">
+          <span class="text-[10px] font-extrabold uppercase tracking-wider txt-muted">Bước 4 &amp; 5 • Khoảng trống Anion &amp; Tỷ số Delta-Delta</span>
+          <span class="${agTone} px-2.5 py-0.5 rounded-full font-mono text-[11px] font-black">AG = ${res.ag} • AG(hc Alb) = ${res.ag_corrected} mEq/L</span>
+        </div>
+        <div class="text-xs font-bold txt-main leading-relaxed">${escapeHtml(res.delta_verdict)}</div>
+      </div>
+      <div class="p-3.5 rounded-xl border space-y-1" style="background-color: var(--bg-subtle); border-color: var(--border);">
+        <div class="text-[10px] font-extrabold uppercase tracking-wider txt-muted">Định hướng nguyên nhân lâm sàng</div>
+        <ul class="space-y-1 text-[11px] txt-sub">
+          ${(res.causes || []).map((c) => `<li>• ${escapeHtml(c)}</li>`).join('')}
+        </ul>
+      </div>
+    `;
+  }
+
+  // Davenport pH (6.90..7.70) vs HCO3- (0..48) Nomogram SVG
+  const svgBox = document.getElementById('abg-nomogram-svg');
+  if (svgBox) {
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    const mapX = (ph) => 42 + ((clamp(ph, 6.9, 7.7) - 6.9) / 0.8) * 260;
+    const mapY = (hc) => 205 - (clamp(hc, 0, 48) / 48) * 175;
+    const px = mapX(inp.ph).toFixed(1);
+    const py = mapY(inp.hco3).toFixed(1);
+    const nx1 = mapX(7.35).toFixed(1);
+    const nx2 = mapX(7.45).toFixed(1);
+    const ny1 = mapY(26).toFixed(1);
+    const ny2 = mapY(22).toFixed(1);
+
+    svgBox.innerHTML = `
+      <svg viewBox="0 0 325 235" class="w-full max-w-sm h-auto select-none">
+        <rect x="42" y="25" width="260" height="180" rx="8" fill="#0f172a" stroke="#334155" stroke-width="1.2" />
+        <!-- Zones -->
+        <text x="86" y="185" fill="#fb7185" font-size="9" font-weight="700" opacity="0.8">Toan chuyển hóa</text>
+        <text x="86" y="55" fill="#f59e0b" font-size="9" font-weight="700" opacity="0.8">Toan hô hấp</text>
+        <text x="215" y="55" fill="#38bdf8" font-size="9" font-weight="700" opacity="0.8">Kiềm chuyển hóa</text>
+        <text x="215" y="185" fill="#a78bfa" font-size="9" font-weight="700" opacity="0.8">Kiềm hô hấp</text>
+        <!-- Normal Reference Box (pH 7.35-7.45, HCO3 22-26) -->
+        <rect x="${nx1}" y="${ny1}" width="${(nx2 - nx1).toFixed(1)}" height="${(ny2 - ny1).toFixed(1)}" fill="#10b981" fill-opacity="0.28" stroke="#10b981" stroke-width="1.5" />
+        <!-- Crosshairs -->
+        <line x1="${mapX(7.4).toFixed(1)}" y1="25" x2="${mapX(7.4).toFixed(1)}" y2="205" stroke="#475569" stroke-dasharray="3,3" />
+        <line x1="42" y1="${mapY(24).toFixed(1)}" x2="302" y2="${mapY(24).toFixed(1)}" stroke="#475569" stroke-dasharray="3,3" />
+        <!-- Axes Labels -->
+        <text x="172" y="226" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="700">pH máu động mạch (6.90 → 7.70)</text>
+        <text x="14" y="118" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="700" transform="rotate(-90 14 118)">HCO₃⁻ (mmol/L)</text>
+        <!-- Patient Point -->
+        <circle cx="${px}" cy="${py}" r="11" fill="#f43f5e" fill-opacity="0.28" />
+        <circle cx="${px}" cy="${py}" r="5.5" fill="#f43f5e" stroke="#ffffff" stroke-width="2" />
+        <text x="${px}" y="${Math.max(38, py - 10)}" text-anchor="middle" fill="#f8fafc" font-size="9.5" font-weight="800" font-family="monospace">(${inp.ph}, ${inp.hco3})</text>
+      </svg>
+    `;
+  }
+}
+
+/* --- 4. MULTI-MODE FLASHCARDS: 12-TILE SPEED MATCH & 4-OPTION SPRINT --- */
+const FC_MATCH_STATE = {
+  tiles: [],
+  selectedIdx: null,
+  matchedPairs: 0,
+  totalPairs: 0,
+  startTime: 0,
+  timerId: null,
+  locked: false
+};
+
+const FC_QUIZ_STATE = {
+  items: [],
+  idx: 0,
+  score: 0,
+  streak: 0,
+  answered: false
+};
+
+function _stripCardTextPlain(s) {
+  return String(s || '')
+    .replace(/```[\s\S]*?```/g, ' [Code] ')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function switchFlashcardStudyArena(arena) {
+  STATE.flashcards.arena = arena;
+  document.querySelectorAll('.fc-arena-pill').forEach((btn) => {
+    const active = btn.getAttribute('data-fc-arena') === arena;
+    btn.classList.toggle('btn-primary', active);
+    btn.classList.toggle('btn-soft', !active);
+  });
+
+  document.getElementById('fc-stage-area')?.classList.toggle('hidden', arena !== 'flip');
+  document.getElementById('fc-match-arena')?.classList.toggle('hidden', arena !== 'match');
+  document.getElementById('fc-quiz-arena')?.classList.toggle('hidden', arena !== 'quiz');
+
+  clearInterval(FC_MATCH_STATE.timerId);
+  if (arena === 'match') initFlashcardMatchGame();
+  else if (arena === 'quiz') initFlashcardQuizArena();
+  playSound('click');
+}
+
+function initFlashcardMatchGame() {
+  clearInterval(FC_MATCH_STATE.timerId);
+  const cards = STATE.flashcards.cards || [];
+  const grid = document.getElementById('fc-match-grid');
+  if (!grid) return;
+
+  if (cards.length < 2) {
+    grid.innerHTML = `<div class="col-span-full text-center text-xs txt-muted py-8">Cần ít nhất 2 thẻ nhớ trong môn học này để chơi Ghép Cặp!</div>`;
+    return;
+  }
+
+  const shuffled = [...cards].sort(() => Math.random() - 0.5).slice(0, Math.min(6, cards.length));
+  const tiles = [];
+  shuffled.forEach((c, pairId) => {
+    const frontTxt = _stripCardTextPlain(c.front);
+    const backTxt = _stripCardTextPlain(c.back);
+    tiles.push({
+      pairId,
+      kind: 'term',
+      text: frontTxt.length > 90 ? frontTxt.slice(0, 90) + '…' : frontTxt,
+      matched: false
+    });
+    tiles.push({
+      pairId,
+      kind: 'def',
+      text: backTxt.length > 105 ? backTxt.slice(0, 105) + '…' : backTxt,
+      matched: false
+    });
+  });
+  tiles.sort(() => Math.random() - 0.5);
+
+  FC_MATCH_STATE.tiles = tiles;
+  FC_MATCH_STATE.selectedIdx = null;
+  FC_MATCH_STATE.matchedPairs = 0;
+  FC_MATCH_STATE.totalPairs = shuffled.length;
+  FC_MATCH_STATE.locked = false;
+  FC_MATCH_STATE.startTime = performance.now();
+
+  setText('fc-match-progress', `0 / ${shuffled.length} cặp`);
+  setText('fc-match-timer', '⏱ 0.0s');
+
+  FC_MATCH_STATE.timerId = setInterval(() => {
+    if (FC_MATCH_STATE.matchedPairs >= FC_MATCH_STATE.totalPairs) {
+      clearInterval(FC_MATCH_STATE.timerId);
+      return;
+    }
+    const sec = ((performance.now() - FC_MATCH_STATE.startTime) / 1000).toFixed(1);
+    setText('fc-match-timer', `⏱ ${sec}s`);
+  }, 100);
+
+  _renderFlashcardMatchBoard();
+}
+
+function _renderFlashcardMatchBoard(mismatchPair = null) {
+  const grid = document.getElementById('fc-match-grid');
+  if (!grid) return;
+  grid.innerHTML = FC_MATCH_STATE.tiles
+    .map((t, idx) => {
+      let cls = 'fc-match-tile';
+      if (t.matched) cls += ' is-matched';
+      else if (mismatchPair && mismatchPair.includes(idx)) cls += ' is-mismatch';
+      else if (FC_MATCH_STATE.selectedIdx === idx) cls += ' is-selected';
+      const tag = t.kind === 'term' ? '📘 Thuật ngữ' : '💡 Bản chất';
+      return `<div onclick="clickFlashcardMatchTile(${idx})" class="${cls}">
+        <span class="text-[9px] font-extrabold uppercase tracking-wider opacity-60 mb-1">${tag}</span>
+        <div class="font-semibold line-clamp-4">${formatRichText(t.text)}</div>
+      </div>`;
+    })
+    .join('');
+}
+
+function clickFlashcardMatchTile(idx) {
+  if (FC_MATCH_STATE.locked) return;
+  const tile = FC_MATCH_STATE.tiles[idx];
+  if (!tile || tile.matched) return;
+
+  if (FC_MATCH_STATE.selectedIdx === null) {
+    FC_MATCH_STATE.selectedIdx = idx;
+    playSound('click');
+    _renderFlashcardMatchBoard();
+    return;
+  }
+  if (FC_MATCH_STATE.selectedIdx === idx) {
+    FC_MATCH_STATE.selectedIdx = null;
+    _renderFlashcardMatchBoard();
+    return;
+  }
+
+  const firstIdx = FC_MATCH_STATE.selectedIdx;
+  const firstTile = FC_MATCH_STATE.tiles[firstIdx];
+  if (firstTile.pairId === tile.pairId && firstTile.kind !== tile.kind) {
+    firstTile.matched = true;
+    tile.matched = true;
+    FC_MATCH_STATE.selectedIdx = null;
+    FC_MATCH_STATE.matchedPairs++;
+    setText('fc-match-progress', `${FC_MATCH_STATE.matchedPairs} / ${FC_MATCH_STATE.totalPairs} cặp`);
+    playSound('correct');
+    _renderFlashcardMatchBoard();
+
+    if (FC_MATCH_STATE.matchedPairs >= FC_MATCH_STATE.totalPairs) {
+      clearInterval(FC_MATCH_STATE.timerId);
+      const finalSec = ((performance.now() - FC_MATCH_STATE.startTime) / 1000).toFixed(1);
+      addXp(25);
+      showToast(`🏆 Xuất sắc! Bạn ghép sạch ${FC_MATCH_STATE.totalPairs} cặp trong ${finalSec} giây (+25 XP)!`, 'success');
+    }
+  } else {
+    FC_MATCH_STATE.locked = true;
+    FC_MATCH_STATE.selectedIdx = null;
+    playSound('wrong');
+    _renderFlashcardMatchBoard([firstIdx, idx]);
+    setTimeout(() => {
+      FC_MATCH_STATE.locked = false;
+      _renderFlashcardMatchBoard();
+    }, 420);
+  }
+}
+
+function initFlashcardQuizArena() {
+  const cards = STATE.flashcards.cards || [];
+  const box = document.getElementById('fc-quiz-options');
+  if (!box) return;
+  if (cards.length < 2) {
+    setText('fc-quiz-prompt', 'Cần ít nhất 2 thẻ nhớ để tạo Đấu Phản Xạ 4 Đáp Án.');
+    box.innerHTML = '';
+    return;
+  }
+
+  const items = [...cards].sort(() => Math.random() - 0.5).slice(0, Math.min(12, cards.length));
+  FC_QUIZ_STATE.items = items;
+  FC_QUIZ_STATE.idx = 0;
+  FC_QUIZ_STATE.score = 0;
+  FC_QUIZ_STATE.streak = 0;
+  _renderCurrentFlashcardQuizItem();
+}
+
+function _renderCurrentFlashcardQuizItem() {
+  const total = FC_QUIZ_STATE.items.length;
+  if (FC_QUIZ_STATE.idx >= total) {
+    setText('fc-quiz-prompt', `🎉 Hoàn thành chặng phản xạ: Đúng ${FC_QUIZ_STATE.score}/${total} thẻ!`);
+    const optBox = document.getElementById('fc-quiz-options');
+    if (optBox) {
+      optBox.innerHTML = `<button type="button" onclick="initFlashcardQuizArena()" class="btn-primary w-full py-3 text-xs font-extrabold">🔄 Luyện Vòng Phản Xạ Mới</button>`;
+    }
+    document.getElementById('fc-quiz-next-btn')?.classList.add('hidden');
+    return;
+  }
+
+  const cur = FC_QUIZ_STATE.items[FC_QUIZ_STATE.idx];
+  FC_QUIZ_STATE.answered = false;
+  setText('fc-quiz-counter', `Thẻ ${FC_QUIZ_STATE.idx + 1} / ${total}`);
+  setText('fc-quiz-streak', `🔥 Chuỗi: ${FC_QUIZ_STATE.streak}`);
+  setText('fc-quiz-score', `✔ Đúng: ${FC_QUIZ_STATE.score}`);
+
+  const promptEl = document.getElementById('fc-quiz-prompt');
+  if (promptEl) promptEl.innerHTML = formatRichText(_stripCardTextPlain(cur.front));
+
+  const distractors = (STATE.flashcards.cards || [])
+    .filter((c) => c.id !== cur.id)
+    .sort(() => Math.random() - 0.5)
+    .slice(0, 3)
+    .map((c) => ({ text: _stripCardTextPlain(c.back), isCorrect: false }));
+
+  const choices = [{ text: _stripCardTextPlain(cur.back), isCorrect: true }, ...distractors].sort(
+    () => Math.random() - 0.5
+  );
+  FC_QUIZ_STATE.currentChoices = choices;
+
+  const optBox = document.getElementById('fc-quiz-options');
+  if (optBox) {
+    const letters = ['A', 'B', 'C', 'D'];
+    optBox.innerHTML = choices
+      .map(
+        (ch, i) => `
+      <div id="fc-quiz-opt-${i}" onclick="answerFlashcardQuizOption(${i})" class="option-row opt-${letters[i]} !py-3 !px-4">
+        <div class="opt-badge !w-8 !h-8 !text-xs">${letters[i]}</div>
+        <div class="option-text flex-1 !text-xs sm:!text-sm">${formatRichText(
+          ch.text.length > 160 ? ch.text.slice(0, 160) + '…' : ch.text
+        )}</div>
+      </div>`
+      )
+      .join('');
+  }
+  document.getElementById('fc-quiz-next-btn')?.classList.add('hidden');
+}
+
+function answerFlashcardQuizOption(choiceIdx) {
+  if (FC_QUIZ_STATE.answered) return;
+  FC_QUIZ_STATE.answered = true;
+  const choices = FC_QUIZ_STATE.currentChoices || [];
+  const picked = choices[choiceIdx];
+  if (!picked) return;
+
+  choices.forEach((ch, i) => {
+    const row = document.getElementById(`fc-quiz-opt-${i}`);
+    if (!row) return;
+    row.classList.add('disabled');
+    if (ch.isCorrect) row.classList.add('is-correct');
+    else if (i === choiceIdx) row.classList.add('is-wrong');
+  });
+
+  if (picked.isCorrect) {
+    FC_QUIZ_STATE.score++;
+    FC_QUIZ_STATE.streak++;
+    addXp(10);
+    playSound('correct');
+  } else {
+    FC_QUIZ_STATE.streak = 0;
+    playSound('wrong');
+  }
+  setText('fc-quiz-streak', `🔥 Chuỗi: ${FC_QUIZ_STATE.streak}`);
+  setText('fc-quiz-score', `✔ Đúng: ${FC_QUIZ_STATE.score}`);
+  document.getElementById('fc-quiz-next-btn')?.classList.remove('hidden');
+}
+
+function nextFlashcardQuizItem() {
+  FC_QUIZ_STATE.idx++;
+  _renderCurrentFlashcardQuizItem();
+}
+
+/* --- 5. PRINTABLE EXAM PAPER + OMR BUBBLE SHEET + ANSWER KEY EXPORTER --- */
+const V47_PRINT_STATE = {
+  source: 'config',
+  questions: [],
+  subjectName: 'Đề Thi Tổng Hợp',
+  htmlDoc: ''
+};
+
+async function openPrintableExamModal(source = 'config') {
+  const modal = document.getElementById('modal-print-exam');
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  V47_PRINT_STATE.source = source;
+
+  if (source === 'result' && STATE.exam && Array.isArray(STATE.exam.questions) && STATE.exam.questions.length) {
+    V47_PRINT_STATE.questions = STATE.exam.questions;
+    V47_PRINT_STATE.subjectName = STATE.exam.subjectName || 'Bài Thi Đã Làm';
+  } else {
+    const sid = Number(document.getElementById('exam-subject-select')?.value || STATE.activeSubjectId || 5);
+    const sub = (STATE.subjects || []).find((s) => Number(s.id) === sid);
+    V47_PRINT_STATE.subjectName = sub ? sub.name : 'Đề Thi Đại Học';
+    try {
+      const res = await apiFetch(`/api/subjects/${sid}/questions?type=mcq`);
+      V47_PRINT_STATE.questions = (res && res.questions) || [];
+    } catch (_) {
+      V47_PRINT_STATE.questions = [];
+    }
+  }
+  refreshPrintableExamPreview();
+}
+
+function _buildPrintableExamInnerHtml() {
+  const countSel = parseInt(document.getElementById('print-exam-count')?.value || '20', 10);
+  const incOmr = Boolean(document.getElementById('print-exam-include-omr')?.checked);
+  const incKey = Boolean(document.getElementById('print-exam-include-key')?.checked);
+  const slice = (V47_PRINT_STATE.questions || []).slice(0, Math.min(countSel, V47_PRINT_STATE.questions.length));
+  const todayStr = new Date().toLocaleDateString('vi-VN');
+
+  if (!slice.length) {
+    return `<div style="padding:24px;text-align:center;color:#64748b;">Chưa có câu hỏi trắc nghiệm để xuất đề in.</div>`;
+  }
+
+  let omrHtml = '';
+  if (incOmr) {
+    omrHtml = `
+      <div style="margin:14px 0 20px;padding:12px 14px;border:1.5px solid #1e293b;border-radius:8px;background:#f8fafc;">
+        <div style="font-weight:800;font-size:12px;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.04em;">PHIẾU TÔ ĐÁP ÁN TRẮC NGHIỆM (OMR ANSWER SHEET)</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(125px,1fr));gap:6px;font-size:11.5px;font-family:monospace;">
+          ${slice
+            .map(
+              (_, i) =>
+                `<div><strong>${String(i + 1).padStart(2, '0')}.</strong> ○A  ○B  ○C  ○D</div>`
+            )
+            .join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  const questionsHtml = slice
+    .map((q, idx) => {
+      const parsed = typeof parseQuestionHeader === 'function' ? parseQuestionHeader(q.question_text || '') : { body: q.question_text || '' };
+      const bodyTxt = formatRichText(parsed.body || q.question_text || '');
+      const imgBlock =
+        q.image_url && String(q.image_url).trim()
+          ? `<div style="margin:8px 0;"><img src="${escapeHtml(q.image_url)}" style="max-height:170px;border:1px solid #cbd5e1;border-radius:6px;padding:4px;background:#0f172a;" /></div>`
+          : '';
+      return `
+        <div style="margin-bottom:14px;page-break-inside:avoid;">
+          <div style="font-weight:700;font-size:13px;line-height:1.5;">Câu ${idx + 1}: ${bodyTxt}</div>
+          ${imgBlock}
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px;margin-top:5px;font-size:12.5px;padding-left:8px;">
+            <div><strong>A.</strong> ${formatRichText(q.option_a || '')}</div>
+            <div><strong>B.</strong> ${formatRichText(q.option_b || '')}</div>
+            <div><strong>C.</strong> ${formatRichText(q.option_c || '')}</div>
+            <div><strong>D.</strong> ${formatRichText(q.option_d || '')}</div>
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  let keyHtml = '';
+  if (incKey) {
+    keyHtml = `
+      <div style="margin-top:24px;padding-top:16px;border-top:2px dashed #334155;page-break-before:auto;">
+        <h3 style="font-size:14px;font-weight:800;margin:0 0 10px;text-transform:uppercase;">BẢNG ĐÁP ÁN CHUẨN &amp; HƯỚNG DẪN GIẢI CHI TIẾT</h3>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px;margin-bottom:14px;font-family:monospace;font-size:12px;">
+          ${slice
+            .map((q, i) => {
+              const corr = typeof normalizeCorrectLetter === 'function' ? normalizeCorrectLetter(q) : q.correct_option || 'A';
+              return `<div style="padding:4px 6px;border:1px solid #cbd5e1;border-radius:4px;text-align:center;"><strong>${i + 1}: ${escapeHtml(corr)}</strong></div>`;
+            })
+            .join('')}
+        </div>
+        <div style="font-size:11.5px;line-height:1.5;color:#334155;">
+          ${slice
+            .filter((q) => q.explanation)
+            .map((q) => `<div style="margin-bottom:6px;"><strong>Câu ${slice.indexOf(q) + 1}:</strong> ${formatRichText(q.explanation)}</div>`)
+            .join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  return `
+    <div style="font-family:'Inter','Segoe UI',Arial,sans-serif;color:#0f172a;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #0f172a;padding-bottom:10px;margin-bottom:14px;">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;color:#475569;">HỆ THỐNG HỌC THUẬT ĐẠI HỌC UNIMASTER AI PRO</div>
+          <div style="font-size:17px;font-weight:900;margin-top:2px;">ĐỀ THI: ${escapeHtml(V47_PRINT_STATE.subjectName.toUpperCase())}</div>
+          <div style="font-size:11.5px;color:#334155;margin-top:2px;">Số lượng: ${slice.length} câu trắc nghiệm • Ngày xuất: ${todayStr}</div>
+        </div>
+        <div style="border:1px solid #334155;border-radius:6px;padding:8px 12px;font-size:11.5px;min-width:210px;">
+          <div><strong>Họ và tên:</strong> ..........................................</div>
+          <div style="margin-top:4px;"><strong>MSSV / Lớp:</strong> ......................................</div>
+        </div>
+      </div>
+      ${omrHtml}
+      ${questionsHtml}
+      ${keyHtml}
+    </div>
+  `;
+}
+
+function refreshPrintableExamPreview() {
+  const box = document.getElementById('print-exam-preview-box');
+  if (!box) return;
+  const inner = _buildPrintableExamInnerHtml();
+  box.innerHTML = inner;
+  V47_PRINT_STATE.htmlDoc = `<!DOCTYPE html><html lang="vi"><head><meta charset="UTF-8"><title>Đề Thi - ${escapeHtml(
+    V47_PRINT_STATE.subjectName
+  )}</title><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" /><style>@page{margin:14mm;}body{margin:0;padding:16px;background:#fff;color:#0f172a;}code.inline-code{background:#f1f5f9;padding:1px 4px;border-radius:4px;font-family:monospace;}</style></head><body>${inner}</body></html>`;
+}
+
+function triggerBrowserPrintExamSheet() {
+  refreshPrintableExamPreview();
+  const win = window.open('', '_blank', 'width=920,height=780');
+  if (!win) {
+    showToast('Trình duyệt chặn cửa sổ bật lên — đang tải file HTML để bạn mở in ngay!', 'info');
+    downloadPrintableExamHtml();
+    return;
+  }
+  win.document.open();
+  win.document.write(V47_PRINT_STATE.htmlDoc);
+  win.document.close();
+  setTimeout(() => {
+    win.focus();
+    win.print();
+  }, 350);
+}
+
+function downloadPrintableExamHtml() {
+  refreshPrintableExamPreview();
+  const blob = new Blob([V47_PRINT_STATE.htmlDoc], { type: 'text/html;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `De_Thi_${(V47_PRINT_STATE.subjectName || 'UniMaster').replace(/[^A-Za-z0-9_-]+/g, '_')}.html`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1500);
+  showToast('📥 Đã tải xuống file Đề thi chuẩn in ấn!', 'success');
+}
+
+window.openLogicKmapModal = openLogicKmapModal;
+window.loadLogicPreset = loadLogicPreset;
+window.evaluateLogicKmapExpression = evaluateLogicKmapExpression;
+window.toggleKmapCell = toggleKmapCell;
+window.openTreeHeapStudioModal = openTreeHeapStudioModal;
+window.setTreeStudioMode = setTreeStudioMode;
+window.insertTreeStudioInput = insertTreeStudioInput;
+window.removeTreeStudioInput = removeTreeStudioInput;
+window.loadTreeStudioPreset = loadTreeStudioPreset;
+window.clearTreeStudio = clearTreeStudio;
+window.openAbgAnalyzerModal = openAbgAnalyzerModal;
+window.loadAbgPreset = loadAbgPreset;
+window.runAbgAnalysis = runAbgAnalysis;
+window.switchFlashcardStudyArena = switchFlashcardStudyArena;
+window.initFlashcardMatchGame = initFlashcardMatchGame;
+window.clickFlashcardMatchTile = clickFlashcardMatchTile;
+window.initFlashcardQuizArena = initFlashcardQuizArena;
+window.answerFlashcardQuizOption = answerFlashcardQuizOption;
+window.nextFlashcardQuizItem = nextFlashcardQuizItem;
+window.openPrintableExamModal = openPrintableExamModal;
+window.refreshPrintableExamPreview = refreshPrintableExamPreview;
+window.triggerBrowserPrintExamSheet = triggerBrowserPrintExamSheet;
+window.downloadPrintableExamHtml = downloadPrintableExamHtml;
