@@ -566,11 +566,17 @@ def get_api_key() -> str:
 
 def _ensure_telemetry(key: str, db_meta: dict = None) -> dict:
     if key not in KEY_TELEMETRY:
+        init_status = str(db_meta.get("status") or "ready") if db_meta else "ready"
+        init_cd = (
+            time.time() + 3600.0
+            if init_status == "invalid"
+            else (time.time() + 25.0 if init_status == "cooldown" else 0.0)
+        )
         KEY_TELEMETRY[key] = {
             "calls": int(db_meta.get("calls") or 0) if db_meta else 0,
             "failovers": int(db_meta.get("failovers") or 0) if db_meta else 0,
-            "cooldown_until": 0.0,
-            "status": str(db_meta.get("status") or "ready") if db_meta else "ready",
+            "cooldown_until": init_cd,
+            "status": init_status,
             "model": str(db_meta.get("model") or "") if db_meta else "",
             "latency_ms": db_meta.get("latency_ms") if db_meta else None,
             "last_error": str(db_meta.get("last_error") or "") if db_meta else "",
@@ -1239,8 +1245,13 @@ async def _call_openai_chatgpt_meta(
             payload["temperature"] = 0.35
 
         t0 = time.perf_counter()
+        req_timeout = aiohttp.ClientTimeout(
+            total=75.0 if cfg.get("priority") == "openai_only" else 30.0,
+            connect=4.5,
+            sock_connect=4.5,
+        )
         try:
-            async with session.post(endpoint, json=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=120)) as resp:
+            async with session.post(endpoint, json=payload, headers=headers, timeout=req_timeout) as resp:
                 latency_ms = int((time.perf_counter() - t0) * 1000)
                 if resp.status == 200:
                     data = await _parse_openai_response_payload(resp)

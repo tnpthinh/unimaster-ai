@@ -364,77 +364,93 @@ function handleGeminiInputKey(event) {
 }
 window.handleGeminiInputKey = handleGeminiInputKey;
 
+function getDynamicTutorWelcomeCards(subCode = '', subName = '') {
+  const code = String(subCode || '').toUpperCase();
+  const name = String(subName || '');
+  if (code === 'TOAN_RR' || /rời rạc/i.test(name)) {
+    return [
+      { icon: '🧮', title: 'Rút gọn biểu thức Boole & Bảng K-Map', sub: 'Chuẩn tắc DNF/CNF & luật De Morgan dễ nhớ', prompt: 'Hướng dẫn tôi quy trình lập bảng chân trị, chuẩn tắc hội/tuyển và rút gọn biểu thức Boole 3-4 biến bằng bìa Karnaugh kèm ví dụ thi!' },
+      { icon: '🕸️', title: 'Đồ thị Euler, Hamilton & Dijkstra', sub: 'Điều kiện cần & đủ + bảng chạy từng bước', prompt: 'Phân biệt rõ điều kiện tồn tại chu trình Euler vs Hamilton và minh họa từng bước thuật toán Dijkstra tìm đường đi ngắn nhất!' },
+      { icon: '🔢', title: 'Nguyên lý Bù trừ & Tổ hợp đếm', sub: 'Phân biệt Chỉnh hợp, Tổ hợp & Dirichlet', prompt: 'Cho tôi mẹo phân biệt nhanh Hoán vị, Chỉnh hợp, Tổ hợp lặp, Nguyên lý Dirichlet và Nguyên lý Bù trừ kèm 3 câu bẫy hay gặp!' },
+      { icon: '🎯', title: 'Mẹo loại trừ câu bẫy Toán Rời Rạc', sub: 'Phản ví dụ nhanh trong 10 giây', prompt: 'Chỉ cho tôi kỹ thuật dùng phản ví dụ nhỏ để loại trừ nhanh 3 phương án sai trong đề trắc nghiệm Toán Rời Rạc!' }
+    ];
+  }
+  if (code === 'CTDL_GT' || code === 'CS101' || /giải thuật|cấu trúc dữ liệu/i.test(name)) {
+    return [
+      { icon: '🌳', title: 'Cây AVL (Xoay LL/RR/LR/RL) & BST', sub: 'Hệ số cân bằng & thứ tự duyệt NLR, LNR, LRN', prompt: 'Giải thích thật trực quan 4 phép xoay cân bằng cây AVL (LL, RR, LR, RL) và mẹo nhẩm nhanh kết quả duyệt Pre-order, In-order, Post-order!' },
+      { icon: '⚡', title: 'Bảng độ phức tạp Big-O các thuật toán Sort', sub: 'QuickSort, MergeSort, HeapSort & tính ổn định', prompt: 'Tổng hợp bảng so sánh độ phức tạp Tốt nhất / Trung bình / Xấu nhất, bộ nhớ phụ và tính ổn định (Stable) của QuickSort, MergeSort, HeapSort, InsertionSort!' },
+      { icon: '🧭', title: 'BFS, DFS, Kruskal & Prim trên Đồ thị', sub: 'Khi nào dùng Queue/Stack & Cây khung nhỏ nhất', prompt: 'So sánh BFS và DFS, đồng thời hướng dẫn cách nhẩm nhanh cây khung nhỏ nhất bằng thuật toán Kruskal và Prim không bị chu trình!' },
+      { icon: '💻', title: 'Đệ quy, Quy hoạch động & Bảng băm', sub: 'Khử đệ quy & xử lý đụng độ Hash Table', prompt: 'Phân tích cách tính độ phức tạp đệ quy bằng Định lý Master và so sánh xử lý đụng độ bảng băm Chaining vs Linear Probing!' }
+    ];
+  }
+  if (code === 'OOP_CSHARP' || code === 'NNLT_PYTHON' || /lập trình|python|c#/i.test(name)) {
+    return [
+      { icon: '🏗️', title: 'Đa hình: virtual/override vs Method Hiding', sub: 'Đọc nhanh Output các câu bẫy kế thừa', prompt: 'Phân biệt cực rõ virtual/override với từ khóa new (Method Hiding) trong OOP kèm đoạn code bẫy kết quả in ra màn hình!' },
+      { icon: '🛡️', title: 'Abstract Class vs Interface & 5 nguyên lý SOLID', sub: 'Khi nào chọn cái nào trong thiết kế hướng đối tượng', prompt: 'So sánh ngắn gọn Abstract Class và Interface, kèm ví dụ thực tế dễ nhớ cho 5 nguyên lý SOLID!' },
+      { icon: '💾', title: 'Stack vs Heap, Tham chiếu & Garbage Collector', sub: 'Value Type, Reference Type & rò rỉ bộ nhớ', prompt: 'Giải thích cơ chế cấp phát bộ nhớ Stack vs Heap, Boxing/Unboxing và cách tránh lỗi NullReference / biến tham chiếu ngoài ý muốn!' },
+      { icon: '🐛', title: 'Kỹ thuật nhẩm Output code & bắt lỗi biên', sub: 'Vòng lặp, đệ quy, ngoại lệ try-catch-finally', prompt: 'Chỉ cho tôi quy trình nhẩm Output đoạn code có vòng lặp lồng nhau và thứ tự chạy khối try - catch - finally có lệnh return!' }
+    ];
+  }
+  return [
+    { icon: '🧬', title: `Trọng tâm cốt lõi: ${subName || 'Môn học hiện tại'}`, sub: 'Hệ thống hóa các cơ chế & công thức hay thi nhất', prompt: `Hãy tóm tắt có hệ thống những cơ chế, công thức và mốc kiến thức hay ra thi nhất của môn ${subName || 'này'} kèm bảng so sánh dễ nhớ!` },
+    { icon: '🪤', title: 'Phân tích câu bẫy NGOẠI TRỪ / KHÔNG ĐÚNG', sub: 'Nhận diện từ khóa đánh lừa sinh viên trong 5 giây', prompt: `Chỉ ra 5 kiểu câu hỏi bẫy (đặc biệt dạng NGOẠI TRỪ / KHÔNG ĐÚNG) sinh viên dễ sai nhất trong môn ${subName || 'này'} và mẹo né bẫy!` },
+    { icon: '🩺', title: 'Biện luận tình huống thực tiễn / Lâm sàng', sub: 'Rèn tư duy phân tích thay vì học vẹt', prompt: `Cho tôi 1 tình huống vận dụng thực tế / ca lâm sàng điển hình của môn ${subName || 'này'}, đặt câu hỏi gợi mở và giải thích từng bước!` },
+    { icon: '⚡', title: 'Đề mini 3 câu trắc nghiệm phân loại cao', sub: 'Thử sức nhanh kèm giải thích loại trừ A-B-C-D', prompt: `Hãy ra cho tôi 3 câu hỏi trắc nghiệm mức độ Vận dụng của môn ${subName || 'này'} kèm đáp án và giải thích loại trừ từng phương án A, B, C, D!` }
+  ];
+}
+
 function buildTutorGreetingMarkup(compact = false) {
-  const curSub = (typeof STATE !== 'undefined' && Array.isArray(STATE.subjects))
-    ? (STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId)) || STATE.subjects[0])
-    : null;
-  const subName = curSub?.name || 'Môn học hiện tại';
+  const subInfo = typeof getActiveSubjectInfoForTutor === 'function'
+    ? getActiveSubjectInfoForTutor()
+    : { name: 'Môn học hiện tại', code: '' };
+  const subName = subInfo.name || 'Môn học hiện tại';
 
   if (compact) {
     return `
       <div class="gemini-message-row gemini-model-row animate-fade-in">
         <div class="gemini-sparkle-icon gemini-sparkle-sm mt-0.5"></div>
-        <div class="gemini-model-bubble space-y-2">
+        <div class="gemini-model-bubble space-y-1.5">
           <div class="text-xs font-bold text-slate-200">
-            Xin chào! Tôi là <span class="gemini-gradient-text">Gemini AI</span> phụ trách <span class="txt-brand">${escapeHtml(subName)}</span>.
+            Xin chào! Tôi là <span class="gemini-gradient-text">Gia Sư AI</span> đồng hành môn <span class="txt-brand">${escapeHtml(subName)}</span>.
           </div>
           <div class="text-xs text-slate-400">
-            Bấm chọn câu hỏi nhanh bên trên, bôi đen từ khóa hoặc nhập câu hỏi bất kỳ để tôi giải thích chi tiết nhé!
+            Bấm gợi ý nhanh bên trên hoặc nhập bất kỳ câu hỏi nào để mình giải thích bản chất &amp; mẹo nhớ ngay nhé!
           </div>
         </div>
       </div>
     `;
   }
 
+  const cards = getDynamicTutorWelcomeCards(subInfo.code, subName);
+  const cardsHtml = cards.map((c) => `
+    <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt(${escapeJsString(c.prompt)})">
+      <div>
+        <div class="gemini-prompt-card-text">${escapeHtml(c.icon)} ${escapeHtml(c.title)}</div>
+        <div class="gemini-prompt-card-sub">${escapeHtml(c.sub)}</div>
+      </div>
+      <div class="gemini-prompt-card-icon">→</div>
+    </div>
+  `).join('');
+
   return `
     <div class="gemini-welcome-container animate-fade-in">
-      <div class="flex items-center gap-3 mb-2">
-        <div class="gemini-sparkle-icon" style="width: 38px; height: 38px;"></div>
+      <div class="flex items-center gap-2.5 mb-2">
+        <div class="gemini-sparkle-icon" style="width: 34px; height: 34px;"></div>
         <span class="text-xs font-extrabold tracking-wider uppercase px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
-          Gemini 1.5 Pro • Trợ Lý Học Tập Đa Năng
+          Gia Sư AI 1-1 • Sẵn Sàng Giải Đáp Tức Thì
         </span>
       </div>
 
       <h1 class="gemini-hero-greeting">
         <span class="gemini-gradient-text">Xin chào bạn,</span><br/>
-        Hôm nay bạn muốn cùng tôi học gì?
+        Hôm nay mình cùng chinh phục phần nào?
       </h1>
       <p class="gemini-hero-sub">
-        Tôi đồng hành cùng bạn ôn luyện <strong class="text-white">${escapeHtml(subName)}</strong>, giải thích bản chất y sinh, sửa lỗi lập trình hoặc tối ưu hóa phương pháp thi trắc nghiệm.
+        Đang đồng hành môn <strong class="txt-brand">${escapeHtml(subName)}</strong> — chọn một chủ đề gợi ý bên dưới hoặc gửi câu hỏi / đoạn code / ca lâm sàng để mình phân tích sâu từng bước.
       </p>
 
       <div class="gemini-prompts-grid">
-        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Hãy phân tích chi tiết cơ chế chuyển hóa Glucid, chu trình Krebs và các điểm thắt nút năng lượng quan trọng nhất trong đề thi!')">
-          <div>
-            <div class="gemini-prompt-card-text">🧬 Phân tích chuyển hóa Glucid & Krebs</div>
-            <div class="gemini-prompt-card-sub">Bản chất hóa sinh & các câu bẫy thi thường gặp</div>
-          </div>
-          <div class="gemini-prompt-card-icon">💡</div>
-        </div>
-
-        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Hãy hướng dẫn tôi cách debug lỗi rò rỉ bộ nhớ, con trỏ và tư duy lập trình hướng đối tượng OOP trong C++ và C#.')">
-          <div>
-            <div class="gemini-prompt-card-text">💻 Debug OOP & Rò rỉ bộ nhớ C++ / C#</div>
-            <div class="gemini-prompt-card-sub">Soi rò rỉ bộ nhớ, virtual table & tối ưu thuật toán</div>
-          </div>
-          <div class="gemini-prompt-card-icon">⚡</div>
-        </div>
-
-        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Cho tôi bài tập biện luận lâm sàng ca bệnh Đái tháo đường qua chỉ số nghiệm pháp OGTT và nồng độ thể Ceton trong nước tiểu.')">
-          <div>
-            <div class="gemini-prompt-card-text">🩺 Biện luận lâm sàng ca bệnh OGTT & Ceton</div>
-            <div class="gemini-prompt-card-sub">Chẩn đoán và phân tích 10 thông số nước tiểu</div>
-          </div>
-          <div class="gemini-prompt-card-icon">🔬</div>
-        </div>
-
-        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Hãy chỉ cho tôi phương pháp loại trừ 3 đáp án sai khi gặp câu hỏi trắc nghiệm phủ định dạng NGOẠI TRỪ.')">
-          <div>
-            <div class="gemini-prompt-card-text">🎯 Kỹ thuật loại trừ phương án bẫy trắc nghiệm</div>
-            <div class="gemini-prompt-card-sub">Mẹo tư duy tốc độ 10 giây cho kỳ thi trắc nghiệm</div>
-          </div>
-          <div class="gemini-prompt-card-icon">🚀</div>
-        </div>
+        ${cardsHtml}
       </div>
     </div>
   `;
@@ -462,8 +478,9 @@ function buildTutorMessageHtml(msg, compact = false) {
   window._tutorMsgMeta[msgId] = msg;
   const modeMeta = msg.mode && TUTOR_MODES_META[msg.mode] ? TUTOR_MODES_META[msg.mode] : null;
   const provBadge = formatTutorProviderBadge(msg);
-  const subLabel = msg.context || 'Gemini 1.5 Pro';
+  const subLabel = msg.context || 'Gia Sư AI UniMaster';
   const renderedBody = renderTutorAcademicHtml(msg.content);
+  const isFallbackOrErr = msg.provider_used === 'fallback' || String(msgId).endsWith('_err');
 
   return `
     <div class="gemini-message-row gemini-model-row animate-fade-in" id="${escapeHtml(msgId)}">
@@ -485,6 +502,10 @@ function buildTutorMessageHtml(msg, compact = false) {
         </div>
 
         <div class="gemini-action-bar">
+          ${isFallbackOrErr ? `
+          <button type="button" onclick="retryLastTutorMessage()" class="gemini-action-pill !border-amber-500/40 !text-amber-300" title="Gửi lại câu hỏi này tới AI">
+            <span>🔄</span><span>Thử lại ngay</span>
+          </button>` : ''}
           <button type="button" onclick="copyAiReply(${escapeJsString(msgId)})" class="gemini-action-pill" title="Sao chép câu trả lời">
             <span>📋</span><span>Sao chép</span>
           </button>
@@ -506,13 +527,11 @@ function buildTutorMessageHtml(msg, compact = false) {
   `;
 }
 
-function scrollTutorToBottom(boxId) {
+function scrollTutorToBottom(boxId, force = true) {
   const box = document.getElementById(boxId);
   if (!box) return;
-  // Chỉ cuộn xuống đáy nếu người dùng đang ở gần đáy (trong khoảng 80px).
-  // Nếu đang đọc tin nhắn cũ ở giữa, giữ nguyên vị trí cuộn hiện tại.
   const distFromBottom = box.scrollHeight - box.scrollTop - box.clientHeight;
-  if (distFromBottom < 80) {
+  if (force || distFromBottom < 140) {
     box.scrollTop = box.scrollHeight;
     const btnId = boxId === 'floating-chat-messages' ? 'btn-ft-scroll-bottom' : 'btn-tutor-scroll-bottom';
     document.getElementById(btnId)?.classList.add('hidden');
@@ -539,10 +558,14 @@ function renderActiveTutorMessages() {
       ? history.map((m) => buildTutorMessageHtml(m, true)).join('')
       : buildTutorGreetingMarkup(true);
     if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(floatBox);
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => scrollTutorToBottom('floating-chat-messages'));
+    if (history.length) {
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => scrollTutorToBottom('floating-chat-messages', true));
+      } else {
+        scrollTutorToBottom('floating-chat-messages', true);
+      }
     } else {
-      scrollTutorToBottom('floating-chat-messages');
+      floatBox.scrollTop = 0;
     }
   }
 
@@ -552,10 +575,14 @@ function renderActiveTutorMessages() {
       ? history.map((m) => buildTutorMessageHtml(m, false)).join('')
       : buildTutorGreetingMarkup(false);
     if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(tabBox);
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => scrollTutorToBottom('tutor-chat-box'));
+    if (history.length) {
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => scrollTutorToBottom('tutor-chat-box', true));
+      } else {
+        scrollTutorToBottom('tutor-chat-box', true);
+      }
     } else {
-      scrollTutorToBottom('tutor-chat-box');
+      tabBox.scrollTop = 0;
     }
   }
 }
@@ -583,6 +610,17 @@ function updateTutorModeUI() {
   document.querySelectorAll('[data-tutor-mode]').forEach((btn) => {
     btn.classList.toggle('active', btn.getAttribute('data-tutor-mode') === currentTutorMode);
   });
+  const compactLabels = {
+    explain: '🧠 Giải sâu',
+    eliminate: '🔍 Loại trừ',
+    socratic: '💡 Socratic',
+    clinical: '🩺 Lâm sàng',
+    debug: '💻 Debug'
+  };
+  const ftModeLbl = document.getElementById('ft-active-mode-label');
+  if (ftModeLbl) {
+    ftModeLbl.textContent = compactLabels[currentTutorMode] || '🧠 Giải sâu';
+  }
 }
 
 function syncTutorContextBarsUI() {
@@ -608,6 +646,10 @@ function syncTutorContextBarsUI() {
       tabWrap.classList.remove('hidden');
       setText('tutor-context-badge', titleLabel);
       setText('tutor-context-preview', previewText.slice(0, 160) + (previewText.length > 160 ? '...' : ''));
+    }
+    if (typeof renderAllMathOnPage === 'function') {
+      if (ftWrap) renderAllMathOnPage(ftWrap);
+      if (tabWrap) renderAllMathOnPage(tabWrap);
     }
   } else {
     ftWrap?.classList.add('hidden');
@@ -734,7 +776,8 @@ async function sendFloatingTutorCustomMessage(customText, modeOverride = null) {
 function getActiveSubjectInfoForTutor() {
   const tabSubSel = document.getElementById('tutor-subject-select')?.value;
   const preferTab = typeof STATE !== 'undefined' && STATE.currentTab === 'tutor' && tabSubSel;
-  const targetId = preferTab ? tabSubSel : STATE?.activeSubjectId;
+  const preferExam = typeof STATE !== 'undefined' && STATE.currentTab === 'exam' && STATE.exam?.active && STATE.exam?.subjectId;
+  const targetId = preferTab ? tabSubSel : (preferExam ? STATE.exam.subjectId : STATE?.activeSubjectId);
   const sub = (STATE?.subjects || []).find((s) => String(s.id) === String(targetId)) || STATE?.subjects?.[0] || null;
   return {
     id: sub?.id || null,
@@ -808,6 +851,7 @@ function attachContextToTutor(ctxObj = {}, opts = {}) {
   pinnedTutorQuestion = {
     id: ctxObj.id || null,
     kind: ctxObj.kind || 'question',
+    source: String(ctxObj.source || ''),
     shortTitle: String(ctxObj.shortTitle || 'Ngữ cảnh đính kèm'),
     fullTitle: String(ctxObj.fullTitle || ''),
     topic: String(ctxObj.topic || ''),
@@ -819,6 +863,7 @@ function attachContextToTutor(ctxObj = {}, opts = {}) {
     option_c: String(ctxObj.option_c || ''),
     option_d: String(ctxObj.option_d || ''),
     correct_option: String(ctxObj.correct_option || ''),
+    explanation: String(ctxObj.explanation || ''),
     user_answer: String(ctxObj.user_answer || ''),
     is_correct: ctxObj.is_correct
   };
@@ -848,10 +893,12 @@ function pinQuestionToTutor(q, meta = {}) {
   const cleanTitle = rawTitle.replace(/<[^>]+>/g, '').trim();
   const shortTitle = meta.label || (parsed.bankNum ? `Câu #${parsed.bankNum}` : 'Câu hỏi');
   const sub = getActiveSubjectInfoForTutor();
+  const hideAnswerKey = Boolean(meta.hideAnswer);
 
   attachContextToTutor({
     id: q.id,
     kind: 'question',
+    source: meta.source || '',
     shortTitle,
     fullTitle: cleanTitle,
     topic: parsed.topic || q.topic_tag || '',
@@ -861,11 +908,11 @@ function pinQuestionToTutor(q, meta = {}) {
     option_b: q.option_b || '',
     option_c: q.option_c || '',
     option_d: q.option_d || '',
-    correct_option: q._effectiveCorrect || q.correct_option || '',
-    explanation: q.explanation || '',
+    correct_option: hideAnswerKey ? '' : (q._effectiveCorrect || q.correct_option || ''),
+    explanation: hideAnswerKey ? '' : (q.explanation || ''),
     user_answer: meta.user_answer || '',
     is_correct: meta.is_correct
-  }, { open: true });
+  }, { open: meta.open !== false, mode: meta.mode });
 }
 
 function unpinTutorQuestion() {
@@ -1468,7 +1515,7 @@ function stopFloatingVoiceInput() {
 // -------------------------------------------------------------------------
 // 1-TOUCH TRIGGERS FOR EXAM QUESTIONS & REVIEW
 // -------------------------------------------------------------------------
-function askAiAboutCurrentExamQuestion() {
+function askAiAboutCurrentExamQuestion(autoExplain = false) {
   const q = STATE.exam.questions[STATE.exam.currentIndex];
   if (!q) {
     toggleFloatingTutor();
@@ -1476,14 +1523,25 @@ function askAiAboutCurrentExamQuestion() {
   }
   const idx = STATE.exam.currentIndex + 1;
   const userAns = STATE.exam.answers[q.id] || '';
-  const isCorrect = STATE.exam.graded[q.id] ? (userAns.toUpperCase() === String(q._effectiveCorrect).toUpperCase()) : undefined;
+  const isGraded = Boolean(STATE.exam.graded[q.id]);
+  const isCorrect = isGraded ? (String(userAns).toUpperCase() === String(q._effectiveCorrect).toUpperCase()) : undefined;
+  const hideAnswer = !isGraded && STATE.exam.mode === 'real';
 
   pinQuestionToTutor(q, {
     label: `Câu ${idx}`,
     user_answer: userAns,
     is_correct: isCorrect,
+    hideAnswer,
     source: 'exam'
   });
+
+  if (autoExplain && isGraded && !tutorSendingLock) {
+    const corr = String(q._effectiveCorrect || '').trim();
+    const prompt = (userAns && !isCorrect)
+      ? `Ở Câu ${idx}, mình đã chọn đáp án ${userAns} nhưng đáp án đúng là ${corr}. Hãy giải thích ngắn gọn, dễ hiểu vì sao ${corr} đúng, vì sao ${userAns} là bẫy sai, và cho mẹo nhớ 5 giây!`
+      : `Ở Câu ${idx} (đáp án đúng: ${corr}), hãy giải thích bản chất cốt lõi, loại trừ nhanh các phương án nhiễu còn lại và cho mẹo nhớ 5 giây!`;
+    sendTutorChatUnified(prompt, { mode: 'explain', source: 'exam_feedback' });
+  }
 }
 
 function askAiAboutCurrentTimedQuestion() {
@@ -3515,7 +3573,7 @@ function switchTab(tabName) {
     const isHomeOrTutor = (tabName === 'dashboard' || tabName === 'tutor') && !isExamViewActive;
     ftContainer.classList.toggle('hidden', isHomeOrTutor);
     if (floatingNextBtn) {
-      floatingNextBtn.classList.toggle('hidden', !isExamViewActive);
+      floatingNextBtn.classList.toggle('hidden', !isTimedModalOpen);
     }
     if (isHomeOrTutor) {
       closeFloatingTutor();
@@ -3544,11 +3602,13 @@ function switchTab(tabName) {
   playSound('click');
   if (tabName === 'dashboard') renderDashboard();
   if (tabName === 'exam') {
-    const examSel = document.getElementById('exam-subject-select');
-    if (examSel && STATE.activeSubjectId && examSel.value !== String(STATE.activeSubjectId)) {
-      examSel.value = String(STATE.activeSubjectId);
+    if (!STATE.exam?.active) {
+      const examSel = document.getElementById('exam-subject-select');
+      if (examSel && STATE.activeSubjectId && examSel.value !== String(STATE.activeSubjectId)) {
+        examSel.value = String(STATE.activeSubjectId);
+      }
+      onExamSubjectChange();
     }
-    onExamSubjectChange();
   }
   if (tabName === 'exercises') loadExercisesView();
   if (tabName === 'essay') loadEssayView();
@@ -3556,10 +3616,15 @@ function switchTab(tabName) {
   if (tabName === 'mistakes') renderMistakeNotebook();
   if (tabName === 'search') loadBankQuestions();
   if (tabName === 'tutor') {
+    const tutorSel = document.getElementById('tutor-subject-select');
+    if (tutorSel && STATE.activeSubjectId && Array.from(tutorSel.options).some((o) => String(o.value) === String(STATE.activeSubjectId))) {
+      tutorSel.value = String(STATE.activeSubjectId);
+    }
     renderTutorQuickPrompts();
     updateTutorModeUI();
     updateTutorPersonaUI();
     renderSharedTutorHistory();
+    if (typeof refreshTutorEngineHealthBadge === 'function') refreshTutorEngineHealthBadge();
     if (typeof syncTutorSessionsFromServer === 'function') syncTutorSessionsFromServer();
   }
   if (tabName === 'arena') initArenaView();
@@ -3678,6 +3743,109 @@ function switchDashboardStudioTab(tabKey) {
     btn.classList.toggle('btn-soft', !active);
   });
 }
+window.switchDashboardStudioTab = switchDashboardStudioTab;
+
+function switchDashboardInsightsTab(tabKey = 'schedule') {
+  ['schedule', 'analytics', 'notebook'].forEach((k) => {
+    document.getElementById(`dash-insights-${k}`)?.classList.toggle('hidden', k !== tabKey);
+  });
+  document.querySelectorAll('.dash-insights-tab').forEach((btn) => {
+    const active = btn.getAttribute('data-insights-tab') === tabKey;
+    btn.classList.toggle('btn-primary', active);
+    btn.classList.toggle('btn-soft', !active);
+  });
+  if (typeof playSound === 'function') playSound('click');
+  if (typeof refreshIcons === 'function') refreshIcons();
+}
+window.switchDashboardInsightsTab = switchDashboardInsightsTab;
+
+function toggleExamAdvancedConfig(forceState) {
+  const drawer = document.getElementById('exam-advanced-config-drawer');
+  const chev = document.getElementById('exam-adv-chevron');
+  const btn = document.getElementById('btn-exam-advanced-toggle');
+  if (!drawer) return;
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : drawer.classList.contains('hidden');
+  drawer.classList.toggle('hidden', !shouldOpen);
+  if (chev) chev.textContent = shouldOpen ? '▴' : '▾';
+  if (btn) {
+    btn.classList.toggle('btn-primary', shouldOpen);
+    btn.classList.toggle('btn-soft', !shouldOpen);
+  }
+  if (typeof playSound === 'function') playSound('click');
+}
+window.toggleExamAdvancedConfig = toggleExamAdvancedConfig;
+
+function toggleFeedbackExtraAiTools(forceState) {
+  const wrap = document.getElementById('q-feedback-more-ai-wrap');
+  const chev = document.getElementById('feedback-more-ai-chevron');
+  const btn = document.getElementById('btn-feedback-more-ai');
+  if (!wrap) return;
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden', !shouldOpen);
+  if (chev) chev.textContent = shouldOpen ? '▴' : '▾';
+  if (btn) {
+    btn.classList.toggle('btn-primary', shouldOpen);
+    btn.classList.toggle('btn-soft', !shouldOpen);
+  }
+  if (typeof playSound === 'function') playSound('click');
+  if (typeof refreshIcons === 'function') refreshIcons();
+}
+window.toggleFeedbackExtraAiTools = toggleFeedbackExtraAiTools;
+
+function toggleFloatingTutorSettings(forceState) {
+  const drawer = document.getElementById('ft-settings-drawer');
+  const chev = document.getElementById('ft-settings-chevron');
+  const btn = document.getElementById('btn-ft-mode-toggle');
+  if (!drawer) return;
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : drawer.classList.contains('hidden');
+  drawer.classList.toggle('hidden', !shouldOpen);
+  if (chev) chev.textContent = shouldOpen ? '▴' : '▾';
+  if (btn) {
+    btn.classList.toggle('btn-primary', shouldOpen);
+    btn.classList.toggle('btn-soft', !shouldOpen);
+  }
+  if (typeof playSound === 'function') playSound('click');
+}
+window.toggleFloatingTutorSettings = toggleFloatingTutorSettings;
+
+async function refreshTutorEngineHealthBadge() {
+  const badge = document.getElementById('tutor-engine-health-badge');
+  if (!badge) return;
+  if (STATE?.isOfflineStandalone) {
+    badge.textContent = '🟡 Chế độ Ngoại tuyến';
+    badge.className = 'badge-amber text-[10px] px-2 py-0.5 rounded-full font-bold';
+    return;
+  }
+  try {
+    const res = await apiFetch('/api/ai/key-status');
+    const activeCount = Number(res?.active_count ?? res?.active_keys ?? res?.ready_keys ?? 0);
+    if (activeCount > 0 || res?.ok) {
+      badge.textContent = activeCount > 0 ? `🟢 AI Sẵn sàng (${activeCount} kênh khỏe)` : '🟢 AI Sẵn sàng';
+      badge.className = 'badge-emerald text-[10px] px-2 py-0.5 rounded-full font-bold';
+    }
+  } catch (_) {}
+}
+window.refreshTutorEngineHealthBadge = refreshTutorEngineHealthBadge;
+
+async function retryLastTutorMessage() {
+  if (tutorSendingLock || !Array.isArray(floatingTutorChatHistory) || !floatingTutorChatHistory.length) return;
+  const last = floatingTutorChatHistory[floatingTutorChatHistory.length - 1];
+  if (last && last.role === 'model' && (last.provider_used === 'fallback' || String(last.id || '').endsWith('_err'))) {
+    floatingTutorChatHistory.pop();
+  }
+  let userRec = null;
+  for (let i = floatingTutorChatHistory.length - 1; i >= 0; i--) {
+    if (floatingTutorChatHistory[i]?.role === 'user') {
+      userRec = floatingTutorChatHistory.splice(i, 1)[0];
+      break;
+    }
+  }
+  if (!userRec || !userRec.content) return;
+  saveSharedTutorHistory();
+  renderActiveTutorMessages();
+  await sendTutorChatUnified(userRec.content, { mode: userRec.mode || currentTutorMode, source: 'retry' });
+}
+window.retryLastTutorMessage = retryLastTutorMessage;
 
 function openExamForSubjectCode(code, fallbackId) {
   const matched = (STATE.subjects || []).find((s) => String(s.code).toUpperCase() === String(code).toUpperCase());
@@ -4587,8 +4755,8 @@ async function startAdaptiveSmartExam(customSid = null) {
       const isBookmarked = bookmarkIds.has(qid);
       const hasImg = Boolean(q.image_url && String(q.image_url).trim());
       const isTrap = /NGOẠI TRỪ|KHÔNG ĐÚNG|\bSAI\b/i.test(txt);
-      const bloomKey = typeof getBloomInfo === 'function' ? getBloomInfo(q.difficulty, txt).key : 'understand';
-      const bloomBonus = bloomKey === 'analyze' ? 18 : bloomKey === 'apply' ? 12 : 4;
+      const bloomKey = typeof getBloomInfo === 'function' ? getBloomInfo(q.difficulty, txt).key : 'medium';
+      const bloomBonus = (bloomKey === 'very_hard' || bloomKey === 'analyze') ? 18 : (bloomKey === 'hard' || bloomKey === 'apply') ? 12 : 4;
 
       const score =
         (isMistake ? 130 : 0) +
@@ -4726,6 +4894,14 @@ function launchExamWithQuestions(rawQuestions, title, forceNoShuffle = false) {
     });
   }
 
+  if (STATE.exam.subjectId) {
+    const exSub = (STATE.subjects || []).find((s) => Number(s.id) === Number(STATE.exam.subjectId));
+    if (exSub) {
+      STATE.activeSubjectId = exSub.id;
+      setText('active-subj-name', exSub.name);
+      if (exSub.icon) setText('active-subj-icon', exSub.icon);
+    }
+  }
   if (typeof switchTab === 'function') switchTab('exam');
   document.getElementById('exam-config-screen')?.classList.add('hidden');
   document.getElementById('exam-result-screen')?.classList.add('hidden');
@@ -4816,21 +4992,25 @@ function renderCurrentExamQuestion() {
   if (typeof pinnedTutorQuestion !== 'undefined' && pinnedTutorQuestion && pinnedTutorQuestion.source === 'exam') {
     const parsedH = parseQuestionHeader(q.question_text || '');
     const cleanT = (parsedH.body || q.question_text || '').replace(/<[^>]+>/g, '').trim();
+    const isGradedNow = Boolean(STATE.exam.graded[q.id]);
+    const hideKey = !isGradedNow && STATE.exam.mode === 'real';
     pinnedTutorQuestion.id = q.id;
     pinnedTutorQuestion.shortTitle = `Câu ${STATE.exam.currentIndex + 1}`;
     pinnedTutorQuestion.fullTitle = cleanT;
-    pinnedTutorQuestion.topic = parsedH.topic || '';
+    pinnedTutorQuestion.topic = parsedH.topic || q.topic_tag || '';
     pinnedTutorQuestion.code_snippet = q.code_snippet || '';
     pinnedTutorQuestion.option_a = q.option_a || '';
     pinnedTutorQuestion.option_b = q.option_b || '';
     pinnedTutorQuestion.option_c = q.option_c || '';
     pinnedTutorQuestion.option_d = q.option_d || '';
-    pinnedTutorQuestion.correct_option = q._effectiveCorrect || '';
-    pinnedTutorQuestion.explanation = q.explanation || '';
+    pinnedTutorQuestion.correct_option = hideKey ? '' : (q._effectiveCorrect || '');
+    pinnedTutorQuestion.explanation = hideKey ? '' : (q.explanation || '');
     pinnedTutorQuestion.user_answer = STATE.exam.answers[q.id] || '';
-    setText('ft-pinned-q-title', `📌 Câu ${STATE.exam.currentIndex + 1} • ${pinnedTutorQuestion.topic || 'Kiến thức cốt lõi'}`);
-    setText('ft-pinned-q-body', cleanT.substring(0, 110) + (cleanT.length > 110 ? '...' : ''));
+    pinnedTutorQuestion.is_correct = isGradedNow ? (String(pinnedTutorQuestion.user_answer).toUpperCase() === String(q._effectiveCorrect || '').toUpperCase()) : undefined;
+    persistPinnedTutorContext(pinnedTutorQuestion);
     syncFloatingTutorSubjectContext();
+    syncTutorContextBarsUI();
+    renderFloatingActionChips();
   }
   setText('answered-q-count', `${answeredCount}/${total}`);
   const bar = document.getElementById('exam-progress-bar');
@@ -5008,7 +5188,9 @@ function renderCurrentExamQuestion() {
   const ftContainer = document.getElementById('floating-tutor-container');
   if (ftContainer) ftContainer.classList.remove('hidden');
   if (floatingNextBtn) {
-    floatingNextBtn.classList.remove('hidden');
+    const timedModal = document.getElementById('modal-timed-exam');
+    const isTimedModalOpen = Boolean(timedModal && !timedModal.classList.contains('hidden'));
+    floatingNextBtn.classList.toggle('hidden', !isTimedModalOpen);
   }
 
   if (isLast) {
@@ -5564,13 +5746,18 @@ async function requestAiConceptRecall() {
 
 async function requestAiHint() {
   const q = STATE.exam.questions[STATE.exam.currentIndex];
-  if (!q || STATE.exam.hints[q.id]) return;
+  if (!q) return;
+  if (STATE.exam.hints[q.id]) {
+    document.getElementById('q-hint-box')?.classList.toggle('hidden');
+    return;
+  }
   const hintBox = document.getElementById('q-hint-box');
   const hintContent = document.getElementById('q-hint-content');
   if (hintBox && hintContent) {
     hintBox.classList.remove('hidden');
     hintContent.innerHTML = `<div class="skeleton-shimmer h-8 w-full"></div>`;
   }
+  playSound('click');
   const res = await apiFetch('/api/ai/hint', {
     method: 'POST',
     body: JSON.stringify({
@@ -5579,7 +5766,7 @@ async function requestAiHint() {
       options: [q.option_a, q.option_b, q.option_c, q.option_d]
     })
   });
-  STATE.exam.hints[q.id] = res.hint || '';
+  STATE.exam.hints[q.id] = res.hint || 'Hãy đọc kỹ từ khóa phủ định và đối chiếu đơn vị chuẩn.';
   renderCurrentExamQuestion();
 }
 
@@ -6424,7 +6611,15 @@ function setupKeyboardShortcuts() {
       };
       const fallback = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
       const chosen = map[e.code] || fallback[e.key];
-      if (chosen) { e.preventDefault(); selectExamOption(chosen, true); return; }
+      if (chosen) {
+        e.preventDefault();
+        if (e.shiftKey && typeof toggleUserEliminateOption === 'function') {
+          toggleUserEliminateOption(null, chosen);
+        } else {
+          selectExamOption(chosen, true);
+        }
+        return;
+      }
 
       if (e.key === 'ArrowRight') { e.preventDefault(); nextQuestion(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); prevQuestion(); }
@@ -6932,6 +7127,36 @@ const TUTOR_PROMPT_PRESETS = {
     '🛡️ Giải thích 5 nguyên lý SOLID dễ hiểu nhất bằng ví dụ thực tế C#',
     '⚙️ Phân biệt Value Type (Stack) và Reference Type (Heap) & cơ chế Boxing/Unboxing'
   ],
+  TOAN_RR: [
+    '🧮 Rút gọn biểu thức Boole bằng bìa Karnaugh (K-Map) và chuẩn tắc DNF / CNF',
+    '🕸️ Điều kiện chu trình Euler vs Hamilton và bảng chạy từng bước Dijkstra',
+    '🔢 Mẹo phân biệt Hoán vị, Chỉnh hợp, Tổ hợp lặp, Nguyên lý Bù trừ & Dirichlet',
+    '📐 Quan hệ tương đương, Quan hệ thứ tự & Biểu đồ Hasse dễ nhớ nhất'
+  ],
+  CTDL_GT: [
+    '🌳 Giải thích 4 phép xoay cân bằng cây AVL (LL, RR, LR, RL) & duyệt NLR, LNR, LRN',
+    '⚡ So sánh độ phức tạp Big-O & tính ổn định của QuickSort, MergeSort, HeapSort',
+    '🧭 Cây khung nhỏ nhất Kruskal vs Prim và tìm kiếm đồ thị BFS vs DFS',
+    '🔗 Xử lý đụng độ Bảng băm (Chaining vs Linear Probing) & Định lý Master'
+  ],
+  NNLT_PYTHON: [
+    '🐍 Phân biệt List, Tuple, Set, Dict và kỹ thuật List Comprehension tối ưu',
+    '🔄 Tham chiếu biến Mutable vs Immutable khi truyền vào hàm Python (bẫy đề thi)',
+    '📂 Xử lý ngoại lệ try-except-else-finally và đọc ghi file an toàn với with open()',
+    '⚡ Độ phức tạp các thao tác trên List / Dict và mẹo nhẩm nhanh Output đệ quy'
+  ],
+  HOASINH_YDS_2024: [
+    '🧬 Điểm điều hòa dị lập thể quan trọng nhất của Đường phân, Chu trình Krebs & Tân tạo đường',
+    '🩸 Phân biệt Vàng da trước gan, tại gan và sau gan qua Bilirubin máu & nước tiểu',
+    '⚡ Tổng hợp năng lượng ATP từ 1 phân tử Glucose và β-oxy hóa Acid béo Palmitic',
+    '🧪 Biện luận rối loạn Lipoprotein, Ketone thể và các câu bẫy NGOẠI TRỪ Hóa sinh YDS'
+  ],
+  kysinh_trung: [
+    '🪱 Phân biệt chu trình phát triển, thể lây nhiễm & ký chủ của Giun đũa, Giun móc, Giun lươn',
+    '🔬 Đặc điểm nhận diện tiêu bản trứng giun - sán và thể tư dưỡng / bào nang đơn bào',
+    '🦟 So sánh Plasmodium falciparum và P. vivax trên lam máu ngoại vi & phác đồ điều trị',
+    '⚡ Tổng hợp các câu bẫy NGOẠI TRỪ hay gặp nhất trong ngân hàng Ký Sinh Trùng Y Học'
+  ],
   CS101: [
     '⚡ Độ phức tạp thuật toán Big-O của các thuật toán sắp xếp phổ biến (QuickSort, MergeSort)',
     '🌳 Duyệt cây nhị phân tìm kiếm (BST): Pre-order, In-order, Post-order',
@@ -6963,6 +7188,10 @@ function renderTutorQuickPrompts() {
 
 function onTutorSubjectChange() {
   renderTutorQuickPrompts();
+  syncFloatingTutorSubjectContext();
+  if (!Array.isArray(floatingTutorChatHistory) || !floatingTutorChatHistory.length) {
+    renderActiveTutorMessages();
+  }
   playSound('click');
 }
 
@@ -17729,7 +17958,7 @@ document.addEventListener('keydown', (e) => {
     const visible = drafts.filter((d) => d.progress_type !== 'tutor');
     if (!visible.length) return '';
 
-    const itemsHtml = visible
+    const renderedCards = visible
       .slice(0, context === 'dashboard' ? 4 : 6)
       .map((d) => {
         const meta = typeMeta[d.progress_type] || typeMeta.exam;
@@ -17793,22 +18022,30 @@ document.addEventListener('keydown', (e) => {
             </div>
           </div>
         `;
-      })
-      .join('');
+      });
+
+    const primaryCard = renderedCards[0] || '';
+    const extraCards = renderedCards.slice(1);
+    const extraWrapId = `resume-extra-list-${escapeHtml(context)}`;
 
     return `
-      <div class="uni-card resume-panel-card p-4 sm:p-5 space-y-3 animate-fade-in">
+      <div class="uni-card resume-panel-card p-3.5 sm:p-4 space-y-2.5 animate-fade-in">
         <div class="flex items-center justify-between gap-2 flex-wrap">
           <div class="flex items-center gap-2">
-            <span class="text-lg">📌</span>
+            <span class="text-base">📌</span>
             <div>
-              <h3 class="text-sm sm:text-base font-black txt-main leading-tight">Đang Làm Dở — Tiếp Tục Ngay</h3>
-              <p class="text-[11px] txt-muted font-semibold">Tiến trình được tự động lưu đồng bộ trên máy &amp; Server cho tài khoản <span class="txt-brand font-bold">${escapeHtml(getProgressAccountId())}</span></p>
+              <h3 class="text-xs sm:text-sm font-black txt-main leading-tight">Đang Làm Dở — Tiếp Tục Ngay</h3>
             </div>
           </div>
-          <span class="badge-brand text-[11px] px-2.5 py-0.5 rounded-full font-extrabold">${visible.length} phiên đang lưu</span>
+          <div class="flex items-center gap-2">
+            ${extraCards.length ? `
+            <button type="button" onclick="document.getElementById('${extraWrapId}')?.classList.toggle('hidden')" class="btn-soft px-2.5 py-1 text-[11px] font-bold rounded-lg">
+              📂 +${extraCards.length} phiên khác ▾
+            </button>` : `<span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-extrabold">1 phiên lưu</span>`}
+          </div>
         </div>
-        <div class="space-y-2.5">${itemsHtml}</div>
+        <div>${primaryCard}</div>
+        ${extraCards.length ? `<div id="${extraWrapId}" class="hidden space-y-2 max-h-52 overflow-y-auto pr-1 pt-1 border-t" style="border-color: var(--border);">${extraCards.join('')}</div>` : ''}
       </div>
     `;
   }
@@ -20057,10 +20294,11 @@ window.prevExercise = prevExercise;
 /**
  * Toggle advanced settings drawer in AI Tutor header
  */
-function toggleTutorAdvancedSettings() {
+function toggleTutorAdvancedSettings(forceState) {
   const drawer = document.getElementById('tutor-advanced-settings');
   if (!drawer) return;
-  drawer.classList.toggle('hidden');
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : drawer.classList.contains('hidden');
+  drawer.classList.toggle('hidden', !shouldOpen);
 }
 
 // =========================================================================

@@ -3614,11 +3614,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v47-1';
+    const CACHE_NAME = 'unimaster-pwa-v48-1';
     const CORE_ASSETS = [
-      '/static/style.css?v=47.1',
+      '/static/style.css?v=48.1',
       '/static/minimal.css?v=3.0',
-      '/static/app.js?v=47.1',
+      '/static/app.js?v=48.1',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -6922,6 +6922,7 @@ def create_app():
 
     # Missing endpoints surfaced by test_server_endpoints.py
     app.router.add_get("/api/ai/key-status", api_ai_key_status)
+    app.router.add_get("/api/ai/key-health", api_ai_key_status)
     app.router.add_get("/api/network/qr-info", api_network_qr_info)
     app.router.add_get("/api/battle/leaderboard", api_battle_leaderboard)
     app.router.add_get("/api/stem/reference", api_stem_reference)

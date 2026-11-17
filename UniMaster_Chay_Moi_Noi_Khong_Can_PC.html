@@ -1523,16 +1523,16 @@ body.zen-active #exit-zen-btn {
 }
 
 
-/* Enhanced Floating AI Tutor (Docked chế độ thường & Centered Modal khi Mở Rộng) */
+/* Enhanced Floating AI Tutor (Docked chế độ thường gọn gàng không che đề & Centered Modal khi Mở Rộng) */
 #floating-tutor-window {
-  width: min(520px, 95vw) !important;
-  max-width: 520px !important;
-  height: min(78vh, 720px) !important;
-  max-height: 80vh !important;
+  width: min(440px, 94vw) !important;
+  max-width: 440px !important;
+  height: min(68vh, 620px) !important;
+  max-height: 72vh !important;
   border-radius: 1.25rem !important;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8), 0 0 30px -5px var(--brand-glow) !important;
+  box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.65), 0 0 24px -6px var(--brand-glow) !important;
   margin-bottom: 0.25rem !important;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1) !important;
 }
 
 #floating-tutor-window.expanded {
@@ -3116,9 +3116,9 @@ main:has(#view-tutor:not(.hidden)) {
 /* Gemini Welcome Hero */
 .gemini-welcome-container {
   max-width: 820px;
-  margin: 1.5rem auto;
+  margin: 0.5rem auto 1rem auto;
   text-align: left;
-  padding: 1.5rem 1rem;
+  padding: 0.75rem 1rem;
 }
 
 .gemini-hero-greeting {
@@ -3144,17 +3144,17 @@ main:has(#view-tutor:not(.hidden)) {
 }
 
 .gemini-prompt-card {
-  background: rgba(30, 31, 35, 0.7);
+  background: var(--bg-subtle);
   backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--border);
   border-radius: 18px;
-  padding: 1.15rem;
+  padding: 1.05rem;
   cursor: pointer;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 130px;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  min-height: 118px;
+  transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
@@ -3174,9 +3174,9 @@ main:has(#view-tutor:not(.hidden)) {
 }
 
 .gemini-prompt-card:hover {
-  transform: translateY(-3px);
-  background: rgba(40, 42, 48, 0.85);
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 0 20px rgba(155, 114, 207, 0.2);
+  transform: translateY(-2px);
+  background: var(--bg-hover);
+  box-shadow: 0 10px 24px -8px rgba(99, 102, 241, 0.25);
 }
 
 .gemini-prompt-card:hover::before {
@@ -3185,28 +3185,30 @@ main:has(#view-tutor:not(.hidden)) {
 
 .gemini-prompt-card-text {
   font-size: 0.875rem;
-  color: #f1f5f9;
-  font-weight: 600;
+  color: var(--text-main);
+  font-weight: 700;
   line-height: 1.45;
 }
 
 .gemini-prompt-card-sub {
   font-size: 0.75rem;
-  color: #94a3b8;
+  color: var(--text-muted);
   margin-top: 0.35rem;
 }
 
 .gemini-prompt-card-icon {
   align-self: flex-end;
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.06);
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  color: var(--text-main);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.95rem;
-  margin-top: 0.75rem;
+  font-size: 0.9rem;
+  margin-top: 0.65rem;
   transition: background 0.2s ease, transform 0.2s ease;
 }
 
@@ -3356,22 +3358,22 @@ main:has(#view-tutor:not(.hidden)) {
 }
 
 .gemini-input-capsule {
-  background: rgba(24, 25, 28, 0.95);
+  background: var(--bg-subtle);
   backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1.5px solid var(--border);
   border-radius: 28px;
-  padding: 0.65rem 0.85rem 0.65rem 1.25rem;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.04);
+  padding: 0.6rem 0.8rem 0.6rem 1.2rem;
+  box-shadow: 0 6px 20px -6px rgba(0, 0, 0, 0.2);
   display: flex;
   align-items: flex-end;
   gap: 0.65rem;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
 }
 
 .gemini-input-capsule:focus-within {
-  border-color: rgba(155, 114, 207, 0.65);
-  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45), 0 0 0 3px rgba(66, 133, 244, 0.2);
+  border-color: var(--brand);
+  box-shadow: 0 8px 24px -6px var(--brand-glow), 0 0 0 2px rgba(99, 102, 241, 0.18);
 }
 
 .gemini-textarea {
@@ -3379,7 +3381,7 @@ main:has(#view-tutor:not(.hidden)) {
   background: transparent;
   border: none;
   outline: none;
-  color: #f8fafc;
+  color: var(--text-main);
   font-size: 0.95rem;
   line-height: 1.5;
   resize: none;
@@ -4152,99 +4154,85 @@ main:has(#view-tutor:not(.hidden)) {
   display: none !important;
 }
 
-/* Gemini-style AI Tutor header bar */
+/* Theme-aware AI Tutor header bar (Supports both Dark & Light modes + Mobile wrap) */
 .gemini-header-bar {
-  background: linear-gradient(135deg, #1e1e29 0%, #161621 100%);
-  border-bottom: 1px solid #3a3a4f;
-  padding: 0 16px;
-  height: 56px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  padding: 0.75rem 1rem;
+  min-height: 56px;
+  height: auto;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-.gemini-header-bar .header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.gemini-header-bar .header-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 0 12px;
-}
-
-.gemini-header-bar .header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Collapsible advanced settings drawer */
+/* Collapsible advanced settings drawer (Full-width inline card, never squished to 280px) */
 #tutor-advanced-settings {
-  position: absolute;
-  top: 56px;
-  right: 0;
-  width: 320px;
-  max-width: 280px;
-  background: #1e1e29;
-  border: 1px solid #3a3a4f;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  padding: 12px;
-  z-index: 100;
+  position: relative;
+  top: auto;
+  right: auto;
+  width: 100%;
+  max-width: none;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  box-shadow: 0 8px 24px -8px rgba(0, 0, 0, 0.2);
+  padding: 1rem;
+  z-index: 20;
   font-size: 13px;
 }
 
 #tutor-advanced-settings.hidden {
-  display: none;
+  display: none !important;
 }
 
-/* Soft rounded preset pills for Gemini aesthetic */
+/* Theme-aware soft rounded preset pills */
 .preset-pill {
-  background: #2e2e3a;
-  color: #c9c9d1;
-  border: 1px solid #3a3a4f;
-  border-radius: 16px;
-  padding: 4px 12px;
+  background: var(--bg-surface);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  padding: 5px 12px;
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .preset-pill:hover {
-  background: #3a3a4f;
-  color: #ffffff;
+  background: var(--bg-hover);
+  color: var(--text-main);
+  border-color: var(--brand);
 }
 
 .preset-pill.active {
-  background: #3b82f6;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
   color: #ffffff;
-  border-color: #60a5fa;
+  border-color: transparent;
+  box-shadow: 0 4px 12px -3px var(--brand-glow);
 }
 
-/* Soft AI chip buttons */
+/* Theme-aware soft AI chip buttons */
 .ai-chip-btn {
-  background: #2e2e3a;
-  color: #e5e7eb;
-  border: 1px solid #3a3a4f;
-  border-radius: 16px;
-  padding: 4px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 6px 12px;
   font-size: 12px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .ai-chip-btn:hover {
-  background: #3a3a4f;
-  color: #ffffff;
+  background: var(--bg-hover);
+  border-color: var(--brand);
+  transform: translateY(-1px);
 }
 
 /* Responsive adjustments for high-density layout - duy tri dong bo 20px tuyet doi */
@@ -4273,52 +4261,54 @@ main:has(#view-tutor:not(.hidden)) {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Tutor mode pills - Gemini aesthetic */
+/* Theme-aware Tutor mode pills */
 .tutor-mode-pill {
-  background: #2e2e3a;
-  color: #d1d5db;
-  border: 1px solid #3a3a4f;
-  border-radius: 16px;
+  background: var(--bg-surface);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+  border-radius: 9999px;
   padding: 4px 12px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
 }
 
 .tutor-mode-pill:hover {
-  background: #3a3a4f;
-  color: #ffffff;
+  background: var(--bg-hover);
+  color: var(--text-main);
+  border-color: var(--brand);
 }
 
 .tutor-mode-pill.active {
-  background: #3b82f6;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2));
   color: #ffffff;
-  border-color: #60a5fa;
+  border-color: transparent;
 }
 
-/* Tutor drawer tabs */
+/* Theme-aware Tutor drawer tabs */
 .tutor-drawer-tab {
-  background: #252526;
-  color: #a0a0b0;
-  border: 1px solid #3a3a4f;
-  border-radius: 8px;
+  background: var(--bg-subtle);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
   padding: 4px 10px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .tutor-drawer-tab:hover {
-  background: #3a3a4f;
-  color: #ffffff;
+  background: var(--bg-hover);
+  color: var(--text-main);
 }
 
 .tutor-drawer-tab.active {
-  background: #007acc;
+  background: var(--brand);
   color: #ffffff;
-  border-color: #60a5fa;
+  border-color: transparent;
 }
 
 /* Gemini sparkle icon animation */
@@ -4490,127 +4480,7 @@ main:has(#view-tutor:not(.hidden)) {
   display: none !important;
 }
 
-/* Gemini-style AI Tutor header bar */
-.gemini-header-bar {
-  background: linear-gradient(135deg, #1e1e29 0%, #161621 100%);
-  border-bottom: 1px solid #3a3a4f;
-  padding: 0 16px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-shrink: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-}
-
-.gemini-header-bar .header-left {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.gemini-header-bar .header-center {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 0 12px;
-}
-
-.gemini-header-bar .header-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-/* Collapsible advanced settings drawer */
-#tutor-advanced-settings {
-  position: absolute;
-  top: 56px;
-  right: 0;
-  width: 320px;
-  max-width: 280px;
-  background: #1e1e29;
-  border: 1px solid #3a3a4f;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  padding: 12px;
-  z-index: 100;
-  font-size: 13px;
-}
-
-#tutor-advanced-settings.hidden {
-  display: none;
-}
-
-/* Soft rounded preset pills for Gemini aesthetic */
-.preset-pill {
-  background: #2e2e3a;
-  color: #c9c9d1;
-  border: 1px solid #3a3a4f;
-  border-radius: 16px;
-  padding: 4px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.preset-pill:hover {
-  background: #3a3a4f;
-  color: #ffffff;
-}
-
-.preset-pill.active {
-  background: #3b82f6;
-  color: #ffffff;
-  border-color: #60a5fa;
-}
-
-/* Soft AI chip buttons */
-.ai-chip-btn {
-  background: #2e2e3a;
-  color: #e5e7eb;
-  border: 1px solid #3a3a4f;
-  border-radius: 16px;
-  padding: 4px 12px;
-  font-size: 12px;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.ai-chip-btn:hover {
-  background: #3a3a4f;
-  color: #ffffff;
-}
-
-/* Responsive adjustments for high-density layout - duy tri dong bo 20px */
-@media (max-width: 1024px) {
-  #code-editor-textarea {
-    font-size: 13px !important;
-    line-height: 20px !important;
-  }
-  
-  .vscode-gutter {
-    width: 38px !important;
-    font-size: 13px !important;
-    line-height: 20px !important;
-  }
-
-  .vscode-gutter-line,
-  .vscode-gutter-lines > div {
-    height: 20px !important;
-    line-height: 20px !important;
-    font-size: 13px !important;
-  }
-}
-
-/* Smooth transitions for sidebar toggle */
-#exercise-sidebar-col,
-#exercise-main-col {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
+/* Duplicate legacy tutor/pill rules removed in v48.1 so theme-aware full-width #tutor-advanced-settings applies cleanly */
 
 /* ============================================================================
    UNIMASTER AI v42.0 ULTRA-UX & BENTO STUDIO POLISH STYLES
@@ -5075,25 +4945,25 @@ main:has(#view-tutor:not(.hidden)) {
       <!-- Center: Clean 7-Tab Navigation Pills -->
       <nav class="hidden lg:flex items-center gap-0.5 p-1 rounded-2xl shrink min-w-0 overflow-x-auto no-scrollbar border shadow-inner" style="background-color: var(--bg-subtle); border-color: var(--border);">
         <span id="nav-indicator" class="nav-indicator" aria-hidden="true"></span>
-        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Tổng quan (Phím tắt: 1)">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Tổng quan (Phím tắt: 1)">
           <i data-lucide="home" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Tổng quan</span>
         </button>
-        <button onclick="switchTab('exam')" id="tab-exam" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Phòng thi (Phím tắt: 2)">
+        <button onclick="switchTab('exam')" id="tab-exam" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Phòng thi (Phím tắt: 2)">
           <i data-lucide="zap" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Phòng thi</span>
         </button>
-        <button onclick="switchTab('exercises')" id="tab-exercises" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Luyện Code (Phím tắt: 3)">
+        <button onclick="switchTab('exercises')" id="tab-exercises" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Luyện Code (Phím tắt: 3)">
           <i data-lucide="code-2" class="w-3.5 h-3.5 shrink-0 text-cyan-400"></i> <span class="nav-tab-text">Code</span>
         </button>
-        <button onclick="switchTab('essay')" id="tab-essay" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Luyện Tự luận (Phím tắt: 4)">
+        <button onclick="switchTab('essay')" id="tab-essay" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Luyện Tự luận (Phím tắt: 4)">
           <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-400"></i> <span class="nav-tab-text">Tự luận</span>
         </button>
-        <button onclick="switchTab('flashcards')" id="tab-flashcards" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Thẻ nhớ ôn tập (Phím tắt: 5)">
+        <button onclick="switchTab('flashcards')" id="tab-flashcards" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Thẻ nhớ ôn tập (Phím tắt: 5)">
           <i data-lucide="layers" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Thẻ nhớ</span>
         </button>
-        <button onclick="switchTab('lab')" id="tab-lab" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="Phòng Lab & Mô phỏng (Phím tắt: 7)">
+        <button onclick="switchTab('lab')" id="tab-lab" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Phòng Lab & Mô phỏng (Phím tắt: 7)">
           <i data-lucide="flask-conical" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Lab</span>
         </button>
-        <button onclick="switchTab('tutor')" id="tab-tutor" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold" title="AI Gia sư (Phím tắt: 8)">
+        <button onclick="switchTab('tutor')" id="tab-tutor" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="AI Gia sư (Phím tắt: 8)">
           <i data-lucide="bot" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">AI Gia sư</span>
         </button>
       </nav>
@@ -5288,108 +5158,7 @@ main:has(#view-tutor:not(.hidden)) {
         <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
       </div>
 
-      <!-- 4. Calm Upcoming Exams & Daily Focus Widget (No Screaming Alarms) -->
-      <div id="survival-predictor-widget" class="uni-card p-4 sm:p-5 space-y-4">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div class="space-y-1">
-            <div class="flex flex-wrap items-center gap-2">
-              <span class="badge-brand px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider">📅 Lịch Thi &amp; Mục Tiêu Hôm Nay</span>
-              <span id="survival-quota-badge" class="badge-amber text-xs font-mono font-bold px-2.5 py-0.5 rounded-md">Quota: 0 / 40 câu</span>
-              <span id="v41-xp-badge" class="badge-emerald px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">Level 1 • 0 XP</span>
-            </div>
-            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
-              <span>🎯</span> <span id="survival-urgent-title">Theo dõi tiến độ Toán Rời Rạc, Giải Thuật &amp; các học phần sắp thi</span>
-            </h3>
-          </div>
-
-          <div class="flex flex-wrap items-center gap-2 shrink-0">
-            <button onclick="openExamForSubjectCode('TOAN_RR', 21)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-indigo-500/35">
-              <span>📐</span> Đề Toán Rời Rạc
-            </button>
-            <button onclick="openExamForSubjectCode('CTDL_GT', 82)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-cyan-500/35">
-              <span>⚡</span> Đề Giải Thuật
-            </button>
-            <button onclick="switchTab('exercises')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
-              <span>💻</span> Code IDE
-            </button>
-            <button onclick="switchTab('essay')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
-              <span>✍️</span> Tự Luận
-            </button>
-          </div>
-        </div>
-
-        <!-- 6-Exam Countdown Row (Separated Toán Rời Rạc vs Giải Thuật) -->
-        <div class="countdown-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
-          <div class="countdown-card countdown-slate p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-15-11">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>15/11/2026</span>
-              <span id="cd-badge-15-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Luyện thêm</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">OOP Thực hành C#</div>
-            <div id="countdown-15-11" class="cd-days font-mono font-black text-xs">--</div>
-          </div>
-
-          <div class="countdown-card countdown-cyan p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-16-11">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>16/11/2026</span>
-              <span id="cd-badge-16-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Giải Thuật</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">Giải Thuật (CTDL &amp; GT)</div>
-            <div id="countdown-16-11" class="cd-days font-mono font-black text-xs">--</div>
-          </div>
-
-          <div class="countdown-card countdown-amber p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-26-11">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>26/11/2026</span>
-              <span id="cd-badge-26-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">OOP Trắc nghiệm &amp; TH</div>
-            <div id="countdown-26-11" class="cd-days font-mono font-black text-xs">--</div>
-          </div>
-
-          <div class="countdown-card countdown-indigo p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-27-11">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>27/11/2026</span>
-              <span id="cd-badge-27-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">Toán Rời Rạc</div>
-            <div id="countdown-27-11" class="cd-days font-mono font-black text-xs">--</div>
-          </div>
-
-          <div class="countdown-card countdown-cyan p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-01-12">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>01/12/2026</span>
-              <span id="cd-badge-01-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">NNLT 1 (Python)</div>
-            <div id="countdown-01-12" class="cd-days font-mono font-black text-xs">--</div>
-          </div>
-
-          <div class="countdown-card countdown-emerald p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-04-12">
-            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-              <span>04/12/2026</span>
-              <span id="cd-badge-04-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
-            </div>
-            <div class="cd-title font-extrabold text-xs truncate">Anh Văn Cơ Bản 3</div>
-            <div id="countdown-04-12" class="cd-days font-mono font-black text-xs">--</div>
-          </div>
-        </div>
-
-        <!-- Daily Quests Strip -->
-        <div class="pt-3 border-t space-y-2" style="border-color: var(--border);">
-          <div class="flex items-center justify-between">
-            <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
-              <span>✅</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
-            </div>
-            <button onclick="loadDailyQuestsWidget()" class="text-[11px] font-bold txt-brand hover:underline">Làm mới</button>
-          </div>
-          <div id="daily-quests-list" class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-            <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- 5. Clean 3-Tab Studio Công Cụ Hub (No Cluttered 14-tile Neon Wall) -->
+      <!-- 4. Clean 3-Tab Studio Công Cụ Hub (No Cluttered 14-tile Neon Wall) -->
       <div id="dashboard-v41-hub" class="uni-card p-4 sm:p-5 space-y-3.5">
         <div class="flex flex-wrap items-center justify-between gap-2.5">
           <div>
@@ -5512,6 +5281,129 @@ main:has(#view-tutor:not(.hidden)) {
           </button>
         </div>
       </div>
+
+      <!-- 5. Calm 3-Tab Dashboard Insights Switcher (Cuts Vertical Scroll by ~50%, Zero Lost Features) -->
+      <div id="dashboard-insights-section" class="space-y-4">
+        <div class="flex flex-wrap items-center justify-between gap-2.5 p-2 rounded-2xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+          <div class="flex flex-wrap items-center gap-1.5">
+            <button type="button" onclick="switchDashboardInsightsTab('schedule')" data-insights-tab="schedule" class="dash-insights-tab btn-primary px-3.5 py-2 text-xs font-extrabold rounded-xl flex items-center gap-1.5">
+              <span>📅</span> <span>Lịch Thi &amp; Nhiệm Vụ</span>
+            </button>
+            <button type="button" onclick="switchDashboardInsightsTab('analytics')" data-insights-tab="analytics" class="dash-insights-tab btn-soft px-3.5 py-2 text-xs font-extrabold rounded-xl flex items-center gap-1.5">
+              <span>📊</span> <span>Tiến Độ &amp; Điểm Yếu</span>
+            </button>
+            <button type="button" onclick="switchDashboardInsightsTab('notebook')" data-insights-tab="notebook" class="dash-insights-tab btn-soft px-3.5 py-2 text-xs font-extrabold rounded-xl flex items-center gap-1.5">
+              <span>📒</span> <span>Sổ Tay &amp; Lịch Sử Thi</span>
+            </button>
+          </div>
+          <span class="hidden md:inline text-[11px] txt-muted pr-2 font-semibold">Gom gọn không gian học tập • Chuyển nhanh 1 chạm</span>
+        </div>
+
+        <!-- Insights Panel 1: Schedule & Daily Quests (Default Active) -->
+        <div id="dash-insights-schedule" class="space-y-4 animate-fade-in">
+          <div id="survival-predictor-widget" class="uni-card p-4 sm:p-5 space-y-4">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+              <div class="space-y-1">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="badge-brand px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider">📅 Lịch Thi &amp; Mục Tiêu Hôm Nay</span>
+                  <span id="survival-quota-badge" class="badge-amber text-xs font-mono font-bold px-2.5 py-0.5 rounded-md">Quota: 0 / 40 câu</span>
+                  <span id="v41-xp-badge" class="badge-emerald px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">Level 1 • 0 XP</span>
+                </div>
+                <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+                  <span>🎯</span> <span id="survival-urgent-title">Theo dõi tiến độ Toán Rời Rạc, Giải Thuật &amp; các học phần sắp thi</span>
+                </h3>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-2 shrink-0">
+                <button onclick="openExamForSubjectCode('TOAN_RR', 21)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-indigo-500/35">
+                  <span>📐</span> Đề Toán Rời Rạc
+                </button>
+                <button onclick="openExamForSubjectCode('CTDL_GT', 82)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-cyan-500/35">
+                  <span>⚡</span> Đề Giải Thuật
+                </button>
+                <button onclick="switchTab('exercises')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+                  <span>💻</span> Code IDE
+                </button>
+                <button onclick="switchTab('essay')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+                  <span>✍️</span> Tự Luận
+                </button>
+              </div>
+            </div>
+
+            <!-- 6-Exam Countdown Row (Separated Toán Rời Rạc vs Giải Thuật) -->
+            <div class="countdown-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+              <div class="countdown-card countdown-slate p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-15-11">
+                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+                  <span>15/11/2026</span>
+                  <span id="cd-badge-15-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Luyện thêm</span>
+                </div>
+                <div class="cd-title font-extrabold text-xs truncate">OOP Thực hành C#</div>
+                <div id="countdown-15-11" class="cd-days font-mono font-black text-xs">--</div>
+              </div>
+
+              <div class="countdown-card countdown-cyan p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-16-11">
+                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+                  <span>16/11/2026</span>
+                  <span id="cd-badge-16-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Giải Thuật</span>
+                </div>
+                <div class="cd-title font-extrabold text-xs truncate">Giải Thuật (CTDL &amp; GT)</div>
+                <div id="countdown-16-11" class="cd-days font-mono font-black text-xs">--</div>
+              </div>
+
+              <div class="countdown-card countdown-amber p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-26-11">
+                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+                  <span>26/11/2026</span>
+                  <span id="cd-badge-26-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
+                </div>
+                <div class="cd-title font-extrabold text-xs truncate">OOP Trắc nghiệm &amp; TH</div>
+                <div id="countdown-26-11" class="cd-days font-mono font-black text-xs">--</div>
+              </div>
+
+              <div class="countdown-card countdown-indigo p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-27-11">
+                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+                  <span>27/11/2026</span>
+                  <span id="cd-badge-27-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
+                </div>
+                <div class="cd-title font-extrabold text-xs truncate">Toán Rời Rạc</div>
+                <div id="countdown-27-11" class="cd-days font-mono font-black text-xs">--</div>
+              </div>
+
+              <div class="countdown-card countdown-cyan p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-01-12">
+                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+                  <span>01/12/2026</span>
+                  <span id="cd-badge-01-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
+                </div>
+                <div class="cd-title font-extrabold text-xs truncate">NNLT 1 (Python)</div>
+                <div id="countdown-01-12" class="cd-days font-mono font-black text-xs">--</div>
+              </div>
+
+              <div class="countdown-card countdown-emerald p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-04-12">
+                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+                  <span>04/12/2026</span>
+                  <span id="cd-badge-04-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
+                </div>
+                <div class="cd-title font-extrabold text-xs truncate">Anh Văn Cơ Bản 3</div>
+                <div id="countdown-04-12" class="cd-days font-mono font-black text-xs">--</div>
+              </div>
+            </div>
+
+            <!-- Daily Quests Strip -->
+            <div class="pt-3 border-t space-y-2" style="border-color: var(--border);">
+              <div class="flex items-center justify-between">
+                <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
+                  <span>✅</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
+                </div>
+                <button onclick="loadDailyQuestsWidget()" class="text-[11px] font-bold txt-brand hover:underline">Làm mới</button>
+              </div>
+              <div id="daily-quests-list" class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+                <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Insights Panel 2: Analytics, Bloom & Heatmap -->
+        <div id="dash-insights-analytics" class="hidden space-y-4 animate-fade-in">
 
       <!-- 6. Weekly Analytics & Personal Progress -->
       <div id="weekly-analytics-widget" class="uni-card p-4 sm:p-5 space-y-3">
@@ -5637,8 +5529,10 @@ main:has(#view-tutor:not(.hidden)) {
           <div id="dashboard-ai-roadmap-box" class="ai-callout ai-callout-indigo markdown-body text-sm"></div>
         </div>
       </div>
+        </div>
 
-      <!-- 8. Personal Notebook & Recent History -->
+        <!-- Insights Panel 3: Personal Notebook & Recent History -->
+        <div id="dash-insights-notebook" class="hidden animate-fade-in">
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <div class="uni-card p-5 space-y-4">
           <div class="flex items-center justify-between">
@@ -5699,6 +5593,8 @@ main:has(#view-tutor:not(.hidden)) {
           </div>
         </div>
       </div>
+        </div>
+      </div>
     </section>
 
     <!-- ===================================================================
@@ -5756,111 +5652,9 @@ main:has(#view-tutor:not(.hidden)) {
           </div>
         </div>
 
-        <!-- Quick Sequential Parts -->
-        <div class="space-y-2.5">
-          <label class="text-xs font-extrabold uppercase tracking-wider txt-muted">Ôn nhanh theo phần</label>
-          <div id="exam-parts-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5"></div>
-        </div>
-
-
-        <!-- HERO EXAM ACTION BAR: Range Picker + Local History + CTUMP 322 Parts -->
-        <div class="grid grid-cols-1 md:grid-cols-12 gap-3.5">
-          <!-- Card: Tự chọn thi từ câu mấy đến câu mấy (Custom Question Range) -->
-          <div class="md:col-span-8 uni-card p-4 sm:p-5 space-y-3" style="border: 1.5px solid var(--brand-border); background: var(--bg-surface);">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <span class="text-xl">🎯</span>
-                <div>
-                  <h4 class="text-sm font-black txt-main">Tự Chọn Dải Câu Hỏi Ôn Thi (Từ câu ... đến câu ...)</h4>
-                  <p class="text-[11px] txt-muted">Chủ động khoanh vùng bất kỳ đoạn câu nào muốn cày sâu (VD: từ câu 1 đến 50, hoặc 100 đến 150)</p>
-                </div>
-              </div>
-              <span id="range-preview-badge" class="badge-brand px-2.5 py-1 rounded-lg text-xs font-mono font-bold">50 câu</span>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
-              <div class="sm:col-span-5 flex items-center gap-2">
-                <label class="text-xs font-bold txt-muted shrink-0">Từ câu #:</label>
-                <input id="exam-quick-range-from" type="number" min="1" value="1" oninput="updateRangePreview()" class="uni-input w-full px-3 py-2 text-center font-mono font-extrabold text-sm" />
-              </div>
-
-              <div class="sm:col-span-5 flex items-center gap-2">
-                <label class="text-xs font-bold txt-muted shrink-0">Đến câu #:</label>
-                <input id="exam-quick-range-to" type="number" min="1" value="50" oninput="updateRangePreview()" class="uni-input w-full px-3 py-2 text-center font-mono font-extrabold text-sm" />
-              </div>
-
-              <div class="sm:col-span-2">
-                <button type="button" onclick="startCustomRangeExam()" class="btn-primary w-full py-2.5 px-3 text-xs font-black shadow-md flex items-center justify-center gap-1.5 whitespace-nowrap">
-                  <span>🚀</span> Vào Thi Dải Này
-                </button>
-              </div>
-            </div>
-
-            <!-- Quick Range Presets -->
-            <div class="flex flex-wrap items-center gap-1.5 pt-1">
-              <span class="text-[11px] font-bold txt-muted">Dải gợi ý:</span>
-              <button type="button" onclick="setRangePreset(1, 30)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">1 – 30</button>
-              <button type="button" onclick="setRangePreset(31, 60)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">31 – 60</button>
-              <button type="button" onclick="setRangePreset(61, 100)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">61 – 100</button>
-              <button type="button" onclick="setRangePreset(101, 150)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">101 – 150</button>
-              <button type="button" onclick="setRangePreset(151, 200)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">151 – 200</button>
-              <button type="button" onclick="setRangePreset(201, 250)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">201 – 250</button>
-              <button type="button" onclick="setRangePreset(1, 9999)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold txt-brand">Toàn bộ môn</button>
-            </div>
-          </div>
-
-          <!-- Card: Quick Access to Local Exam History & CTUMP 322 Parts -->
-          <div class="md:col-span-4 flex flex-col gap-2.5 justify-between">
-            <button type="button" onclick="openLocalExamHistoryModal()" class="uni-card p-4 flex items-center justify-between gap-3 text-left hover:scale-[1.01] transition-all" style="border: 1.5px solid rgba(16, 185, 129, 0.4); background: var(--bg-surface);">
-              <div class="flex items-center gap-2.5">
-                <span class="text-2xl">📜</span>
-                <div>
-                  <div class="text-xs font-black txt-main">Lịch Sử Làm Bài Của Tôi</div>
-                  <div class="text-[10px] txt-muted">Lưu trên máy • Làm lại câu sai</div>
-                </div>
-              </div>
-              <span class="badge-emerald text-xs px-2 py-1 rounded-lg font-bold">Mở ↗</span>
-            </button>
-
-            <button id="exam-ctump-parts-card" type="button" onclick="openCtumpOriginalPartsModal()" class="uni-card p-4 flex items-center justify-between gap-3 text-left hover:scale-[1.01] transition-all" style="border: 1.5px solid rgba(99, 102, 241, 0.4); background: var(--bg-surface);">
-              <div class="flex items-center gap-2.5">
-                <span class="text-2xl">🏛️</span>
-                <div>
-                  <div class="text-xs font-black txt-main">Bộ 322 Câu Hóa Sinh Gốc</div>
-                  <div class="text-[10px] txt-muted">Chia 5 phần chuẩn giáo trình CTUMP</div>
-                </div>
-              </div>
-              <span class="badge-brand text-xs px-2 py-1 rounded-lg font-bold">Xem ↗</span>
-            </button>
-          </div>
-        </div>
-
-
-        <!-- Custom Exam Controls -->
+        <!-- Quick Launch Controls (Zero-Scroll Exam Start) -->
         <div class="p-4 sm:p-5 rounded-2xl space-y-4" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
-            <div class="lg:col-span-3 space-y-1.5">
-              <label class="text-xs font-bold txt-sub">Loại câu hỏi</label>
-              <select id="exam-type-select" class="uni-input w-full px-3.5 py-2.5 font-semibold" style="background-color: var(--bg-surface);">
-                <option value="all">🎯 Tất cả kết hợp</option>
-                <option value="mcq">☑️ Trắc nghiệm A, B, C, D</option>
-                <option value="true_false">⚖️ Đúng / Sai</option>
-                <option value="short_answer">⌨️ Trả lời ngắn / Output</option>
-                <option value="essay">✍️ Tự luận / Vấn đáp</option>
-              </select>
-            </div>
-
-            <div class="lg:col-span-3 space-y-1.5">
-              <label class="text-xs font-bold txt-sub">Cấp độ nhận thức (Bloom)</label>
-              <select id="exam-bloom-filter" class="uni-input w-full px-3.5 py-2.5 font-semibold" style="background-color: var(--bg-surface);">
-                <option value="all">⚖️ Mọi cấp độ</option>
-                <option value="easy">🟢 Nhận biết</option>
-                <option value="medium">🔵 Thông hiểu</option>
-                <option value="hard">🟠 Vận dụng</option>
-                <option value="very_hard">🔴 Vận dụng cao</option>
-              </select>
-            </div>
-
             <div class="lg:col-span-6 space-y-1.5">
               <div class="flex items-center justify-between">
                 <label class="text-xs font-bold txt-sub">Số câu hỏi</label>
@@ -5881,30 +5675,27 @@ main:has(#view-tutor:not(.hidden)) {
                 <button type="button" onclick="selectCountPreset(9999)" data-count="9999" class="preset-pill">Tất cả</button>
               </div>
             </div>
-          </div>
 
-          <!-- Clean Time Pills -->
-          <div class="space-y-1.5">
-            <div class="flex items-center justify-between">
-              <label class="text-xs font-bold txt-sub">Thời gian thi</label>
-              <div class="flex items-center gap-1.5 text-xs txt-muted">
-                <span>Phút (0=∞):</span>
-                <input id="exam-custom-time" type="number" min="0" max="360" value="0"
-                  oninput="onCustomTimeInput(this.value)"
-                  class="uni-input w-16 px-2 py-1 text-center font-bold !text-xs" style="background-color: var(--bg-surface);" />
+            <div class="lg:col-span-6 space-y-1.5">
+              <div class="flex items-center justify-between">
+                <label class="text-xs font-bold txt-sub">Thời gian thi</label>
+                <div class="flex items-center gap-1.5 text-xs txt-muted">
+                  <span>Phút (0=∞):</span>
+                  <input id="exam-custom-time" type="number" min="0" max="360" value="0"
+                    oninput="onCustomTimeInput(this.value)"
+                    class="uni-input w-16 px-2 py-1 text-center font-bold !text-xs" style="background-color: var(--bg-surface);" />
+                </div>
               </div>
-            </div>
-            <div id="time-presets-wrap" class="flex flex-wrap gap-1.5">
-              <button type="button" onclick="selectTimePreset(0)" data-time="0" class="preset-pill active">∞ Không giới hạn</button>
-              <button type="button" onclick="selectTimePreset(5)" data-time="5" class="preset-pill">5p</button>
-              <button type="button" onclick="selectTimePreset(10)" data-time="10" class="preset-pill">10p</button>
-              <button type="button" onclick="selectTimePreset(15)" data-time="15" class="preset-pill">15p</button>
-              <button type="button" onclick="selectTimePreset(20)" data-time="20" class="preset-pill">20p</button>
-              <button type="button" onclick="selectTimePreset(30)" data-time="30" class="preset-pill">30p</button>
-              <button type="button" onclick="selectTimePreset(45)" data-time="45" class="preset-pill">45p</button>
-              <button type="button" onclick="selectTimePreset(60)" data-time="60" class="preset-pill">60p</button>
-              <button type="button" onclick="selectTimePreset(90)" data-time="90" class="preset-pill">90p</button>
-              <button type="button" onclick="selectTimePreset(120)" data-time="120" class="preset-pill">120p</button>
+              <div id="time-presets-wrap" class="flex flex-wrap gap-1.5">
+                <button type="button" onclick="selectTimePreset(0)" data-time="0" class="preset-pill active">∞ Tự do</button>
+                <button type="button" onclick="selectTimePreset(10)" data-time="10" class="preset-pill">10p</button>
+                <button type="button" onclick="selectTimePreset(15)" data-time="15" class="preset-pill">15p</button>
+                <button type="button" onclick="selectTimePreset(20)" data-time="20" class="preset-pill">20p</button>
+                <button type="button" onclick="selectTimePreset(30)" data-time="30" class="preset-pill">30p</button>
+                <button type="button" onclick="selectTimePreset(45)" data-time="45" class="preset-pill">45p</button>
+                <button type="button" onclick="selectTimePreset(60)" data-time="60" class="preset-pill">60p</button>
+                <button type="button" onclick="selectTimePreset(90)" data-time="90" class="preset-pill">90p</button>
+              </div>
             </div>
           </div>
 
@@ -5912,17 +5703,126 @@ main:has(#view-tutor:not(.hidden)) {
             <div class="flex flex-wrap items-center gap-4 text-xs font-semibold txt-sub">
               <label class="inline-flex items-center gap-2 cursor-pointer select-none">
                 <input id="exam-random-toggle" type="checkbox" class="w-4 h-4 accent-purple-600 rounded" />
-                <span>Trộn câu</span>
+                <span>Trộn ngẫu nhiên câu</span>
               </label>
               <label class="inline-flex items-center gap-2 cursor-pointer select-none">
                 <input id="exam-shuffle-opts-toggle" type="checkbox" class="w-4 h-4 accent-purple-600 rounded" />
                 <span>Đảo vị trí A-B-C-D</span>
               </label>
+              <button type="button" onclick="openLocalExamHistoryModal()" class="text-xs font-extrabold txt-brand hover:underline flex items-center gap-1">
+                <span>📜</span> <span>Lịch sử bài thi</span>
+              </button>
             </div>
 
-            <button onclick="startCustomExam()" class="btn-primary px-6 py-3 text-sm flex items-center gap-2 w-full sm:w-auto justify-center">
+            <button onclick="startCustomExam()" class="btn-primary px-6 py-3 text-sm font-black flex items-center gap-2 w-full sm:w-auto justify-center shadow-lg">
               <i data-lucide="rocket" class="w-4 h-4"></i> Bắt Đầu Thi Ngay
             </button>
+          </div>
+        </div>
+
+        <!-- Quick Sequential Parts (Bounded Height so 18-Chapter / 45-Topic Banks Never Stretch the Page) -->
+        <div class="space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <label class="text-xs font-extrabold uppercase tracking-wider txt-muted">Ôn nhanh theo chương / chuyên đề</label>
+            <button type="button" id="btn-exam-advanced-toggle" onclick="toggleExamAdvancedConfig()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 rounded-xl">
+              <span>⚙️</span> <span>Khoanh vùng dải câu &amp; Bộ lọc nâng cao</span> <span id="exam-adv-chevron">▾</span>
+            </button>
+          </div>
+          <div id="exam-parts-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2.5 max-h-60 overflow-y-auto pr-1.5"></div>
+        </div>
+
+        <!-- Collapsible Advanced Config: Range Picker, Question Type/Bloom Filters & CTUMP Original Parts -->
+        <div id="exam-advanced-config-drawer" class="hidden space-y-4 pt-2 border-t animate-fade-in" style="border-color: var(--border);">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold txt-sub">Loại câu hỏi</label>
+              <select id="exam-type-select" class="uni-input w-full px-3.5 py-2.5 font-semibold" style="background-color: var(--bg-surface);">
+                <option value="all">🎯 Tất cả kết hợp</option>
+                <option value="mcq">☑️ Trắc nghiệm A, B, C, D</option>
+                <option value="true_false">⚖️ Đúng / Sai</option>
+                <option value="short_answer">⌨️ Trả lời ngắn / Output</option>
+                <option value="essay">✍️ Tự luận / Vấn đáp</option>
+              </select>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="text-xs font-bold txt-sub">Cấp độ nhận thức (Bloom)</label>
+              <select id="exam-bloom-filter" class="uni-input w-full px-3.5 py-2.5 font-semibold" style="background-color: var(--bg-surface);">
+                <option value="all">⚖️ Mọi cấp độ</option>
+                <option value="easy">🟢 Nhận biết</option>
+                <option value="medium">🔵 Thông hiểu</option>
+                <option value="hard">🟠 Vận dụng</option>
+                <option value="very_hard">🔴 Vận dụng cao</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-12 gap-3.5">
+            <!-- Card: Tự chọn thi từ câu mấy đến câu mấy (Custom Question Range) -->
+            <div class="md:col-span-8 uni-card p-4 sm:p-5 space-y-3" style="border: 1.5px solid var(--brand-border); background: var(--bg-surface);">
+              <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="text-xl">🎯</span>
+                  <div>
+                    <h4 class="text-sm font-black txt-main">Tự Chọn Dải Câu Hỏi Ôn Thi (Từ câu ... đến câu ...)</h4>
+                    <p class="text-[11px] txt-muted">Khoanh vùng đoạn câu muốn cày sâu (VD: câu 1 đến 50, hoặc 100 đến 150)</p>
+                  </div>
+                </div>
+                <span id="range-preview-badge" class="badge-brand px-2.5 py-1 rounded-lg text-xs font-mono font-bold">50 câu</span>
+              </div>
+
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center">
+                <div class="sm:col-span-5 flex items-center gap-2">
+                  <label class="text-xs font-bold txt-muted shrink-0">Từ câu #:</label>
+                  <input id="exam-quick-range-from" type="number" min="1" value="1" oninput="updateRangePreview()" class="uni-input w-full px-3 py-2 text-center font-mono font-extrabold text-sm" />
+                </div>
+
+                <div class="sm:col-span-5 flex items-center gap-2">
+                  <label class="text-xs font-bold txt-muted shrink-0">Đến câu #:</label>
+                  <input id="exam-quick-range-to" type="number" min="1" value="50" oninput="updateRangePreview()" class="uni-input w-full px-3 py-2 text-center font-mono font-extrabold text-sm" />
+                </div>
+
+                <div class="sm:col-span-2">
+                  <button type="button" onclick="startCustomRangeExam()" class="btn-primary w-full py-2.5 px-3 text-xs font-black shadow-md flex items-center justify-center gap-1.5 whitespace-nowrap">
+                    <span>🚀</span> Thi Dải Này
+                  </button>
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                <span class="text-[11px] font-bold txt-muted">Dải gợi ý:</span>
+                <button type="button" onclick="setRangePreset(1, 30)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">1 – 30</button>
+                <button type="button" onclick="setRangePreset(31, 60)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">31 – 60</button>
+                <button type="button" onclick="setRangePreset(61, 100)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">61 – 100</button>
+                <button type="button" onclick="setRangePreset(101, 150)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">101 – 150</button>
+                <button type="button" onclick="setRangePreset(151, 200)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold">151 – 200</button>
+                <button type="button" onclick="setRangePreset(1, 9999)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold txt-brand">Toàn bộ môn</button>
+              </div>
+            </div>
+
+            <div class="md:col-span-4 flex flex-col gap-2.5 justify-between">
+              <button type="button" onclick="openLocalExamHistoryModal()" class="uni-card p-4 flex items-center justify-between gap-3 text-left hover:scale-[1.01] transition-all" style="border: 1.5px solid rgba(16, 185, 129, 0.4); background: var(--bg-surface);">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-2xl">📜</span>
+                  <div>
+                    <div class="text-xs font-black txt-main">Lịch Sử Làm Bài Của Tôi</div>
+                    <div class="text-[10px] txt-muted">Lưu trên máy • Làm lại câu sai</div>
+                  </div>
+                </div>
+                <span class="badge-emerald text-xs px-2 py-1 rounded-lg font-bold">Mở ↗</span>
+              </button>
+
+              <button id="exam-ctump-parts-card" type="button" onclick="openCtumpOriginalPartsModal()" class="hidden uni-card p-4 flex items-center justify-between gap-3 text-left hover:scale-[1.01] transition-all" style="border: 1.5px solid rgba(99, 102, 241, 0.4); background: var(--bg-surface);">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-2xl">🏛️</span>
+                  <div>
+                    <div class="text-xs font-black txt-main">Bộ 322 Câu Hóa Sinh Gốc</div>
+                    <div class="text-[10px] txt-muted">Chia 5 phần chuẩn giáo trình CTUMP</div>
+                  </div>
+                </div>
+                <span class="badge-brand text-xs px-2 py-1 rounded-lg font-bold">Xem ↗</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -6038,30 +5938,51 @@ main:has(#view-tutor:not(.hidden)) {
             </div>
 
             <!-- Collapsible Secondary Tools Strip (Zero Clutter Default) -->
-            <div id="q-extra-tools-strip" class="hidden flex flex-wrap items-center gap-1.5 p-2 rounded-xl border animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--border);">
-              <button id="btn-ai-concept" onclick="requestAiConceptRecall()" title="AI nhắc lại Công thức &amp; Định luật nền (không lộ đáp án)" class="ai-chip-btn">
-                🧠 Công thức nền
-              </button>
-              <button onclick="openModal('modal-stem-reference')" title="Tra nhanh Công thức Toán • Lý • Hóa • Sinh • CNTT" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
-                🧪 Bảng tham chiếu STEM
-              </button>
-              <button id="btn-osce-mode" onclick="toggleOsceBlindMode()" title="Che đáp án A-B-C-D để tự nhớ chủ động trước khi lật mở" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
-                🕵️ Che đáp án OSCE
-              </button>
-              <button onclick="toggleNoteBox()" title="Ghi chú cá nhân cho câu này" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
-                <span>📌</span> <span id="note-indicator">Ghi chú</span>
-              </button>
-              <button onclick="speakCurrentQuestion()" title="Đọc câu hỏi bằng giọng nói" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
-                <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> <span>Đọc câu</span>
-              </button>
-              <button id="btn-podcast-mode" onclick="toggleHandsFreeAudioMode()" title="Podcast ôn thi rảnh tay" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
-                🎧 Podcast
-              </button>
-              <button id="btn-toggle-discussion" onclick="toggleQuestionDiscussionBox()" title="Bình luận &amp; Mẹo nhớ sinh viên câu này" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1.5 text-cyan-400">
-                <span>💬</span>
-                <span>Thảo luận</span>
-                <span id="q-toolbar-disc-count" class="badge-brand px-1.5 py-0.2 rounded-full text-[10px] font-bold">0</span>
-              </button>
+            <div id="q-extra-tools-strip" class="hidden p-2.5 rounded-xl border space-y-2 animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--border);">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button id="btn-ai-concept" onclick="requestAiConceptRecall()" title="AI nhắc lại Công thức &amp; Định luật nền (không lộ đáp án)" class="ai-chip-btn">
+                  🧠 Công thức nền
+                </button>
+                <button onclick="openModal('modal-stem-reference')" title="Tra nhanh Công thức Toán • Lý • Hóa • Sinh • CNTT" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
+                  🧪 Bảng tham chiếu STEM
+                </button>
+                <button id="btn-osce-mode" onclick="toggleOsceBlindMode()" title="Che đáp án A-B-C-D để tự nhớ chủ động trước khi lật mở" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
+                  🕵️ Che đáp án OSCE
+                </button>
+                <button onclick="toggleNoteBox()" title="Ghi chú cá nhân cho câu này" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
+                  <span>📌</span> <span id="note-indicator">Ghi chú</span>
+                </button>
+                <button onclick="speakCurrentQuestion()" title="Đọc câu hỏi bằng giọng nói" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
+                  <i data-lucide="volume-2" class="w-3.5 h-3.5"></i> <span>Đọc câu</span>
+                </button>
+                <button id="btn-podcast-mode" onclick="toggleHandsFreeAudioMode()" title="Podcast ôn thi rảnh tay" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
+                  🎧 Podcast
+                </button>
+                <button id="btn-toggle-discussion" onclick="toggleQuestionDiscussionBox()" title="Bình luận &amp; Mẹo nhớ sinh viên câu này" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1.5 text-cyan-400">
+                  <span>💬</span>
+                  <span>Thảo luận</span>
+                  <span id="q-toolbar-disc-count" class="badge-brand px-1.5 py-0.2 rounded-full text-[10px] font-bold">0</span>
+                </button>
+              </div>
+              <!-- Metacognition Confidence Selector Bar (Moved into Secondary Tools for Pure Distraction-Free Question Flow) -->
+              <div id="q-confidence-bar" class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t text-xs" style="border-color: var(--border);">
+                <div class="flex items-center gap-1.5 font-bold txt-sub">
+                  <span>🧭</span>
+                  <span>Độ tự tin:</span>
+                  <span id="q-telemetry-timer" class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300">0s</span>
+                </div>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <button type="button" onclick="setQuestionConfidence('sure')" id="conf-btn-sure" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all hover:border-emerald-500" style="border-color: var(--border);">
+                    🟢 Chắc chắn
+                  </button>
+                  <button type="button" onclick="setQuestionConfidence('hesitant')" id="conf-btn-hesitant" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all hover:border-amber-500" style="border-color: var(--border);">
+                    🟡 Phân vân
+                  </button>
+                  <button type="button" onclick="setQuestionConfidence('guess')" id="conf-btn-guess" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all hover:border-rose-500" style="border-color: var(--border);">
+                    🔴 Đoán mò
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -6096,78 +6017,66 @@ main:has(#view-tutor:not(.hidden)) {
             <div id="q-hint-content" class="markdown-body text-sm"></div>
           </div>
 
-          <!-- Metacognition Confidence Selector Bar (v41.0) -->
-          <div id="q-confidence-bar" class="flex flex-wrap items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs" style="background-color: var(--bg-subtle); border-color: var(--border);">
-            <div class="flex items-center gap-1.5 font-bold txt-sub">
-              <span>🧭</span>
-              <span>Mức độ tự tin câu này:</span>
-              <span id="q-telemetry-timer" class="font-mono text-[10px] px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300">0s</span>
-            </div>
-            <div class="flex items-center gap-1.5">
-              <button type="button" onclick="setQuestionConfidence('sure')" id="conf-btn-sure" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all hover:border-emerald-500" style="border-color: var(--border);">
-                🟢 Chắc chắn 100%
-              </button>
-              <button type="button" onclick="setQuestionConfidence('hesitant')" id="conf-btn-hesitant" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all hover:border-amber-500" style="border-color: var(--border);">
-                🟡 Phân vân 50/50
-              </button>
-              <button type="button" onclick="setQuestionConfidence('guess')" id="conf-btn-guess" class="px-2.5 py-1 rounded-lg border text-[11px] font-bold transition-all hover:border-rose-500" style="border-color: var(--border);">
-                🔴 Đoán mò
-              </button>
-            </div>
-          </div>
-
           <!-- Colorful Answer Options Container -->
           <div id="q-answer-area"></div>
 
-          <!-- Explanation & Rich AI Suite -->
-          <div id="q-feedback-panel" class="hidden space-y-3.5 pt-1 animate-fade-in">
+          <!-- Calm Decluttered Explanation & AI Suite -->
+          <div id="q-feedback-panel" class="hidden space-y-3 pt-1 animate-fade-in">
             <div id="q-official-expl-box" class="ai-callout space-y-1"></div>
 
-            <div class="flex flex-wrap gap-2">
-              <button onclick="askAiAboutCurrentExamQuestion()" class="btn-primary !bg-gradient-to-r !from-indigo-600 !to-purple-600 px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm hover:scale-105 active:scale-95 transition-all">
-                <span>🤖</span> Hỏi Gia Sư AI Chi Tiết
-              </button>
-              <!-- AI Phân tích chuyên sâu Đa Chế Độ -->
-              <div class="inline-flex items-center rounded-xl bg-slate-800/80 p-0.5 border border-indigo-500/30 shadow-sm">
-                <button onclick="triggerDeepAnalysis()" class="px-2.5 py-1 text-xs font-bold text-indigo-300 hover:text-white flex items-center gap-1.5 transition-colors" title="Kích hoạt phân tích AI theo lăng kính được chọn">
-                  <i data-lucide="microscope" class="w-3.5 h-3.5"></i> AI Phân tích
-                </button>
-                <select id="deep-analysis-mode-select" class="bg-transparent text-[11px] text-indigo-200 border-none outline-none pr-1.5 font-medium cursor-pointer hover:text-white" onchange="triggerDeepAnalysis(false, this.value)">
-                  <option value="standard" class="bg-slate-900 text-white">🔬 Chuyên sâu chuẩn</option>
-                  <option value="feynman" class="bg-slate-900 text-white">👶 Kỹ thuật Feynman</option>
-                  <option value="exam_trap" class="bg-slate-900 text-white">🎯 Mổ xẻ bẫy đề thi</option>
-                  <option value="socratic" class="bg-slate-900 text-white">❓ Phương pháp Socrates</option>
-                  <option value="stem_clinical" class="bg-slate-900 text-white">🧬 Lâm sàng / Thuật toán</option>
-                </select>
-              </div>
-              <button onclick="openDeepAnalysisHistoryModal()" class="ai-chip-btn !border-emerald-500/40 text-emerald-400 hover:!bg-emerald-500/10" title="Xem lại các câu hỏi đã được AI phân tích chuyên sâu">
-                <i data-lucide="archive" class="w-3.5 h-3.5"></i> Kho Lịch Sử AI
+            <!-- 3 Calm Primary AI Pills + Expand Toggle -->
+            <div class="flex flex-wrap items-center gap-2">
+              <button onclick="askAiAboutCurrentExamQuestion(true)" class="btn-primary !bg-gradient-to-r !from-indigo-600 !to-purple-600 px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm hover:scale-[1.02] active:scale-95 transition-all">
+                <span>🤖</span> <span>Gia Sư AI Giải Chi Tiết</span>
               </button>
               <button id="btn-explain-mistake" onclick="triggerExplainMyMistake()" class="ai-chip-btn">
                 <span>🩺</span> Sao tôi chọn nhầm?
               </button>
               <button onclick="triggerAiMnemonic()" class="ai-chip-btn">
-                <span>⚡</span> AI Mẹo nhớ 5s
+                <span>⚡</span> Mẹo nhớ 5s
               </button>
-              <button onclick="triggerSimilarQuestion()" class="ai-chip-btn">
-                <i data-lucide="shuffle" class="w-3.5 h-3.5"></i> Tạo câu tương tự
+              <button type="button" id="btn-feedback-more-ai" onclick="toggleFeedbackExtraAiTools()" class="btn-soft px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 ml-auto">
+                <span>✨</span> <span>Mở rộng AI</span> <span id="feedback-more-ai-chevron">▾</span>
               </button>
-              <button onclick="createAiFlashcardFromQuestion()" class="ai-chip-btn">
-                <span>🃏</span> Đúc Flashcard AI
-              </button>
+            </div>
+
+            <!-- Collapsible Advanced AI Tools Drawer -->
+            <div id="q-feedback-more-ai-wrap" class="hidden p-3 rounded-xl border space-y-2.5 animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--border);">
+              <div class="flex flex-wrap items-center gap-2">
+                <div class="inline-flex items-center rounded-xl bg-slate-800/80 p-0.5 border border-indigo-500/30 shadow-sm">
+                  <button onclick="triggerDeepAnalysis()" class="px-2.5 py-1 text-xs font-bold text-indigo-300 hover:text-white flex items-center gap-1.5 transition-colors" title="Kích hoạt phân tích AI theo lăng kính được chọn">
+                    <i data-lucide="microscope" class="w-3.5 h-3.5"></i> AI Phân tích
+                  </button>
+                  <select id="deep-analysis-mode-select" class="bg-transparent text-[11px] text-indigo-200 border-none outline-none pr-1.5 font-medium cursor-pointer hover:text-white" onchange="triggerDeepAnalysis(false, this.value)">
+                    <option value="standard" class="bg-slate-900 text-white">🔬 Chuyên sâu chuẩn</option>
+                    <option value="feynman" class="bg-slate-900 text-white">👶 Kỹ thuật Feynman</option>
+                    <option value="exam_trap" class="bg-slate-900 text-white">🎯 Mổ xẻ bẫy đề thi</option>
+                    <option value="socratic" class="bg-slate-900 text-white">❓ Phương pháp Socrates</option>
+                    <option value="stem_clinical" class="bg-slate-900 text-white">🧬 Lâm sàng / Thuật toán</option>
+                  </select>
+                </div>
+                <button onclick="triggerSimilarQuestion()" class="ai-chip-btn">
+                  <i data-lucide="shuffle" class="w-3.5 h-3.5"></i> Tạo câu tương tự
+                </button>
+                <button onclick="createAiFlashcardFromQuestion()" class="ai-chip-btn">
+                  <span>🃏</span> Đúc Flashcard AI
+                </button>
+                <button onclick="openDeepAnalysisHistoryModal()" class="ai-chip-btn !border-emerald-500/40 text-emerald-400 hover:!bg-emerald-500/10" title="Xem lại các câu hỏi đã được AI phân tích chuyên sâu">
+                  <i data-lucide="archive" class="w-3.5 h-3.5"></i> Kho Lịch Sử AI
+                </button>
+              </div>
+              <div class="flex gap-2">
+                <input id="q-custom-qa-input" type="text" placeholder="Hỏi riêng Giảng viên AI thêm về câu này..."
+                  onkeydown="if(event.key==='Enter') triggerCustomQA()"
+                  class="uni-input flex-1 px-3.5 py-2 !text-xs" style="background-color: var(--bg-surface);" />
+                <button onclick="triggerCustomQA()" class="btn-primary px-4 py-2 text-xs shrink-0">Hỏi ngay</button>
+              </div>
             </div>
 
             <div id="q-ai-mistake-box" class="hidden ai-callout ai-callout-amber space-y-2 animate-fade-in"></div>
             <div id="q-ai-mnemonic-box" class="hidden ai-callout ai-callout-emerald space-y-2 animate-fade-in"></div>
             <div id="q-ai-deep-box" class="hidden ai-callout ai-callout-indigo space-y-2 animate-fade-in"></div>
             <div id="q-ai-similar-box" class="hidden ai-callout space-y-3 animate-fade-in"></div>
-
-            <div class="flex gap-2">
-              <input id="q-custom-qa-input" type="text" placeholder="Hỏi thêm Giảng viên AI về câu này..."
-                onkeydown="if(event.key==='Enter') triggerCustomQA()"
-                class="uni-input flex-1 px-3.5 py-2 !text-xs" />
-              <button onclick="triggerCustomQA()" class="btn-primary px-4 py-2 text-xs shrink-0">Hỏi AI</button>
-            </div>
             <div id="q-ai-qa-box" class="hidden ai-callout markdown-body text-sm"></div>
           </div>
 
@@ -6198,17 +6107,20 @@ main:has(#view-tutor:not(.hidden)) {
             </div>
           </div>
 
-          <!-- Bottom Navigation Bar (Gọn gàng, nhường nút Câu Tiếp Theo nổi kế bên AI Gia Sư) -->
-          <div class="flex items-center justify-between gap-3 p-3 rounded-2xl border mt-4" style="background: color-mix(in srgb, var(--bg-surface) 96%, transparent); border-color: var(--border);">
-            <button id="btn-prev-q" onclick="prevQuestion()" class="btn-soft px-4 py-2 text-xs font-bold flex items-center gap-1.5 rounded-xl">
+          <!-- Clean Balanced Bottom Navigation Bar (Zero Floating Occlusion over Option D!) -->
+          <div class="flex items-center justify-between gap-2 sm:gap-3 p-3 rounded-2xl border mt-4" style="background: color-mix(in srgb, var(--bg-surface) 96%, transparent); border-color: var(--border);">
+            <button id="btn-prev-q" onclick="prevQuestion()" class="btn-soft px-3.5 sm:px-4 py-2 text-xs font-bold flex items-center gap-1.5 rounded-xl">
               <i data-lucide="chevron-left" class="w-4 h-4"></i> <span>Câu Trước</span>
             </button>
             <div class="flex items-center gap-2">
-              <span class="hidden sm:inline text-[11px] txt-muted font-bold">Phím 1–4: chọn • Chuột phải / ✕: gạch loại trừ • →: câu tiếp</span>
-              <button type="button" onclick="openModal('modal-study-break')" class="btn-soft px-2.5 py-1.5 text-xs font-extrabold text-amber-400 hover:text-amber-300 rounded-xl flex items-center gap-1" title="Chán làm bài quá? Bấm vào đây đổi gió giải trí">
-                <span>🎮</span> <span class="hidden md:inline">Giải lao</span>
+              <span class="hidden lg:inline text-[11px] txt-muted font-semibold">1–4: chọn • Shift+1–4 / ✕: gạch loại trừ • T: Hỏi AI • →: tiếp</span>
+              <button type="button" onclick="openModal('modal-study-break')" class="btn-soft px-2.5 py-1.5 text-xs font-extrabold text-amber-400 hover:text-amber-300 rounded-xl flex items-center gap-1" title="Giải lao nhanh">
+                <span>🎮</span> <span class="hidden xl:inline">Giải lao</span>
               </button>
             </div>
+            <button id="btn-next-q" onclick="nextQuestion()" class="btn-primary px-4 sm:px-5 py-2 text-xs font-extrabold flex items-center gap-1.5 rounded-xl shadow-md">
+              <span class="animate-pulse">➔</span> <span id="btn-next-q-text">Câu Tiếp Theo</span>
+            </button>
           </div>
         </div>
       </div>
@@ -6729,9 +6641,10 @@ main:has(#view-tutor:not(.hidden)) {
         <div class="flex items-center gap-3">
           <div class="gemini-sparkle-icon" style="width: 28px; height: 28px;"></div>
           <div>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-2 flex-wrap">
               <span class="font-extrabold text-sm sm:text-base tracking-tight gemini-gradient-text">Gia Sư AI UniMaster</span>
               <span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">Gia Sư 1-1</span>
+              <span id="tutor-engine-health-badge" class="badge-emerald text-[10px] px-2 py-0.5 rounded-full font-bold">🟢 AI Sẵn sàng</span>
             </div>
             <div class="text-[11px] txt-muted">Trợ lý học thuật đa khối ngành: Y Dược, Toán Rời Rạc, Giải Thuật &amp; Lập Trình</div>
           </div>
@@ -9734,82 +9647,72 @@ main:has(#view-tutor:not(.hidden)) {
       style="background: color-mix(in srgb, var(--bg-surface) 96%, transparent); backdrop-filter: blur(24px); border-color: rgba(99, 102, 241, 0.4); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);">
       
       <!-- Window Header -->
-      <div class="p-3 flex items-center justify-between border-b gap-2" style="border-color: var(--border);">
-        <div class="flex items-center gap-2 overflow-hidden min-w-0">
+      <div class="px-3 py-2.5 flex items-center justify-between border-b gap-2" style="border-color: var(--border);">
+        <div class="flex items-center gap-2 overflow-hidden min-w-0 flex-1">
           <div class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs shrink-0" style="background: linear-gradient(135deg, #6366f1, #a855f7);">
             🤖
           </div>
           <div class="overflow-hidden min-w-0">
-            <h4 class="text-xs font-black txt-main flex items-center gap-1.5 leading-tight">
+            <h4 class="text-xs font-black txt-main flex items-center gap-1.5 leading-tight whitespace-nowrap">
               <span>Gia Sư AI</span>
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse"></span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block animate-pulse shrink-0"></span>
             </h4>
-            <div id="floating-tutor-context" class="text-[10px] txt-muted font-bold truncate max-w-[160px] sm:max-w-[220px]">Đang hỏi: Toàn bộ môn học</div>
+            <div id="floating-tutor-context" class="text-[10px] txt-muted font-bold truncate">Đang hỏi: Toàn bộ môn học</div>
           </div>
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <button type="button" onclick="transferChatToTutorTab()" id="btn-ft-transfer" class="btn-soft px-2 py-1 rounded-xl text-[11px] font-black shadow-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-white/20 active:scale-95 flex items-center gap-1" title="Chuyển nội dung đang hỏi sang phần AI Gia Sư đầy đủ">
-            <i data-lucide="arrow-right-left" class="w-3 h-3 shrink-0"></i>
-            <span class="hidden sm:inline">Tab Lớn</span>
+          <button type="button" id="btn-ft-mode-toggle" onclick="toggleFloatingTutorSettings()" class="btn-soft px-2 py-1 rounded-xl text-[11px] font-bold flex items-center gap-1 whitespace-nowrap" title="Đổi chế độ sư phạm &amp; giọng giảng AI">
+            <span id="ft-active-mode-label">🧠 Giải sâu</span>
+            <span id="ft-settings-chevron" class="opacity-70">▾</span>
+          </button>
+          <button type="button" onclick="transferChatToTutorTab()" id="btn-ft-transfer" class="btn-soft p-1.5 rounded-xl text-[11px] font-black shadow-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-white/20 active:scale-95 flex items-center gap-1" title="Mở sang Tab AI Gia Sư đầy đủ">
+            <i data-lucide="arrow-right-left" class="w-3.5 h-3.5 shrink-0"></i>
           </button>
           <button type="button" onclick="openTutorHistoryModal()" id="btn-ft-history" class="btn-soft p-1.5 text-xs" title="Kho Lưu Trữ Hội Thoại &amp; Lịch Sử AI">🗂️</button>
-          <button type="button" onclick="toggleFloatingTutorSize()" id="btn-ft-expand" class="flex items-center gap-1 px-2 py-1 rounded-xl text-[11px] font-black shadow-sm transition-all bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white border border-white/20 active:scale-95" title="Mở rộng toàn màn hình">
-            <svg id="ft-expand-svg" class="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <button type="button" onclick="toggleFloatingTutorSize()" id="btn-ft-expand" class="flex items-center gap-1 p-1.5 rounded-xl text-[11px] font-black shadow-sm transition-all bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white border border-white/20 active:scale-95" title="Mở rộng toàn màn hình">
+            <svg id="ft-expand-svg" class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
             </svg>
-            <span id="ft-expand-label">Mở rộng</span>
+            <span id="ft-expand-label" class="sr-only">Mở rộng</span>
           </button>
-          <button type="button" onclick="exportFloatingTutorNotes()" class="btn-soft p-1.5 text-xs hidden sm:inline-flex" title="Xuất sổ tay ôn thi ra tệp">📄</button>
           <button type="button" onclick="clearFloatingTutorChat()" class="btn-soft p-1.5 text-xs" title="Làm mới khung chat (vẫn giữ lịch sử trong Kho lưu trữ)">🆕</button>
-          <button type="button" onclick="closeFloatingTutor()" id="btn-ft-close" class="btn-soft px-2 py-1 text-[11px] font-extrabold txt-rose" title="Tắt khung Gia Sư (Phím Esc hoặc T)">✕ Tắt</button>
+          <button type="button" onclick="closeFloatingTutor()" id="btn-ft-close" class="btn-soft px-2 py-1 text-[11px] font-extrabold txt-rose" title="Tắt khung Gia Sư (Phím Esc hoặc T)">✕</button>
         </div>
       </div>
 
-      <!-- Pedagogy Mode Pills Bar (Floating) -->
-      <div class="px-2.5 py-1.5 border-b flex items-center gap-1 overflow-x-auto no-scrollbar text-[11px]" style="border-color: var(--border); background-color: var(--bg-subtle);">
-        <button type="button" onclick="setTutorMode('explain')" data-tutor-mode="explain" class="tutor-mode-pill tutor-mode-pill-sm active">🧠 Giải sâu</button>
-        <button type="button" onclick="setTutorMode('eliminate')" data-tutor-mode="eliminate" class="tutor-mode-pill tutor-mode-pill-sm">🔍 Loại trừ</button>
-        <button type="button" onclick="setTutorMode('socratic')" data-tutor-mode="socratic" class="tutor-mode-pill tutor-mode-pill-sm">💡 Socratic</button>
-        <button type="button" onclick="setTutorMode('clinical')" data-tutor-mode="clinical" class="tutor-mode-pill tutor-mode-pill-sm">🩺 Lâm sàng</button>
-        <button type="button" onclick="setTutorMode('debug')" data-tutor-mode="debug" class="tutor-mode-pill tutor-mode-pill-sm">💻 Debug</button>
+      <!-- Collapsible Pedagogy Mode + Persona Drawer (Hidden by Default -> Frees +80px Reading Height!) -->
+      <div id="ft-settings-drawer" class="hidden animate-fade-in">
+        <div class="px-2.5 py-1.5 border-b flex items-center gap-1 overflow-x-auto no-scrollbar text-[11px]" style="border-color: var(--border); background-color: var(--bg-subtle);">
+          <button type="button" onclick="setTutorMode('explain')" data-tutor-mode="explain" class="tutor-mode-pill tutor-mode-pill-sm active">🧠 Giải sâu</button>
+          <button type="button" onclick="setTutorMode('eliminate')" data-tutor-mode="eliminate" class="tutor-mode-pill tutor-mode-pill-sm">🔍 Loại trừ</button>
+          <button type="button" onclick="setTutorMode('socratic')" data-tutor-mode="socratic" class="tutor-mode-pill tutor-mode-pill-sm">💡 Socratic</button>
+          <button type="button" onclick="setTutorMode('clinical')" data-tutor-mode="clinical" class="tutor-mode-pill tutor-mode-pill-sm">🩺 Lâm sàng</button>
+          <button type="button" onclick="setTutorMode('debug')" data-tutor-mode="debug" class="tutor-mode-pill tutor-mode-pill-sm">💻 Debug</button>
+        </div>
+        <div class="px-2.5 py-1.5 border-b flex items-center justify-between gap-1 overflow-x-auto no-scrollbar text-[10px]" style="border-color: var(--border); background-color: var(--bg-surface);">
+          <div class="flex items-center gap-1 shrink-0">
+            <span class="text-[10px] txt-muted font-extrabold uppercase shrink-0 mr-1">Giọng:</span>
+            <button type="button" onclick="setFloatingPersona('professor')" id="ft-persona-professor" class="ft-persona-btn active px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">🎓 Giáo Sư</button>
+            <button type="button" onclick="setFloatingPersona('feynman')" id="ft-persona-feynman" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">🧒 Feynman</button>
+            <button type="button" onclick="setFloatingPersona('speed')" id="ft-persona-speed" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">⚡ Giải Nhanh</button>
+            <button type="button" onclick="setFloatingPersona('examiner')" id="ft-persona-examiner" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">🎤 Vấn Đáp</button>
+          </div>
+          <button type="button" onclick="exportFloatingTutorNotes()" class="btn-soft px-2 py-0.5 text-[10px] font-bold shrink-0" title="Xuất hội thoại ra tệp">📄 Xuất file</button>
+        </div>
       </div>
 
-      <!-- Persona Selector Bar (4 Styles) -->
-      <div class="px-2.5 py-1 border-b flex items-center gap-1 overflow-x-auto no-scrollbar text-[10px]" style="border-color: var(--border); background-color: var(--bg-surface);">
-        <span class="text-[10px] txt-muted font-extrabold uppercase shrink-0 mr-1">Giọng:</span>
-        <button type="button" onclick="setFloatingPersona('professor')" id="ft-persona-professor" class="ft-persona-btn active px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">
-          🎓 Giáo Sư
-        </button>
-        <button type="button" onclick="setFloatingPersona('feynman')" id="ft-persona-feynman" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">
-          🧒 Feynman
-        </button>
-        <button type="button" onclick="setFloatingPersona('speed')" id="ft-persona-speed" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">
-          ⚡ Giải Nhanh
-        </button>
-        <button type="button" onclick="setFloatingPersona('examiner')" id="ft-persona-examiner" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">
-          🎤 Vấn Đáp
-        </button>
-      </div>
-
-      <!-- Pinned Question / Code / Term Context Card -->
-      <div id="ft-pinned-question-container" class="hidden px-2.5 pt-2 pb-1.5">
-        <div class="p-2.5 rounded-xl border space-y-1.5"
+      <!-- Compact Pinned Question / Code / Term Context Strip (Zero Duplicate Action Row) -->
+      <div id="ft-pinned-question-container" class="hidden px-2.5 pt-2 pb-1">
+        <div class="px-2.5 py-1.5 rounded-xl border flex items-center justify-between gap-2"
           style="background: color-mix(in srgb, var(--brand) 10%, var(--bg-subtle)); border-color: color-mix(in srgb, var(--brand) 35%, var(--border));">
-          <div class="flex items-start justify-between gap-2">
-            <div class="flex items-start gap-2 overflow-hidden flex-1 min-w-0">
-              <span class="text-sm shrink-0">📌</span>
-              <div class="overflow-hidden min-w-0 space-y-0.5">
-                <div class="text-[11px] font-black txt-brand truncate" id="ft-pinned-q-title">Đang xem: Câu 1</div>
-                <div class="text-[10px] txt-sub font-semibold line-clamp-1" id="ft-pinned-q-body">Đề bài câu hỏi...</div>
-              </div>
+          <div class="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+            <span class="text-xs shrink-0">📌</span>
+            <div class="overflow-hidden min-w-0">
+              <div class="text-[11px] font-black txt-brand truncate" id="ft-pinned-q-title">Đang xem: Câu 1</div>
+              <div class="text-[10px] txt-sub font-semibold truncate" id="ft-pinned-q-body">Đề bài câu hỏi...</div>
             </div>
-            <button type="button" onclick="unpinTutorQuestion()" class="text-xs txt-muted hover:txt-main px-1.5 py-0.5 rounded font-bold shrink-0" title="Bỏ ghim ngữ cảnh để hỏi chung">✕</button>
           </div>
-          <div class="flex items-center gap-1 flex-wrap">
-            <button type="button" onclick="sendContextQuickPrompt('explain_wrong')" class="badge-soft px-2 py-0.5 rounded text-[10px] font-bold">🔍 Giải thích vì sao sai</button>
-            <button type="button" onclick="sendContextQuickPrompt('mnemonic')" class="badge-soft px-2 py-0.5 rounded text-[10px] font-bold">🧠 Tạo mẹo nhớ</button>
-            <button type="button" onclick="sendContextQuickPrompt('similar')" class="badge-soft px-2 py-0.5 rounded text-[10px] font-bold">📝 Ví dụ tương tự</button>
-          </div>
+          <button type="button" onclick="unpinTutorQuestion()" class="text-xs txt-muted hover:txt-main px-1.5 py-0.5 rounded font-bold shrink-0" title="Bỏ ghim ngữ cảnh để hỏi chung">✕</button>
         </div>
       </div>
 
@@ -12766,77 +12669,93 @@ function handleGeminiInputKey(event) {
 }
 window.handleGeminiInputKey = handleGeminiInputKey;
 
+function getDynamicTutorWelcomeCards(subCode = '', subName = '') {
+  const code = String(subCode || '').toUpperCase();
+  const name = String(subName || '');
+  if (code === 'TOAN_RR' || /rời rạc/i.test(name)) {
+    return [
+      { icon: '🧮', title: 'Rút gọn biểu thức Boole & Bảng K-Map', sub: 'Chuẩn tắc DNF/CNF & luật De Morgan dễ nhớ', prompt: 'Hướng dẫn tôi quy trình lập bảng chân trị, chuẩn tắc hội/tuyển và rút gọn biểu thức Boole 3-4 biến bằng bìa Karnaugh kèm ví dụ thi!' },
+      { icon: '🕸️', title: 'Đồ thị Euler, Hamilton & Dijkstra', sub: 'Điều kiện cần & đủ + bảng chạy từng bước', prompt: 'Phân biệt rõ điều kiện tồn tại chu trình Euler vs Hamilton và minh họa từng bước thuật toán Dijkstra tìm đường đi ngắn nhất!' },
+      { icon: '🔢', title: 'Nguyên lý Bù trừ & Tổ hợp đếm', sub: 'Phân biệt Chỉnh hợp, Tổ hợp & Dirichlet', prompt: 'Cho tôi mẹo phân biệt nhanh Hoán vị, Chỉnh hợp, Tổ hợp lặp, Nguyên lý Dirichlet và Nguyên lý Bù trừ kèm 3 câu bẫy hay gặp!' },
+      { icon: '🎯', title: 'Mẹo loại trừ câu bẫy Toán Rời Rạc', sub: 'Phản ví dụ nhanh trong 10 giây', prompt: 'Chỉ cho tôi kỹ thuật dùng phản ví dụ nhỏ để loại trừ nhanh 3 phương án sai trong đề trắc nghiệm Toán Rời Rạc!' }
+    ];
+  }
+  if (code === 'CTDL_GT' || code === 'CS101' || /giải thuật|cấu trúc dữ liệu/i.test(name)) {
+    return [
+      { icon: '🌳', title: 'Cây AVL (Xoay LL/RR/LR/RL) & BST', sub: 'Hệ số cân bằng & thứ tự duyệt NLR, LNR, LRN', prompt: 'Giải thích thật trực quan 4 phép xoay cân bằng cây AVL (LL, RR, LR, RL) và mẹo nhẩm nhanh kết quả duyệt Pre-order, In-order, Post-order!' },
+      { icon: '⚡', title: 'Bảng độ phức tạp Big-O các thuật toán Sort', sub: 'QuickSort, MergeSort, HeapSort & tính ổn định', prompt: 'Tổng hợp bảng so sánh độ phức tạp Tốt nhất / Trung bình / Xấu nhất, bộ nhớ phụ và tính ổn định (Stable) của QuickSort, MergeSort, HeapSort, InsertionSort!' },
+      { icon: '🧭', title: 'BFS, DFS, Kruskal & Prim trên Đồ thị', sub: 'Khi nào dùng Queue/Stack & Cây khung nhỏ nhất', prompt: 'So sánh BFS và DFS, đồng thời hướng dẫn cách nhẩm nhanh cây khung nhỏ nhất bằng thuật toán Kruskal và Prim không bị chu trình!' },
+      { icon: '💻', title: 'Đệ quy, Quy hoạch động & Bảng băm', sub: 'Khử đệ quy & xử lý đụng độ Hash Table', prompt: 'Phân tích cách tính độ phức tạp đệ quy bằng Định lý Master và so sánh xử lý đụng độ bảng băm Chaining vs Linear Probing!' }
+    ];
+  }
+  if (code === 'OOP_CSHARP' || code === 'NNLT_PYTHON' || /lập trình|python|c#/i.test(name)) {
+    return [
+      { icon: '🏗️', title: 'Đa hình: virtual/override vs Method Hiding', sub: 'Đọc nhanh Output các câu bẫy kế thừa', prompt: 'Phân biệt cực rõ virtual/override với từ khóa new (Method Hiding) trong OOP kèm đoạn code bẫy kết quả in ra màn hình!' },
+      { icon: '🛡️', title: 'Abstract Class vs Interface & 5 nguyên lý SOLID', sub: 'Khi nào chọn cái nào trong thiết kế hướng đối tượng', prompt: 'So sánh ngắn gọn Abstract Class và Interface, kèm ví dụ thực tế dễ nhớ cho 5 nguyên lý SOLID!' },
+      { icon: '💾', title: 'Stack vs Heap, Tham chiếu & Garbage Collector', sub: 'Value Type, Reference Type & rò rỉ bộ nhớ', prompt: 'Giải thích cơ chế cấp phát bộ nhớ Stack vs Heap, Boxing/Unboxing và cách tránh lỗi NullReference / biến tham chiếu ngoài ý muốn!' },
+      { icon: '🐛', title: 'Kỹ thuật nhẩm Output code & bắt lỗi biên', sub: 'Vòng lặp, đệ quy, ngoại lệ try-catch-finally', prompt: 'Chỉ cho tôi quy trình nhẩm Output đoạn code có vòng lặp lồng nhau và thứ tự chạy khối try - catch - finally có lệnh return!' }
+    ];
+  }
+  return [
+    { icon: '🧬', title: `Trọng tâm cốt lõi: ${subName || 'Môn học hiện tại'}`, sub: 'Hệ thống hóa các cơ chế & công thức hay thi nhất', prompt: `Hãy tóm tắt có hệ thống những cơ chế, công thức và mốc kiến thức hay ra thi nhất của môn ${subName || 'này'} kèm bảng so sánh dễ nhớ!` },
+    { icon: '🪤', title: 'Phân tích câu bẫy NGOẠI TRỪ / KHÔNG ĐÚNG', sub: 'Nhận diện từ khóa đánh lừa sinh viên trong 5 giây', prompt: `Chỉ ra 5 kiểu câu hỏi bẫy (đặc biệt dạng NGOẠI TRỪ / KHÔNG ĐÚNG) sinh viên dễ sai nhất trong môn ${subName || 'này'} và mẹo né bẫy!` },
+    { icon: '🩺', title: 'Biện luận tình huống thực tiễn / Lâm sàng', sub: 'Rèn tư duy phân tích thay vì học vẹt', prompt: `Cho tôi 1 tình huống vận dụng thực tế / ca lâm sàng điển hình của môn ${subName || 'này'}, đặt câu hỏi gợi mở và giải thích từng bước!` },
+    { icon: '⚡', title: 'Đề mini 3 câu trắc nghiệm phân loại cao', sub: 'Thử sức nhanh kèm giải thích loại trừ A-B-C-D', prompt: `Hãy ra cho tôi 3 câu hỏi trắc nghiệm mức độ Vận dụng của môn ${subName || 'này'} kèm đáp án và giải thích loại trừ từng phương án A, B, C, D!` }
+  ];
+}
+
 function buildTutorGreetingMarkup(compact = false) {
-  const curSub = (typeof STATE !== 'undefined' && Array.isArray(STATE.subjects))
-    ? (STATE.subjects.find((s) => String(s.id) === String(STATE.activeSubjectId)) || STATE.subjects[0])
-    : null;
-  const subName = curSub?.name || 'Môn học hiện tại';
+  const subInfo = typeof getActiveSubjectInfoForTutor === 'function'
+    ? getActiveSubjectInfoForTutor()
+    : { name: 'Môn học hiện tại', code: '' };
+  const subName = subInfo.name || 'Môn học hiện tại';
 
   if (compact) {
     return `
       <div class="gemini-message-row gemini-model-row animate-fade-in">
         <div class="gemini-sparkle-icon gemini-sparkle-sm mt-0.5"></div>
-        <div class="gemini-model-bubble space-y-2">
+        <div class="gemini-model-bubble space-y-1.5">
           <div class="text-xs font-bold text-slate-200">
-            Xin chào! Tôi là <span class="gemini-gradient-text">Gemini AI</span> phụ trách <span class="txt-brand">${escapeHtml(subName)}</span>.
+            Xin chào! Tôi là <span class="gemini-gradient-text">Gia Sư AI</span> đồng hành môn <span class="txt-brand">${escapeHtml(subName)}</span>.
           </div>
           <div class="text-xs text-slate-400">
-            Bấm chọn câu hỏi nhanh bên trên, bôi đen từ khóa hoặc nhập câu hỏi bất kỳ để tôi giải thích chi tiết nhé!
+            Bấm gợi ý nhanh bên trên hoặc nhập bất kỳ câu hỏi nào để mình giải thích bản chất &amp; mẹo nhớ ngay nhé!
           </div>
         </div>
       </div>
     `;
   }
 
+  const cards = getDynamicTutorWelcomeCards(subInfo.code, subName);
+  const cardsHtml = cards.map((c) => `
+    <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt(${escapeJsString(c.prompt)})">
+      <div>
+        <div class="gemini-prompt-card-text">${escapeHtml(c.icon)} ${escapeHtml(c.title)}</div>
+        <div class="gemini-prompt-card-sub">${escapeHtml(c.sub)}</div>
+      </div>
+      <div class="gemini-prompt-card-icon">→</div>
+    </div>
+  `).join('');
+
   return `
     <div class="gemini-welcome-container animate-fade-in">
-      <div class="flex items-center gap-3 mb-2">
-        <div class="gemini-sparkle-icon" style="width: 38px; height: 38px;"></div>
+      <div class="flex items-center gap-2.5 mb-2">
+        <div class="gemini-sparkle-icon" style="width: 34px; height: 34px;"></div>
         <span class="text-xs font-extrabold tracking-wider uppercase px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
-          Gemini 1.5 Pro • Trợ Lý Học Tập Đa Năng
+          Gia Sư AI 1-1 • Sẵn Sàng Giải Đáp Tức Thì
         </span>
       </div>
 
       <h1 class="gemini-hero-greeting">
         <span class="gemini-gradient-text">Xin chào bạn,</span><br/>
-        Hôm nay bạn muốn cùng tôi học gì?
+        Hôm nay mình cùng chinh phục phần nào?
       </h1>
       <p class="gemini-hero-sub">
-        Tôi đồng hành cùng bạn ôn luyện <strong class="text-white">${escapeHtml(subName)}</strong>, giải thích bản chất y sinh, sửa lỗi lập trình hoặc tối ưu hóa phương pháp thi trắc nghiệm.
+        Đang đồng hành môn <strong class="txt-brand">${escapeHtml(subName)}</strong> — chọn một chủ đề gợi ý bên dưới hoặc gửi câu hỏi / đoạn code / ca lâm sàng để mình phân tích sâu từng bước.
       </p>
 
       <div class="gemini-prompts-grid">
-        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Hãy phân tích chi tiết cơ chế chuyển hóa Glucid, chu trình Krebs và các điểm thắt nút năng lượng quan trọng nhất trong đề thi!')">
-          <div>
-            <div class="gemini-prompt-card-text">🧬 Phân tích chuyển hóa Glucid & Krebs</div>
-            <div class="gemini-prompt-card-sub">Bản chất hóa sinh & các câu bẫy thi thường gặp</div>
-          </div>
-          <div class="gemini-prompt-card-icon">💡</div>
-        </div>
-
-        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Hãy hướng dẫn tôi cách debug lỗi rò rỉ bộ nhớ, con trỏ và tư duy lập trình hướng đối tượng OOP trong C++ và C#.')">
-          <div>
-            <div class="gemini-prompt-card-text">💻 Debug OOP & Rò rỉ bộ nhớ C++ / C#</div>
-            <div class="gemini-prompt-card-sub">Soi rò rỉ bộ nhớ, virtual table & tối ưu thuật toán</div>
-          </div>
-          <div class="gemini-prompt-card-icon">⚡</div>
-        </div>
-
-        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Cho tôi bài tập biện luận lâm sàng ca bệnh Đái tháo đường qua chỉ số nghiệm pháp OGTT và nồng độ thể Ceton trong nước tiểu.')">
-          <div>
-            <div class="gemini-prompt-card-text">🩺 Biện luận lâm sàng ca bệnh OGTT & Ceton</div>
-            <div class="gemini-prompt-card-sub">Chẩn đoán và phân tích 10 thông số nước tiểu</div>
-          </div>
-          <div class="gemini-prompt-card-icon">🔬</div>
-        </div>
-
-        <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt('Hãy chỉ cho tôi phương pháp loại trừ 3 đáp án sai khi gặp câu hỏi trắc nghiệm phủ định dạng NGOẠI TRỪ.')">
-          <div>
-            <div class="gemini-prompt-card-text">🎯 Kỹ thuật loại trừ phương án bẫy trắc nghiệm</div>
-            <div class="gemini-prompt-card-sub">Mẹo tư duy tốc độ 10 giây cho kỳ thi trắc nghiệm</div>
-          </div>
-          <div class="gemini-prompt-card-icon">🚀</div>
-        </div>
+        ${cardsHtml}
       </div>
     </div>
   `;
@@ -12864,8 +12783,9 @@ function buildTutorMessageHtml(msg, compact = false) {
   window._tutorMsgMeta[msgId] = msg;
   const modeMeta = msg.mode && TUTOR_MODES_META[msg.mode] ? TUTOR_MODES_META[msg.mode] : null;
   const provBadge = formatTutorProviderBadge(msg);
-  const subLabel = msg.context || 'Gemini 1.5 Pro';
+  const subLabel = msg.context || 'Gia Sư AI UniMaster';
   const renderedBody = renderTutorAcademicHtml(msg.content);
+  const isFallbackOrErr = msg.provider_used === 'fallback' || String(msgId).endsWith('_err');
 
   return `
     <div class="gemini-message-row gemini-model-row animate-fade-in" id="${escapeHtml(msgId)}">
@@ -12887,6 +12807,10 @@ function buildTutorMessageHtml(msg, compact = false) {
         </div>
 
         <div class="gemini-action-bar">
+          ${isFallbackOrErr ? `
+          <button type="button" onclick="retryLastTutorMessage()" class="gemini-action-pill !border-amber-500/40 !text-amber-300" title="Gửi lại câu hỏi này tới AI">
+            <span>🔄</span><span>Thử lại ngay</span>
+          </button>` : ''}
           <button type="button" onclick="copyAiReply(${escapeJsString(msgId)})" class="gemini-action-pill" title="Sao chép câu trả lời">
             <span>📋</span><span>Sao chép</span>
           </button>
@@ -12908,13 +12832,11 @@ function buildTutorMessageHtml(msg, compact = false) {
   `;
 }
 
-function scrollTutorToBottom(boxId) {
+function scrollTutorToBottom(boxId, force = true) {
   const box = document.getElementById(boxId);
   if (!box) return;
-  // Chỉ cuộn xuống đáy nếu người dùng đang ở gần đáy (trong khoảng 80px).
-  // Nếu đang đọc tin nhắn cũ ở giữa, giữ nguyên vị trí cuộn hiện tại.
   const distFromBottom = box.scrollHeight - box.scrollTop - box.clientHeight;
-  if (distFromBottom < 80) {
+  if (force || distFromBottom < 140) {
     box.scrollTop = box.scrollHeight;
     const btnId = boxId === 'floating-chat-messages' ? 'btn-ft-scroll-bottom' : 'btn-tutor-scroll-bottom';
     document.getElementById(btnId)?.classList.add('hidden');
@@ -12941,10 +12863,14 @@ function renderActiveTutorMessages() {
       ? history.map((m) => buildTutorMessageHtml(m, true)).join('')
       : buildTutorGreetingMarkup(true);
     if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(floatBox);
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => scrollTutorToBottom('floating-chat-messages'));
+    if (history.length) {
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => scrollTutorToBottom('floating-chat-messages', true));
+      } else {
+        scrollTutorToBottom('floating-chat-messages', true);
+      }
     } else {
-      scrollTutorToBottom('floating-chat-messages');
+      floatBox.scrollTop = 0;
     }
   }
 
@@ -12954,10 +12880,14 @@ function renderActiveTutorMessages() {
       ? history.map((m) => buildTutorMessageHtml(m, false)).join('')
       : buildTutorGreetingMarkup(false);
     if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(tabBox);
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(() => scrollTutorToBottom('tutor-chat-box'));
+    if (history.length) {
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(() => scrollTutorToBottom('tutor-chat-box', true));
+      } else {
+        scrollTutorToBottom('tutor-chat-box', true);
+      }
     } else {
-      scrollTutorToBottom('tutor-chat-box');
+      tabBox.scrollTop = 0;
     }
   }
 }
@@ -12985,6 +12915,17 @@ function updateTutorModeUI() {
   document.querySelectorAll('[data-tutor-mode]').forEach((btn) => {
     btn.classList.toggle('active', btn.getAttribute('data-tutor-mode') === currentTutorMode);
   });
+  const compactLabels = {
+    explain: '🧠 Giải sâu',
+    eliminate: '🔍 Loại trừ',
+    socratic: '💡 Socratic',
+    clinical: '🩺 Lâm sàng',
+    debug: '💻 Debug'
+  };
+  const ftModeLbl = document.getElementById('ft-active-mode-label');
+  if (ftModeLbl) {
+    ftModeLbl.textContent = compactLabels[currentTutorMode] || '🧠 Giải sâu';
+  }
 }
 
 function syncTutorContextBarsUI() {
@@ -13010,6 +12951,10 @@ function syncTutorContextBarsUI() {
       tabWrap.classList.remove('hidden');
       setText('tutor-context-badge', titleLabel);
       setText('tutor-context-preview', previewText.slice(0, 160) + (previewText.length > 160 ? '...' : ''));
+    }
+    if (typeof renderAllMathOnPage === 'function') {
+      if (ftWrap) renderAllMathOnPage(ftWrap);
+      if (tabWrap) renderAllMathOnPage(tabWrap);
     }
   } else {
     ftWrap?.classList.add('hidden');
@@ -13136,7 +13081,8 @@ async function sendFloatingTutorCustomMessage(customText, modeOverride = null) {
 function getActiveSubjectInfoForTutor() {
   const tabSubSel = document.getElementById('tutor-subject-select')?.value;
   const preferTab = typeof STATE !== 'undefined' && STATE.currentTab === 'tutor' && tabSubSel;
-  const targetId = preferTab ? tabSubSel : STATE?.activeSubjectId;
+  const preferExam = typeof STATE !== 'undefined' && STATE.currentTab === 'exam' && STATE.exam?.active && STATE.exam?.subjectId;
+  const targetId = preferTab ? tabSubSel : (preferExam ? STATE.exam.subjectId : STATE?.activeSubjectId);
   const sub = (STATE?.subjects || []).find((s) => String(s.id) === String(targetId)) || STATE?.subjects?.[0] || null;
   return {
     id: sub?.id || null,
@@ -13210,6 +13156,7 @@ function attachContextToTutor(ctxObj = {}, opts = {}) {
   pinnedTutorQuestion = {
     id: ctxObj.id || null,
     kind: ctxObj.kind || 'question',
+    source: String(ctxObj.source || ''),
     shortTitle: String(ctxObj.shortTitle || 'Ngữ cảnh đính kèm'),
     fullTitle: String(ctxObj.fullTitle || ''),
     topic: String(ctxObj.topic || ''),
@@ -13221,6 +13168,7 @@ function attachContextToTutor(ctxObj = {}, opts = {}) {
     option_c: String(ctxObj.option_c || ''),
     option_d: String(ctxObj.option_d || ''),
     correct_option: String(ctxObj.correct_option || ''),
+    explanation: String(ctxObj.explanation || ''),
     user_answer: String(ctxObj.user_answer || ''),
     is_correct: ctxObj.is_correct
   };
@@ -13250,10 +13198,12 @@ function pinQuestionToTutor(q, meta = {}) {
   const cleanTitle = rawTitle.replace(/<[^>]+>/g, '').trim();
   const shortTitle = meta.label || (parsed.bankNum ? `Câu #${parsed.bankNum}` : 'Câu hỏi');
   const sub = getActiveSubjectInfoForTutor();
+  const hideAnswerKey = Boolean(meta.hideAnswer);
 
   attachContextToTutor({
     id: q.id,
     kind: 'question',
+    source: meta.source || '',
     shortTitle,
     fullTitle: cleanTitle,
     topic: parsed.topic || q.topic_tag || '',
@@ -13263,11 +13213,11 @@ function pinQuestionToTutor(q, meta = {}) {
     option_b: q.option_b || '',
     option_c: q.option_c || '',
     option_d: q.option_d || '',
-    correct_option: q._effectiveCorrect || q.correct_option || '',
-    explanation: q.explanation || '',
+    correct_option: hideAnswerKey ? '' : (q._effectiveCorrect || q.correct_option || ''),
+    explanation: hideAnswerKey ? '' : (q.explanation || ''),
     user_answer: meta.user_answer || '',
     is_correct: meta.is_correct
-  }, { open: true });
+  }, { open: meta.open !== false, mode: meta.mode });
 }
 
 function unpinTutorQuestion() {
@@ -13870,7 +13820,7 @@ function stopFloatingVoiceInput() {
 // -------------------------------------------------------------------------
 // 1-TOUCH TRIGGERS FOR EXAM QUESTIONS & REVIEW
 // -------------------------------------------------------------------------
-function askAiAboutCurrentExamQuestion() {
+function askAiAboutCurrentExamQuestion(autoExplain = false) {
   const q = STATE.exam.questions[STATE.exam.currentIndex];
   if (!q) {
     toggleFloatingTutor();
@@ -13878,14 +13828,25 @@ function askAiAboutCurrentExamQuestion() {
   }
   const idx = STATE.exam.currentIndex + 1;
   const userAns = STATE.exam.answers[q.id] || '';
-  const isCorrect = STATE.exam.graded[q.id] ? (userAns.toUpperCase() === String(q._effectiveCorrect).toUpperCase()) : undefined;
+  const isGraded = Boolean(STATE.exam.graded[q.id]);
+  const isCorrect = isGraded ? (String(userAns).toUpperCase() === String(q._effectiveCorrect).toUpperCase()) : undefined;
+  const hideAnswer = !isGraded && STATE.exam.mode === 'real';
 
   pinQuestionToTutor(q, {
     label: `Câu ${idx}`,
     user_answer: userAns,
     is_correct: isCorrect,
+    hideAnswer,
     source: 'exam'
   });
+
+  if (autoExplain && isGraded && !tutorSendingLock) {
+    const corr = String(q._effectiveCorrect || '').trim();
+    const prompt = (userAns && !isCorrect)
+      ? `Ở Câu ${idx}, mình đã chọn đáp án ${userAns} nhưng đáp án đúng là ${corr}. Hãy giải thích ngắn gọn, dễ hiểu vì sao ${corr} đúng, vì sao ${userAns} là bẫy sai, và cho mẹo nhớ 5 giây!`
+      : `Ở Câu ${idx} (đáp án đúng: ${corr}), hãy giải thích bản chất cốt lõi, loại trừ nhanh các phương án nhiễu còn lại và cho mẹo nhớ 5 giây!`;
+    sendTutorChatUnified(prompt, { mode: 'explain', source: 'exam_feedback' });
+  }
 }
 
 function askAiAboutCurrentTimedQuestion() {
@@ -15917,7 +15878,7 @@ function switchTab(tabName) {
     const isHomeOrTutor = (tabName === 'dashboard' || tabName === 'tutor') && !isExamViewActive;
     ftContainer.classList.toggle('hidden', isHomeOrTutor);
     if (floatingNextBtn) {
-      floatingNextBtn.classList.toggle('hidden', !isExamViewActive);
+      floatingNextBtn.classList.toggle('hidden', !isTimedModalOpen);
     }
     if (isHomeOrTutor) {
       closeFloatingTutor();
@@ -15946,11 +15907,13 @@ function switchTab(tabName) {
   playSound('click');
   if (tabName === 'dashboard') renderDashboard();
   if (tabName === 'exam') {
-    const examSel = document.getElementById('exam-subject-select');
-    if (examSel && STATE.activeSubjectId && examSel.value !== String(STATE.activeSubjectId)) {
-      examSel.value = String(STATE.activeSubjectId);
+    if (!STATE.exam?.active) {
+      const examSel = document.getElementById('exam-subject-select');
+      if (examSel && STATE.activeSubjectId && examSel.value !== String(STATE.activeSubjectId)) {
+        examSel.value = String(STATE.activeSubjectId);
+      }
+      onExamSubjectChange();
     }
-    onExamSubjectChange();
   }
   if (tabName === 'exercises') loadExercisesView();
   if (tabName === 'essay') loadEssayView();
@@ -15958,10 +15921,15 @@ function switchTab(tabName) {
   if (tabName === 'mistakes') renderMistakeNotebook();
   if (tabName === 'search') loadBankQuestions();
   if (tabName === 'tutor') {
+    const tutorSel = document.getElementById('tutor-subject-select');
+    if (tutorSel && STATE.activeSubjectId && Array.from(tutorSel.options).some((o) => String(o.value) === String(STATE.activeSubjectId))) {
+      tutorSel.value = String(STATE.activeSubjectId);
+    }
     renderTutorQuickPrompts();
     updateTutorModeUI();
     updateTutorPersonaUI();
     renderSharedTutorHistory();
+    if (typeof refreshTutorEngineHealthBadge === 'function') refreshTutorEngineHealthBadge();
     if (typeof syncTutorSessionsFromServer === 'function') syncTutorSessionsFromServer();
   }
   if (tabName === 'arena') initArenaView();
@@ -16080,6 +16048,109 @@ function switchDashboardStudioTab(tabKey) {
     btn.classList.toggle('btn-soft', !active);
   });
 }
+window.switchDashboardStudioTab = switchDashboardStudioTab;
+
+function switchDashboardInsightsTab(tabKey = 'schedule') {
+  ['schedule', 'analytics', 'notebook'].forEach((k) => {
+    document.getElementById(`dash-insights-${k}`)?.classList.toggle('hidden', k !== tabKey);
+  });
+  document.querySelectorAll('.dash-insights-tab').forEach((btn) => {
+    const active = btn.getAttribute('data-insights-tab') === tabKey;
+    btn.classList.toggle('btn-primary', active);
+    btn.classList.toggle('btn-soft', !active);
+  });
+  if (typeof playSound === 'function') playSound('click');
+  if (typeof refreshIcons === 'function') refreshIcons();
+}
+window.switchDashboardInsightsTab = switchDashboardInsightsTab;
+
+function toggleExamAdvancedConfig(forceState) {
+  const drawer = document.getElementById('exam-advanced-config-drawer');
+  const chev = document.getElementById('exam-adv-chevron');
+  const btn = document.getElementById('btn-exam-advanced-toggle');
+  if (!drawer) return;
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : drawer.classList.contains('hidden');
+  drawer.classList.toggle('hidden', !shouldOpen);
+  if (chev) chev.textContent = shouldOpen ? '▴' : '▾';
+  if (btn) {
+    btn.classList.toggle('btn-primary', shouldOpen);
+    btn.classList.toggle('btn-soft', !shouldOpen);
+  }
+  if (typeof playSound === 'function') playSound('click');
+}
+window.toggleExamAdvancedConfig = toggleExamAdvancedConfig;
+
+function toggleFeedbackExtraAiTools(forceState) {
+  const wrap = document.getElementById('q-feedback-more-ai-wrap');
+  const chev = document.getElementById('feedback-more-ai-chevron');
+  const btn = document.getElementById('btn-feedback-more-ai');
+  if (!wrap) return;
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : wrap.classList.contains('hidden');
+  wrap.classList.toggle('hidden', !shouldOpen);
+  if (chev) chev.textContent = shouldOpen ? '▴' : '▾';
+  if (btn) {
+    btn.classList.toggle('btn-primary', shouldOpen);
+    btn.classList.toggle('btn-soft', !shouldOpen);
+  }
+  if (typeof playSound === 'function') playSound('click');
+  if (typeof refreshIcons === 'function') refreshIcons();
+}
+window.toggleFeedbackExtraAiTools = toggleFeedbackExtraAiTools;
+
+function toggleFloatingTutorSettings(forceState) {
+  const drawer = document.getElementById('ft-settings-drawer');
+  const chev = document.getElementById('ft-settings-chevron');
+  const btn = document.getElementById('btn-ft-mode-toggle');
+  if (!drawer) return;
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : drawer.classList.contains('hidden');
+  drawer.classList.toggle('hidden', !shouldOpen);
+  if (chev) chev.textContent = shouldOpen ? '▴' : '▾';
+  if (btn) {
+    btn.classList.toggle('btn-primary', shouldOpen);
+    btn.classList.toggle('btn-soft', !shouldOpen);
+  }
+  if (typeof playSound === 'function') playSound('click');
+}
+window.toggleFloatingTutorSettings = toggleFloatingTutorSettings;
+
+async function refreshTutorEngineHealthBadge() {
+  const badge = document.getElementById('tutor-engine-health-badge');
+  if (!badge) return;
+  if (STATE?.isOfflineStandalone) {
+    badge.textContent = '🟡 Chế độ Ngoại tuyến';
+    badge.className = 'badge-amber text-[10px] px-2 py-0.5 rounded-full font-bold';
+    return;
+  }
+  try {
+    const res = await apiFetch('/api/ai/key-status');
+    const activeCount = Number(res?.active_count ?? res?.active_keys ?? res?.ready_keys ?? 0);
+    if (activeCount > 0 || res?.ok) {
+      badge.textContent = activeCount > 0 ? `🟢 AI Sẵn sàng (${activeCount} kênh khỏe)` : '🟢 AI Sẵn sàng';
+      badge.className = 'badge-emerald text-[10px] px-2 py-0.5 rounded-full font-bold';
+    }
+  } catch (_) {}
+}
+window.refreshTutorEngineHealthBadge = refreshTutorEngineHealthBadge;
+
+async function retryLastTutorMessage() {
+  if (tutorSendingLock || !Array.isArray(floatingTutorChatHistory) || !floatingTutorChatHistory.length) return;
+  const last = floatingTutorChatHistory[floatingTutorChatHistory.length - 1];
+  if (last && last.role === 'model' && (last.provider_used === 'fallback' || String(last.id || '').endsWith('_err'))) {
+    floatingTutorChatHistory.pop();
+  }
+  let userRec = null;
+  for (let i = floatingTutorChatHistory.length - 1; i >= 0; i--) {
+    if (floatingTutorChatHistory[i]?.role === 'user') {
+      userRec = floatingTutorChatHistory.splice(i, 1)[0];
+      break;
+    }
+  }
+  if (!userRec || !userRec.content) return;
+  saveSharedTutorHistory();
+  renderActiveTutorMessages();
+  await sendTutorChatUnified(userRec.content, { mode: userRec.mode || currentTutorMode, source: 'retry' });
+}
+window.retryLastTutorMessage = retryLastTutorMessage;
 
 function openExamForSubjectCode(code, fallbackId) {
   const matched = (STATE.subjects || []).find((s) => String(s.code).toUpperCase() === String(code).toUpperCase());
@@ -16989,8 +17060,8 @@ async function startAdaptiveSmartExam(customSid = null) {
       const isBookmarked = bookmarkIds.has(qid);
       const hasImg = Boolean(q.image_url && String(q.image_url).trim());
       const isTrap = /NGOẠI TRỪ|KHÔNG ĐÚNG|\bSAI\b/i.test(txt);
-      const bloomKey = typeof getBloomInfo === 'function' ? getBloomInfo(q.difficulty, txt).key : 'understand';
-      const bloomBonus = bloomKey === 'analyze' ? 18 : bloomKey === 'apply' ? 12 : 4;
+      const bloomKey = typeof getBloomInfo === 'function' ? getBloomInfo(q.difficulty, txt).key : 'medium';
+      const bloomBonus = (bloomKey === 'very_hard' || bloomKey === 'analyze') ? 18 : (bloomKey === 'hard' || bloomKey === 'apply') ? 12 : 4;
 
       const score =
         (isMistake ? 130 : 0) +
@@ -17128,6 +17199,14 @@ function launchExamWithQuestions(rawQuestions, title, forceNoShuffle = false) {
     });
   }
 
+  if (STATE.exam.subjectId) {
+    const exSub = (STATE.subjects || []).find((s) => Number(s.id) === Number(STATE.exam.subjectId));
+    if (exSub) {
+      STATE.activeSubjectId = exSub.id;
+      setText('active-subj-name', exSub.name);
+      if (exSub.icon) setText('active-subj-icon', exSub.icon);
+    }
+  }
   if (typeof switchTab === 'function') switchTab('exam');
   document.getElementById('exam-config-screen')?.classList.add('hidden');
   document.getElementById('exam-result-screen')?.classList.add('hidden');
@@ -17218,21 +17297,25 @@ function renderCurrentExamQuestion() {
   if (typeof pinnedTutorQuestion !== 'undefined' && pinnedTutorQuestion && pinnedTutorQuestion.source === 'exam') {
     const parsedH = parseQuestionHeader(q.question_text || '');
     const cleanT = (parsedH.body || q.question_text || '').replace(/<[^>]+>/g, '').trim();
+    const isGradedNow = Boolean(STATE.exam.graded[q.id]);
+    const hideKey = !isGradedNow && STATE.exam.mode === 'real';
     pinnedTutorQuestion.id = q.id;
     pinnedTutorQuestion.shortTitle = `Câu ${STATE.exam.currentIndex + 1}`;
     pinnedTutorQuestion.fullTitle = cleanT;
-    pinnedTutorQuestion.topic = parsedH.topic || '';
+    pinnedTutorQuestion.topic = parsedH.topic || q.topic_tag || '';
     pinnedTutorQuestion.code_snippet = q.code_snippet || '';
     pinnedTutorQuestion.option_a = q.option_a || '';
     pinnedTutorQuestion.option_b = q.option_b || '';
     pinnedTutorQuestion.option_c = q.option_c || '';
     pinnedTutorQuestion.option_d = q.option_d || '';
-    pinnedTutorQuestion.correct_option = q._effectiveCorrect || '';
-    pinnedTutorQuestion.explanation = q.explanation || '';
+    pinnedTutorQuestion.correct_option = hideKey ? '' : (q._effectiveCorrect || '');
+    pinnedTutorQuestion.explanation = hideKey ? '' : (q.explanation || '');
     pinnedTutorQuestion.user_answer = STATE.exam.answers[q.id] || '';
-    setText('ft-pinned-q-title', `📌 Câu ${STATE.exam.currentIndex + 1} • ${pinnedTutorQuestion.topic || 'Kiến thức cốt lõi'}`);
-    setText('ft-pinned-q-body', cleanT.substring(0, 110) + (cleanT.length > 110 ? '...' : ''));
+    pinnedTutorQuestion.is_correct = isGradedNow ? (String(pinnedTutorQuestion.user_answer).toUpperCase() === String(q._effectiveCorrect || '').toUpperCase()) : undefined;
+    persistPinnedTutorContext(pinnedTutorQuestion);
     syncFloatingTutorSubjectContext();
+    syncTutorContextBarsUI();
+    renderFloatingActionChips();
   }
   setText('answered-q-count', `${answeredCount}/${total}`);
   const bar = document.getElementById('exam-progress-bar');
@@ -17410,7 +17493,9 @@ function renderCurrentExamQuestion() {
   const ftContainer = document.getElementById('floating-tutor-container');
   if (ftContainer) ftContainer.classList.remove('hidden');
   if (floatingNextBtn) {
-    floatingNextBtn.classList.remove('hidden');
+    const timedModal = document.getElementById('modal-timed-exam');
+    const isTimedModalOpen = Boolean(timedModal && !timedModal.classList.contains('hidden'));
+    floatingNextBtn.classList.toggle('hidden', !isTimedModalOpen);
   }
 
   if (isLast) {
@@ -17966,13 +18051,18 @@ async function requestAiConceptRecall() {
 
 async function requestAiHint() {
   const q = STATE.exam.questions[STATE.exam.currentIndex];
-  if (!q || STATE.exam.hints[q.id]) return;
+  if (!q) return;
+  if (STATE.exam.hints[q.id]) {
+    document.getElementById('q-hint-box')?.classList.toggle('hidden');
+    return;
+  }
   const hintBox = document.getElementById('q-hint-box');
   const hintContent = document.getElementById('q-hint-content');
   if (hintBox && hintContent) {
     hintBox.classList.remove('hidden');
     hintContent.innerHTML = `<div class="skeleton-shimmer h-8 w-full"></div>`;
   }
+  playSound('click');
   const res = await apiFetch('/api/ai/hint', {
     method: 'POST',
     body: JSON.stringify({
@@ -17981,7 +18071,7 @@ async function requestAiHint() {
       options: [q.option_a, q.option_b, q.option_c, q.option_d]
     })
   });
-  STATE.exam.hints[q.id] = res.hint || '';
+  STATE.exam.hints[q.id] = res.hint || 'Hãy đọc kỹ từ khóa phủ định và đối chiếu đơn vị chuẩn.';
   renderCurrentExamQuestion();
 }
 
@@ -18826,7 +18916,15 @@ function setupKeyboardShortcuts() {
       };
       const fallback = { '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
       const chosen = map[e.code] || fallback[e.key];
-      if (chosen) { e.preventDefault(); selectExamOption(chosen, true); return; }
+      if (chosen) {
+        e.preventDefault();
+        if (e.shiftKey && typeof toggleUserEliminateOption === 'function') {
+          toggleUserEliminateOption(null, chosen);
+        } else {
+          selectExamOption(chosen, true);
+        }
+        return;
+      }
 
       if (e.key === 'ArrowRight') { e.preventDefault(); nextQuestion(); }
       else if (e.key === 'ArrowLeft') { e.preventDefault(); prevQuestion(); }
@@ -19334,6 +19432,36 @@ const TUTOR_PROMPT_PRESETS = {
     '🛡️ Giải thích 5 nguyên lý SOLID dễ hiểu nhất bằng ví dụ thực tế C#',
     '⚙️ Phân biệt Value Type (Stack) và Reference Type (Heap) & cơ chế Boxing/Unboxing'
   ],
+  TOAN_RR: [
+    '🧮 Rút gọn biểu thức Boole bằng bìa Karnaugh (K-Map) và chuẩn tắc DNF / CNF',
+    '🕸️ Điều kiện chu trình Euler vs Hamilton và bảng chạy từng bước Dijkstra',
+    '🔢 Mẹo phân biệt Hoán vị, Chỉnh hợp, Tổ hợp lặp, Nguyên lý Bù trừ & Dirichlet',
+    '📐 Quan hệ tương đương, Quan hệ thứ tự & Biểu đồ Hasse dễ nhớ nhất'
+  ],
+  CTDL_GT: [
+    '🌳 Giải thích 4 phép xoay cân bằng cây AVL (LL, RR, LR, RL) & duyệt NLR, LNR, LRN',
+    '⚡ So sánh độ phức tạp Big-O & tính ổn định của QuickSort, MergeSort, HeapSort',
+    '🧭 Cây khung nhỏ nhất Kruskal vs Prim và tìm kiếm đồ thị BFS vs DFS',
+    '🔗 Xử lý đụng độ Bảng băm (Chaining vs Linear Probing) & Định lý Master'
+  ],
+  NNLT_PYTHON: [
+    '🐍 Phân biệt List, Tuple, Set, Dict và kỹ thuật List Comprehension tối ưu',
+    '🔄 Tham chiếu biến Mutable vs Immutable khi truyền vào hàm Python (bẫy đề thi)',
+    '📂 Xử lý ngoại lệ try-except-else-finally và đọc ghi file an toàn với with open()',
+    '⚡ Độ phức tạp các thao tác trên List / Dict và mẹo nhẩm nhanh Output đệ quy'
+  ],
+  HOASINH_YDS_2024: [
+    '🧬 Điểm điều hòa dị lập thể quan trọng nhất của Đường phân, Chu trình Krebs & Tân tạo đường',
+    '🩸 Phân biệt Vàng da trước gan, tại gan và sau gan qua Bilirubin máu & nước tiểu',
+    '⚡ Tổng hợp năng lượng ATP từ 1 phân tử Glucose và β-oxy hóa Acid béo Palmitic',
+    '🧪 Biện luận rối loạn Lipoprotein, Ketone thể và các câu bẫy NGOẠI TRỪ Hóa sinh YDS'
+  ],
+  kysinh_trung: [
+    '🪱 Phân biệt chu trình phát triển, thể lây nhiễm & ký chủ của Giun đũa, Giun móc, Giun lươn',
+    '🔬 Đặc điểm nhận diện tiêu bản trứng giun - sán và thể tư dưỡng / bào nang đơn bào',
+    '🦟 So sánh Plasmodium falciparum và P. vivax trên lam máu ngoại vi & phác đồ điều trị',
+    '⚡ Tổng hợp các câu bẫy NGOẠI TRỪ hay gặp nhất trong ngân hàng Ký Sinh Trùng Y Học'
+  ],
   CS101: [
     '⚡ Độ phức tạp thuật toán Big-O của các thuật toán sắp xếp phổ biến (QuickSort, MergeSort)',
     '🌳 Duyệt cây nhị phân tìm kiếm (BST): Pre-order, In-order, Post-order',
@@ -19365,6 +19493,10 @@ function renderTutorQuickPrompts() {
 
 function onTutorSubjectChange() {
   renderTutorQuickPrompts();
+  syncFloatingTutorSubjectContext();
+  if (!Array.isArray(floatingTutorChatHistory) || !floatingTutorChatHistory.length) {
+    renderActiveTutorMessages();
+  }
   playSound('click');
 }
 
@@ -30131,7 +30263,7 @@ document.addEventListener('keydown', (e) => {
     const visible = drafts.filter((d) => d.progress_type !== 'tutor');
     if (!visible.length) return '';
 
-    const itemsHtml = visible
+    const renderedCards = visible
       .slice(0, context === 'dashboard' ? 4 : 6)
       .map((d) => {
         const meta = typeMeta[d.progress_type] || typeMeta.exam;
@@ -30195,22 +30327,30 @@ document.addEventListener('keydown', (e) => {
             </div>
           </div>
         `;
-      })
-      .join('');
+      });
+
+    const primaryCard = renderedCards[0] || '';
+    const extraCards = renderedCards.slice(1);
+    const extraWrapId = `resume-extra-list-${escapeHtml(context)}`;
 
     return `
-      <div class="uni-card resume-panel-card p-4 sm:p-5 space-y-3 animate-fade-in">
+      <div class="uni-card resume-panel-card p-3.5 sm:p-4 space-y-2.5 animate-fade-in">
         <div class="flex items-center justify-between gap-2 flex-wrap">
           <div class="flex items-center gap-2">
-            <span class="text-lg">📌</span>
+            <span class="text-base">📌</span>
             <div>
-              <h3 class="text-sm sm:text-base font-black txt-main leading-tight">Đang Làm Dở — Tiếp Tục Ngay</h3>
-              <p class="text-[11px] txt-muted font-semibold">Tiến trình được tự động lưu đồng bộ trên máy &amp; Server cho tài khoản <span class="txt-brand font-bold">${escapeHtml(getProgressAccountId())}</span></p>
+              <h3 class="text-xs sm:text-sm font-black txt-main leading-tight">Đang Làm Dở — Tiếp Tục Ngay</h3>
             </div>
           </div>
-          <span class="badge-brand text-[11px] px-2.5 py-0.5 rounded-full font-extrabold">${visible.length} phiên đang lưu</span>
+          <div class="flex items-center gap-2">
+            ${extraCards.length ? `
+            <button type="button" onclick="document.getElementById('${extraWrapId}')?.classList.toggle('hidden')" class="btn-soft px-2.5 py-1 text-[11px] font-bold rounded-lg">
+              📂 +${extraCards.length} phiên khác ▾
+            </button>` : `<span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-extrabold">1 phiên lưu</span>`}
+          </div>
         </div>
-        <div class="space-y-2.5">${itemsHtml}</div>
+        <div>${primaryCard}</div>
+        ${extraCards.length ? `<div id="${extraWrapId}" class="hidden space-y-2 max-h-52 overflow-y-auto pr-1 pt-1 border-t" style="border-color: var(--border);">${extraCards.join('')}</div>` : ''}
       </div>
     `;
   }
@@ -32459,10 +32599,11 @@ window.prevExercise = prevExercise;
 /**
  * Toggle advanced settings drawer in AI Tutor header
  */
-function toggleTutorAdvancedSettings() {
+function toggleTutorAdvancedSettings(forceState) {
   const drawer = document.getElementById('tutor-advanced-settings');
   if (!drawer) return;
-  drawer.classList.toggle('hidden');
+  const shouldOpen = typeof forceState === 'boolean' ? forceState : drawer.classList.contains('hidden');
+  drawer.classList.toggle('hidden', !shouldOpen);
 }
 
 // =========================================================================
