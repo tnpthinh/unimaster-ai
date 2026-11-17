@@ -1813,10 +1813,33 @@ function renderInlineMathAndCode(text) {
 // =========================================================================
 // 1. DEFAULT PREFERENCES & GLOBAL STATE
 // =========================================================================
+const DEFAULT_EXAM_SCHEDULE = [
+  { id: 'countdown-15-11', badgeId: 'cd-badge-15-11', dateStr: '2026-11-15', name: 'OOP Thực hành C#', target: '8.5+', tone: 'slate', subjectCode: 'OOP_CSHARP', subjectId: 5 },
+  { id: 'countdown-16-11', badgeId: 'cd-badge-16-11', dateStr: '2026-11-16', name: 'Giải Thuật (CTDL & GT)', target: '9.0+', tone: 'cyan', subjectCode: 'CTDL_GT', subjectId: 82 },
+  { id: 'countdown-26-11', badgeId: 'cd-badge-26-11', dateStr: '2026-11-26', name: 'OOP Trắc nghiệm & TH', target: '9.0+', tone: 'amber', subjectCode: 'OOP_CSHARP', subjectId: 5 },
+  { id: 'countdown-27-11', badgeId: 'cd-badge-27-11', dateStr: '2026-11-27', name: 'Toán Rời Rạc', target: '9.0+', tone: 'indigo', subjectCode: 'TOAN_RR', subjectId: 21 },
+  { id: 'countdown-01-12', badgeId: 'cd-badge-01-12', dateStr: '2026-12-01', name: 'NNLT 1 (Python)', target: '9.0+', tone: 'cyan', subjectCode: 'NNLT1', subjectId: 83 },
+  { id: 'countdown-04-12', badgeId: 'cd-badge-04-12', dateStr: '2026-12-04', name: 'Anh Văn Cơ Bản 3', target: '8.5+', tone: 'emerald', subjectCode: 'AVCB3', subjectId: 84 }
+];
+
 const DEFAULT_UI_PREFS = {
-  theme: 'dark', // 'dark' (Pure OLED #000) | 'midnight' | 'contrast' | 'light' | 'sepia'
+  theme: 'aurora', // 'aurora' | 'midnight' | 'dark' | 'contrast' | 'light' | 'sepia'
   brand: '#7c3aed',
   brand2: '#ec4899',
+  ambientGlow: true,
+  uiDensity: 'standard', // 'spacious' | 'standard' | 'compact'
+  optionLayout: 'auto', // 'auto' | 'grid' | 'stack'
+  confettiEnabled: true,
+  autoAiOnWrong: false,
+  dashWidgets: {
+    schedule: true,
+    quests: true,
+    kpi: true,
+    subjects: true,
+    studio: true,
+    insights: true
+  },
+  customExams: null,
   fontUi: "'Plus Jakarta Sans', sans-serif",
   fontQuestion: 'inherit',
   fontAnswer: 'inherit',
@@ -2176,14 +2199,22 @@ function applyAllAppearancePrefs() {
   const root = document.documentElement;
   const u = STATE.ui;
 
-  root.classList.remove('dark', 'sepia', 'midnight', 'contrast');
-  root.dataset.theme = u.theme || 'midnight';
-  if (u.theme === 'dark') root.classList.add('dark');
-  else if (u.theme === 'midnight') root.classList.add('midnight', 'dark');
-  else if (u.theme === 'contrast') root.classList.add('contrast', 'dark');
-  else if (u.theme === 'sepia') root.classList.add('sepia');
+  root.classList.remove('dark', 'sepia', 'midnight', 'contrast', 'aurora');
+  const activeTheme = u.theme || 'aurora';
+  root.dataset.theme = activeTheme;
+  if (activeTheme === 'dark') root.classList.add('dark');
+  else if (activeTheme === 'aurora') root.classList.add('aurora', 'dark');
+  else if (activeTheme === 'midnight') root.classList.add('midnight', 'dark');
+  else if (activeTheme === 'contrast') root.classList.add('contrast', 'dark');
+  else if (activeTheme === 'sepia') root.classList.add('sepia');
   if (u.highContrastText) root.classList.add('high-contrast-text');
   else root.classList.remove('high-contrast-text');
+
+  const glowOn = u.ambientGlow !== false;
+  root.classList.toggle('ambient-glow-on', glowOn);
+  const density = u.uiDensity || 'standard';
+  root.classList.toggle('ui-density-spacious', density === 'spacious');
+  root.classList.toggle('ui-density-compact', density === 'compact');
 
   const qFont = u.fontQuestion && u.fontQuestion !== 'inherit' ? u.fontQuestion : 'var(--font-ui)';
   const aFont = u.fontAnswer && u.fontAnswer !== 'inherit' ? u.fontAnswer : 'var(--font-ui)';
@@ -2263,13 +2294,14 @@ function applyAllAppearancePrefs() {
   const sun = document.getElementById('quick-theme-sun');
   const moon = document.getElementById('quick-theme-moon');
   if (sun && moon) {
-    sun.classList.toggle('hidden', u.theme !== 'dark');
-    moon.classList.toggle('hidden', u.theme === 'dark');
+    const isDarkLike = ['dark', 'midnight', 'aurora', 'contrast'].includes(u.theme || 'aurora');
+    sun.classList.toggle('hidden', !isDarkLike);
+    moon.classList.toggle('hidden', isDarkLike);
   }
 
   // Sync Settings Modal Controls
-  ['dark', 'midnight', 'contrast', 'light', 'sepia'].forEach((m) => {
-    document.getElementById(`theme-opt-${m}`)?.classList.toggle('active', u.theme === m);
+  ['aurora', 'dark', 'midnight', 'contrast', 'light', 'sepia'].forEach((m) => {
+    document.getElementById(`theme-opt-${m}`)?.classList.toggle('active', (u.theme || 'aurora') === m);
   });
 
   document.querySelectorAll('.swatch-btn').forEach((btn) => {
@@ -2316,12 +2348,16 @@ function applyAllAppearancePrefs() {
   if (autoDelaySlider) autoDelaySlider.value = u.autoNextDelaySec || 0.8;
   setText('lbl-autonext-delay', `${u.autoNextDelaySec || 0.8}s`);
 
-  setSelectSafe('pref-tts-speed', u.ttsSpeed || 1.0, 1.0);
+  const ttsNumeric = Number(u.ttsSpeed || 1.0);
+  const ttsStr = ttsNumeric === 1 ? '1.0' : String(ttsNumeric);
+  setSelectSafe('pref-tts-speed', ttsStr, '1.0');
   setSelectSafe('pref-shadow-depth', u.shadowDepth || 'medium', 'medium');
   setSelectSafe('pref-timer-display', u.timerMode || 'countdown', 'countdown');
   setSelectSafe('pref-anticheat-level', u.antiCheatLevel || 'medium', 'medium');
   setSelectSafe('cfg-default-tutor-persona', u.defaultTutorPersona || 'professor', 'professor');
   setSelectSafe('cfg-ai-verbosity', u.aiVerbosity || 'standard', 'standard');
+  setSelectSafe('pref-ui-density', u.uiDensity || 'standard', 'standard');
+  setSelectSafe('pref-option-layout', u.optionLayout || 'auto', 'auto');
 
   const sndChk = document.getElementById('pref-sound-toggle');
   if (sndChk) sndChk.checked = Boolean(u.soundEnabled);
@@ -2329,11 +2365,17 @@ function applyAllAppearancePrefs() {
   if (autoChk) autoChk.checked = Boolean(u.autoNext);
   const cbChk = document.getElementById('pref-contrast-boost');
   if (cbChk) cbChk.checked = Boolean(u.highContrastText);
+  const glowChk = document.getElementById('pref-ambient-glow');
+  if (glowChk) glowChk.checked = u.ambientGlow !== false;
+  const confChk = document.getElementById('pref-confetti-toggle');
+  if (confChk) confChk.checked = u.confettiEnabled !== false;
+  const autoAiChk = document.getElementById('pref-auto-ai-wrong');
+  if (autoAiChk) autoAiChk.checked = Boolean(u.autoAiOnWrong);
   const perfChk = document.getElementById('pref-perf-mode-toggle');
   if (perfChk) perfChk.checked = Boolean(u.perfMode);
-  // Áp dụng class perf-mode ngay khi load để tắt animation nếu đã bật
   document.documentElement.classList.toggle('perf-mode', Boolean(u.perfMode));
 
+  if (typeof applyDashboardWidgetVisibility === 'function') applyDashboardWidgetVisibility();
   renderLiveFontPreview();
 }
 
@@ -2416,11 +2458,17 @@ function applyFontPreset(preset) {
 }
 
 function quickCycleDarkLight() {
-  STATE.ui.theme = STATE.ui.theme === 'dark' ? 'light' : 'dark';
+  const isDarkLike = ['aurora', 'midnight', 'dark', 'contrast'].includes(STATE.ui.theme || 'aurora');
+  STATE.ui.theme = isDarkLike ? 'light' : 'aurora';
   applyAllAppearancePrefs();
   syncUserStateToServer();
   playSound('click');
-  showToast(STATE.ui.theme === 'dark' ? '🌑 Đã bật chế độ Đen Tuyệt Đối (OLED)' : '☀️ Đã bật chế độ Sáng Tinh Khôi', 'info');
+  showToast(
+    STATE.ui.theme === 'aurora'
+      ? '💎 Đã bật giao diện Cyber Aurora Kính Phát Sáng'
+      : '☀️ Đã bật giao diện Sáng Tinh Khôi',
+    'info'
+  );
 }
 
 
@@ -2479,6 +2527,10 @@ function updateTypographyPrefs() {
   const defaultTutorPersona = document.getElementById('cfg-default-tutor-persona')?.value || 'professor';
   const aiVerbosity = document.getElementById('cfg-ai-verbosity')?.value || 'standard';
 
+  const optionLayout = document.getElementById('pref-option-layout')?.value || STATE.ui.optionLayout || 'auto';
+  const confettiEnabled = document.getElementById('pref-confetti-toggle') ? document.getElementById('pref-confetti-toggle').checked : (STATE.ui.confettiEnabled !== false);
+  const autoAiOnWrong = document.getElementById('pref-auto-ai-wrong') ? document.getElementById('pref-auto-ai-wrong').checked : Boolean(STATE.ui.autoAiOnWrong);
+
   STATE.ui.fontUi = fontUi;
   STATE.ui.fontQuestion = fontQuestion;
   STATE.ui.fontAnswer = fontAnswer;
@@ -2497,10 +2549,28 @@ function updateTypographyPrefs() {
   STATE.ui.antiCheatLevel = antiCheatLevel;
   STATE.ui.defaultTutorPersona = defaultTutorPersona;
   STATE.ui.aiVerbosity = aiVerbosity;
+  STATE.ui.optionLayout = optionLayout;
+  STATE.ui.confettiEnabled = confettiEnabled;
+  STATE.ui.autoAiOnWrong = autoAiOnWrong;
 
+  applyAllAppearancePrefs();
+  if (STATE.exam?.active && typeof renderCurrentExamQuestion === 'function') renderCurrentExamQuestion();
+  syncUserStateToServer();
+}
+
+function toggleAmbientGlow(checked) {
+  STATE.ui.ambientGlow = Boolean(checked);
   applyAllAppearancePrefs();
   syncUserStateToServer();
 }
+window.toggleAmbientGlow = toggleAmbientGlow;
+
+function setUiDensityMode(mode) {
+  STATE.ui.uiDensity = ['spacious', 'standard', 'compact'].includes(mode) ? mode : 'standard';
+  applyAllAppearancePrefs();
+  syncUserStateToServer();
+}
+window.setUiDensityMode = setUiDensityMode;
 
 function toggleSoundPref(checked) {
   STATE.ui.soundEnabled = Boolean(checked);
@@ -3347,14 +3417,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 // =========================================================================
 // LIVE CLOCK + EXAM COUNTDOWN WIDGET (Cập nhật mỗi giây)
 // =========================================================================
-const EXAM_COUNTDOWN_TARGETS = [
-  { date: new Date(2026, 10, 15), name: 'OOP Thực hành C#' },
-  { date: new Date(2026, 10, 16), name: 'Giải Thuật (CTDL & GT)' },
-  { date: new Date(2026, 10, 26), name: 'OOP Trắc nghiệm & TH' },
-  { date: new Date(2026, 10, 27), name: 'Toán Rời Rạc' },
-  { date: new Date(2026, 11, 1), name: 'NNLT 1 Python' },
-  { date: new Date(2026, 11, 4), name: 'Anh Văn Cơ Bản 3' }
-];
+function parseExamDateLocal(dateStr) {
+  const parts = String(dateStr || '').split('-').map((n) => parseInt(n, 10));
+  if (parts.length === 3 && !parts.some(Number.isNaN)) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59);
+  }
+  const d = new Date(dateStr);
+  return Number.isNaN(d.getTime()) ? new Date(2026, 11, 31, 23, 59, 59) : d;
+}
+
+function formatExamDateVN(dateStr) {
+  const parts = String(dateStr || '').split('-');
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return String(dateStr || '');
+}
+
+function getActiveExamSchedule() {
+  const list = Array.isArray(STATE?.ui?.customExams) && STATE.ui.customExams.length
+    ? STATE.ui.customExams
+    : DEFAULT_EXAM_SCHEDULE;
+  return list.map((item, idx) => ({
+    ...item,
+    id: item.id || `custom-cd-${idx}`,
+    badgeId: item.badgeId || `custom-cd-badge-${idx}`,
+    date: parseExamDateLocal(item.dateStr || item.date),
+    dateStr: item.dateStr || '2026-12-01',
+    name: item.name || `Môn thi #${idx + 1}`,
+    target: item.target || '9.0+',
+    tone: item.tone || 'indigo',
+    subjectCode: item.subjectCode || '',
+    subjectId: Number(item.subjectId || 0)
+  }));
+}
+window.getActiveExamSchedule = getActiveExamSchedule;
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -3369,18 +3464,24 @@ function updateLiveClock() {
   const nameEl = document.getElementById('live-exam-name');
   let nearest = null;
   let nearestDiff = Infinity;
-  EXAM_COUNTDOWN_TARGETS.forEach((ex) => {
+  const activeExams = getActiveExamSchedule();
+  activeExams.forEach((ex) => {
     const diff = ex.date.getTime() - now.getTime();
     if (diff > 0 && diff < nearestDiff) { nearestDiff = diff; nearest = ex; }
   });
-  if (cdEl && nameEl && nearest) {
-    const totalSec = Math.floor(nearestDiff / 1000);
-    const days = Math.floor(totalSec / 86400);
-    const hours = Math.floor((totalSec % 86400) / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-    cdEl.textContent = days > 0 ? `${days} ngày ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}` : `${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
-    nameEl.textContent = nearest.name;
+  if (cdEl && nameEl) {
+    if (nearest) {
+      const totalSec = Math.floor(nearestDiff / 1000);
+      const days = Math.floor(totalSec / 86400);
+      const hours = Math.floor((totalSec % 86400) / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      cdEl.textContent = days > 0 ? `${days} ngày ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}` : `${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
+      nameEl.textContent = `${nearest.name}${nearest.target ? ' • 🎯 ' + nearest.target : ''}`;
+    } else if (activeExams.length) {
+      cdEl.textContent = 'Sẵn sàng ôn tập';
+      nameEl.textContent = activeExams[0].name;
+    }
   }
 }
 
@@ -3630,9 +3731,10 @@ function switchTab(tabName) {
   if (tabName === 'arena') initArenaView();
   if (tabName === 'lab' && typeof initLabHubView === 'function') initLabHubView();
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
   refreshIcons();
-  renderAllMathOnPage();
+  const activeViewEl = document.getElementById(`view-${tabName}`);
+  if (activeViewEl) renderAllMathOnPage(activeViewEl);
 }
 
 // =========================================================================
@@ -3745,12 +3847,13 @@ function switchDashboardStudioTab(tabKey) {
 }
 window.switchDashboardStudioTab = switchDashboardStudioTab;
 
-function switchDashboardInsightsTab(tabKey = 'schedule') {
-  ['schedule', 'analytics', 'notebook'].forEach((k) => {
-    document.getElementById(`dash-insights-${k}`)?.classList.toggle('hidden', k !== tabKey);
+function switchDashboardInsightsTab(tabKey = 'analytics') {
+  const validTab = tabKey === 'notebook' ? 'notebook' : 'analytics';
+  ['analytics', 'notebook'].forEach((k) => {
+    document.getElementById(`dash-insights-${k}`)?.classList.toggle('hidden', k !== validTab);
   });
   document.querySelectorAll('.dash-insights-tab').forEach((btn) => {
-    const active = btn.getAttribute('data-insights-tab') === tabKey;
+    const active = btn.getAttribute('data-insights-tab') === validTab;
     btn.classList.toggle('btn-primary', active);
     btn.classList.toggle('btn-soft', !active);
   });
@@ -5229,7 +5332,7 @@ function renderCurrentExamQuestion() {
 
   renderPaletteGrid();
   refreshIcons();
-  renderAllMathOnPage();
+  renderAllMathOnPage(document.getElementById('exam-question-stage') || document.getElementById('view-exam'));
   } catch (err) {
     console.error('Critical renderCurrentExamQuestion failure:', err);
     try {
@@ -5292,9 +5395,11 @@ function renderQuestionAnswerArea(q) {
             { letter: 'D', keyNum: '4', text: q.option_d }
           ];
 
-    // Auto 2-column layout when all options are concise (< 44 chars) -> much cleaner & less vertical clutter!
+    // Respect user option layout preference ('auto' | 'grid' | 'stack')
+    const layoutPref = STATE.ui?.optionLayout || 'auto';
     const allShort = opts.every((o) => String(o.text || '').length <= 44);
-    const gridClass = allShort || q.q_type === 'true_false' ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'space-y-3';
+    const useTwoCol = layoutPref === 'grid' || (layoutPref === 'auto' && (allShort || q.q_type === 'true_false'));
+    const gridClass = useTwoCol ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'space-y-3';
 
     area.className = gridClass;
     area.innerHTML = opts
@@ -5462,10 +5567,15 @@ function selectExamOption(letter, fromKeyboard = false) {
 
   renderCurrentExamQuestion();
 
+  if (!isCorrect && STATE.ui?.autoAiOnWrong) {
+    setTimeout(() => askAiAboutCurrentExamQuestion(true), 220);
+  }
+
   if (STATE.ui.autoNext && isCorrect && STATE.exam.currentIndex < STATE.exam.questions.length - 1) {
+    const delayMs = Math.max(350, Math.round(Number(STATE.ui.autoNextDelaySec || 0.8) * 1000));
     setTimeout(() => {
       if (STATE.exam.active && !STATE.exam.paused) nextQuestion();
-    }, 1050);
+    }, delayMs);
   }
 }
 
@@ -6253,9 +6363,11 @@ function renderExamResultScreen(res) {
   document.getElementById('btn-retry-wrong')?.classList.toggle('hidden', wrongCount === 0);
   document.getElementById('btn-distill-wrong-fc')?.classList.toggle('hidden', wrongCount === 0);
 
-  if (score >= 8 && window.confetti) {
+  if (score >= 8) {
     playSound('complete');
-    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+    if (window.confetti && STATE.ui?.confettiEnabled !== false) {
+      confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+    }
   } else if (wrongCount > 0) {
     // Tự động phân tích AI cho bài thi dưới 8 điểm (sau 1.2s để UI render xong)
     setTimeout(() => {
@@ -6266,9 +6378,10 @@ function renderExamResultScreen(res) {
     renderMetacognitionMatrix(res);
   }
   filterResultReview('all');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
   refreshIcons();
-  renderAllMathOnPage();
+  const resScreenEl = document.getElementById('exam-result-screen') || document.getElementById('view-exam');
+  if (resScreenEl) renderAllMathOnPage(resScreenEl);
 }
 
 function filterResultReview(mode) {
@@ -7531,10 +7644,11 @@ function launchGeneratedQuizNow() {
 // 13. UNIFIED SETTINGS MODAL, QR WI-FI SYNC, BACKUP & POMODORO
 // =========================================================================
 function openModal(id) {
-  document.getElementById(id)?.classList.remove('hidden');
+  const mEl = document.getElementById(id);
+  if (mEl) mEl.classList.remove('hidden');
   playSound('click');
   refreshIcons();
-  renderAllMathOnPage();
+  if (mEl) renderAllMathOnPage(mEl);
 }
 
 function closeModal(id) {
@@ -7545,18 +7659,17 @@ function openSettingsModal(tab = 'appearance') {
   applyAllAppearancePrefs();
   switchSettingsTab(tab);
   openModal('modal-settings');
-  if (tab === 'sync') fetchNetworkQrInfo();
-  if (tab === 'ai') checkApiKeyStatus();
 }
 
 function switchSettingsTab(tab) {
-  const tabs = ['appearance', 'typography', 'ai', 'tools', 'sync'];
+  const tabs = ['appearance', 'dashboard', 'typography', 'ai', 'tools', 'sync'];
   tabs.forEach((t) => {
     document.getElementById(`stab-panel-${t}`)?.classList.toggle('hidden', t !== tab);
   });
   document.querySelectorAll('[data-stab]').forEach((btn) => {
     btn.classList.toggle('active', btn.getAttribute('data-stab') === tab);
   });
+  if (tab === 'dashboard' && typeof initDashboardSettingsPanel === 'function') initDashboardSettingsPanel();
   if (tab === 'sync') fetchNetworkQrInfo();
   if (tab === 'ai') checkApiKeyStatus();
   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
@@ -14198,52 +14311,297 @@ document.addEventListener('dblclick', (e) => {
 // =========================================================================
 function renderSurvivalPredictor() {
   const now = new Date();
-  const exams = [
-    { id: 'countdown-15-11', badgeId: 'cd-badge-15-11', date: new Date(2026, 10, 15, 23, 59), name: 'OOP Thực hành C#' },
-    { id: 'countdown-16-11', badgeId: 'cd-badge-16-11', date: new Date(2026, 10, 16, 23, 59), name: 'Giải Thuật (CTDL & GT)' },
-    { id: 'countdown-26-11', badgeId: 'cd-badge-26-11', date: new Date(2026, 10, 26, 23, 59), name: 'OOP Trắc nghiệm & TH' },
-    { id: 'countdown-27-11', badgeId: 'cd-badge-27-11', date: new Date(2026, 10, 27, 23, 59), name: 'Toán Rời Rạc' },
-    { id: 'countdown-01-12', badgeId: 'cd-badge-01-12', date: new Date(2026, 11, 1, 23, 59), name: 'NNLT 1 Python' },
-    { id: 'countdown-04-12', badgeId: 'cd-badge-04-12', date: new Date(2026, 11, 4, 23, 59), name: 'Anh Văn Cơ Bản 3' }
-  ];
+  const exams = getActiveExamSchedule();
+  const gridEl = document.getElementById('custom-exam-countdown-grid');
 
-  let nearestDays = 999;
+  let nearestDays = 9999;
   let nearestName = '';
 
-  exams.forEach((ex) => {
+  const cardsHtml = exams.map((ex, idx) => {
     const diffMs = ex.date.getTime() - now.getTime();
     const isPast = diffMs < 0;
-    const days = isPast ? -1 : Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const el = document.getElementById(ex.id);
-    const badgeEl = document.getElementById(ex.badgeId);
+    const days = isPast ? -1 : Math.floor(diffMs / 86400000);
+    const hours = isPast ? 0 : Math.floor((diffMs % 86400000) / 3600000);
 
-    if (el) {
-      if (isPast) el.textContent = 'Đã qua / Ôn lại';
-      else if (days === 0) el.textContent = 'Hôm nay thi';
-      else el.textContent = `${days} ngày nữa`;
-    }
-    if (badgeEl) {
-      if (isPast) badgeEl.textContent = 'Đã qua';
-      else if (days === 0) badgeEl.textContent = 'HÔM NAY';
-      else badgeEl.textContent = `${days} NGÀY`;
-    }
     if (!isPast && days < nearestDays) {
       nearestDays = days;
       nearestName = ex.name;
     }
-  });
+
+    const toneCls = `countdown-${['indigo', 'cyan', 'emerald', 'amber', 'rose', 'slate'].includes(ex.tone) ? ex.tone : 'indigo'}`;
+    const statusLabel = isPast
+      ? 'Ôn thêm'
+      : days === 0
+      ? '⚡ HÔM NAY'
+      : days <= 7
+      ? `🔥 ${days} NGÀY`
+      : `${days} NGÀY`;
+    const countdownText = isPast
+      ? 'Đã qua • Bấm luyện đề'
+      : days === 0
+      ? `Còn ${hours}h • Sẵn sàng!`
+      : `${days} ngày ${hours}h nữa`;
+    const urgencyPct = isPast ? 100 : Math.max(12, Math.min(100, Math.round(100 - (Math.min(days, 30) / 30) * 85)));
+
+    const clickAction = ex.subjectId || ex.subjectCode
+      ? `openExamForSubjectCode(${escapeJsString(ex.subjectCode || '')}, ${Number(ex.subjectId || 21)})`
+      : `switchTab('exam')`;
+
+    return `
+      <div class="countdown-card ${toneCls} p-3 rounded-xl border space-y-1.5 cursor-pointer group" onclick="${clickAction}" title="Bấm để vào luyện đề ${escapeHtml(ex.name)}">
+        <div class="cd-top flex items-center justify-between gap-1 text-[10px] font-bold">
+          <span>${escapeHtml(formatExamDateVN(ex.dateStr))}</span>
+          <span id="${escapeHtml(ex.badgeId)}" class="cd-badge px-1.5 py-0.5 rounded font-mono font-extrabold">${escapeHtml(statusLabel)}</span>
+        </div>
+        <div class="cd-title font-extrabold text-xs truncate flex items-center justify-between gap-1">
+          <span class="truncate">${escapeHtml(ex.name)}</span>
+        </div>
+        <div class="flex items-center justify-between gap-1">
+          <span id="${escapeHtml(ex.id)}" class="cd-days font-mono font-black text-[11px]">${escapeHtml(countdownText)}</span>
+          ${ex.target ? `<span class="text-[10px] font-mono font-bold opacity-85">🎯 ${escapeHtml(ex.target)}</span>` : ''}
+        </div>
+        <div class="w-full h-1 rounded-full overflow-hidden bg-black/20">
+          <div class="h-full rounded-full" style="width:${urgencyPct}%; background: linear-gradient(90deg, var(--brand), var(--brand-2));"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (gridEl) {
+    const colCls = exams.length <= 3
+      ? 'countdown-grid grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs'
+      : exams.length === 4
+      ? 'countdown-grid grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs'
+      : 'countdown-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs';
+    gridEl.className = colCls;
+    gridEl.innerHTML = cardsHtml;
+  }
 
   const titleEl = document.getElementById('survival-urgent-title');
-  if (titleEl && nearestName) {
-    titleEl.textContent = `Mốc thi gần nhất: ${nearestName} (còn ${nearestDays} ngày)`;
+  if (titleEl) {
+    titleEl.textContent = nearestName
+      ? (nearestDays === 0 ? `Hôm nay thi: ${nearestName} — Bình tĩnh tự tin đạt điểm tối đa!` : `Mốc thi gần nhất: ${nearestName} (còn ${nearestDays} ngày) • Bấm thẻ môn bất kỳ để luyện ngay`)
+      : 'Lịch thi cá nhân • Bấm vào thẻ môn học để mở phòng luyện đề ngay';
   }
 
   const quota = JSON.parse(localStorage.getItem('unimaster_daily_quota') || '{"done": 0, "target": 40}');
   const badge = document.getElementById('survival-quota-badge');
   if (badge) {
-    badge.textContent = `Quota: ${quota.done} / ${quota.target} câu`;
+    badge.textContent = `Quota: ${quota.done || 0} / ${quota.target || 40} câu`;
   }
+  applyDashboardWidgetVisibility();
 }
+
+function applyDashboardWidgetVisibility() {
+  const vis = {
+    schedule: true,
+    quests: true,
+    kpi: true,
+    subjects: true,
+    studio: true,
+    insights: true,
+    ...(STATE.ui?.dashWidgets || {})
+  };
+  document.getElementById('survival-predictor-widget')?.classList.toggle('hidden', !vis.schedule);
+  document.getElementById('daily-quests-wrap')?.classList.toggle('hidden', !vis.quests);
+  document.getElementById('dashboard-kpi-grid')?.classList.toggle('hidden', !vis.kpi);
+  document.getElementById('dashboard-subjects-section')?.classList.toggle('hidden', !vis.subjects);
+  document.getElementById('dashboard-v41-hub')?.classList.toggle('hidden', !vis.studio);
+  document.getElementById('dashboard-insights-section')?.classList.toggle('hidden', !vis.insights);
+
+  ['schedule', 'quests', 'kpi', 'subjects', 'studio', 'insights'].forEach((k) => {
+    const chk = document.getElementById(`dash-vis-${k}`);
+    if (chk) chk.checked = Boolean(vis[k]);
+  });
+
+  const quota = JSON.parse(localStorage.getItem('unimaster_daily_quota') || '{"done": 0, "target": 40}');
+  const qSlider = document.getElementById('slider-daily-quota');
+  if (qSlider) qSlider.value = Number(quota.target || 40);
+  setText('lbl-daily-quota', `${quota.target || 40} câu / ngày`);
+}
+window.applyDashboardWidgetVisibility = applyDashboardWidgetVisibility;
+
+function toggleDashboardModuleVis(key, checked) {
+  if (!STATE.ui.dashWidgets || typeof STATE.ui.dashWidgets !== 'object') {
+    STATE.ui.dashWidgets = { schedule: true, quests: true, kpi: true, subjects: true, studio: true, insights: true };
+  }
+  STATE.ui.dashWidgets[key] = Boolean(checked);
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  applyDashboardWidgetVisibility();
+  syncUserStateToServer();
+}
+window.toggleDashboardModuleVis = toggleDashboardModuleVis;
+
+function updateDailyQuotaTarget(val) {
+  const target = Math.max(10, Math.min(200, parseInt(val || '40', 10)));
+  const cur = JSON.parse(localStorage.getItem('unimaster_daily_quota') || '{"done": 0, "target": 40}');
+  cur.target = target;
+  localStorage.setItem('unimaster_daily_quota', JSON.stringify(cur));
+  setText('lbl-daily-quota', `${target} câu / ngày`);
+  const badge = document.getElementById('survival-quota-badge');
+  if (badge) badge.textContent = `Quota: ${cur.done || 0} / ${target} câu`;
+}
+window.updateDailyQuotaTarget = updateDailyQuotaTarget;
+
+function initDashboardSettingsPanel() {
+  const sel = document.getElementById('custom-exam-subj-select');
+  if (sel) {
+    const subs = Array.isArray(STATE.subjects) ? STATE.subjects : [];
+    sel.innerHTML = `<option value="">-- Chọn môn học trong ngân hàng --</option>` +
+      subs.map((s) => `<option value="${s.id}" data-code="${escapeHtml(s.code || '')}">${escapeHtml(s.icon || '📘')} ${escapeHtml(s.name)}</option>`).join('');
+  }
+  const dateInp = document.getElementById('custom-exam-date-input');
+  if (dateInp && !dateInp.value) {
+    const nextWeek = new Date(Date.now() + 7 * 86400000);
+    dateInp.value = `${nextWeek.getFullYear()}-${pad2(nextWeek.getMonth() + 1)}-${pad2(nextWeek.getDate())}`;
+  }
+  applyDashboardWidgetVisibility();
+  renderSettingsExamScheduleList();
+}
+window.initDashboardSettingsPanel = initDashboardSettingsPanel;
+
+function renderSettingsExamScheduleList() {
+  const listEl = document.getElementById('settings-exam-schedule-list');
+  if (!listEl) return;
+  const exams = getActiveExamSchedule();
+  listEl.innerHTML = exams.map((ex, idx) => `
+    <div class="p-2.5 rounded-xl border flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xs" style="background-color: var(--bg-surface); border-color: var(--border);">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="badge-brand px-2 py-0.5 rounded font-mono font-bold shrink-0">${escapeHtml(formatExamDateVN(ex.dateStr))}</span>
+        <span class="font-extrabold txt-main truncate">${escapeHtml(ex.name)}</span>
+        ${ex.target ? `<span class="badge-emerald px-1.5 py-0.5 rounded text-[10px] font-mono font-bold shrink-0">🎯 ${escapeHtml(ex.target)}</span>` : ''}
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        ${idx > 0 ? `<button type="button" onclick="moveCustomExamUp(${idx})" class="btn-soft px-2 py-1 text-[11px]" title="Đưa lên trên">↑</button>` : ''}
+        <button type="button" onclick="editCustomExamEntry(${idx})" class="btn-soft px-2 py-1 text-[11px] font-bold txt-brand" title="Chỉnh sửa mốc thi này">✏️ Sửa</button>
+        <button type="button" onclick="deleteCustomExamEntry(${idx})" class="btn-soft px-2 py-1 text-[11px] font-bold txt-rose" title="Xóa mốc thi">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+window.renderSettingsExamScheduleList = renderSettingsExamScheduleList;
+
+function saveCustomExamEntry() {
+  const nameInp = document.getElementById('custom-exam-name-input');
+  const dateInp = document.getElementById('custom-exam-date-input');
+  const targetInp = document.getElementById('custom-exam-target-input');
+  const toneSel = document.getElementById('custom-exam-tone-select');
+  const subjSel = document.getElementById('custom-exam-subj-select');
+  const editIdxInp = document.getElementById('custom-exam-edit-idx');
+
+  const name = String(nameInp?.value || '').trim();
+  const dateStr = String(dateInp?.value || '').trim();
+  if (!name || !dateStr) {
+    showToast('Vui lòng nhập Tên môn/kỳ thi và chọn Ngày thi!', 'warning');
+    return;
+  }
+
+  const selectedSid = Number(subjSel?.value || 0);
+  const matchedSub = (STATE.subjects || []).find((s) => Number(s.id) === selectedSid);
+  const current = getActiveExamSchedule().map(({ date, ...rest }) => rest);
+  const editIdx = parseInt(editIdxInp?.value || '-1', 10);
+
+  const entry = {
+    id: editIdx >= 0 && current[editIdx]?.id ? current[editIdx].id : `custom-cd-${Date.now()}`,
+    badgeId: editIdx >= 0 && current[editIdx]?.badgeId ? current[editIdx].badgeId : `custom-badge-${Date.now()}`,
+    name,
+    dateStr,
+    target: String(targetInp?.value || '9.0+').trim(),
+    tone: toneSel?.value || 'indigo',
+    subjectId: selectedSid || (matchedSub?.id || 0),
+    subjectCode: matchedSub?.code || ''
+  };
+
+  if (editIdx >= 0 && editIdx < current.length) {
+    current[editIdx] = entry;
+  } else {
+    current.push(entry);
+  }
+
+  STATE.ui.customExams = current;
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  cancelCustomExamEdit();
+  renderSurvivalPredictor();
+  updateLiveClock();
+  renderSettingsExamScheduleList();
+  syncUserStateToServer();
+  showToast('📅 Đã cập nhật Lịch Thi cá nhân!', 'success');
+}
+window.saveCustomExamEntry = saveCustomExamEntry;
+
+function editCustomExamEntry(idx) {
+  const exams = getActiveExamSchedule();
+  const ex = exams[idx];
+  if (!ex) return;
+  const editIdxInp = document.getElementById('custom-exam-edit-idx');
+  if (editIdxInp) editIdxInp.value = String(idx);
+  const nameInp = document.getElementById('custom-exam-name-input');
+  if (nameInp) { nameInp.value = ex.name; nameInp.focus(); }
+  const dateInp = document.getElementById('custom-exam-date-input');
+  if (dateInp) dateInp.value = ex.dateStr;
+  const targetInp = document.getElementById('custom-exam-target-input');
+  if (targetInp) targetInp.value = ex.target || '9.0+';
+  const toneSel = document.getElementById('custom-exam-tone-select');
+  if (toneSel) toneSel.value = ex.tone || 'indigo';
+  const subjSel = document.getElementById('custom-exam-subj-select');
+  if (subjSel) subjSel.value = ex.subjectId ? String(ex.subjectId) : '';
+  setText('custom-exam-form-title', `Đang chỉnh sửa mốc thi: ${ex.name}`);
+  document.getElementById('btn-cancel-exam-edit')?.classList.remove('hidden');
+}
+window.editCustomExamEntry = editCustomExamEntry;
+
+function cancelCustomExamEdit() {
+  const editIdxInp = document.getElementById('custom-exam-edit-idx');
+  if (editIdxInp) editIdxInp.value = '-1';
+  const nameInp = document.getElementById('custom-exam-name-input');
+  if (nameInp) nameInp.value = '';
+  setText('custom-exam-form-title', 'Thêm Mốc Thi Mới (hoặc bấm ✏️ ở danh sách dưới để sửa)');
+  document.getElementById('btn-cancel-exam-edit')?.classList.add('hidden');
+}
+window.cancelCustomExamEdit = cancelCustomExamEdit;
+
+function deleteCustomExamEntry(idx) {
+  const current = getActiveExamSchedule().map(({ date, ...rest }) => rest);
+  if (current.length <= 1) {
+    showToast('Cần giữ lại ít nhất 1 mốc lịch thi (hoặc ẩn khối Lịch Thi ở bên dưới)!', 'info');
+    return;
+  }
+  current.splice(idx, 1);
+  STATE.ui.customExams = current;
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  renderSurvivalPredictor();
+  updateLiveClock();
+  renderSettingsExamScheduleList();
+  syncUserStateToServer();
+  showToast('🗑️ Đã xóa mốc lịch thi.', 'info');
+}
+window.deleteCustomExamEntry = deleteCustomExamEntry;
+
+function moveCustomExamUp(idx) {
+  if (idx <= 0) return;
+  const current = getActiveExamSchedule().map(({ date, ...rest }) => rest);
+  const tmp = current[idx - 1];
+  current[idx - 1] = current[idx];
+  current[idx] = tmp;
+  STATE.ui.customExams = current;
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  renderSurvivalPredictor();
+  renderSettingsExamScheduleList();
+  syncUserStateToServer();
+}
+window.moveCustomExamUp = moveCustomExamUp;
+
+function resetCustomExamSchedule() {
+  STATE.ui.customExams = null;
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  cancelCustomExamEdit();
+  renderSurvivalPredictor();
+  updateLiveClock();
+  renderSettingsExamScheduleList();
+  syncUserStateToServer();
+  showToast('🔄 Đã khôi phục 6 mốc lịch thi mặc định!', 'success');
+}
+window.resetCustomExamSchedule = resetCustomExamSchedule;
 
 // =========================================================================
 // UNIMASTER v15.0: SM-2 SPACED REPETITION FLASHCARD RATING

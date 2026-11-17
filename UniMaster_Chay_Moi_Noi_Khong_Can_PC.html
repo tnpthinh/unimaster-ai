@@ -404,10 +404,13 @@ body {
 }
 
 header {
-  position: relative !important;
-  z-index: 90 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
   overflow: visible !important;
-  background: color-mix(in srgb, var(--bg-surface) 92%, transparent) !important;
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
   border-bottom: 1px solid var(--border) !important;
 }
 
@@ -417,7 +420,7 @@ header > div {
 
 #header-settings-btn {
   position: relative !important;
-  z-index: 95 !important;
+  z-index: 2 !important;
   flex: 0 0 auto !important;
   min-width: 2rem !important;
   min-height: 2rem !important;
@@ -459,7 +462,7 @@ header > div {
   header > div > div:last-child {
     flex: 0 0 auto !important;
     position: relative !important;
-    z-index: 100 !important;
+    z-index: 2 !important;
   }
 
   header > div > div:first-child {
@@ -498,7 +501,7 @@ header > div {
   #header-settings-btn,
   #quick-theme-btn {
     position: relative !important;
-    z-index: 101 !important;
+    z-index: 3 !important;
     pointer-events: auto !important;
   }
 }
@@ -1689,33 +1692,35 @@ body.zen-active #exit-zen-btn {
 /* ==========================================================================
    MODAL SETTINGS & ULTRA-RICH CUSTOMIZATION SUITE
    ========================================================================== */
-#modal-settings .uni-card {
-  width: min(920px, 96vw) !important;
-  max-width: 920px !important;
-  height: min(88vh, 850px) !important;
-  max-height: 88vh !important;
+#modal-settings > .uni-card {
+  width: min(1020px, 96vw) !important;
+  max-width: 1020px !important;
+  height: auto !important;
+  max-height: min(90dvh, 860px) !important;
   border-radius: var(--card-radius, 1.25rem) !important;
 }
 
 .settings-tab-btn {
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid transparent;
+  background: var(--bg-surface);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
   cursor: pointer;
   user-select: none;
   font-weight: 700;
   white-space: nowrap;
+  flex-shrink: 0 !important;
+  line-height: 1.35;
 }
 .settings-tab-btn:hover {
   color: var(--text-main);
   background: var(--bg-hover);
-  border-color: var(--border);
+  border-color: var(--brand);
 }
 .settings-tab-btn.active {
   background: linear-gradient(135deg, var(--brand), var(--brand-2)) !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  box-shadow: 0 4px 14px -3px var(--brand-glow) !important;
+  box-shadow: 0 6px 18px -4px var(--brand-glow) !important;
   border-color: transparent !important;
 }
 
@@ -2005,21 +2010,21 @@ body.app-fullscreen-mode #header-fullscreen-btn {
    UNIMASTER v21.0: HIGH-CONTRAST LIGHT MODE, MODAL VIEWPORT & FLOATING TUTOR
    ========================================================================= */
 
-/* 1. Modal Overlay & Dialog Geometry (Preventing Any Cut-Off at Bottom) */
+/* 1. Modal Overlay & Dialog Geometry (Above Header & Nav, Zero Cut-Off) */
 .modal-overlay {
   position: fixed !important;
   inset: 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: rgba(0, 0, 0, 0.76) !important;
+  background-color: rgba(2, 6, 23, 0.76) !important;
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
-  z-index: 80 !important;
+  z-index: 1200 !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   overscroll-behavior: contain !important;
-  padding: max(0.75rem, env(safe-area-inset-top)) 0.5rem max(2.5rem, env(safe-area-inset-bottom)) !important;
+  padding: max(0.75rem, env(safe-area-inset-top)) 0.5rem max(1.5rem, env(safe-area-inset-bottom)) !important;
   box-sizing: border-box !important;
 }
 
@@ -2076,11 +2081,11 @@ body.app-fullscreen-mode #header-fullscreen-btn {
 }
 
 #modal-settings .overflow-y-auto {
-  padding-bottom: 3.5rem !important;
+  padding-bottom: 1.75rem !important;
 }
 
 #floating-tutor-container:not(.tutor-expanded-parent) {
-  z-index: 1000 !important;
+  z-index: 65 !important;
 }
 
 /* 3. High-Contrast Deadline Countdown Cards in Light, Sepia & Non-Dark Themes */
@@ -2915,8 +2920,8 @@ html:not(.dark) #survival-predictor-widget .text-slate-400 { color: var(--text-m
 
 /* Settings Modal & Responsive Mobile / iPad Safety */
 #modal-settings > .uni-card {
-  width: min(96vw, 760px) !important;
-  max-height: min(92dvh, 880px) !important;
+  width: min(96vw, 1020px) !important;
+  max-height: min(91dvh, 870px) !important;
   display: flex;
   flex-direction: column;
 }
@@ -4897,6 +4902,165 @@ main:has(#view-tutor:not(.hidden)) {
   75% { transform: translateX(5px); }
 }
 
+/* ==============================================================================
+   UniMaster AI v49.0: Luxury Cyber Aurora Theme, 60fps GPU Polish & Density Suite
+   ============================================================================== */
+
+/* 1. Cyber Aurora Flagship Theme */
+html[data-theme="aurora"] {
+  --bg-app: #060916;
+  --bg-surface: rgba(15, 21, 42, 0.88);
+  --bg-card: rgba(15, 21, 42, 0.88);
+  --bg-subtle: rgba(24, 34, 66, 0.72);
+  --bg-hover: rgba(38, 52, 98, 0.78);
+  --border: rgba(129, 140, 248, 0.22);
+  --text-main: #f8fafc;
+  --text-sub: #dbeafe;
+  --text-muted: #94a3b8;
+  --brand-subtle: rgba(99, 102, 241, 0.18);
+  --brand-border: rgba(129, 140, 248, 0.48);
+  --brand-text: #a5b4fc;
+}
+
+/* 2. Dynamic GPU-Composited Ambient Aurora Mesh Backdrop (Zero Layout Cost) */
+html:not(.perf-mode).ambient-glow-on body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(650px circle at 12% 8%, color-mix(in srgb, var(--brand) 18%, transparent), transparent 72%),
+    radial-gradient(580px circle at 88% 12%, color-mix(in srgb, var(--brand-2) 15%, transparent), transparent 70%),
+    radial-gradient(520px circle at 50% 92%, color-mix(in srgb, #06b6d4 10%, transparent), transparent 75%);
+  transform: translateZ(0);
+}
+
+html[data-theme="light"].ambient-glow-on body::before {
+  background:
+    radial-gradient(620px circle at 12% 6%, color-mix(in srgb, var(--brand) 10%, transparent), transparent 72%),
+    radial-gradient(560px circle at 88% 10%, color-mix(in srgb, var(--brand-2) 8%, transparent), transparent 70%);
+}
+
+/* 3. Specular 3D Card Highlights & Hero Aurora Polish */
+.uni-card {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
+    0 12px 32px -12px rgba(0, 0, 0, 0.42);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+html[data-theme="light"] .uni-card,
+html[data-theme="sepia"] .uni-card {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
+    0 10px 26px -10px rgba(15, 23, 42, 0.09);
+}
+
+.hero-dashboard-card {
+  background:
+    radial-gradient(540px circle at 88% 18%, color-mix(in srgb, var(--brand-2) 32%, transparent), transparent 68%),
+    radial-gradient(480px circle at 10% 85%, color-mix(in srgb, var(--brand) 36%, transparent), transparent 70%),
+    linear-gradient(135deg, #121738 0%, #1d1642 52%, #0f172a 100%) !important;
+  border: 1px solid rgba(165, 180, 252, 0.28) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    0 20px 44px -14px rgba(79, 70, 229, 0.35) !important;
+}
+
+.exam-schedule-hero-card {
+  border-color: color-mix(in srgb, var(--brand) 38%, var(--border)) !important;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--brand) 6%, var(--bg-surface)),
+    var(--bg-surface)
+  ) !important;
+}
+
+.countdown-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.countdown-card:hover {
+  transform: translate3d(0, -3px, 0);
+  border-color: var(--brand) !important;
+  box-shadow: 0 12px 24px -10px var(--brand-glow);
+}
+
+.stat-card-purple,
+.stat-card-cyan,
+.stat-card-emerald,
+.stat-card-amber {
+  position: relative;
+  overflow: hidden;
+}
+.stat-card-purple::before,
+.stat-card-cyan::before,
+.stat-card-emerald::before,
+.stat-card-amber::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0.85;
+}
+.stat-card-purple::before { background: linear-gradient(90deg, #7c3aed, #ec4899); }
+.stat-card-cyan::before { background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+.stat-card-emerald::before { background: linear-gradient(90deg, #10b981, #14b8a6); }
+.stat-card-amber::before { background: linear-gradient(90deg, #f59e0b, #f43f5e); }
+
+/* 4. 60fps GPU Micro-Interactions (Zero Layout Thrashing) */
+.option-row,
+.mode-card,
+.part-card,
+.btn-primary,
+.btn-soft {
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease !important;
+}
+.option-row:hover:not(.disabled) {
+  transform: translate3d(2px, -1px, 0);
+}
+.btn-primary:active,
+.btn-soft:active {
+  transform: scale(0.98);
+}
+
+/* 5. UI Density Modes (Spacious vs Standard vs Compact) */
+html.ui-density-spacious main {
+  gap: 1.85rem !important;
+}
+html.ui-density-spacious .uni-card {
+  padding: 1.5rem 1.75rem;
+}
+html.ui-density-compact main > section {
+  gap: 0.85rem !important;
+}
+html.ui-density-compact .uni-card {
+  padding: 0.85rem 1rem;
+}
+html.ui-density-compact .option-row {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+/* 6. Bulletproof Z-Index Ordering Above All Modals */
+#modal-custom-confirm,
+#modal-image-lightbox {
+  z-index: 1400 !important;
+}
+#toast-container {
+  z-index: 1500 !important;
+}
+#floating-tutor-backdrop {
+  z-index: 1250 !important;
+}
+#floating-tutor-container.tutor-expanded-parent {
+  z-index: 1260 !important;
+}
+
 </style>
   <link rel="stylesheet" href="/static/minimal.css?v=3.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
@@ -5071,6 +5235,11 @@ main:has(#view-tutor:not(.hidden)) {
                 class="btn-soft px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5">
                 <span>📚</span> Đổi Môn
               </button>
+              <button onclick="openSettingsModal('appearance')"
+                class="btn-soft px-3.5 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-purple-500/35 text-purple-300 hover:border-purple-400"
+                title="Tùy biến màu sắc, phông chữ, hiệu ứng Aurora &amp; bố cục Trang chủ">
+                <span>🎨</span> Cá Nhân Hóa
+              </button>
             </div>
           </div>
 
@@ -5093,8 +5262,109 @@ main:has(#view-tutor:not(.hidden)) {
         <div id="dashboard-shortcuts-container" class="relative z-10 pt-3.5 mt-4 border-t flex flex-wrap items-center gap-2" style="border-color: rgba(255, 255, 255, 0.1);"></div>
       </div>
 
-      <!-- 2. 4 Clean KPI Cards -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <!-- 2. TOP PRIORITY: LỊCH THI SẮP TỚI & MỤC TIÊU HÔM NAY (Promoted to Top & 100% Customizable) -->
+      <div id="survival-predictor-widget" class="uni-card exam-schedule-hero-card p-4 sm:p-5 space-y-4">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div class="space-y-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="badge-brand px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider">📅 Lịch Thi &amp; Đếm Ngược</span>
+              <span id="survival-quota-badge" class="badge-amber text-xs font-mono font-bold px-2.5 py-0.5 rounded-md">Quota: 0 / 40 câu</span>
+              <span id="v41-xp-badge" class="badge-emerald px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">Level 1 • 0 XP</span>
+            </div>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+              <span>🔥</span> <span id="survival-urgent-title">Theo dõi lịch thi &amp; bấm vào môn bất kỳ để luyện đề ngay</span>
+            </h3>
+          </div>
+
+          <div class="flex flex-wrap items-center gap-2 shrink-0">
+            <button type="button" onclick="openSettingsModal('dashboard')" class="btn-primary px-3.5 py-1.5 text-xs font-extrabold flex items-center gap-1.5 rounded-xl shadow-sm" title="Thêm, sửa, xóa lịch thi cá nhân &amp; ẩn/hiện khối trang chủ">
+              <span>✏️</span> <span>Tùy chỉnh Lịch thi</span>
+            </button>
+            <button onclick="openExamForSubjectCode('TOAN_RR', 21)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-indigo-500/35">
+              <span>📐</span> Toán Rời Rạc
+            </button>
+            <button onclick="openExamForSubjectCode('CTDL_GT', 82)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-cyan-500/35">
+              <span>⚡</span> Giải Thuật
+            </button>
+            <button onclick="switchTab('exercises')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+              <span>💻</span> Code IDE
+            </button>
+          </div>
+        </div>
+
+        <!-- Customizable Exam Countdown Cards Grid (Rendered Dynamically + Preserves Legacy IDs) -->
+        <div id="custom-exam-countdown-grid" class="countdown-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
+          <div class="countdown-card countdown-slate p-3 rounded-xl border space-y-1 cursor-pointer" onclick="openExamForSubjectCode('OOP_CSHARP', 5)" data-cd-id="countdown-15-11">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>15/11/2026</span>
+              <span id="cd-badge-15-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Luyện thêm</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">OOP Thực hành C#</div>
+            <div id="countdown-15-11" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-cyan p-3 rounded-xl border space-y-1 cursor-pointer" onclick="openExamForSubjectCode('CTDL_GT', 82)" data-cd-id="countdown-16-11">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>16/11/2026</span>
+              <span id="cd-badge-16-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Giải Thuật</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">Giải Thuật (CTDL &amp; GT)</div>
+            <div id="countdown-16-11" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-amber p-3 rounded-xl border space-y-1 cursor-pointer" onclick="openExamForSubjectCode('OOP_CSHARP', 5)" data-cd-id="countdown-26-11">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>26/11/2026</span>
+              <span id="cd-badge-26-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">OOP Trắc nghiệm &amp; TH</div>
+            <div id="countdown-26-11" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-indigo p-3 rounded-xl border space-y-1 cursor-pointer" onclick="openExamForSubjectCode('TOAN_RR', 21)" data-cd-id="countdown-27-11">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>27/11/2026</span>
+              <span id="cd-badge-27-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">Toán Rời Rạc</div>
+            <div id="countdown-27-11" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-cyan p-3 rounded-xl border space-y-1 cursor-pointer" onclick="openExamForSubjectCode('NNLT1', 83)" data-cd-id="countdown-01-12">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>01/12/2026</span>
+              <span id="cd-badge-01-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">NNLT 1 (Python)</div>
+            <div id="countdown-01-12" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+
+          <div class="countdown-card countdown-emerald p-3 rounded-xl border space-y-1 cursor-pointer" onclick="openExamForSubjectCode('AVCB3', 84)" data-cd-id="countdown-04-12">
+            <div class="cd-top flex items-center justify-between text-[10px] font-bold">
+              <span>04/12/2026</span>
+              <span id="cd-badge-04-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
+            </div>
+            <div class="cd-title font-extrabold text-xs truncate">Anh Văn Cơ Bản 3</div>
+            <div id="countdown-04-12" class="cd-days font-mono font-black text-xs">--</div>
+          </div>
+        </div>
+
+        <!-- Daily Quests Strip -->
+        <div id="daily-quests-wrap" class="pt-3 border-t space-y-2" style="border-color: var(--border);">
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
+              <span>✅</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
+            </div>
+            <button onclick="loadDailyQuestsWidget()" class="text-[11px] font-bold txt-brand hover:underline">Làm mới</button>
+          </div>
+          <div id="daily-quests-list" class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+            <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. 4 Glowing KPI Cards -->
+      <div id="dashboard-kpi-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <div class="uni-card stat-card-purple p-4 flex items-center gap-3">
           <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #7c3aed, #ec4899);">
             <i data-lucide="book-open" class="w-5 h-5"></i>
@@ -5139,8 +5409,8 @@ main:has(#view-tutor:not(.hidden)) {
         </div>
       </div>
 
-      <!-- 3. Subjects Section with Category Filter Pills (Toán Rời Rạc & Giải Thuật Tách Riêng Rõ Ràng) -->
-      <div class="space-y-3.5">
+      <!-- 4. Subjects Section with Category Filter Pills (Toán Rời Rạc & Giải Thuật Tách Riêng Rõ Ràng) -->
+      <div id="dashboard-subjects-section" class="space-y-3.5">
         <div class="flex flex-wrap items-center justify-between gap-3">
           <h2 class="text-base sm:text-lg font-extrabold txt-main flex items-center gap-2">
             <i data-lucide="graduation-cap" class="w-5 h-5 txt-brand"></i> Học Phần Của Bạn
@@ -5282,128 +5552,24 @@ main:has(#view-tutor:not(.hidden)) {
         </div>
       </div>
 
-      <!-- 5. Calm 3-Tab Dashboard Insights Switcher (Cuts Vertical Scroll by ~50%, Zero Lost Features) -->
+      <!-- 6. Calm 2-Tab Dashboard Insights Switcher (Analytics & Notebook — Schedule Promoted to Top!) -->
       <div id="dashboard-insights-section" class="space-y-4">
         <div class="flex flex-wrap items-center justify-between gap-2.5 p-2 rounded-2xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
           <div class="flex flex-wrap items-center gap-1.5">
-            <button type="button" onclick="switchDashboardInsightsTab('schedule')" data-insights-tab="schedule" class="dash-insights-tab btn-primary px-3.5 py-2 text-xs font-extrabold rounded-xl flex items-center gap-1.5">
-              <span>📅</span> <span>Lịch Thi &amp; Nhiệm Vụ</span>
+            <button type="button" onclick="switchDashboardInsightsTab('analytics')" data-insights-tab="analytics" class="dash-insights-tab btn-primary px-4 py-2 text-xs font-extrabold rounded-xl flex items-center gap-1.5">
+              <span>📊</span> <span>Tiến Độ, Năng Lực Bloom &amp; Điểm Yếu</span>
             </button>
-            <button type="button" onclick="switchDashboardInsightsTab('analytics')" data-insights-tab="analytics" class="dash-insights-tab btn-soft px-3.5 py-2 text-xs font-extrabold rounded-xl flex items-center gap-1.5">
-              <span>📊</span> <span>Tiến Độ &amp; Điểm Yếu</span>
-            </button>
-            <button type="button" onclick="switchDashboardInsightsTab('notebook')" data-insights-tab="notebook" class="dash-insights-tab btn-soft px-3.5 py-2 text-xs font-extrabold rounded-xl flex items-center gap-1.5">
-              <span>📒</span> <span>Sổ Tay &amp; Lịch Sử Thi</span>
+            <button type="button" onclick="switchDashboardInsightsTab('notebook')" data-insights-tab="notebook" class="dash-insights-tab btn-soft px-4 py-2 text-xs font-extrabold rounded-xl flex items-center gap-1.5">
+              <span>📒</span> <span>Sổ Tay Thông Minh &amp; Lịch Sử Thi</span>
             </button>
           </div>
-          <span class="hidden md:inline text-[11px] txt-muted pr-2 font-semibold">Gom gọn không gian học tập • Chuyển nhanh 1 chạm</span>
+          <button type="button" onclick="openSettingsModal('dashboard')" class="text-[11px] font-bold txt-brand hover:underline px-2.5 py-1">
+            ⚙️ Tùy chỉnh bố cục Trang chủ
+          </button>
         </div>
 
-        <!-- Insights Panel 1: Schedule & Daily Quests (Default Active) -->
-        <div id="dash-insights-schedule" class="space-y-4 animate-fade-in">
-          <div id="survival-predictor-widget" class="uni-card p-4 sm:p-5 space-y-4">
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-              <div class="space-y-1">
-                <div class="flex flex-wrap items-center gap-2">
-                  <span class="badge-brand px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider">📅 Lịch Thi &amp; Mục Tiêu Hôm Nay</span>
-                  <span id="survival-quota-badge" class="badge-amber text-xs font-mono font-bold px-2.5 py-0.5 rounded-md">Quota: 0 / 40 câu</span>
-                  <span id="v41-xp-badge" class="badge-emerald px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">Level 1 • 0 XP</span>
-                </div>
-                <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
-                  <span>🎯</span> <span id="survival-urgent-title">Theo dõi tiến độ Toán Rời Rạc, Giải Thuật &amp; các học phần sắp thi</span>
-                </h3>
-              </div>
-
-              <div class="flex flex-wrap items-center gap-2 shrink-0">
-                <button onclick="openExamForSubjectCode('TOAN_RR', 21)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-indigo-500/35">
-                  <span>📐</span> Đề Toán Rời Rạc
-                </button>
-                <button onclick="openExamForSubjectCode('CTDL_GT', 82)" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5 border border-cyan-500/35">
-                  <span>⚡</span> Đề Giải Thuật
-                </button>
-                <button onclick="switchTab('exercises')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
-                  <span>💻</span> Code IDE
-                </button>
-                <button onclick="switchTab('essay')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
-                  <span>✍️</span> Tự Luận
-                </button>
-              </div>
-            </div>
-
-            <!-- 6-Exam Countdown Row (Separated Toán Rời Rạc vs Giải Thuật) -->
-            <div class="countdown-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs">
-              <div class="countdown-card countdown-slate p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-15-11">
-                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-                  <span>15/11/2026</span>
-                  <span id="cd-badge-15-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Luyện thêm</span>
-                </div>
-                <div class="cd-title font-extrabold text-xs truncate">OOP Thực hành C#</div>
-                <div id="countdown-15-11" class="cd-days font-mono font-black text-xs">--</div>
-              </div>
-
-              <div class="countdown-card countdown-cyan p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-16-11">
-                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-                  <span>16/11/2026</span>
-                  <span id="cd-badge-16-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Giải Thuật</span>
-                </div>
-                <div class="cd-title font-extrabold text-xs truncate">Giải Thuật (CTDL &amp; GT)</div>
-                <div id="countdown-16-11" class="cd-days font-mono font-black text-xs">--</div>
-              </div>
-
-              <div class="countdown-card countdown-amber p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-26-11">
-                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-                  <span>26/11/2026</span>
-                  <span id="cd-badge-26-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
-                </div>
-                <div class="cd-title font-extrabold text-xs truncate">OOP Trắc nghiệm &amp; TH</div>
-                <div id="countdown-26-11" class="cd-days font-mono font-black text-xs">--</div>
-              </div>
-
-              <div class="countdown-card countdown-indigo p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-27-11">
-                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-                  <span>27/11/2026</span>
-                  <span id="cd-badge-27-11" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Sắp thi</span>
-                </div>
-                <div class="cd-title font-extrabold text-xs truncate">Toán Rời Rạc</div>
-                <div id="countdown-27-11" class="cd-days font-mono font-black text-xs">--</div>
-              </div>
-
-              <div class="countdown-card countdown-cyan p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-01-12">
-                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-                  <span>01/12/2026</span>
-                  <span id="cd-badge-01-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
-                </div>
-                <div class="cd-title font-extrabold text-xs truncate">NNLT 1 (Python)</div>
-                <div id="countdown-01-12" class="cd-days font-mono font-black text-xs">--</div>
-              </div>
-
-              <div class="countdown-card countdown-emerald p-2.5 rounded-xl border space-y-0.5" data-cd-id="countdown-04-12">
-                <div class="cd-top flex items-center justify-between text-[10px] font-bold">
-                  <span>04/12/2026</span>
-                  <span id="cd-badge-04-12" class="cd-badge px-1.5 py-0.5 rounded font-mono font-bold">Kế hoạch</span>
-                </div>
-                <div class="cd-title font-extrabold text-xs truncate">Anh Văn Cơ Bản 3</div>
-                <div id="countdown-04-12" class="cd-days font-mono font-black text-xs">--</div>
-              </div>
-            </div>
-
-            <!-- Daily Quests Strip -->
-            <div class="pt-3 border-t space-y-2" style="border-color: var(--border);">
-              <div class="flex items-center justify-between">
-                <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
-                  <span>✅</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
-                </div>
-                <button onclick="loadDailyQuestsWidget()" class="text-[11px] font-bold txt-brand hover:underline">Làm mới</button>
-              </div>
-              <div id="daily-quests-list" class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-                <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Insights Panel 2: Analytics, Bloom & Heatmap -->
-        <div id="dash-insights-analytics" class="hidden space-y-4 animate-fade-in">
+        <!-- Insights Panel: Analytics, Bloom & Heatmap (Default Active) -->
+        <div id="dash-insights-analytics" class="space-y-4 animate-fade-in">
 
       <!-- 6. Weekly Analytics & Personal Progress -->
       <div id="weekly-analytics-widget" class="uni-card p-4 sm:p-5 space-y-3">
@@ -8183,78 +8349,109 @@ main:has(#view-tutor:not(.hidden)) {
         <button onclick="closeModal('modal-settings')" class="btn-soft p-1.5" title="Đóng cài đặt"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
 
-      <!-- Settings Sub-Tabs (Clean Segmented Nav, Never Squeezed) -->
-      <div class="px-4 py-2.5 shrink-0 flex items-center gap-1.5 overflow-x-auto no-scrollbar border-b" style="border-color: var(--border); background-color: var(--bg-subtle);">
-        <button type="button" onclick="switchSettingsTab('appearance')" data-stab="appearance" class="settings-tab-btn active px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5">
-          <span>🎨</span> <span>Giao diện & Màu sắc</span>
+      <!-- Settings Sub-Tabs (Zero-Overlap Responsive Grid on Mobile, Spacious Segmented Bar on Desktop) -->
+      <div class="px-3.5 sm:px-5 py-2.5 shrink-0 grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap items-center gap-1.5 border-b" style="border-color: var(--border); background-color: var(--bg-subtle);">
+        <button type="button" onclick="switchSettingsTab('appearance')" data-stab="appearance" class="settings-tab-btn active shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
+          <span>🎨</span> <span>Giao diện &amp; Màu sắc</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('typography')" data-stab="typography" class="settings-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5">
-          <span>🔤</span> <span>Cỡ Chữ & Giãn Dòng</span>
+        <button type="button" onclick="switchSettingsTab('dashboard')" data-stab="dashboard" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
+          <span>🏠</span> <span>Trang chủ &amp; Lịch thi</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('ai')" data-stab="ai" class="settings-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5">
-          <span>⚡</span> <span>AI: ChatGPT & Gemini</span>
+        <button type="button" onclick="switchSettingsTab('typography')" data-stab="typography" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
+          <span>🔤</span> <span>Cỡ chữ &amp; Phông</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('tools')" data-stab="tools" class="settings-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5">
-          <span>⏱️</span> <span>Âm thanh & Đồng hồ</span>
+        <button type="button" onclick="switchSettingsTab('tools')" data-stab="tools" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
+          <span>⚡</span> <span>Phòng thi &amp; Tiện ích</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('sync')" data-stab="sync" class="settings-tab-btn px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5">
-          <span>🛡️</span> <span>Chống Gian Lận & Đồng Bộ</span>
+        <button type="button" onclick="switchSettingsTab('ai')" data-stab="ai" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
+          <span>🤖</span> <span>AI: Gemini &amp; Gateway</span>
+        </button>
+        <button type="button" onclick="switchSettingsTab('sync')" data-stab="sync" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
+          <span>🛡️</span> <span>Bảo mật &amp; Đồng bộ</span>
         </button>
       </div>
 
       <!-- Settings Body (Smooth Scroll, Roomy, Never Overlapping) -->
-      <div class="p-5 sm:p-7 overflow-y-auto space-y-6 flex-1">
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-6 flex-1">
 
         <!-- ==========================================
              TAB 1: GIAO DIỆN & MÀU SẮC
              ========================================== -->
-        <div id="stab-panel-appearance" class="space-y-6">
+        <div id="stab-panel-appearance" class="space-y-5">
           <!-- Surface Theme -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <label class="text-xs font-extrabold uppercase tracking-wider txt-muted">1. Chế độ nền & Màu sắc màn hình</label>
-              <span class="text-[11px] font-bold txt-brand">5 Chế độ chuyên biệt</span>
+              <label class="text-xs font-extrabold uppercase tracking-wider txt-muted">1. Chế độ nền &amp; Phong cách ánh sáng</label>
+              <span class="text-[11px] font-bold txt-brand">6 Chủ đề cao cấp</span>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+              <button onclick="setThemeMode('aurora')" id="theme-opt-aurora" class="mode-card text-center p-2.5">
+                <div class="text-lg">💎</div>
+                <div class="text-xs font-extrabold txt-main mt-1">Cyber Aurora</div>
+                <div class="text-[10px] txt-muted">Kính phát sáng</div>
+              </button>
               <button onclick="setThemeMode('midnight')" id="theme-opt-midnight" class="mode-card text-center p-2.5">
                 <div class="text-lg">🌌</div>
                 <div class="text-xs font-extrabold txt-main mt-1">Xanh Midnight</div>
-                <div class="text-[10px] txt-muted">Dịu mắt ban đêm</div>
+                <div class="text-[10px] txt-muted">Sang trọng dịu mắt</div>
               </button>
               <button onclick="setThemeMode('dark')" id="theme-opt-dark" class="mode-card text-center p-2.5">
                 <div class="text-lg">🌑</div>
                 <div class="text-xs font-extrabold txt-main mt-1">Đen Tuyệt Đối</div>
                 <div class="text-[10px] txt-muted">Pure OLED #000</div>
               </button>
-              <button onclick="setThemeMode('contrast')" id="theme-opt-contrast" class="mode-card text-center p-2.5">
-                <div class="text-lg">⚡</div>
-                <div class="text-xs font-extrabold txt-main mt-1">Siêu Tương Phản</div>
-                <div class="text-[10px] txt-muted">Chuẩn WCAG AAA</div>
-              </button>
               <button onclick="setThemeMode('light')" id="theme-opt-light" class="mode-card text-center p-2.5">
                 <div class="text-lg">☀️</div>
-                <div class="text-xs font-extrabold txt-main mt-1">Sáng Rõ Ràng</div>
+                <div class="text-xs font-extrabold txt-main mt-1">Sáng Tinh Khôi</div>
                 <div class="text-[10px] txt-muted">Sắc nét ban ngày</div>
               </button>
               <button onclick="setThemeMode('sepia')" id="theme-opt-sepia" class="mode-card text-center p-2.5">
                 <div class="text-lg">📜</div>
                 <div class="text-xs font-extrabold txt-main mt-1">Giấy Kem Sepia</div>
-                <div class="text-[10px] txt-muted">Chống cận thị</div>
+                <div class="text-[10px] txt-muted">Đọc lâu êm mắt</div>
+              </button>
+              <button onclick="setThemeMode('contrast')" id="theme-opt-contrast" class="mode-card text-center p-2.5">
+                <div class="text-lg">⚡</div>
+                <div class="text-xs font-extrabold txt-main mt-1">Siêu Tương Phản</div>
+                <div class="text-[10px] txt-muted">Chuẩn WCAG AAA</div>
               </button>
             </div>
 
-            <!-- Accessibility High-Contrast Boost -->
-            <div class="p-3.5 rounded-2xl flex items-center justify-between" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
-              <div class="space-y-0.5">
-                <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
-                  <span>👁️</span> Tăng Cường Độ Tương Phản Chữ (High-Contrast Boost)
+            <!-- Visual Polish & Density Quick Controls -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-2.5 pt-1">
+              <div class="p-3 rounded-2xl flex items-center justify-between gap-2" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+                <div class="min-w-0">
+                  <div class="text-xs font-extrabold txt-main flex items-center gap-1.5"><span>✨</span> Quầng Sáng Aurora</div>
+                  <div class="text-[10px] txt-muted">Ánh sáng chuyển sắc nền cao cấp</div>
                 </div>
-                <div class="text-[11px] txt-muted">Làm chữ phụ và viền đáp án luôn sáng rõ nét, chống mờ trên màn hình điện thoại</div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" id="pref-ambient-glow" checked onchange="toggleAmbientGlow(this.checked)" class="sr-only peer" />
+                  <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                </label>
               </div>
-              <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="pref-contrast-boost" onchange="toggleHighContrastBoost(this.checked)" class="sr-only peer" />
-                <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
-              </label>
+
+              <div class="p-3 rounded-2xl flex items-center justify-between gap-2" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+                <div class="min-w-0">
+                  <div class="text-xs font-extrabold txt-main flex items-center gap-1.5"><span>👁️</span> Siêu Rõ Nét Chữ</div>
+                  <div class="text-[10px] txt-muted">Tăng độ sáng chữ phụ &amp; viền thẻ</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer shrink-0">
+                  <input type="checkbox" id="pref-contrast-boost" onchange="toggleHighContrastBoost(this.checked)" class="sr-only peer" />
+                  <div class="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+                </label>
+              </div>
+
+              <div class="p-3 rounded-2xl flex items-center justify-between gap-2" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+                <div class="min-w-0">
+                  <div class="text-xs font-extrabold txt-main">📐 Độ Thoáng Khung</div>
+                  <div class="text-[10px] txt-muted">Khoảng cách thẻ</div>
+                </div>
+                <select id="pref-ui-density" onchange="setUiDensityMode(this.value)" class="uni-input px-2.5 py-1.5 text-xs font-bold" style="background-color: var(--bg-surface);">
+                  <option value="spacious">Thoáng đãng</option>
+                  <option value="standard" selected>Cân đối chuẩn</option>
+                  <option value="compact">Gọn nhẹ</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -8478,6 +8675,125 @@ main:has(#view-tutor:not(.hidden)) {
           </div>
           </div>
           </details>
+        </div>
+
+        <!-- ==========================================
+             TAB 1B: TRANG CHỦ & LỊCH THI CÁ NHÂN (NEW!)
+             ========================================== -->
+        <div id="stab-panel-dashboard" class="hidden space-y-5">
+          <!-- Custom Exam Schedule Manager -->
+          <div class="p-4 sm:p-5 rounded-2xl border space-y-4" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="flex flex-wrap items-center justify-between gap-2 pb-2.5 border-b" style="border-color: var(--border);">
+              <div>
+                <h4 class="text-sm font-black txt-main flex items-center gap-2">
+                  <span>📅</span> <span>Trình Quản Lý Lịch Thi &amp; Đếm Ngược Cá Nhân</span>
+                </h4>
+                <p class="text-[11px] txt-muted">Hiển thị nổi bật ngay đầu Trang chủ &amp; đồng bộ trực tiếp với đồng hồ đếm ngược trên Hero</p>
+              </div>
+              <button type="button" onclick="resetCustomExamSchedule()" class="btn-soft px-3 py-1.5 text-xs font-bold txt-rose">
+                🔄 Khôi phục 6 lịch mẫu
+              </button>
+            </div>
+
+            <!-- Add / Edit Exam Form -->
+            <div class="p-3.5 rounded-xl border space-y-3" style="background-color: var(--bg-surface); border-color: var(--border);">
+              <div class="text-xs font-extrabold txt-brand flex items-center gap-1.5">
+                <span>➕</span> <span id="custom-exam-form-title">Thêm Mốc Thi Mới (hoặc bấm ✏️ ở danh sách dưới để sửa)</span>
+              </div>
+              <input type="hidden" id="custom-exam-edit-idx" value="-1" />
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                <div class="sm:col-span-4 space-y-1">
+                  <label class="text-[11px] font-bold txt-sub">Tên môn / kỳ thi *</label>
+                  <input id="custom-exam-name-input" type="text" placeholder="VD: Toán Rời Rạc Cuối Kỳ" class="uni-input w-full px-3 py-2 text-xs font-bold" />
+                </div>
+                <div class="sm:col-span-3 space-y-1">
+                  <label class="text-[11px] font-bold txt-sub">Ngày thi *</label>
+                  <input id="custom-exam-date-input" type="date" class="uni-input w-full px-3 py-2 text-xs font-bold" />
+                </div>
+                <div class="sm:col-span-2 space-y-1">
+                  <label class="text-[11px] font-bold txt-sub">Mục tiêu</label>
+                  <input id="custom-exam-target-input" type="text" placeholder="9.0+" value="9.0+" class="uni-input w-full px-2.5 py-2 text-xs font-bold text-center" />
+                </div>
+                <div class="sm:col-span-3 space-y-1">
+                  <label class="text-[11px] font-bold txt-sub">Tông màu thẻ</label>
+                  <select id="custom-exam-tone-select" class="uni-input w-full px-2.5 py-2 text-xs font-bold">
+                    <option value="indigo">🟣 Tím Indigo</option>
+                    <option value="cyan">🔵 Xanh Cyan</option>
+                    <option value="emerald">🟢 Lục Emerald</option>
+                    <option value="amber">🟠 Vàng Hổ Phách</option>
+                    <option value="rose">🔴 Đỏ Hồng Rose</option>
+                    <option value="slate">⚪ Xám Tinh Tế</option>
+                  </select>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
+                <div class="sm:col-span-8 space-y-1">
+                  <label class="text-[11px] font-bold txt-sub">Liên kết ngân hàng môn học (bấm thẻ lịch thi sẽ mở ngay đề môn này)</label>
+                  <select id="custom-exam-subj-select" class="uni-input w-full px-3 py-2 text-xs font-bold"></select>
+                </div>
+                <div class="sm:col-span-4 flex gap-2">
+                  <button type="button" onclick="saveCustomExamEntry()" class="btn-primary flex-1 py-2 px-3 text-xs font-extrabold">
+                    💾 Lưu Mốc Thi
+                  </button>
+                  <button type="button" id="btn-cancel-exam-edit" onclick="cancelCustomExamEdit()" class="hidden btn-soft py-2 px-3 text-xs font-bold">
+                    Hủy
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Existing Schedule Items -->
+            <div id="settings-exam-schedule-list" class="space-y-2 max-h-64 overflow-y-auto pr-1"></div>
+          </div>
+
+          <!-- Dashboard Widget Visibility & Daily Quota -->
+          <div class="p-4 sm:p-5 rounded-2xl border space-y-4" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="flex items-center justify-between">
+              <div>
+                <h4 class="text-sm font-black txt-main flex items-center gap-2">
+                  <span>🧩</span> <span>Tùy Chỉnh Các Khối Hiển Thị Trên Trang Chủ</span>
+                </h4>
+                <p class="text-[11px] txt-muted">Bật hoặc ẩn bất kỳ thành phần nào để Trang chủ gọn đúng gu học tập của bạn</p>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <label class="p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <span class="font-bold txt-main">📅 Khối Lịch Thi &amp; Đếm Ngược (Đầu trang)</span>
+                <input type="checkbox" id="dash-vis-schedule" checked onchange="toggleDashboardModuleVis('schedule', this.checked)" class="w-4 h-4 accent-indigo-500 rounded" />
+              </label>
+              <label class="p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <span class="font-bold txt-main">✅ Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)</span>
+                <input type="checkbox" id="dash-vis-quests" checked onchange="toggleDashboardModuleVis('quests', this.checked)" class="w-4 h-4 accent-indigo-500 rounded" />
+              </label>
+              <label class="p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <span class="font-bold txt-main">📊 Dãy 4 Thẻ Thống Kê KPI</span>
+                <input type="checkbox" id="dash-vis-kpi" checked onchange="toggleDashboardModuleVis('kpi', this.checked)" class="w-4 h-4 accent-indigo-500 rounded" />
+              </label>
+              <label class="p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <span class="font-bold txt-main">🎓 Danh Sách Học Phần Của Bạn</span>
+                <input type="checkbox" id="dash-vis-subjects" checked onchange="toggleDashboardModuleVis('subjects', this.checked)" class="w-4 h-4 accent-indigo-500 rounded" />
+              </label>
+              <label class="p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <span class="font-bold txt-main">🧰 Trung Tâm Công Cụ &amp; Mô Phỏng AI</span>
+                <input type="checkbox" id="dash-vis-studio" checked onchange="toggleDashboardModuleVis('studio', this.checked)" class="w-4 h-4 accent-indigo-500 rounded" />
+              </label>
+              <label class="p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <span class="font-bold txt-main">📈 Khối Phân Tích Tiến Độ &amp; Sổ Tay</span>
+                <input type="checkbox" id="dash-vis-insights" checked onchange="toggleDashboardModuleVis('insights', this.checked)" class="w-4 h-4 accent-indigo-500 rounded" />
+              </label>
+            </div>
+
+            <!-- Daily Quota Slider -->
+            <div class="pt-3 border-t space-y-2" style="border-color: var(--border);">
+              <div class="flex justify-between items-center text-xs font-bold">
+                <span class="txt-main">🎯 Mục tiêu số câu luyện tập mỗi ngày (Daily Quota)</span>
+                <span id="lbl-daily-quota" class="txt-brand font-mono font-extrabold">40 câu / ngày</span>
+              </div>
+              <input id="slider-daily-quota" type="range" min="10" max="200" step="10" value="40"
+                oninput="updateDailyQuotaTarget(this.value)" class="range-slider-modern" />
+            </div>
+          </div>
         </div>
 
         <!-- ==========================================
@@ -8926,9 +9242,46 @@ main:has(#view-tutor:not(.hidden)) {
         </div>
 
         <!-- ==========================================
-             TAB 4: ÂM THANH, ĐỒNG HỒ & TIỆN ÍCH
+             TAB 4: PHÒNG THI, ÂM THANH & TIỆN ÍCH
              ========================================== -->
         <div id="stab-panel-tools" class="hidden space-y-5">
+          <!-- Exam Room Layout & Behavior Customization (NEW!) -->
+          <div class="p-4 rounded-2xl space-y-4" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+            <div class="text-xs font-extrabold uppercase tracking-wider txt-main flex items-center gap-1.5">
+              <span>🎯</span> Tùy Chỉnh Trải Nghiệm Phòng Thi
+            </div>
+
+            <div class="space-y-1.5">
+              <div class="flex justify-between items-center text-xs font-bold">
+                <span class="txt-sub">Bố cục 4 phương án A - B - C - D:</span>
+                <span class="txt-brand text-[11px]">Linh hoạt theo mắt đọc</span>
+              </div>
+              <select id="pref-option-layout" onchange="updateTypographyPrefs()" class="uni-input w-full px-3 py-2 text-xs font-bold" style="background-color: var(--bg-surface);">
+                <option value="auto" selected>✨ Tự động thông minh (Ngắn chia 2 cột • Dài xếp 1 cột)</option>
+                <option value="grid">⊞ Luôn chia 2 cột ngang (Gọn mắt, hạn chế cuộn trang)</option>
+                <option value="stack">☰ Luôn xếp 1 cột dọc (Thoáng rộng cho đề dài)</option>
+              </select>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t" style="border-color: var(--border);">
+              <label class="p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <div>
+                  <div class="text-xs font-extrabold txt-main">🎉 Pháo hoa chúc mừng</div>
+                  <div class="text-[10px] txt-muted">Tung confetti khi nộp bài điểm cao</div>
+                </div>
+                <input id="pref-confetti-toggle" type="checkbox" checked onchange="updateTypographyPrefs()" class="w-4 h-4 accent-indigo-500 rounded" />
+              </label>
+
+              <label class="p-3 rounded-xl border flex items-center justify-between gap-2 cursor-pointer" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <div>
+                  <div class="text-xs font-extrabold txt-main">🤖 Tự hỏi AI khi chọn SAI</div>
+                  <div class="text-[10px] txt-muted">Tự bật Gia Sư AI giải thích lỗi nhầm</div>
+                </div>
+                <input id="pref-auto-ai-wrong" type="checkbox" onchange="updateTypographyPrefs()" class="w-4 h-4 accent-indigo-500 rounded" />
+              </label>
+            </div>
+          </div>
+
           <!-- Audio Controls -->
           <div class="p-4 rounded-2xl space-y-4" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
             <div class="flex items-center justify-between">
@@ -14118,10 +14471,33 @@ function renderInlineMathAndCode(text) {
 // =========================================================================
 // 1. DEFAULT PREFERENCES & GLOBAL STATE
 // =========================================================================
+const DEFAULT_EXAM_SCHEDULE = [
+  { id: 'countdown-15-11', badgeId: 'cd-badge-15-11', dateStr: '2026-11-15', name: 'OOP Thực hành C#', target: '8.5+', tone: 'slate', subjectCode: 'OOP_CSHARP', subjectId: 5 },
+  { id: 'countdown-16-11', badgeId: 'cd-badge-16-11', dateStr: '2026-11-16', name: 'Giải Thuật (CTDL & GT)', target: '9.0+', tone: 'cyan', subjectCode: 'CTDL_GT', subjectId: 82 },
+  { id: 'countdown-26-11', badgeId: 'cd-badge-26-11', dateStr: '2026-11-26', name: 'OOP Trắc nghiệm & TH', target: '9.0+', tone: 'amber', subjectCode: 'OOP_CSHARP', subjectId: 5 },
+  { id: 'countdown-27-11', badgeId: 'cd-badge-27-11', dateStr: '2026-11-27', name: 'Toán Rời Rạc', target: '9.0+', tone: 'indigo', subjectCode: 'TOAN_RR', subjectId: 21 },
+  { id: 'countdown-01-12', badgeId: 'cd-badge-01-12', dateStr: '2026-12-01', name: 'NNLT 1 (Python)', target: '9.0+', tone: 'cyan', subjectCode: 'NNLT1', subjectId: 83 },
+  { id: 'countdown-04-12', badgeId: 'cd-badge-04-12', dateStr: '2026-12-04', name: 'Anh Văn Cơ Bản 3', target: '8.5+', tone: 'emerald', subjectCode: 'AVCB3', subjectId: 84 }
+];
+
 const DEFAULT_UI_PREFS = {
-  theme: 'dark', // 'dark' (Pure OLED #000) | 'midnight' | 'contrast' | 'light' | 'sepia'
+  theme: 'aurora', // 'aurora' | 'midnight' | 'dark' | 'contrast' | 'light' | 'sepia'
   brand: '#7c3aed',
   brand2: '#ec4899',
+  ambientGlow: true,
+  uiDensity: 'standard', // 'spacious' | 'standard' | 'compact'
+  optionLayout: 'auto', // 'auto' | 'grid' | 'stack'
+  confettiEnabled: true,
+  autoAiOnWrong: false,
+  dashWidgets: {
+    schedule: true,
+    quests: true,
+    kpi: true,
+    subjects: true,
+    studio: true,
+    insights: true
+  },
+  customExams: null,
   fontUi: "'Plus Jakarta Sans', sans-serif",
   fontQuestion: 'inherit',
   fontAnswer: 'inherit',
@@ -14481,14 +14857,22 @@ function applyAllAppearancePrefs() {
   const root = document.documentElement;
   const u = STATE.ui;
 
-  root.classList.remove('dark', 'sepia', 'midnight', 'contrast');
-  root.dataset.theme = u.theme || 'midnight';
-  if (u.theme === 'dark') root.classList.add('dark');
-  else if (u.theme === 'midnight') root.classList.add('midnight', 'dark');
-  else if (u.theme === 'contrast') root.classList.add('contrast', 'dark');
-  else if (u.theme === 'sepia') root.classList.add('sepia');
+  root.classList.remove('dark', 'sepia', 'midnight', 'contrast', 'aurora');
+  const activeTheme = u.theme || 'aurora';
+  root.dataset.theme = activeTheme;
+  if (activeTheme === 'dark') root.classList.add('dark');
+  else if (activeTheme === 'aurora') root.classList.add('aurora', 'dark');
+  else if (activeTheme === 'midnight') root.classList.add('midnight', 'dark');
+  else if (activeTheme === 'contrast') root.classList.add('contrast', 'dark');
+  else if (activeTheme === 'sepia') root.classList.add('sepia');
   if (u.highContrastText) root.classList.add('high-contrast-text');
   else root.classList.remove('high-contrast-text');
+
+  const glowOn = u.ambientGlow !== false;
+  root.classList.toggle('ambient-glow-on', glowOn);
+  const density = u.uiDensity || 'standard';
+  root.classList.toggle('ui-density-spacious', density === 'spacious');
+  root.classList.toggle('ui-density-compact', density === 'compact');
 
   const qFont = u.fontQuestion && u.fontQuestion !== 'inherit' ? u.fontQuestion : 'var(--font-ui)';
   const aFont = u.fontAnswer && u.fontAnswer !== 'inherit' ? u.fontAnswer : 'var(--font-ui)';
@@ -14568,13 +14952,14 @@ function applyAllAppearancePrefs() {
   const sun = document.getElementById('quick-theme-sun');
   const moon = document.getElementById('quick-theme-moon');
   if (sun && moon) {
-    sun.classList.toggle('hidden', u.theme !== 'dark');
-    moon.classList.toggle('hidden', u.theme === 'dark');
+    const isDarkLike = ['dark', 'midnight', 'aurora', 'contrast'].includes(u.theme || 'aurora');
+    sun.classList.toggle('hidden', !isDarkLike);
+    moon.classList.toggle('hidden', isDarkLike);
   }
 
   // Sync Settings Modal Controls
-  ['dark', 'midnight', 'contrast', 'light', 'sepia'].forEach((m) => {
-    document.getElementById(`theme-opt-${m}`)?.classList.toggle('active', u.theme === m);
+  ['aurora', 'dark', 'midnight', 'contrast', 'light', 'sepia'].forEach((m) => {
+    document.getElementById(`theme-opt-${m}`)?.classList.toggle('active', (u.theme || 'aurora') === m);
   });
 
   document.querySelectorAll('.swatch-btn').forEach((btn) => {
@@ -14621,12 +15006,16 @@ function applyAllAppearancePrefs() {
   if (autoDelaySlider) autoDelaySlider.value = u.autoNextDelaySec || 0.8;
   setText('lbl-autonext-delay', `${u.autoNextDelaySec || 0.8}s`);
 
-  setSelectSafe('pref-tts-speed', u.ttsSpeed || 1.0, 1.0);
+  const ttsNumeric = Number(u.ttsSpeed || 1.0);
+  const ttsStr = ttsNumeric === 1 ? '1.0' : String(ttsNumeric);
+  setSelectSafe('pref-tts-speed', ttsStr, '1.0');
   setSelectSafe('pref-shadow-depth', u.shadowDepth || 'medium', 'medium');
   setSelectSafe('pref-timer-display', u.timerMode || 'countdown', 'countdown');
   setSelectSafe('pref-anticheat-level', u.antiCheatLevel || 'medium', 'medium');
   setSelectSafe('cfg-default-tutor-persona', u.defaultTutorPersona || 'professor', 'professor');
   setSelectSafe('cfg-ai-verbosity', u.aiVerbosity || 'standard', 'standard');
+  setSelectSafe('pref-ui-density', u.uiDensity || 'standard', 'standard');
+  setSelectSafe('pref-option-layout', u.optionLayout || 'auto', 'auto');
 
   const sndChk = document.getElementById('pref-sound-toggle');
   if (sndChk) sndChk.checked = Boolean(u.soundEnabled);
@@ -14634,11 +15023,17 @@ function applyAllAppearancePrefs() {
   if (autoChk) autoChk.checked = Boolean(u.autoNext);
   const cbChk = document.getElementById('pref-contrast-boost');
   if (cbChk) cbChk.checked = Boolean(u.highContrastText);
+  const glowChk = document.getElementById('pref-ambient-glow');
+  if (glowChk) glowChk.checked = u.ambientGlow !== false;
+  const confChk = document.getElementById('pref-confetti-toggle');
+  if (confChk) confChk.checked = u.confettiEnabled !== false;
+  const autoAiChk = document.getElementById('pref-auto-ai-wrong');
+  if (autoAiChk) autoAiChk.checked = Boolean(u.autoAiOnWrong);
   const perfChk = document.getElementById('pref-perf-mode-toggle');
   if (perfChk) perfChk.checked = Boolean(u.perfMode);
-  // Áp dụng class perf-mode ngay khi load để tắt animation nếu đã bật
   document.documentElement.classList.toggle('perf-mode', Boolean(u.perfMode));
 
+  if (typeof applyDashboardWidgetVisibility === 'function') applyDashboardWidgetVisibility();
   renderLiveFontPreview();
 }
 
@@ -14721,11 +15116,17 @@ function applyFontPreset(preset) {
 }
 
 function quickCycleDarkLight() {
-  STATE.ui.theme = STATE.ui.theme === 'dark' ? 'light' : 'dark';
+  const isDarkLike = ['aurora', 'midnight', 'dark', 'contrast'].includes(STATE.ui.theme || 'aurora');
+  STATE.ui.theme = isDarkLike ? 'light' : 'aurora';
   applyAllAppearancePrefs();
   syncUserStateToServer();
   playSound('click');
-  showToast(STATE.ui.theme === 'dark' ? '🌑 Đã bật chế độ Đen Tuyệt Đối (OLED)' : '☀️ Đã bật chế độ Sáng Tinh Khôi', 'info');
+  showToast(
+    STATE.ui.theme === 'aurora'
+      ? '💎 Đã bật giao diện Cyber Aurora Kính Phát Sáng'
+      : '☀️ Đã bật giao diện Sáng Tinh Khôi',
+    'info'
+  );
 }
 
 
@@ -14784,6 +15185,10 @@ function updateTypographyPrefs() {
   const defaultTutorPersona = document.getElementById('cfg-default-tutor-persona')?.value || 'professor';
   const aiVerbosity = document.getElementById('cfg-ai-verbosity')?.value || 'standard';
 
+  const optionLayout = document.getElementById('pref-option-layout')?.value || STATE.ui.optionLayout || 'auto';
+  const confettiEnabled = document.getElementById('pref-confetti-toggle') ? document.getElementById('pref-confetti-toggle').checked : (STATE.ui.confettiEnabled !== false);
+  const autoAiOnWrong = document.getElementById('pref-auto-ai-wrong') ? document.getElementById('pref-auto-ai-wrong').checked : Boolean(STATE.ui.autoAiOnWrong);
+
   STATE.ui.fontUi = fontUi;
   STATE.ui.fontQuestion = fontQuestion;
   STATE.ui.fontAnswer = fontAnswer;
@@ -14802,10 +15207,28 @@ function updateTypographyPrefs() {
   STATE.ui.antiCheatLevel = antiCheatLevel;
   STATE.ui.defaultTutorPersona = defaultTutorPersona;
   STATE.ui.aiVerbosity = aiVerbosity;
+  STATE.ui.optionLayout = optionLayout;
+  STATE.ui.confettiEnabled = confettiEnabled;
+  STATE.ui.autoAiOnWrong = autoAiOnWrong;
 
+  applyAllAppearancePrefs();
+  if (STATE.exam?.active && typeof renderCurrentExamQuestion === 'function') renderCurrentExamQuestion();
+  syncUserStateToServer();
+}
+
+function toggleAmbientGlow(checked) {
+  STATE.ui.ambientGlow = Boolean(checked);
   applyAllAppearancePrefs();
   syncUserStateToServer();
 }
+window.toggleAmbientGlow = toggleAmbientGlow;
+
+function setUiDensityMode(mode) {
+  STATE.ui.uiDensity = ['spacious', 'standard', 'compact'].includes(mode) ? mode : 'standard';
+  applyAllAppearancePrefs();
+  syncUserStateToServer();
+}
+window.setUiDensityMode = setUiDensityMode;
 
 function toggleSoundPref(checked) {
   STATE.ui.soundEnabled = Boolean(checked);
@@ -15652,14 +16075,39 @@ document.addEventListener('DOMContentLoaded', async () => {
 // =========================================================================
 // LIVE CLOCK + EXAM COUNTDOWN WIDGET (Cập nhật mỗi giây)
 // =========================================================================
-const EXAM_COUNTDOWN_TARGETS = [
-  { date: new Date(2026, 10, 15), name: 'OOP Thực hành C#' },
-  { date: new Date(2026, 10, 16), name: 'Giải Thuật (CTDL & GT)' },
-  { date: new Date(2026, 10, 26), name: 'OOP Trắc nghiệm & TH' },
-  { date: new Date(2026, 10, 27), name: 'Toán Rời Rạc' },
-  { date: new Date(2026, 11, 1), name: 'NNLT 1 Python' },
-  { date: new Date(2026, 11, 4), name: 'Anh Văn Cơ Bản 3' }
-];
+function parseExamDateLocal(dateStr) {
+  const parts = String(dateStr || '').split('-').map((n) => parseInt(n, 10));
+  if (parts.length === 3 && !parts.some(Number.isNaN)) {
+    return new Date(parts[0], parts[1] - 1, parts[2], 23, 59, 59);
+  }
+  const d = new Date(dateStr);
+  return Number.isNaN(d.getTime()) ? new Date(2026, 11, 31, 23, 59, 59) : d;
+}
+
+function formatExamDateVN(dateStr) {
+  const parts = String(dateStr || '').split('-');
+  if (parts.length === 3) return `${parts[2]}/${parts[1]}/${parts[0]}`;
+  return String(dateStr || '');
+}
+
+function getActiveExamSchedule() {
+  const list = Array.isArray(STATE?.ui?.customExams) && STATE.ui.customExams.length
+    ? STATE.ui.customExams
+    : DEFAULT_EXAM_SCHEDULE;
+  return list.map((item, idx) => ({
+    ...item,
+    id: item.id || `custom-cd-${idx}`,
+    badgeId: item.badgeId || `custom-cd-badge-${idx}`,
+    date: parseExamDateLocal(item.dateStr || item.date),
+    dateStr: item.dateStr || '2026-12-01',
+    name: item.name || `Môn thi #${idx + 1}`,
+    target: item.target || '9.0+',
+    tone: item.tone || 'indigo',
+    subjectCode: item.subjectCode || '',
+    subjectId: Number(item.subjectId || 0)
+  }));
+}
+window.getActiveExamSchedule = getActiveExamSchedule;
 
 function pad2(n) { return String(n).padStart(2, '0'); }
 
@@ -15674,18 +16122,24 @@ function updateLiveClock() {
   const nameEl = document.getElementById('live-exam-name');
   let nearest = null;
   let nearestDiff = Infinity;
-  EXAM_COUNTDOWN_TARGETS.forEach((ex) => {
+  const activeExams = getActiveExamSchedule();
+  activeExams.forEach((ex) => {
     const diff = ex.date.getTime() - now.getTime();
     if (diff > 0 && diff < nearestDiff) { nearestDiff = diff; nearest = ex; }
   });
-  if (cdEl && nameEl && nearest) {
-    const totalSec = Math.floor(nearestDiff / 1000);
-    const days = Math.floor(totalSec / 86400);
-    const hours = Math.floor((totalSec % 86400) / 3600);
-    const mins = Math.floor((totalSec % 3600) / 60);
-    const secs = totalSec % 60;
-    cdEl.textContent = days > 0 ? `${days} ngày ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}` : `${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
-    nameEl.textContent = nearest.name;
+  if (cdEl && nameEl) {
+    if (nearest) {
+      const totalSec = Math.floor(nearestDiff / 1000);
+      const days = Math.floor(totalSec / 86400);
+      const hours = Math.floor((totalSec % 86400) / 3600);
+      const mins = Math.floor((totalSec % 3600) / 60);
+      const secs = totalSec % 60;
+      cdEl.textContent = days > 0 ? `${days} ngày ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}` : `${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
+      nameEl.textContent = `${nearest.name}${nearest.target ? ' • 🎯 ' + nearest.target : ''}`;
+    } else if (activeExams.length) {
+      cdEl.textContent = 'Sẵn sàng ôn tập';
+      nameEl.textContent = activeExams[0].name;
+    }
   }
 }
 
@@ -15935,9 +16389,10 @@ function switchTab(tabName) {
   if (tabName === 'arena') initArenaView();
   if (tabName === 'lab' && typeof initLabHubView === 'function') initLabHubView();
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
   refreshIcons();
-  renderAllMathOnPage();
+  const activeViewEl = document.getElementById(`view-${tabName}`);
+  if (activeViewEl) renderAllMathOnPage(activeViewEl);
 }
 
 // =========================================================================
@@ -16050,12 +16505,13 @@ function switchDashboardStudioTab(tabKey) {
 }
 window.switchDashboardStudioTab = switchDashboardStudioTab;
 
-function switchDashboardInsightsTab(tabKey = 'schedule') {
-  ['schedule', 'analytics', 'notebook'].forEach((k) => {
-    document.getElementById(`dash-insights-${k}`)?.classList.toggle('hidden', k !== tabKey);
+function switchDashboardInsightsTab(tabKey = 'analytics') {
+  const validTab = tabKey === 'notebook' ? 'notebook' : 'analytics';
+  ['analytics', 'notebook'].forEach((k) => {
+    document.getElementById(`dash-insights-${k}`)?.classList.toggle('hidden', k !== validTab);
   });
   document.querySelectorAll('.dash-insights-tab').forEach((btn) => {
-    const active = btn.getAttribute('data-insights-tab') === tabKey;
+    const active = btn.getAttribute('data-insights-tab') === validTab;
     btn.classList.toggle('btn-primary', active);
     btn.classList.toggle('btn-soft', !active);
   });
@@ -17534,7 +17990,7 @@ function renderCurrentExamQuestion() {
 
   renderPaletteGrid();
   refreshIcons();
-  renderAllMathOnPage();
+  renderAllMathOnPage(document.getElementById('exam-question-stage') || document.getElementById('view-exam'));
   } catch (err) {
     console.error('Critical renderCurrentExamQuestion failure:', err);
     try {
@@ -17597,9 +18053,11 @@ function renderQuestionAnswerArea(q) {
             { letter: 'D', keyNum: '4', text: q.option_d }
           ];
 
-    // Auto 2-column layout when all options are concise (< 44 chars) -> much cleaner & less vertical clutter!
+    // Respect user option layout preference ('auto' | 'grid' | 'stack')
+    const layoutPref = STATE.ui?.optionLayout || 'auto';
     const allShort = opts.every((o) => String(o.text || '').length <= 44);
-    const gridClass = allShort || q.q_type === 'true_false' ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'space-y-3';
+    const useTwoCol = layoutPref === 'grid' || (layoutPref === 'auto' && (allShort || q.q_type === 'true_false'));
+    const gridClass = useTwoCol ? 'grid grid-cols-1 sm:grid-cols-2 gap-3' : 'space-y-3';
 
     area.className = gridClass;
     area.innerHTML = opts
@@ -17767,10 +18225,15 @@ function selectExamOption(letter, fromKeyboard = false) {
 
   renderCurrentExamQuestion();
 
+  if (!isCorrect && STATE.ui?.autoAiOnWrong) {
+    setTimeout(() => askAiAboutCurrentExamQuestion(true), 220);
+  }
+
   if (STATE.ui.autoNext && isCorrect && STATE.exam.currentIndex < STATE.exam.questions.length - 1) {
+    const delayMs = Math.max(350, Math.round(Number(STATE.ui.autoNextDelaySec || 0.8) * 1000));
     setTimeout(() => {
       if (STATE.exam.active && !STATE.exam.paused) nextQuestion();
-    }, 1050);
+    }, delayMs);
   }
 }
 
@@ -18558,9 +19021,11 @@ function renderExamResultScreen(res) {
   document.getElementById('btn-retry-wrong')?.classList.toggle('hidden', wrongCount === 0);
   document.getElementById('btn-distill-wrong-fc')?.classList.toggle('hidden', wrongCount === 0);
 
-  if (score >= 8 && window.confetti) {
+  if (score >= 8) {
     playSound('complete');
-    confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+    if (window.confetti && STATE.ui?.confettiEnabled !== false) {
+      confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
+    }
   } else if (wrongCount > 0) {
     // Tự động phân tích AI cho bài thi dưới 8 điểm (sau 1.2s để UI render xong)
     setTimeout(() => {
@@ -18571,9 +19036,10 @@ function renderExamResultScreen(res) {
     renderMetacognitionMatrix(res);
   }
   filterResultReview('all');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.scrollTo({ top: 0, behavior: 'auto' });
   refreshIcons();
-  renderAllMathOnPage();
+  const resScreenEl = document.getElementById('exam-result-screen') || document.getElementById('view-exam');
+  if (resScreenEl) renderAllMathOnPage(resScreenEl);
 }
 
 function filterResultReview(mode) {
@@ -19836,10 +20302,11 @@ function launchGeneratedQuizNow() {
 // 13. UNIFIED SETTINGS MODAL, QR WI-FI SYNC, BACKUP & POMODORO
 // =========================================================================
 function openModal(id) {
-  document.getElementById(id)?.classList.remove('hidden');
+  const mEl = document.getElementById(id);
+  if (mEl) mEl.classList.remove('hidden');
   playSound('click');
   refreshIcons();
-  renderAllMathOnPage();
+  if (mEl) renderAllMathOnPage(mEl);
 }
 
 function closeModal(id) {
@@ -19850,18 +20317,17 @@ function openSettingsModal(tab = 'appearance') {
   applyAllAppearancePrefs();
   switchSettingsTab(tab);
   openModal('modal-settings');
-  if (tab === 'sync') fetchNetworkQrInfo();
-  if (tab === 'ai') checkApiKeyStatus();
 }
 
 function switchSettingsTab(tab) {
-  const tabs = ['appearance', 'typography', 'ai', 'tools', 'sync'];
+  const tabs = ['appearance', 'dashboard', 'typography', 'ai', 'tools', 'sync'];
   tabs.forEach((t) => {
     document.getElementById(`stab-panel-${t}`)?.classList.toggle('hidden', t !== tab);
   });
   document.querySelectorAll('[data-stab]').forEach((btn) => {
     btn.classList.toggle('active', btn.getAttribute('data-stab') === tab);
   });
+  if (tab === 'dashboard' && typeof initDashboardSettingsPanel === 'function') initDashboardSettingsPanel();
   if (tab === 'sync') fetchNetworkQrInfo();
   if (tab === 'ai') checkApiKeyStatus();
   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
@@ -26503,52 +26969,297 @@ document.addEventListener('dblclick', (e) => {
 // =========================================================================
 function renderSurvivalPredictor() {
   const now = new Date();
-  const exams = [
-    { id: 'countdown-15-11', badgeId: 'cd-badge-15-11', date: new Date(2026, 10, 15, 23, 59), name: 'OOP Thực hành C#' },
-    { id: 'countdown-16-11', badgeId: 'cd-badge-16-11', date: new Date(2026, 10, 16, 23, 59), name: 'Giải Thuật (CTDL & GT)' },
-    { id: 'countdown-26-11', badgeId: 'cd-badge-26-11', date: new Date(2026, 10, 26, 23, 59), name: 'OOP Trắc nghiệm & TH' },
-    { id: 'countdown-27-11', badgeId: 'cd-badge-27-11', date: new Date(2026, 10, 27, 23, 59), name: 'Toán Rời Rạc' },
-    { id: 'countdown-01-12', badgeId: 'cd-badge-01-12', date: new Date(2026, 11, 1, 23, 59), name: 'NNLT 1 Python' },
-    { id: 'countdown-04-12', badgeId: 'cd-badge-04-12', date: new Date(2026, 11, 4, 23, 59), name: 'Anh Văn Cơ Bản 3' }
-  ];
+  const exams = getActiveExamSchedule();
+  const gridEl = document.getElementById('custom-exam-countdown-grid');
 
-  let nearestDays = 999;
+  let nearestDays = 9999;
   let nearestName = '';
 
-  exams.forEach((ex) => {
+  const cardsHtml = exams.map((ex, idx) => {
     const diffMs = ex.date.getTime() - now.getTime();
     const isPast = diffMs < 0;
-    const days = isPast ? -1 : Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    const el = document.getElementById(ex.id);
-    const badgeEl = document.getElementById(ex.badgeId);
+    const days = isPast ? -1 : Math.floor(diffMs / 86400000);
+    const hours = isPast ? 0 : Math.floor((diffMs % 86400000) / 3600000);
 
-    if (el) {
-      if (isPast) el.textContent = 'Đã qua / Ôn lại';
-      else if (days === 0) el.textContent = 'Hôm nay thi';
-      else el.textContent = `${days} ngày nữa`;
-    }
-    if (badgeEl) {
-      if (isPast) badgeEl.textContent = 'Đã qua';
-      else if (days === 0) badgeEl.textContent = 'HÔM NAY';
-      else badgeEl.textContent = `${days} NGÀY`;
-    }
     if (!isPast && days < nearestDays) {
       nearestDays = days;
       nearestName = ex.name;
     }
-  });
+
+    const toneCls = `countdown-${['indigo', 'cyan', 'emerald', 'amber', 'rose', 'slate'].includes(ex.tone) ? ex.tone : 'indigo'}`;
+    const statusLabel = isPast
+      ? 'Ôn thêm'
+      : days === 0
+      ? '⚡ HÔM NAY'
+      : days <= 7
+      ? `🔥 ${days} NGÀY`
+      : `${days} NGÀY`;
+    const countdownText = isPast
+      ? 'Đã qua • Bấm luyện đề'
+      : days === 0
+      ? `Còn ${hours}h • Sẵn sàng!`
+      : `${days} ngày ${hours}h nữa`;
+    const urgencyPct = isPast ? 100 : Math.max(12, Math.min(100, Math.round(100 - (Math.min(days, 30) / 30) * 85)));
+
+    const clickAction = ex.subjectId || ex.subjectCode
+      ? `openExamForSubjectCode(${escapeJsString(ex.subjectCode || '')}, ${Number(ex.subjectId || 21)})`
+      : `switchTab('exam')`;
+
+    return `
+      <div class="countdown-card ${toneCls} p-3 rounded-xl border space-y-1.5 cursor-pointer group" onclick="${clickAction}" title="Bấm để vào luyện đề ${escapeHtml(ex.name)}">
+        <div class="cd-top flex items-center justify-between gap-1 text-[10px] font-bold">
+          <span>${escapeHtml(formatExamDateVN(ex.dateStr))}</span>
+          <span id="${escapeHtml(ex.badgeId)}" class="cd-badge px-1.5 py-0.5 rounded font-mono font-extrabold">${escapeHtml(statusLabel)}</span>
+        </div>
+        <div class="cd-title font-extrabold text-xs truncate flex items-center justify-between gap-1">
+          <span class="truncate">${escapeHtml(ex.name)}</span>
+        </div>
+        <div class="flex items-center justify-between gap-1">
+          <span id="${escapeHtml(ex.id)}" class="cd-days font-mono font-black text-[11px]">${escapeHtml(countdownText)}</span>
+          ${ex.target ? `<span class="text-[10px] font-mono font-bold opacity-85">🎯 ${escapeHtml(ex.target)}</span>` : ''}
+        </div>
+        <div class="w-full h-1 rounded-full overflow-hidden bg-black/20">
+          <div class="h-full rounded-full" style="width:${urgencyPct}%; background: linear-gradient(90deg, var(--brand), var(--brand-2));"></div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (gridEl) {
+    const colCls = exams.length <= 3
+      ? 'countdown-grid grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs'
+      : exams.length === 4
+      ? 'countdown-grid grid grid-cols-2 lg:grid-cols-4 gap-2.5 text-xs'
+      : 'countdown-grid grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 text-xs';
+    gridEl.className = colCls;
+    gridEl.innerHTML = cardsHtml;
+  }
 
   const titleEl = document.getElementById('survival-urgent-title');
-  if (titleEl && nearestName) {
-    titleEl.textContent = `Mốc thi gần nhất: ${nearestName} (còn ${nearestDays} ngày)`;
+  if (titleEl) {
+    titleEl.textContent = nearestName
+      ? (nearestDays === 0 ? `Hôm nay thi: ${nearestName} — Bình tĩnh tự tin đạt điểm tối đa!` : `Mốc thi gần nhất: ${nearestName} (còn ${nearestDays} ngày) • Bấm thẻ môn bất kỳ để luyện ngay`)
+      : 'Lịch thi cá nhân • Bấm vào thẻ môn học để mở phòng luyện đề ngay';
   }
 
   const quota = JSON.parse(localStorage.getItem('unimaster_daily_quota') || '{"done": 0, "target": 40}');
   const badge = document.getElementById('survival-quota-badge');
   if (badge) {
-    badge.textContent = `Quota: ${quota.done} / ${quota.target} câu`;
+    badge.textContent = `Quota: ${quota.done || 0} / ${quota.target || 40} câu`;
   }
+  applyDashboardWidgetVisibility();
 }
+
+function applyDashboardWidgetVisibility() {
+  const vis = {
+    schedule: true,
+    quests: true,
+    kpi: true,
+    subjects: true,
+    studio: true,
+    insights: true,
+    ...(STATE.ui?.dashWidgets || {})
+  };
+  document.getElementById('survival-predictor-widget')?.classList.toggle('hidden', !vis.schedule);
+  document.getElementById('daily-quests-wrap')?.classList.toggle('hidden', !vis.quests);
+  document.getElementById('dashboard-kpi-grid')?.classList.toggle('hidden', !vis.kpi);
+  document.getElementById('dashboard-subjects-section')?.classList.toggle('hidden', !vis.subjects);
+  document.getElementById('dashboard-v41-hub')?.classList.toggle('hidden', !vis.studio);
+  document.getElementById('dashboard-insights-section')?.classList.toggle('hidden', !vis.insights);
+
+  ['schedule', 'quests', 'kpi', 'subjects', 'studio', 'insights'].forEach((k) => {
+    const chk = document.getElementById(`dash-vis-${k}`);
+    if (chk) chk.checked = Boolean(vis[k]);
+  });
+
+  const quota = JSON.parse(localStorage.getItem('unimaster_daily_quota') || '{"done": 0, "target": 40}');
+  const qSlider = document.getElementById('slider-daily-quota');
+  if (qSlider) qSlider.value = Number(quota.target || 40);
+  setText('lbl-daily-quota', `${quota.target || 40} câu / ngày`);
+}
+window.applyDashboardWidgetVisibility = applyDashboardWidgetVisibility;
+
+function toggleDashboardModuleVis(key, checked) {
+  if (!STATE.ui.dashWidgets || typeof STATE.ui.dashWidgets !== 'object') {
+    STATE.ui.dashWidgets = { schedule: true, quests: true, kpi: true, subjects: true, studio: true, insights: true };
+  }
+  STATE.ui.dashWidgets[key] = Boolean(checked);
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  applyDashboardWidgetVisibility();
+  syncUserStateToServer();
+}
+window.toggleDashboardModuleVis = toggleDashboardModuleVis;
+
+function updateDailyQuotaTarget(val) {
+  const target = Math.max(10, Math.min(200, parseInt(val || '40', 10)));
+  const cur = JSON.parse(localStorage.getItem('unimaster_daily_quota') || '{"done": 0, "target": 40}');
+  cur.target = target;
+  localStorage.setItem('unimaster_daily_quota', JSON.stringify(cur));
+  setText('lbl-daily-quota', `${target} câu / ngày`);
+  const badge = document.getElementById('survival-quota-badge');
+  if (badge) badge.textContent = `Quota: ${cur.done || 0} / ${target} câu`;
+}
+window.updateDailyQuotaTarget = updateDailyQuotaTarget;
+
+function initDashboardSettingsPanel() {
+  const sel = document.getElementById('custom-exam-subj-select');
+  if (sel) {
+    const subs = Array.isArray(STATE.subjects) ? STATE.subjects : [];
+    sel.innerHTML = `<option value="">-- Chọn môn học trong ngân hàng --</option>` +
+      subs.map((s) => `<option value="${s.id}" data-code="${escapeHtml(s.code || '')}">${escapeHtml(s.icon || '📘')} ${escapeHtml(s.name)}</option>`).join('');
+  }
+  const dateInp = document.getElementById('custom-exam-date-input');
+  if (dateInp && !dateInp.value) {
+    const nextWeek = new Date(Date.now() + 7 * 86400000);
+    dateInp.value = `${nextWeek.getFullYear()}-${pad2(nextWeek.getMonth() + 1)}-${pad2(nextWeek.getDate())}`;
+  }
+  applyDashboardWidgetVisibility();
+  renderSettingsExamScheduleList();
+}
+window.initDashboardSettingsPanel = initDashboardSettingsPanel;
+
+function renderSettingsExamScheduleList() {
+  const listEl = document.getElementById('settings-exam-schedule-list');
+  if (!listEl) return;
+  const exams = getActiveExamSchedule();
+  listEl.innerHTML = exams.map((ex, idx) => `
+    <div class="p-2.5 rounded-xl border flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 text-xs" style="background-color: var(--bg-surface); border-color: var(--border);">
+      <div class="flex items-center gap-2 min-w-0 flex-1">
+        <span class="badge-brand px-2 py-0.5 rounded font-mono font-bold shrink-0">${escapeHtml(formatExamDateVN(ex.dateStr))}</span>
+        <span class="font-extrabold txt-main truncate">${escapeHtml(ex.name)}</span>
+        ${ex.target ? `<span class="badge-emerald px-1.5 py-0.5 rounded text-[10px] font-mono font-bold shrink-0">🎯 ${escapeHtml(ex.target)}</span>` : ''}
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        ${idx > 0 ? `<button type="button" onclick="moveCustomExamUp(${idx})" class="btn-soft px-2 py-1 text-[11px]" title="Đưa lên trên">↑</button>` : ''}
+        <button type="button" onclick="editCustomExamEntry(${idx})" class="btn-soft px-2 py-1 text-[11px] font-bold txt-brand" title="Chỉnh sửa mốc thi này">✏️ Sửa</button>
+        <button type="button" onclick="deleteCustomExamEntry(${idx})" class="btn-soft px-2 py-1 text-[11px] font-bold txt-rose" title="Xóa mốc thi">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+window.renderSettingsExamScheduleList = renderSettingsExamScheduleList;
+
+function saveCustomExamEntry() {
+  const nameInp = document.getElementById('custom-exam-name-input');
+  const dateInp = document.getElementById('custom-exam-date-input');
+  const targetInp = document.getElementById('custom-exam-target-input');
+  const toneSel = document.getElementById('custom-exam-tone-select');
+  const subjSel = document.getElementById('custom-exam-subj-select');
+  const editIdxInp = document.getElementById('custom-exam-edit-idx');
+
+  const name = String(nameInp?.value || '').trim();
+  const dateStr = String(dateInp?.value || '').trim();
+  if (!name || !dateStr) {
+    showToast('Vui lòng nhập Tên môn/kỳ thi và chọn Ngày thi!', 'warning');
+    return;
+  }
+
+  const selectedSid = Number(subjSel?.value || 0);
+  const matchedSub = (STATE.subjects || []).find((s) => Number(s.id) === selectedSid);
+  const current = getActiveExamSchedule().map(({ date, ...rest }) => rest);
+  const editIdx = parseInt(editIdxInp?.value || '-1', 10);
+
+  const entry = {
+    id: editIdx >= 0 && current[editIdx]?.id ? current[editIdx].id : `custom-cd-${Date.now()}`,
+    badgeId: editIdx >= 0 && current[editIdx]?.badgeId ? current[editIdx].badgeId : `custom-badge-${Date.now()}`,
+    name,
+    dateStr,
+    target: String(targetInp?.value || '9.0+').trim(),
+    tone: toneSel?.value || 'indigo',
+    subjectId: selectedSid || (matchedSub?.id || 0),
+    subjectCode: matchedSub?.code || ''
+  };
+
+  if (editIdx >= 0 && editIdx < current.length) {
+    current[editIdx] = entry;
+  } else {
+    current.push(entry);
+  }
+
+  STATE.ui.customExams = current;
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  cancelCustomExamEdit();
+  renderSurvivalPredictor();
+  updateLiveClock();
+  renderSettingsExamScheduleList();
+  syncUserStateToServer();
+  showToast('📅 Đã cập nhật Lịch Thi cá nhân!', 'success');
+}
+window.saveCustomExamEntry = saveCustomExamEntry;
+
+function editCustomExamEntry(idx) {
+  const exams = getActiveExamSchedule();
+  const ex = exams[idx];
+  if (!ex) return;
+  const editIdxInp = document.getElementById('custom-exam-edit-idx');
+  if (editIdxInp) editIdxInp.value = String(idx);
+  const nameInp = document.getElementById('custom-exam-name-input');
+  if (nameInp) { nameInp.value = ex.name; nameInp.focus(); }
+  const dateInp = document.getElementById('custom-exam-date-input');
+  if (dateInp) dateInp.value = ex.dateStr;
+  const targetInp = document.getElementById('custom-exam-target-input');
+  if (targetInp) targetInp.value = ex.target || '9.0+';
+  const toneSel = document.getElementById('custom-exam-tone-select');
+  if (toneSel) toneSel.value = ex.tone || 'indigo';
+  const subjSel = document.getElementById('custom-exam-subj-select');
+  if (subjSel) subjSel.value = ex.subjectId ? String(ex.subjectId) : '';
+  setText('custom-exam-form-title', `Đang chỉnh sửa mốc thi: ${ex.name}`);
+  document.getElementById('btn-cancel-exam-edit')?.classList.remove('hidden');
+}
+window.editCustomExamEntry = editCustomExamEntry;
+
+function cancelCustomExamEdit() {
+  const editIdxInp = document.getElementById('custom-exam-edit-idx');
+  if (editIdxInp) editIdxInp.value = '-1';
+  const nameInp = document.getElementById('custom-exam-name-input');
+  if (nameInp) nameInp.value = '';
+  setText('custom-exam-form-title', 'Thêm Mốc Thi Mới (hoặc bấm ✏️ ở danh sách dưới để sửa)');
+  document.getElementById('btn-cancel-exam-edit')?.classList.add('hidden');
+}
+window.cancelCustomExamEdit = cancelCustomExamEdit;
+
+function deleteCustomExamEntry(idx) {
+  const current = getActiveExamSchedule().map(({ date, ...rest }) => rest);
+  if (current.length <= 1) {
+    showToast('Cần giữ lại ít nhất 1 mốc lịch thi (hoặc ẩn khối Lịch Thi ở bên dưới)!', 'info');
+    return;
+  }
+  current.splice(idx, 1);
+  STATE.ui.customExams = current;
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  renderSurvivalPredictor();
+  updateLiveClock();
+  renderSettingsExamScheduleList();
+  syncUserStateToServer();
+  showToast('🗑️ Đã xóa mốc lịch thi.', 'info');
+}
+window.deleteCustomExamEntry = deleteCustomExamEntry;
+
+function moveCustomExamUp(idx) {
+  if (idx <= 0) return;
+  const current = getActiveExamSchedule().map(({ date, ...rest }) => rest);
+  const tmp = current[idx - 1];
+  current[idx - 1] = current[idx];
+  current[idx] = tmp;
+  STATE.ui.customExams = current;
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  renderSurvivalPredictor();
+  renderSettingsExamScheduleList();
+  syncUserStateToServer();
+}
+window.moveCustomExamUp = moveCustomExamUp;
+
+function resetCustomExamSchedule() {
+  STATE.ui.customExams = null;
+  localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
+  cancelCustomExamEdit();
+  renderSurvivalPredictor();
+  updateLiveClock();
+  renderSettingsExamScheduleList();
+  syncUserStateToServer();
+  showToast('🔄 Đã khôi phục 6 mốc lịch thi mặc định!', 'success');
+}
+window.resetCustomExamSchedule = resetCustomExamSchedule;
 
 // =========================================================================
 // UNIMASTER v15.0: SM-2 SPACED REPETITION FLASHCARD RATING

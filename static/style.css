@@ -325,10 +325,13 @@ body {
 }
 
 header {
-  position: relative !important;
-  z-index: 90 !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 50 !important;
   overflow: visible !important;
-  background: color-mix(in srgb, var(--bg-surface) 92%, transparent) !important;
+  background: color-mix(in srgb, var(--bg-surface) 88%, transparent) !important;
+  backdrop-filter: blur(14px) !important;
+  -webkit-backdrop-filter: blur(14px) !important;
   border-bottom: 1px solid var(--border) !important;
 }
 
@@ -338,7 +341,7 @@ header > div {
 
 #header-settings-btn {
   position: relative !important;
-  z-index: 95 !important;
+  z-index: 2 !important;
   flex: 0 0 auto !important;
   min-width: 2rem !important;
   min-height: 2rem !important;
@@ -380,7 +383,7 @@ header > div {
   header > div > div:last-child {
     flex: 0 0 auto !important;
     position: relative !important;
-    z-index: 100 !important;
+    z-index: 2 !important;
   }
 
   header > div > div:first-child {
@@ -419,7 +422,7 @@ header > div {
   #header-settings-btn,
   #quick-theme-btn {
     position: relative !important;
-    z-index: 101 !important;
+    z-index: 3 !important;
     pointer-events: auto !important;
   }
 }
@@ -1610,33 +1613,35 @@ body.zen-active #exit-zen-btn {
 /* ==========================================================================
    MODAL SETTINGS & ULTRA-RICH CUSTOMIZATION SUITE
    ========================================================================== */
-#modal-settings .uni-card {
-  width: min(920px, 96vw) !important;
-  max-width: 920px !important;
-  height: min(88vh, 850px) !important;
-  max-height: 88vh !important;
+#modal-settings > .uni-card {
+  width: min(1020px, 96vw) !important;
+  max-width: 1020px !important;
+  height: auto !important;
+  max-height: min(90dvh, 860px) !important;
   border-radius: var(--card-radius, 1.25rem) !important;
 }
 
 .settings-tab-btn {
-  background: transparent;
-  color: var(--text-muted);
-  border: 1px solid transparent;
+  background: var(--bg-surface);
+  color: var(--text-sub);
+  border: 1px solid var(--border);
   cursor: pointer;
   user-select: none;
   font-weight: 700;
   white-space: nowrap;
+  flex-shrink: 0 !important;
+  line-height: 1.35;
 }
 .settings-tab-btn:hover {
   color: var(--text-main);
   background: var(--bg-hover);
-  border-color: var(--border);
+  border-color: var(--brand);
 }
 .settings-tab-btn.active {
   background: linear-gradient(135deg, var(--brand), var(--brand-2)) !important;
   color: #ffffff !important;
   font-weight: 800 !important;
-  box-shadow: 0 4px 14px -3px var(--brand-glow) !important;
+  box-shadow: 0 6px 18px -4px var(--brand-glow) !important;
   border-color: transparent !important;
 }
 
@@ -1926,21 +1931,21 @@ body.app-fullscreen-mode #header-fullscreen-btn {
    UNIMASTER v21.0: HIGH-CONTRAST LIGHT MODE, MODAL VIEWPORT & FLOATING TUTOR
    ========================================================================= */
 
-/* 1. Modal Overlay & Dialog Geometry (Preventing Any Cut-Off at Bottom) */
+/* 1. Modal Overlay & Dialog Geometry (Above Header & Nav, Zero Cut-Off) */
 .modal-overlay {
   position: fixed !important;
   inset: 0 !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;
-  background-color: rgba(0, 0, 0, 0.76) !important;
+  background-color: rgba(2, 6, 23, 0.76) !important;
   backdrop-filter: blur(10px) !important;
   -webkit-backdrop-filter: blur(10px) !important;
-  z-index: 80 !important;
+  z-index: 1200 !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch !important;
   overscroll-behavior: contain !important;
-  padding: max(0.75rem, env(safe-area-inset-top)) 0.5rem max(2.5rem, env(safe-area-inset-bottom)) !important;
+  padding: max(0.75rem, env(safe-area-inset-top)) 0.5rem max(1.5rem, env(safe-area-inset-bottom)) !important;
   box-sizing: border-box !important;
 }
 
@@ -1997,11 +2002,11 @@ body.app-fullscreen-mode #header-fullscreen-btn {
 }
 
 #modal-settings .overflow-y-auto {
-  padding-bottom: 3.5rem !important;
+  padding-bottom: 1.75rem !important;
 }
 
 #floating-tutor-container:not(.tutor-expanded-parent) {
-  z-index: 1000 !important;
+  z-index: 65 !important;
 }
 
 /* 3. High-Contrast Deadline Countdown Cards in Light, Sepia & Non-Dark Themes */
@@ -2836,8 +2841,8 @@ html:not(.dark) #survival-predictor-widget .text-slate-400 { color: var(--text-m
 
 /* Settings Modal & Responsive Mobile / iPad Safety */
 #modal-settings > .uni-card {
-  width: min(96vw, 760px) !important;
-  max-height: min(92dvh, 880px) !important;
+  width: min(96vw, 1020px) !important;
+  max-height: min(91dvh, 870px) !important;
   display: flex;
   flex-direction: column;
 }
@@ -4816,4 +4821,163 @@ main:has(#view-tutor:not(.hidden)) {
   0%, 100% { transform: translateX(0); }
   25% { transform: translateX(-5px); }
   75% { transform: translateX(5px); }
+}
+
+/* ==============================================================================
+   UniMaster AI v49.0: Luxury Cyber Aurora Theme, 60fps GPU Polish & Density Suite
+   ============================================================================== */
+
+/* 1. Cyber Aurora Flagship Theme */
+html[data-theme="aurora"] {
+  --bg-app: #060916;
+  --bg-surface: rgba(15, 21, 42, 0.88);
+  --bg-card: rgba(15, 21, 42, 0.88);
+  --bg-subtle: rgba(24, 34, 66, 0.72);
+  --bg-hover: rgba(38, 52, 98, 0.78);
+  --border: rgba(129, 140, 248, 0.22);
+  --text-main: #f8fafc;
+  --text-sub: #dbeafe;
+  --text-muted: #94a3b8;
+  --brand-subtle: rgba(99, 102, 241, 0.18);
+  --brand-border: rgba(129, 140, 248, 0.48);
+  --brand-text: #a5b4fc;
+}
+
+/* 2. Dynamic GPU-Composited Ambient Aurora Mesh Backdrop (Zero Layout Cost) */
+html:not(.perf-mode).ambient-glow-on body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(650px circle at 12% 8%, color-mix(in srgb, var(--brand) 18%, transparent), transparent 72%),
+    radial-gradient(580px circle at 88% 12%, color-mix(in srgb, var(--brand-2) 15%, transparent), transparent 70%),
+    radial-gradient(520px circle at 50% 92%, color-mix(in srgb, #06b6d4 10%, transparent), transparent 75%);
+  transform: translateZ(0);
+}
+
+html[data-theme="light"].ambient-glow-on body::before {
+  background:
+    radial-gradient(620px circle at 12% 6%, color-mix(in srgb, var(--brand) 10%, transparent), transparent 72%),
+    radial-gradient(560px circle at 88% 10%, color-mix(in srgb, var(--brand-2) 8%, transparent), transparent 70%);
+}
+
+/* 3. Specular 3D Card Highlights & Hero Aurora Polish */
+.uni-card {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.07),
+    0 12px 32px -12px rgba(0, 0, 0, 0.42);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+}
+
+html[data-theme="light"] .uni-card,
+html[data-theme="sepia"] .uni-card {
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.8),
+    0 10px 26px -10px rgba(15, 23, 42, 0.09);
+}
+
+.hero-dashboard-card {
+  background:
+    radial-gradient(540px circle at 88% 18%, color-mix(in srgb, var(--brand-2) 32%, transparent), transparent 68%),
+    radial-gradient(480px circle at 10% 85%, color-mix(in srgb, var(--brand) 36%, transparent), transparent 70%),
+    linear-gradient(135deg, #121738 0%, #1d1642 52%, #0f172a 100%) !important;
+  border: 1px solid rgba(165, 180, 252, 0.28) !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.14),
+    0 20px 44px -14px rgba(79, 70, 229, 0.35) !important;
+}
+
+.exam-schedule-hero-card {
+  border-color: color-mix(in srgb, var(--brand) 38%, var(--border)) !important;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--brand) 6%, var(--bg-surface)),
+    var(--bg-surface)
+  ) !important;
+}
+
+.countdown-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s ease, box-shadow 0.18s ease;
+}
+.countdown-card:hover {
+  transform: translate3d(0, -3px, 0);
+  border-color: var(--brand) !important;
+  box-shadow: 0 12px 24px -10px var(--brand-glow);
+}
+
+.stat-card-purple,
+.stat-card-cyan,
+.stat-card-emerald,
+.stat-card-amber {
+  position: relative;
+  overflow: hidden;
+}
+.stat-card-purple::before,
+.stat-card-cyan::before,
+.stat-card-emerald::before,
+.stat-card-amber::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  opacity: 0.85;
+}
+.stat-card-purple::before { background: linear-gradient(90deg, #7c3aed, #ec4899); }
+.stat-card-cyan::before { background: linear-gradient(90deg, #06b6d4, #3b82f6); }
+.stat-card-emerald::before { background: linear-gradient(90deg, #10b981, #14b8a6); }
+.stat-card-amber::before { background: linear-gradient(90deg, #f59e0b, #f43f5e); }
+
+/* 4. 60fps GPU Micro-Interactions (Zero Layout Thrashing) */
+.option-row,
+.mode-card,
+.part-card,
+.btn-primary,
+.btn-soft {
+  transition: transform 0.16s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.16s ease, background-color 0.16s ease, box-shadow 0.16s ease, color 0.16s ease !important;
+}
+.option-row:hover:not(.disabled) {
+  transform: translate3d(2px, -1px, 0);
+}
+.btn-primary:active,
+.btn-soft:active {
+  transform: scale(0.98);
+}
+
+/* 5. UI Density Modes (Spacious vs Standard vs Compact) */
+html.ui-density-spacious main {
+  gap: 1.85rem !important;
+}
+html.ui-density-spacious .uni-card {
+  padding: 1.5rem 1.75rem;
+}
+html.ui-density-compact main > section {
+  gap: 0.85rem !important;
+}
+html.ui-density-compact .uni-card {
+  padding: 0.85rem 1rem;
+}
+html.ui-density-compact .option-row {
+  padding-top: 0.6rem;
+  padding-bottom: 0.6rem;
+}
+
+/* 6. Bulletproof Z-Index Ordering Above All Modals */
+#modal-custom-confirm,
+#modal-image-lightbox {
+  z-index: 1400 !important;
+}
+#toast-container {
+  z-index: 1500 !important;
+}
+#floating-tutor-backdrop {
+  z-index: 1250 !important;
+}
+#floating-tutor-container.tutor-expanded-parent {
+  z-index: 1260 !important;
 }
