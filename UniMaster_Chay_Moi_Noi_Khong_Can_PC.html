@@ -5647,8 +5647,154 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
   }
 }
 
+/* ==============================================================================
+   UniMaster AI v53.0: Calm Monochrome-Accent Minimalism (Zero Rainbow Clutter)
+   ============================================================================== */
+
+:root {
+  --brand: #6366f1;
+  --brand-2: #4f46e5;
+}
+
+/* 1. Calm Architectural Surfaces (90% Neutral + 10% Single Cohesive Accent) */
+html[data-theme="dark"]:not(.contrast),
+html[data-theme="aurora"],
+html[data-theme="midnight"] {
+  --bg-app: #090b10;
+  --bg-surface: rgba(17, 20, 29, 0.88);
+  --bg-subtle: rgba(24, 28, 40, 0.85);
+  --bg-elevated: rgba(30, 35, 50, 0.94);
+  --bg-hover: rgba(38, 44, 62, 0.9);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --brand-subtle: color-mix(in srgb, var(--brand) 14%, #11141d);
+  --brand-border: color-mix(in srgb, var(--brand) 38%, rgba(255, 255, 255, 0.1));
+  --brand-text: color-mix(in srgb, var(--brand) 42%, #ffffff);
+  --brand-glow: color-mix(in srgb, var(--brand) 24%, transparent);
+}
+
+/* Single Whisper-Soft Top Ambient Light (Eliminates Multi-Color Aurora Soup) */
+html:not(.perf-mode):not([data-theme="contrast"]) body::before {
+  background: radial-gradient(
+    760px circle at 50% -12%,
+    color-mix(in srgb, var(--brand) 11%, transparent),
+    transparent 68%
+  ) !important;
+  animation: none !important;
+}
+html body::after {
+  display: none !important;
+}
+
+/* 2. Cohesive Single-Hue Primary Buttons & Active Nav (No Hot-Pink Gradients) */
+.btn-primary,
+.nav-indicator,
+.nav-tab.active-tab,
+.preset-pill.active,
+.option-row.selected .opt-badge {
+  background: linear-gradient(
+    135deg,
+    var(--brand),
+    color-mix(in srgb, var(--brand) 82%, #1e1b4b)
+  ) !important;
+}
+
+#floating-next-q-btn.floating-next-ready {
+  background: #059669 !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 10px 24px -4px rgba(5, 150, 105, 0.45) !important;
+}
+
+.floating-dock-neutral {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--text-main) !important;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 26px -6px rgba(0, 0, 0, 0.45);
+}
+.floating-dock-neutral:hover:not(:disabled) {
+  border-color: var(--brand) !important;
+  transform: translateY(-2px);
+}
+
+#header-fullscreen-btn.active {
+  background: var(--brand-subtle) !important;
+  border-color: var(--brand-border) !important;
+  color: var(--brand-text) !important;
+}
+
+#header-user-name,
+#header-user-role {
+  display: none !important;
+}
+
+/* 3. Neutralize Loud Hero, Schedule & Countdown Rainbow Cards */
+.hero-dashboard-card,
+.exam-schedule-hero-card {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 12px 30px -12px rgba(0, 0, 0, 0.35) !important;
+}
+
+.countdown-card,
+.countdown-cyan,
+.countdown-amber,
+.countdown-indigo,
+.countdown-emerald,
+.countdown-rose,
+.countdown-slate {
+  background: var(--bg-subtle) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-main) !important;
+}
+.countdown-card .cd-top,
+.countdown-card .cd-days {
+  color: var(--text-muted) !important;
+}
+.countdown-card .cd-title {
+  color: var(--text-main) !important;
+}
+.countdown-card .cd-badge {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-sub) !important;
+}
+
+/* 4. Neutralize Rainbow A/B/C/D Option Badges Before Grading (Semantic Only After Grading!) */
+.opt-A:not(.is-correct):not(.is-wrong):not(.selected) .opt-badge,
+.opt-B:not(.is-correct):not(.is-wrong):not(.selected) .opt-badge,
+.opt-C:not(.is-correct):not(.is-wrong):not(.selected) .opt-badge,
+.opt-D:not(.is-correct):not(.is-wrong):not(.selected) .opt-badge {
+  background: var(--bg-subtle) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-strong) !important;
+}
+
+.opt-A:hover:not(.disabled):not(.is-correct):not(.is-wrong),
+.opt-B:hover:not(.disabled):not(.is-correct):not(.is-wrong),
+.opt-C:hover:not(.disabled):not(.is-correct):not(.is-wrong),
+.opt-D:hover:not(.disabled):not(.is-correct):not(.is-wrong) {
+  border-color: var(--brand) !important;
+  background-color: var(--bg-hover) !important;
+  box-shadow: 0 8px 20px -8px var(--brand-glow) !important;
+}
+
+/* 5. Softer Minimalist Orb & User Bubble in AI Gia Sư */
+.tutor-living-orb {
+  background: var(--brand-subtle) !important;
+  border: 1px solid var(--brand-border) !important;
+  color: var(--brand-text) !important;
+  box-shadow: none !important;
+}
+.gemini-user-bubble {
+  background: var(--brand) !important;
+  box-shadow: 0 6px 18px -6px var(--brand-glow) !important;
+}
+
 </style>
-  <link rel="stylesheet" href="/static/minimal.css?v=52.0" />
+  <link rel="stylesheet" href="/static/minimal.css?v=53.2" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
@@ -5693,69 +5839,69 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
       </div>
 
       <!-- Center: Clean 7-Tab Navigation Pills -->
-      <nav class="hidden lg:flex items-center gap-0.5 p-1 rounded-2xl shrink min-w-0 overflow-x-auto no-scrollbar border shadow-inner" style="background-color: var(--bg-subtle); border-color: var(--border);">
+      <nav class="hidden lg:flex items-center gap-0.5 p-1 rounded-2xl shrink min-w-0 overflow-x-auto no-scrollbar border" style="background-color: var(--bg-subtle); border-color: var(--border);">
         <span id="nav-indicator" class="nav-indicator" aria-hidden="true"></span>
-        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Tổng quan (Phím tắt: 1)">
+        <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-semibold whitespace-nowrap" title="Tổng quan (1)">
           <i data-lucide="home" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Tổng quan</span>
         </button>
-        <button onclick="switchTab('exam')" id="tab-exam" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Phòng thi (Phím tắt: 2)">
+        <button onclick="switchTab('exam')" id="tab-exam" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-semibold whitespace-nowrap" title="Phòng thi (2)">
           <i data-lucide="zap" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Phòng thi</span>
         </button>
-        <button onclick="switchTab('exercises')" id="tab-exercises" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Luyện Code (Phím tắt: 3)">
-          <i data-lucide="code-2" class="w-3.5 h-3.5 shrink-0 text-cyan-400"></i> <span class="nav-tab-text">Code</span>
+        <button onclick="switchTab('exercises')" id="tab-exercises" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-semibold whitespace-nowrap" title="Luyện Code (3)">
+          <i data-lucide="code-2" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Code</span>
         </button>
-        <button onclick="switchTab('essay')" id="tab-essay" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Luyện Tự luận (Phím tắt: 4)">
-          <i data-lucide="award" class="w-3.5 h-3.5 shrink-0 text-amber-400"></i> <span class="nav-tab-text">Tự luận</span>
+        <button onclick="switchTab('essay')" id="tab-essay" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-semibold whitespace-nowrap" title="Tự luận (4)">
+          <i data-lucide="award" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Tự luận</span>
         </button>
-        <button onclick="switchTab('flashcards')" id="tab-flashcards" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Thẻ nhớ ôn tập (Phím tắt: 5)">
+        <button onclick="switchTab('flashcards')" id="tab-flashcards" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-semibold whitespace-nowrap" title="Thẻ nhớ (5)">
           <i data-lucide="layers" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Thẻ nhớ</span>
         </button>
-        <button onclick="switchTab('lab')" id="tab-lab" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="Phòng Lab & Mô phỏng (Phím tắt: 7)">
+        <button onclick="switchTab('lab')" id="tab-lab" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-semibold whitespace-nowrap" title="Lab (7)">
           <i data-lucide="flask-conical" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Lab</span>
         </button>
-        <button onclick="switchTab('tutor')" id="tab-tutor" class="nav-tab px-2 2xl:px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-bold whitespace-nowrap" title="AI Gia sư (Phím tắt: 8)">
+        <button onclick="switchTab('tutor')" id="tab-tutor" class="nav-tab px-2.5 py-1.5 text-xs flex items-center gap-1.5 font-semibold whitespace-nowrap" title="AI Gia sư (8)">
           <i data-lucide="bot" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">AI Gia sư</span>
         </button>
       </nav>
 
-      <!-- Right: Minimal Control Bar (Cloud Auto-Backup, Search Ctrl+K, Theme, User, Settings) -->
+      <!-- Right: Calm Control Bar (Sync, Search, FULLSCREEN, Theme, Profile, Settings) -->
       <div class="flex items-center gap-1.5 shrink-0">
         <button id="header-sync-btn" onclick="openCloudSyncModal()" title="Sao lưu tự động &amp; Đồng bộ tiến trình giữa các máy"
-          class="btn-soft px-2 sm:px-2.5 h-8 sm:h-9 text-xs font-extrabold flex items-center gap-1.5 rounded-xl shadow-sm hover:border-emerald-500 transition-all"
-          style="background-color: var(--bg-subtle); border-color: var(--border);">
+          class="btn-soft px-2 h-8 sm:h-9 text-xs font-semibold flex items-center gap-1.5 rounded-xl">
           <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-          <span id="header-sync-label" class="hidden sm:inline txt-main text-[11px] whitespace-nowrap">☁️ Đã lưu</span>
-          <span class="sm:hidden text-xs">☁️</span>
+          <span id="header-sync-label" class="hidden 2xl:inline txt-sub text-[11px] whitespace-nowrap">Đã lưu</span>
+          <i data-lucide="cloud" class="w-3.5 h-3.5 2xl:hidden txt-sub"></i>
         </button>
 
-        <button id="header-cmdk-btn" onclick="openCommandPaletteModal()" title="Tìm kiếm toàn hệ thống & Lệnh nhanh (Ctrl+K)"
-          class="btn-soft px-2 sm:px-2.5 h-8 sm:h-9 text-xs font-bold flex items-center gap-1.5 rounded-xl shadow-sm hover:border-indigo-500 transition-all"
-          style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <span>🔍</span>
-          <span class="hidden 2xl:inline txt-main font-extrabold">Tìm nhanh</span>
-          <kbd class="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono font-black rounded bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">Ctrl+K</kbd>
+        <button id="header-cmdk-btn" onclick="openCommandPaletteModal()" title="Tìm kiếm &amp; Lệnh nhanh (Ctrl+K)"
+          class="btn-soft px-2 h-8 sm:h-9 text-xs font-semibold flex items-center gap-1.5 rounded-xl">
+          <i data-lucide="search" class="w-3.5 h-3.5 txt-sub"></i>
+          <kbd class="hidden xl:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted);">Ctrl+K</kbd>
         </button>
 
-        <button id="quick-theme-btn" onclick="quickCycleDarkLight()" title="Đổi giao diện Sáng / Đen OLED"
-          class="btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs flex items-center justify-center p-0 rounded-xl shadow-sm hover:scale-105 transition-transform"
-          style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <span id="quick-theme-sun" class="hidden inline-flex"><i data-lucide="sun" class="w-4 h-4 text-amber-500"></i></span>
-          <span id="quick-theme-moon" class="inline-flex"><i data-lucide="moon" class="w-4 h-4 text-violet-400"></i></span>
+        <button id="header-fullscreen-btn" onclick="toggleAppFullscreen()" title="Toàn màn hình không vướng thanh trình duyệt (F11)"
+          class="btn-soft px-2 sm:px-2.5 h-8 sm:h-9 text-xs font-bold flex items-center gap-1.5 rounded-xl">
+          <i id="header-fs-lucide" data-lucide="maximize" class="w-4 h-4"></i>
+          <span id="header-fs-label" class="hidden xl:inline text-[11px]">Toàn màn hình</span>
         </button>
 
-        <button id="header-user-btn" onclick="openAccountModal()" title="Hồ sơ tài khoản & Quản trị"
-          class="flex items-center gap-1.5 p-1 2xl:px-2.5 2xl:py-1 rounded-xl border transition-all text-xs font-bold shrink-0 shadow-sm hover:border-indigo-500"
-          style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <div id="header-user-avatar" class="w-7 h-7 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white font-black text-xs flex items-center justify-center shrink-0 shadow-md">
+        <button id="quick-theme-btn" onclick="quickCycleDarkLight()" title="Đổi giao diện Sáng / Tối"
+          class="btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs flex items-center justify-center p-0 rounded-xl">
+          <span id="quick-theme-sun" class="hidden inline-flex"><i data-lucide="sun" class="w-4 h-4"></i></span>
+          <span id="quick-theme-moon" class="inline-flex"><i data-lucide="moon" class="w-4 h-4"></i></span>
+        </button>
+
+        <button id="header-user-btn" onclick="openAccountModal()" title="Hồ sơ tài khoản"
+          class="btn-soft w-8 h-8 sm:w-9 sm:h-9 p-0 rounded-xl flex items-center justify-center shrink-0">
+          <div id="header-user-avatar" class="w-6 h-6 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0" style="background: var(--brand-subtle); color: var(--brand-text);">
             A
           </div>
-          <span id="header-user-name" class="font-extrabold txt-main hidden 2xl:inline truncate max-w-[90px]">Admin</span>
-          <span id="header-user-role" class="badge-rose px-1.5 py-0.2 rounded text-[10px] font-black hidden 2xl:inline-block">Admin</span>
+          <span id="header-user-name" class="sr-only">Admin</span>
+          <span id="header-user-role" class="sr-only">Admin</span>
         </button>
 
-        <button id="header-settings-btn" onclick="openSettingsModal('appearance')" title="Cài đặt hệ thống & Giao diện"
-          class="btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs flex items-center justify-center p-0 rounded-xl shrink-0 border shadow-sm hover:scale-105 transition-transform"
-          style="background-color: var(--bg-subtle); border-color: var(--border); color: var(--brand-text);">
+        <button id="header-settings-btn" onclick="openSettingsModal('appearance')" title="Cài đặt hệ thống &amp; Giao diện"
+          class="btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs flex items-center justify-center p-0 rounded-xl shrink-0">
           <i data-lucide="settings" class="w-4 h-4"></i>
         </button>
       </div>
@@ -5799,85 +5945,64 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
          VIEW 1: DASHBOARD (CLEAN, COLORFUL, ZERO CLUTTER)
          =================================================================== -->
     <section id="view-dashboard" class="space-y-6 animate-fade-in">
-      <!-- 1. Minimalist Context-Aware Subject Focus Hero -->
-      <div class="uni-card hero-dashboard-card p-5 sm:p-6 relative overflow-hidden">
-        <div class="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-          <div class="space-y-2 max-w-2xl">
-            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full text-[11px] font-bold badge-brand">
-              <span id="hero-rank-title">🎓 Sinh Viên</span>
-              <span>•</span>
-              <span id="hero-streak-badge">🔥 Chuỗi <span id="hero-streak-days">1</span> ngày ôn tập</span>
-            </div>
-            <h1 class="text-xl sm:text-2xl font-black tracking-tight text-white flex items-center gap-2.5">
+      <!-- 1. Slim Minimalist Subject Hero -->
+      <div class="uni-card hero-dashboard-card p-4 sm:p-5 relative overflow-hidden">
+        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+          <div class="space-y-2 min-w-0">
+            <span id="hero-rank-title" class="sr-only">Sinh Viên</span>
+            <span id="hero-streak-badge" class="sr-only"><span id="hero-streak-days">1</span></span>
+            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight txt-main flex items-center gap-2.5">
               <span id="hero-active-icon" class="shrink-0">📐</span>
               <span id="hero-active-title" class="truncate">Toán Rời Rạc</span>
             </h1>
-            <p id="hero-subject-desc" class="hidden text-xs text-slate-300 leading-relaxed line-clamp-1 max-w-xl"></p>
-            <div class="flex flex-wrap items-center gap-2 pt-1">
+            <p id="hero-subject-desc" class="hidden"></p>
+            <div class="flex flex-wrap items-center gap-2">
               <button id="hero-btn-start-exam" onclick="startExamForActiveSubject()"
-                class="btn-primary px-4 py-2.5 rounded-xl font-black text-xs sm:text-sm flex items-center gap-1.5 shadow-xl hover:-translate-y-0.5 transition-all">
-                <span>⚡</span> <span id="hero-start-exam-text">Làm Bài Ngay</span>
+                class="btn-primary px-4 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5">
+                <i data-lucide="play" class="w-3.5 h-3.5"></i> <span id="hero-start-exam-text">Làm bài ngay</span>
               </button>
               <button onclick="startAdaptiveSmartExam()"
-                class="btn-soft px-3 py-2.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center gap-1.5 border border-cyan-500/40 text-cyan-300 hover:border-cyan-400"
-                title="AI tự chọn 20 câu trọng tâm: ưu tiên câu từng sai, câu chưa làm &amp; câu bẫy NGOẠI TRỪ">
-                <span>🧠</span> Đề Thông Minh
+                class="btn-soft px-3.5 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
+                title="Chọn 20 câu trọng tâm theo lỗ hổng cá nhân">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5 txt-brand"></i> Đề thông minh
               </button>
-              <button onclick="openSubjectPickerModal()"
-                class="btn-soft px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5">
-                <span>📚</span> Đổi Môn
-              </button>
-              <button onclick="openSettingsModal('appearance')"
-                class="btn-soft px-3 py-2.5 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-purple-500/35 text-purple-300 hover:border-purple-400"
-                title="Tùy biến giao diện, phông chữ &amp; bố cục">
-                <span>🎨</span> Giao Diện
+              <button onclick="toggleAppFullscreen()"
+                class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
+                title="Chế độ toàn màn hình tập trung">
+                <span id="hero-fs-icon">⛶</span> <span id="hero-fs-label">Toàn màn hình</span>
               </button>
             </div>
           </div>
 
-          <!-- Compact Live Clock + Upcoming Exam Countdown -->
-          <div class="grid grid-cols-2 lg:flex lg:flex-col gap-2 shrink-0">
-            <div class="hero-clock-box px-3.5 py-2 rounded-xl border">
-              <div class="hero-clock-label text-[10px] font-bold uppercase tracking-wider">🕒 Hiện tại</div>
-              <div id="live-clock-time" class="hero-clock-val font-mono font-black text-base sm:text-lg leading-tight tabular-nums">--:--:--</div>
-              <div id="live-clock-date" class="hero-clock-sub text-[10px] font-bold truncate">--</div>
-            </div>
-            <div class="hero-countdown-box px-3.5 py-2 rounded-xl border">
-              <div class="hero-countdown-label text-[10px] font-bold uppercase tracking-wider">⏳ Mốc thi kế tiếp</div>
-              <div id="live-exam-countdown" class="hero-countdown-val font-mono font-black text-sm sm:text-base leading-tight tabular-nums">-- ngày --:--:--</div>
-              <div id="live-exam-name" class="hero-countdown-sub text-[10px] font-bold truncate max-w-[200px]">Đang tải...</div>
+          <!-- Single Calm Next-Exam Pill (Hidden Clock Preserved for JS) -->
+          <div class="shrink-0 flex items-center gap-3 px-3.5 py-2.5 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <span id="live-clock-time" class="sr-only">--:--:--</span>
+            <span id="live-clock-date" class="sr-only">--</span>
+            <div class="min-w-0">
+              <div class="text-[10px] font-semibold txt-muted uppercase tracking-wider">Mốc thi gần nhất</div>
+              <div id="live-exam-name" class="text-xs font-extrabold txt-main truncate max-w-[180px]">Đang tải...</div>
+              <div id="live-exam-countdown" class="font-mono font-bold text-xs txt-brand tabular-nums mt-0.5">-- ngày</div>
             </div>
           </div>
         </div>
 
-        <!-- Contextual Subject Shortcuts -->
-        <div id="dashboard-shortcuts-container" class="relative z-10 pt-3.5 mt-4 border-t flex flex-wrap items-center gap-2" style="border-color: rgba(255, 255, 255, 0.1);"></div>
+        <div id="dashboard-shortcuts-container" class="hidden"></div>
       </div>
 
-      <!-- 2. TOP PRIORITY: LỊCH THI SẮP TỚI & MỤC TIÊU HÔM NAY (Promoted to Top & 100% Customizable) -->
-      <div id="survival-predictor-widget" class="uni-card exam-schedule-hero-card p-4 sm:p-5 space-y-3.5">
-        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
-          <div class="flex flex-wrap items-center gap-2">
-            <span class="badge-brand px-2.5 py-0.5 rounded-full text-xs font-extrabold">📅 Lịch Thi</span>
-            <span id="survival-quota-badge" class="badge-amber text-xs font-mono font-bold px-2.5 py-0.5 rounded-md">0 / 40 câu</span>
-            <span id="v41-xp-badge" class="badge-emerald px-2.5 py-0.5 rounded-full text-[11px] font-mono font-black">Lv.1 • 0 XP</span>
+      <!-- 2. Clean Exam Schedule -->
+      <div id="survival-predictor-widget" class="uni-card p-4 sm:p-5 space-y-3">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <h2 class="text-sm font-extrabold txt-main flex items-center gap-2">
+              <i data-lucide="calendar" class="w-4 h-4 txt-brand"></i> Lịch Thi
+            </h2>
+            <span id="survival-quota-badge" class="sr-only">0 / 40</span>
+            <span id="v41-xp-badge" class="sr-only">Lv.1</span>
             <span id="survival-urgent-title" class="sr-only">Lịch thi</span>
           </div>
-
-          <div class="flex flex-wrap items-center gap-1.5 shrink-0">
-            <button type="button" onclick="openSettingsModal('dashboard')" class="btn-primary px-3 py-1.5 text-xs font-extrabold flex items-center gap-1 rounded-xl shadow-sm" title="Thêm, sửa, xóa lịch thi cá nhân &amp; ẩn/hiện khối trang chủ">
-              <span>✏️</span> <span>Sửa lịch</span>
-            </button>
-            <button onclick="openExamForSubjectCode('TOAN_RR', 21)" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1 border border-indigo-500/35">
-              <span>📐</span> Toán RR
-            </button>
-            <button onclick="openExamForSubjectCode('CTDL_GT', 82)" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1 border border-cyan-500/35">
-              <span>⚡</span> Giải Thuật
-            </button>
-            <button onclick="switchTab('exercises')" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
-              <span>💻</span> Code
-            </button>
-          </div>
+          <button type="button" onclick="openSettingsModal('dashboard')" class="btn-soft px-3 py-1 text-xs font-semibold flex items-center gap-1 rounded-lg">
+            <i data-lucide="sliders-horizontal" class="w-3.5 h-3.5"></i> <span>Chỉnh sửa</span>
+          </button>
         </div>
 
         <!-- Customizable Exam Countdown Cards Grid (Rendered Dynamically + Preserves Legacy IDs) -->
@@ -5937,83 +6062,77 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
           </div>
         </div>
 
-        <!-- Daily Quests Strip -->
-        <div id="daily-quests-wrap" class="pt-3 border-t space-y-2" style="border-color: var(--border);">
+        <!-- Daily Quests Strip (Hidden by Default for Minimalist Calm) -->
+        <div id="daily-quests-wrap" class="hidden pt-3 border-t space-y-2" style="border-color: var(--border);">
           <div class="flex items-center justify-between">
-            <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
-              <span>✅</span> Nhiệm Vụ Học Tập Hôm Nay (Daily Quests)
-            </div>
-            <button onclick="loadDailyQuestsWidget()" class="text-[11px] font-bold txt-brand hover:underline">Làm mới</button>
+            <div class="text-xs font-bold txt-main">Nhiệm vụ hôm nay</div>
+            <button onclick="loadDailyQuestsWidget()" class="text-[11px] font-semibold txt-brand hover:underline">Làm mới</button>
           </div>
-          <div id="daily-quests-list" class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-            <div class="text-[11px] txt-muted">Đang tải nhiệm vụ hàng ngày...</div>
-          </div>
+          <div id="daily-quests-list" class="grid grid-cols-1 md:grid-cols-3 gap-2 text-xs"></div>
         </div>
       </div>
 
-      <!-- 3. 4 Glowing KPI Cards -->
-      <div id="dashboard-kpi-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        <div class="uni-card stat-card-purple p-4 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #7c3aed, #ec4899);">
-            <i data-lucide="book-open" class="w-5 h-5"></i>
+      <!-- 3. 4 Minimalist Monochrome KPI Cards -->
+      <div id="dashboard-kpi-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div class="uni-card p-3.5 sm:p-4 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border); color: var(--brand-text);">
+            <i data-lucide="book-open" class="w-4 h-4"></i>
           </div>
           <div class="min-w-0">
-            <div class="text-xs font-bold txt-muted">Môn học</div>
-            <div id="stat-subjects" class="text-xl sm:text-2xl font-extrabold txt-main tabular-nums">15</div>
+            <div class="text-[11px] font-semibold txt-muted">Môn học</div>
+            <div id="stat-subjects" class="text-lg sm:text-xl font-extrabold txt-main tabular-nums">15</div>
           </div>
         </div>
 
-        <div class="uni-card stat-card-cyan p-4 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #06b6d4, #3b82f6);">
-            <i data-lucide="layers" class="w-5 h-5"></i>
+        <div class="uni-card p-3.5 sm:p-4 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border); color: var(--brand-text);">
+            <i data-lucide="layers" class="w-4 h-4"></i>
           </div>
           <div class="min-w-0">
-            <div class="text-xs font-bold txt-muted">Ngân hàng câu</div>
-            <div id="stat-questions" class="text-xl sm:text-2xl font-extrabold txt-main tabular-nums">0</div>
+            <div class="text-[11px] font-semibold txt-muted">Ngân hàng</div>
+            <div id="stat-questions" class="text-lg sm:text-xl font-extrabold txt-main tabular-nums">0</div>
           </div>
         </div>
 
-        <div class="uni-card stat-card-emerald p-4 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #10b981, #14b8a6);">
-            <i data-lucide="check-circle-2" class="w-5 h-5"></i>
+        <div class="uni-card p-3.5 sm:p-4 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border); color: var(--brand-text);">
+            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
           </div>
           <div class="min-w-0">
-            <div class="text-xs font-bold txt-muted">Đề hoàn thành</div>
-            <div id="stat-exams" class="text-xl sm:text-2xl font-extrabold txt-main tabular-nums">0</div>
+            <div class="text-[11px] font-semibold txt-muted">Đã nộp</div>
+            <div id="stat-exams" class="text-lg sm:text-xl font-extrabold txt-main tabular-nums">0</div>
           </div>
         </div>
 
-        <div class="uni-card stat-card-amber p-4 flex items-center gap-3">
-          <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-white shrink-0" style="background: linear-gradient(135deg, #f59e0b, #f43f5e);">
-            <i data-lucide="trophy" class="w-5 h-5"></i>
+        <div class="uni-card p-3.5 sm:p-4 flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border); color: var(--brand-text);">
+            <i data-lucide="trophy" class="w-4 h-4"></i>
           </div>
           <div class="min-w-0">
-            <div class="text-xs font-bold txt-muted">Điểm TB (Hệ 10)</div>
+            <div class="text-[11px] font-semibold txt-muted">Điểm TB</div>
             <div class="flex items-baseline gap-1">
-              <span id="stat-avg-score" class="text-xl sm:text-2xl font-extrabold txt-main tabular-nums">0.0</span>
-              <span class="text-xs font-bold txt-muted">/ 10</span>
+              <span id="stat-avg-score" class="text-lg sm:text-xl font-extrabold txt-main tabular-nums">0.0</span>
+              <span class="text-[11px] font-semibold txt-muted">/10</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 4. Subjects Section with Category Filter Pills (Toán Rời Rạc & Giải Thuật Tách Riêng Rõ Ràng) -->
-      <div id="dashboard-subjects-section" class="space-y-3.5">
-        <div class="flex flex-wrap items-center justify-between gap-3">
-          <h2 class="text-base sm:text-lg font-extrabold txt-main flex items-center gap-2">
-            <i data-lucide="graduation-cap" class="w-5 h-5 txt-brand"></i> Học Phần Của Bạn
-          </h2>
+      <!-- 4. Minimalist Subjects Section -->
+      <div id="dashboard-subjects-section" class="space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <h2 class="text-sm sm:text-base font-extrabold txt-main">Học Phần</h2>
           <div class="flex flex-wrap items-center gap-1.5" id="subject-category-filters">
-            <button type="button" onclick="setSubjectCategoryFilter('all')" data-cat-filter="all" class="subj-cat-pill btn-primary px-3 py-1.5 text-xs font-bold rounded-xl">Tất cả</button>
-            <button type="button" onclick="setSubjectCategoryFilter('cntt')" data-cat-filter="cntt" class="subj-cat-pill btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">💻 CNTT &amp; Giải Thuật</button>
-            <button type="button" onclick="setSubjectCategoryFilter('toan_dc')" data-cat-filter="toan_dc" class="subj-cat-pill btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">📐 Toán &amp; Đại Cương</button>
-            <button type="button" onclick="setSubjectCategoryFilter('y_duoc')" data-cat-filter="y_duoc" class="subj-cat-pill btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">🩺 Y Dược</button>
-            <button type="button" onclick="openModal('modal-add-subject')" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1 rounded-xl">
-              <i data-lucide="plus" class="w-3.5 h-3.5 txt-brand"></i> Thêm môn
+            <button type="button" onclick="setSubjectCategoryFilter('all')" data-cat-filter="all" class="subj-cat-pill btn-primary px-3 py-1 text-xs font-semibold rounded-xl">Tất cả</button>
+            <button type="button" onclick="setSubjectCategoryFilter('cntt')" data-cat-filter="cntt" class="subj-cat-pill btn-soft px-3 py-1 text-xs font-semibold rounded-xl">CNTT</button>
+            <button type="button" onclick="setSubjectCategoryFilter('toan_dc')" data-cat-filter="toan_dc" class="subj-cat-pill btn-soft px-3 py-1 text-xs font-semibold rounded-xl">Toán &amp; ĐC</button>
+            <button type="button" onclick="setSubjectCategoryFilter('y_duoc')" data-cat-filter="y_duoc" class="subj-cat-pill btn-soft px-3 py-1 text-xs font-semibold rounded-xl">Y Dược</button>
+            <button type="button" onclick="openModal('modal-add-subject')" class="btn-soft px-2.5 py-1 text-xs font-semibold flex items-center gap-1 rounded-xl">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Thêm
             </button>
           </div>
         </div>
-        <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
       </div>
 
       <!-- 4. Clean 3-Tab Studio Công Cụ Hub (No Cluttered 14-tile Neon Wall) -->
@@ -6354,50 +6473,44 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
     <section id="view-exam" class="hidden space-y-5 animate-fade-in">
 
       <!-- 2A: CONFIG SCREEN -->
-      <div id="exam-config-screen" class="uni-card p-5 sm:p-7 space-y-6">
-        <div class="flex flex-wrap items-center justify-between gap-3 pb-4" style="border-bottom: 1px solid var(--border);">
-          <h2 class="text-xl font-extrabold txt-main flex items-center gap-2">
-            <i data-lucide="zap" class="w-6 h-6 txt-brand"></i> Phòng Thi Thông Minh
-          </h2>
+      <div id="exam-config-screen" class="uni-card p-5 sm:p-6 space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-2.5 pb-3.5" style="border-bottom: 1px solid var(--border);">
+          <h2 class="text-base sm:text-lg font-extrabold txt-main">Phòng Thi</h2>
           <div class="flex flex-wrap items-center gap-2">
-            <button type="button" onclick="startAdaptiveSmartExam()" class="btn-primary px-4 py-1.5 text-xs font-extrabold flex items-center gap-1.5 shadow-md" title="Tự động chọn 20 câu tối ưu theo lỗ hổng cá nhân, câu chưa ôn và câu bẫy NGOẠI TRỪ">
-              <span>🧠</span> Đề Thông Minh Cá Nhân Hóa (20 câu)
+            <button type="button" onclick="startAdaptiveSmartExam()" class="btn-primary px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Đề thông minh (20 câu)
             </button>
-            <button type="button" onclick="openPrintableExamModal('config')" class="btn-soft px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5" title="Tạo đề thi chuẩn in ấn kèm Phiếu Tô Trắc Nghiệm OMR & Đáp Án">
-              <span>🖨️</span> Xuất Đề PDF / In Giấy
+            <button type="button" onclick="openPrintableExamModal('config')" class="btn-soft px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i> In PDF
             </button>
-            <button type="button" onclick="openAddQuestionModal()" class="btn-soft px-3.5 py-1.5 text-xs flex items-center gap-1.5">
-              <i data-lucide="plus-circle" class="w-4 h-4 txt-brand"></i> Thêm câu hỏi
+            <button type="button" onclick="openAddQuestionModal()" class="btn-soft px-3 py-1.5 text-xs font-semibold flex items-center gap-1">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Thêm câu
             </button>
           </div>
         </div>
 
         <!-- Subject + 4 Crisp Modes -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-          <div class="lg:col-span-5 space-y-2">
-            <label class="text-xs font-extrabold uppercase tracking-wider txt-muted">Môn học</label>
-            <select id="exam-subject-select" onchange="onExamSubjectChange()" class="uni-input w-full px-4 py-3 font-bold"></select>
-            <div id="exam-subject-meta" class="text-xs txt-muted"></div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+          <div class="lg:col-span-5 space-y-1.5">
+            <label class="text-xs font-bold txt-muted">Môn học</label>
+            <select id="exam-subject-select" onchange="onExamSubjectChange()" class="uni-input w-full px-3.5 py-2.5 font-bold"></select>
+            <div id="exam-subject-meta" class="text-[11px] txt-muted"></div>
           </div>
 
-          <div class="lg:col-span-7 space-y-2">
-            <label class="text-xs font-extrabold uppercase tracking-wider txt-muted">Chế độ thi</label>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <div class="lg:col-span-7 space-y-1.5">
+            <label class="text-xs font-bold txt-muted">Chế độ</label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
               <div onclick="setExamMode('practice')" id="mode-card-practice" class="mode-card active">
-                <div class="font-extrabold text-xs txt-main">⚡ Luyện tập</div>
-                <div class="text-[11px] txt-muted mt-0.5">Chấm & giải ngay</div>
+                <div class="font-bold text-xs txt-main">⚡ Luyện tập</div>
               </div>
               <div onclick="setExamMode('real')" id="mode-card-real" class="mode-card">
-                <div class="font-extrabold text-xs txt-main">📝 Thi thật</div>
-                <div class="text-[11px] txt-muted mt-0.5">Nộp bài mới chấm</div>
+                <div class="font-bold text-xs txt-main">📝 Thi thật</div>
               </div>
               <div onclick="setExamMode('blitz')" id="mode-card-blitz" class="mode-card">
-                <div class="font-extrabold text-xs txt-rose">🔥 Blitz 3 Tim</div>
-                <div class="text-[11px] txt-muted mt-0.5">Đua combo kỷ lục</div>
+                <div class="font-bold text-xs txt-main">🔥 Blitz</div>
               </div>
               <div onclick="setExamMode('study')" id="mode-card-study" class="mode-card">
-                <div class="font-extrabold text-xs txt-main">📖 Xem đáp án</div>
-                <div class="text-[11px] txt-muted mt-0.5">Ôn lướt cấp tốc</div>
+                <div class="font-bold text-xs txt-main">📖 Đáp án</div>
               </div>
             </div>
           </div>
@@ -6669,22 +6782,21 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
               <div id="q-meta-badges" class="flex flex-wrap items-center gap-1.5"></div>
 
               <div class="flex flex-wrap items-center gap-1.5">
-                <button id="btn-5050" onclick="useLifeline5050()" title="Loại 2 đáp án sai (Phím F)" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
-                  ✂️ 50/50
+                <button id="btn-5050" onclick="useLifeline5050()" title="Loại 2 đáp án sai (F)" class="btn-soft px-2.5 py-1.5 text-xs font-semibold">
+                  50/50
                 </button>
-                <button id="btn-ai-hint" onclick="requestAiHint()" title="Gợi ý tư duy AI (Phím H)" class="ai-chip-btn">
+                <button id="btn-ai-hint" onclick="requestAiHint()" title="Gợi ý tư duy AI (H)" class="btn-soft px-2.5 py-1.5 text-xs font-semibold">
                   💡 Gợi ý
                 </button>
-                <button id="btn-ask-ai-current" onclick="askAiAboutCurrentExamQuestion()" title="Hỏi ngay Gia Sư AI về câu hỏi này (Phím T)" class="btn-primary !bg-gradient-to-r !from-indigo-600 !via-purple-600 !to-pink-600 px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-md hover:scale-105 active:scale-95 transition-all">
+                <button id="btn-ask-ai-current" onclick="askAiAboutCurrentExamQuestion()" title="Hỏi Gia Sư AI về câu này (T)" class="btn-soft px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 border" style="border-color: var(--brand-border); color: var(--brand-text);">
                   <span>🤖</span>
                   <span>Hỏi AI</span>
-                  <span class="hidden md:inline text-[10px] opacity-75 bg-black/30 px-1 py-0.2 rounded font-mono">T</span>
                 </button>
-                <button id="btn-bookmark" onclick="toggleBookmarkCurrent()" title="Lưu câu hỏi (Phím S)" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
+                <button id="btn-bookmark" onclick="toggleBookmarkCurrent()" title="Lưu câu hỏi (S)" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
                   <span id="bookmark-star-icon">☆</span>
                 </button>
-                <button type="button" onclick="toggleExamExtraToolsBar()" id="btn-exam-more-tools" title="Mở rộng công cụ hỗ trợ học thuật" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
-                  <span>🛠️</span> <span class="hidden sm:inline">Công cụ</span>
+                <button type="button" onclick="toggleExamExtraToolsBar()" id="btn-exam-more-tools" title="Thêm công cụ" class="btn-soft px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1">
+                  <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                 </button>
               </div>
             </div>
@@ -6859,19 +6971,13 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
             </div>
           </div>
 
-          <!-- Clean Balanced Bottom Navigation Bar (Zero Floating Occlusion over Option D!) -->
-          <div class="flex items-center justify-between gap-2 sm:gap-3 p-3 rounded-2xl border mt-4" style="background: color-mix(in srgb, var(--bg-surface) 96%, transparent); border-color: var(--border);">
-            <button id="btn-prev-q" onclick="prevQuestion()" class="btn-soft px-3.5 sm:px-4 py-2 text-xs font-bold flex items-center gap-1.5 rounded-xl">
-              <i data-lucide="chevron-left" class="w-4 h-4"></i> <span>Câu Trước</span>
+          <!-- Minimalist Bottom Navigation Bar -->
+          <div class="flex items-center justify-between gap-2 pt-3 border-t mt-4" style="border-color: var(--border);">
+            <button id="btn-prev-q" onclick="prevQuestion()" class="btn-soft px-3.5 py-2 text-xs font-semibold flex items-center gap-1.5 rounded-xl">
+              <i data-lucide="chevron-left" class="w-4 h-4"></i> <span>Câu trước</span>
             </button>
-            <div class="flex items-center gap-2">
-              <span class="hidden lg:inline text-[11px] txt-muted font-semibold">1–4: chọn • Shift+1–4 / ✕: gạch loại trừ • T: Hỏi AI • →: tiếp</span>
-              <button type="button" onclick="openModal('modal-study-break')" class="btn-soft px-2.5 py-1.5 text-xs font-extrabold text-amber-400 hover:text-amber-300 rounded-xl flex items-center gap-1" title="Giải lao nhanh">
-                <span>🎮</span> <span class="hidden xl:inline">Giải lao</span>
-              </button>
-            </div>
-            <button id="btn-next-q" onclick="nextQuestion()" class="btn-primary px-4 sm:px-5 py-2 text-xs font-extrabold flex items-center gap-1.5 rounded-xl shadow-md">
-              <span class="animate-pulse">➔</span> <span id="btn-next-q-text">Câu Tiếp Theo</span>
+            <button id="btn-next-q" onclick="nextQuestion()" class="btn-primary px-4 sm:px-5 py-2 text-xs font-bold flex items-center gap-1.5 rounded-xl">
+              <span>➔</span> <span id="btn-next-q-text">Câu tiếp theo</span>
             </button>
           </div>
         </div>
@@ -10556,37 +10662,28 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
   <div id="floating-tutor-backdrop" onclick="closeFloatingTutor()" class="hidden fixed inset-0 z-[9990] bg-black/60 backdrop-blur-sm transition-opacity"></div>
 
   <div id="floating-tutor-container" class="hidden fixed bottom-20 lg:bottom-6 right-3 sm:right-6 z-50 flex flex-col-reverse items-end gap-2.5">
-    <!-- Row chứa các nút Floating ở góc dưới cùng: Câu Trước + Câu Tiếp Theo nổi bật + Nút AI -->
+    <!-- Row chứa các nút Floating ở góc dưới cùng: Câu Trước + Câu Tiếp Theo + Nút AI -->
     <div class="flex items-center gap-2">
-      <!-- Nút nổi Câu Trước (Gọn gàng hỗ trợ quay lại 1 chạm) -->
       <button id="floating-prev-q-btn" onclick="triggerFloatingPrevAction()"
-        class="hidden px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-full sm:rounded-xl shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer font-black text-xs text-white disabled:opacity-40 disabled:pointer-events-none"
-        style="background: rgba(15, 23, 42, 0.9); border: 1.5px solid rgba(148, 163, 184, 0.35); backdrop-filter: blur(10px);"
-        title="Quay lại câu trước (Phím ←)">
+        class="hidden floating-dock-neutral px-3 py-2.5 rounded-xl flex items-center justify-center transition-all cursor-pointer font-bold text-xs disabled:opacity-35 disabled:pointer-events-none"
+        title="Quay lại câu trước (←)">
         <span>←</span>
       </button>
 
-      <!-- Nút nổi Câu Tiếp Theo (Floating Action Button kế bên nút AI) -->
       <button id="floating-next-q-btn" onclick="triggerFloatingNextAction()"
-        class="hidden group px-3.5 py-2.5 sm:px-4 sm:py-2.5 rounded-full sm:rounded-xl shadow-2xl flex items-center gap-1.5 sm:gap-2 hover:scale-105 active:scale-95 transition-all relative cursor-pointer font-black text-xs sm:text-sm text-white"
-        style="background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%); border: 1.5px solid rgba(255, 255, 255, 0.3); box-shadow: 0 12px 28px -4px rgba(16, 185, 129, 0.55);"
-        title="Chuyển sang câu tiếp theo (Phím → hoặc Enter / Space sau khi chọn)">
-        <span class="animate-pulse text-sm sm:text-base">➔</span>
-        <span id="floating-next-q-text" class="font-extrabold whitespace-nowrap">Câu Tiếp Theo</span>
+        class="hidden btn-primary px-4 py-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer font-bold text-xs sm:text-sm"
+        title="Chuyển sang câu tiếp theo (→ / Enter)">
+        <span>➔</span>
+        <span id="floating-next-q-text" class="whitespace-nowrap">Câu tiếp</span>
       </button>
 
-      <!-- Floating Trigger Button (Sleek Gradient Gem with Context Badge) -->
       <button id="floating-tutor-btn" onclick="toggleFloatingTutor()"
-        class="group p-2.5 sm:px-3 sm:py-2.5 rounded-full sm:rounded-xl shadow-2xl flex items-center gap-1.5 hover:scale-105 active:scale-95 transition-all relative"
-        style="background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #c026d3 100%); border: 1.5px solid rgba(255, 255, 255, 0.25); box-shadow: 0 10px 25px -4px rgba(99, 102, 241, 0.5);"
-        title="Gia Sư AI Ôn Thi (Nhấn phím T để bật/tắt)">
-        <span class="relative flex h-2.5 w-2.5">
-          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
-        </span>
-        <span class="text-lg sm:text-xl">🤖</span>
-        <span id="floating-btn-subject-tag" class="hidden md:inline badge-brand text-[10px] px-1.5 py-0.5 rounded font-mono font-bold">T</span>
-        <span id="floating-btn-q-badge" class="hidden text-[10px] bg-white/20 text-white px-2 py-0.5 rounded-full font-bold"></span>
+        class="floating-dock-neutral px-3 py-2.5 rounded-xl flex items-center gap-1.5 transition-all relative"
+        title="Gia Sư AI (T)">
+        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+        <span class="text-base">🤖</span>
+        <span id="floating-btn-subject-tag" class="sr-only">T</span>
+        <span id="floating-btn-q-badge" class="hidden text-[11px] font-semibold txt-sub"></span>
       </button>
     </div>
 
@@ -15465,8 +15562,8 @@ const DEFAULT_EXAM_SCHEDULE = [
 
 const DEFAULT_UI_PREFS = {
   theme: 'aurora', // 'aurora' | 'midnight' | 'dark' | 'contrast' | 'light' | 'sepia'
-  brand: '#7c3aed',
-  brand2: '#ec4899',
+  brand: '#6366f1',
+  brand2: '#4f46e5',
   ambientGlow: true,
   uiDensity: 'standard', // 'spacious' | 'standard' | 'compact'
   optionLayout: 'auto', // 'auto' | 'grid' | 'stack'
@@ -15474,7 +15571,7 @@ const DEFAULT_UI_PREFS = {
   autoAiOnWrong: false,
   dashWidgets: {
     schedule: true,
-    quests: true,
+    quests: false,
     kpi: true,
     subjects: true,
     studio: true,
@@ -15512,6 +15609,13 @@ const BUILT_IN_SUBJECT_CODES = new Set([
 function loadLocalPrefs() {
   try {
     const saved = JSON.parse(localStorage.getItem('unimaster_ui_prefs') || '{}');
+    if (saved.brand === '#7c3aed' && saved.brand2 === '#ec4899') {
+      saved.brand = '#6366f1';
+      saved.brand2 = '#4f46e5';
+    }
+    if (saved.dashWidgets && !saved._questsExplicit) {
+      saved.dashWidgets.quests = false;
+    }
     return { ...DEFAULT_UI_PREFS, ...saved };
   } catch (_) {
     return { ...DEFAULT_UI_PREFS };
@@ -17333,11 +17437,11 @@ function switchTab(tabName) {
   }
   if (typeof syncExamTutorSplitLayout === 'function') syncExamTutorSplitLayout();
 
-  // 2. Automatically cancel Zen/Fullscreen mode if navigating away from Exam
-  if (tabName !== 'exam') {
+  // 2. Only cancel Exam Zen mode if navigating away from Exam (keep App Fullscreen intact!)
+  if (tabName !== 'exam' && document.body.classList.contains('zen-active')) {
     document.body.classList.remove('zen-active');
     document.getElementById('exit-zen-btn')?.classList.add('hidden');
-    if (document.fullscreenElement && document.exitFullscreen) {
+    if (!document.body.classList.contains('app-fullscreen-mode') && document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
     }
   }
@@ -17633,13 +17737,6 @@ function renderDashboard() {
 
   const grid = document.getElementById('subjects-grid');
   if (grid) {
-    const accents = [
-      'linear-gradient(135deg, #7c3aed, #ec4899)',
-      'linear-gradient(135deg, #2563eb, #06b6d4)',
-      'linear-gradient(135deg, #10b981, #14b8a6)',
-      'linear-gradient(135deg, #f59e0b, #f43f5e)',
-      'linear-gradient(135deg, #8b5cf6, #3b82f6)'
-    ];
     const activeAcc = typeof getActiveAccount === 'function' ? getActiveAccount() : null;
     const enrolledIds = activeAcc && Array.isArray(activeAcc.enrolled_subjects) ? activeAcc.enrolled_subjects : [];
 
@@ -17658,54 +17755,29 @@ function renderDashboard() {
 
     grid.innerHTML = displaySubjects.length
       ? displaySubjects
-          .map((s, idx) => {
-            const grad = accents[idx % accents.length];
-            const tagHtml =
-              s.code === 'TOAN_RR'
-                ? '<span class="badge-brand px-1.5 py-0.2 rounded text-[10px] font-extrabold">📐 Toán Rời Rạc</span>'
-                : s.code === 'CTDL_GT'
-                ? '<span class="badge-cyan px-1.5 py-0.2 rounded text-[10px] font-extrabold">⚡ Giải Thuật</span>'
-                : s.code === 'OOP_CSHARP'
-                ? '<span class="badge-brand px-1.5 py-0.2 rounded text-[10px] font-extrabold">💻 CNTT</span>'
-                : s.code === 'HOASINH_CTUMP' || s.code === 'HOASINH_YDS_2024'
-                ? '<span class="badge-emerald px-1.5 py-0.2 rounded text-[10px] font-extrabold">🩺 Y Khoa</span>'
-                : '';
+          .map((s) => {
+            const metaParts = [`${s.question_count || 0} câu`];
+            if (s.flashcard_count) metaParts.push(`${s.flashcard_count} thẻ`);
+            if (s.exercise_count) metaParts.push(`${s.exercise_count} code`);
             return `
-            <div class="uni-card uni-card-interactive p-4 sm:p-5 flex flex-col justify-between gap-3.5">
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-xl text-white shadow-md shrink-0" style="background: ${grad};">
-                    ${s.icon || '📘'}
-                  </div>
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      <span class="text-[10px] font-mono font-bold txt-muted uppercase">${escapeHtml(s.code)}</span>
-                      ${tagHtml}
-                    </div>
-                    <h3 class="font-extrabold text-sm sm:text-base txt-main leading-snug truncate">${escapeHtml(s.name)}</h3>
-                    <div class="flex flex-wrap gap-1.5 mt-1.5 text-[11px] font-bold">
-                      <span class="badge-brand px-2 py-0.5 rounded-lg">${s.question_count} câu</span>
-                      <span class="badge-subtle px-2 py-0.5 rounded-lg">${s.flashcard_count} thẻ</span>
-                      ${s.exercise_count ? `<span class="badge-amber px-2 py-0.5 rounded-lg">${s.exercise_count} bài code</span>` : ''}
-                    </div>
-                  </div>
+            <div onclick="openSubjectExam(${s.id})" class="uni-card uni-card-interactive p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+                  ${s.icon || '📘'}
                 </div>
-                <div class="flex items-center gap-1 shrink-0">
-                  <button onclick="quickExpandSubjectQuestions(${s.id}, this)" title="AI tự soạn thêm 5 câu mới cho môn này" class="ai-chip-btn !py-1 !px-2 !text-[11px]">
-                    ✨ +5
-                  </button>
-                  ${
-                    !BUILT_IN_SUBJECT_CODES.has(s.code)
-                      ? `<button onclick="deleteSubject(${s.id})" title="Xóa môn học" class="btn-soft p-1.5 txt-rose"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>`
-                      : ''
-                  }
+                <div class="min-w-0">
+                  <h3 class="font-bold text-sm txt-main leading-snug truncate">${escapeHtml(s.name)}</h3>
+                  <div class="text-[11px] txt-muted mt-0.5 truncate">${metaParts.join(' • ')}</div>
                 </div>
               </div>
-
-              <div class="grid grid-cols-3 gap-2 pt-3" style="border-top: 1px solid var(--border);">
-                <button onclick="openSubjectExam(${s.id})" class="btn-primary py-2 text-xs">Vào Thi</button>
-                <button onclick="openSubjectFlashcards(${s.id})" class="btn-soft py-2 text-xs">Thẻ Nhớ</button>
-                <button onclick="openSubjectBank(${s.id})" class="btn-soft py-2 text-xs">Tra Cứu</button>
+              <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+                <button onclick="openSubjectFlashcards(${s.id})" class="btn-soft px-2.5 py-1.5 text-xs font-semibold rounded-lg" title="Thẻ nhớ">Thẻ</button>
+                <button onclick="openSubjectExam(${s.id})" class="btn-primary px-3 py-1.5 text-xs font-bold rounded-lg">Thi →</button>
+                ${
+                  !BUILT_IN_SUBJECT_CODES.has(s.code)
+                    ? `<button onclick="deleteSubject(${s.id})" title="Xóa môn" class="btn-soft p-1.5 txt-rose rounded-lg"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>`
+                    : ''
+                }
               </div>
             </div>
           `;
@@ -25067,14 +25139,10 @@ function updateHeaderUserPill() {
   if (avatar) {
     avatar.textContent = user.avatar || (user.name || user.username || 'U')[0].toUpperCase();
   }
+  pill.title = `${user.name || user.full_name || user.username || 'Tài khoản'} (${user.role === 'admin' ? 'Quản trị' : 'Sinh viên'})`;
   if (roleEl) {
-    if (user.role === 'admin') {
-      roleEl.textContent = '👑 Admin';
-      roleEl.className = 'badge-rose px-1.5 py-0.5 rounded text-[10px] font-black shrink-0';
-    } else {
-      roleEl.textContent = '🎓 SV';
-      roleEl.className = 'badge-brand px-1.5 py-0.5 rounded text-[10px] font-black text-emerald-400 shrink-0';
-    }
+    roleEl.textContent = user.role === 'admin' ? 'Admin' : 'SV';
+    roleEl.className = 'sr-only';
   }
 }
 
@@ -28151,13 +28219,14 @@ function renderSurvivalPredictor() {
 function applyDashboardWidgetVisibility() {
   const vis = {
     schedule: true,
-    quests: true,
+    quests: false,
     kpi: true,
     subjects: true,
     studio: true,
     insights: true,
     ...(STATE.ui?.dashWidgets || {})
   };
+  if (!STATE.ui?._questsExplicit) vis.quests = false;
   document.getElementById('survival-predictor-widget')?.classList.toggle('hidden', !vis.schedule);
   document.getElementById('daily-quests-wrap')?.classList.toggle('hidden', !vis.quests);
   document.getElementById('dashboard-kpi-grid')?.classList.toggle('hidden', !vis.kpi);
@@ -28179,8 +28248,9 @@ window.applyDashboardWidgetVisibility = applyDashboardWidgetVisibility;
 
 function toggleDashboardModuleVis(key, checked) {
   if (!STATE.ui.dashWidgets || typeof STATE.ui.dashWidgets !== 'object') {
-    STATE.ui.dashWidgets = { schedule: true, quests: true, kpi: true, subjects: true, studio: true, insights: true };
+    STATE.ui.dashWidgets = { schedule: true, quests: false, kpi: true, subjects: true, studio: true, insights: true };
   }
+  if (key === 'quests') STATE.ui._questsExplicit = true;
   STATE.ui.dashWidgets[key] = Boolean(checked);
   localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
   applyDashboardWidgetVisibility();
@@ -30752,7 +30822,8 @@ function toggleAppFullscreen() {
     document.fullscreenElement ||
     document.webkitFullscreenElement ||
     document.mozFullScreenElement ||
-    document.msFullscreenElement
+    document.msFullscreenElement ||
+    document.body.classList.contains('app-fullscreen-mode')
   );
 
   if (!isFs) {
@@ -30790,11 +30861,16 @@ function updateFullscreenUI(isFs) {
   const heroLbl = document.getElementById('hero-fs-label');
   const heroIcon = document.getElementById('hero-fs-icon');
   const fsBtn = document.getElementById('header-fullscreen-btn');
+  const fsLucide = document.getElementById('header-fs-lucide');
 
-  if (lbl) lbl.textContent = isFs ? 'Thu Nhỏ' : 'Toàn Màn Hình';
-  if (heroLbl) heroLbl.textContent = isFs ? 'Thu Nhỏ Màn Hình' : 'Toàn Màn Hình Không Vướng Tab';
+  if (lbl) lbl.textContent = isFs ? 'Thu nhỏ' : 'Toàn màn hình';
+  if (heroLbl) heroLbl.textContent = isFs ? 'Thu nhỏ' : 'Toàn màn hình';
   if (heroIcon) heroIcon.textContent = isFs ? '🗗' : '⛶';
   if (fsBtn) fsBtn.classList.toggle('active', isFs);
+  if (fsLucide) {
+    fsLucide.setAttribute('data-lucide', isFs ? 'minimize' : 'maximize');
+    if (typeof refreshIcons === 'function') refreshIcons();
+  }
 }
 
 document.addEventListener('fullscreenchange', () => {
@@ -41032,7 +41108,10 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
   function rollNumberSmooth(elId, isFloat = false) {
     const el = document.getElementById(elId);
     if (!el) return;
-    const target = Number(String(el.textContent || '0').replace(/[^\d.]/g, ''));
+    const raw = String(el.textContent || '0');
+    const target = isFloat
+      ? Number(raw.replace(/,/g, '.').replace(/[^\d.]/g, ''))
+      : Number(raw.replace(/[^\d]/g, ''));
     if (!Number.isFinite(target) || target <= 0) return;
     const startTs = performance.now();
     const dur = 520;
@@ -41040,9 +41119,9 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       const p = Math.min(1, (now - startTs) / dur);
       const eased = 1 - Math.pow(1 - p, 4);
       const val = target * eased;
-      el.textContent = isFloat ? val.toFixed(1) : String(Math.round(val));
+      el.textContent = isFloat ? val.toFixed(1) : Math.round(val).toLocaleString('vi-VN');
       if (p < 1) requestAnimationFrame(step);
-      else el.textContent = isFloat ? target.toFixed(1) : String(Math.round(target));
+      else el.textContent = isFloat ? target.toFixed(1) : Math.round(target).toLocaleString('vi-VN');
     }
     requestAnimationFrame(step);
   }

@@ -3934,11 +3934,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v52-0';
+    const CACHE_NAME = 'unimaster-pwa-v53-2';
     const CORE_ASSETS = [
-      '/static/style.css?v=52.0',
-      '/static/minimal.css?v=52.0',
-      '/static/app.js?v=52.0',
+      '/static/style.css?v=53.2',
+      '/static/minimal.css?v=53.2',
+      '/static/app.js?v=53.2',
       '/manifest.json',
       '/icon.svg'
     ];

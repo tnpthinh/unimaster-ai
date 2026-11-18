@@ -5567,3 +5567,149 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
     animation: none !important;
   }
 }
+
+/* ==============================================================================
+   UniMaster AI v53.0: Calm Monochrome-Accent Minimalism (Zero Rainbow Clutter)
+   ============================================================================== */
+
+:root {
+  --brand: #6366f1;
+  --brand-2: #4f46e5;
+}
+
+/* 1. Calm Architectural Surfaces (90% Neutral + 10% Single Cohesive Accent) */
+html[data-theme="dark"]:not(.contrast),
+html[data-theme="aurora"],
+html[data-theme="midnight"] {
+  --bg-app: #090b10;
+  --bg-surface: rgba(17, 20, 29, 0.88);
+  --bg-subtle: rgba(24, 28, 40, 0.85);
+  --bg-elevated: rgba(30, 35, 50, 0.94);
+  --bg-hover: rgba(38, 44, 62, 0.9);
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --brand-subtle: color-mix(in srgb, var(--brand) 14%, #11141d);
+  --brand-border: color-mix(in srgb, var(--brand) 38%, rgba(255, 255, 255, 0.1));
+  --brand-text: color-mix(in srgb, var(--brand) 42%, #ffffff);
+  --brand-glow: color-mix(in srgb, var(--brand) 24%, transparent);
+}
+
+/* Single Whisper-Soft Top Ambient Light (Eliminates Multi-Color Aurora Soup) */
+html:not(.perf-mode):not([data-theme="contrast"]) body::before {
+  background: radial-gradient(
+    760px circle at 50% -12%,
+    color-mix(in srgb, var(--brand) 11%, transparent),
+    transparent 68%
+  ) !important;
+  animation: none !important;
+}
+html body::after {
+  display: none !important;
+}
+
+/* 2. Cohesive Single-Hue Primary Buttons & Active Nav (No Hot-Pink Gradients) */
+.btn-primary,
+.nav-indicator,
+.nav-tab.active-tab,
+.preset-pill.active,
+.option-row.selected .opt-badge {
+  background: linear-gradient(
+    135deg,
+    var(--brand),
+    color-mix(in srgb, var(--brand) 82%, #1e1b4b)
+  ) !important;
+}
+
+#floating-next-q-btn.floating-next-ready {
+  background: #059669 !important;
+  border-color: rgba(255, 255, 255, 0.25) !important;
+  box-shadow: 0 10px 24px -4px rgba(5, 150, 105, 0.45) !important;
+}
+
+.floating-dock-neutral {
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-strong) !important;
+  color: var(--text-main) !important;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 10px 26px -6px rgba(0, 0, 0, 0.45);
+}
+.floating-dock-neutral:hover:not(:disabled) {
+  border-color: var(--brand) !important;
+  transform: translateY(-2px);
+}
+
+#header-fullscreen-btn.active {
+  background: var(--brand-subtle) !important;
+  border-color: var(--brand-border) !important;
+  color: var(--brand-text) !important;
+}
+
+#header-user-name,
+#header-user-role {
+  display: none !important;
+}
+
+/* 3. Neutralize Loud Hero, Schedule & Countdown Rainbow Cards */
+.hero-dashboard-card,
+.exam-schedule-hero-card {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 12px 30px -12px rgba(0, 0, 0, 0.35) !important;
+}
+
+.countdown-card,
+.countdown-cyan,
+.countdown-amber,
+.countdown-indigo,
+.countdown-emerald,
+.countdown-rose,
+.countdown-slate {
+  background: var(--bg-subtle) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-main) !important;
+}
+.countdown-card .cd-top,
+.countdown-card .cd-days {
+  color: var(--text-muted) !important;
+}
+.countdown-card .cd-title {
+  color: var(--text-main) !important;
+}
+.countdown-card .cd-badge {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-sub) !important;
+}
+
+/* 4. Neutralize Rainbow A/B/C/D Option Badges Before Grading (Semantic Only After Grading!) */
+.opt-A:not(.is-correct):not(.is-wrong):not(.selected) .opt-badge,
+.opt-B:not(.is-correct):not(.is-wrong):not(.selected) .opt-badge,
+.opt-C:not(.is-correct):not(.is-wrong):not(.selected) .opt-badge,
+.opt-D:not(.is-correct):not(.is-wrong):not(.selected) .opt-badge {
+  background: var(--bg-subtle) !important;
+  color: var(--text-main) !important;
+  border: 1px solid var(--border-strong) !important;
+}
+
+.opt-A:hover:not(.disabled):not(.is-correct):not(.is-wrong),
+.opt-B:hover:not(.disabled):not(.is-correct):not(.is-wrong),
+.opt-C:hover:not(.disabled):not(.is-correct):not(.is-wrong),
+.opt-D:hover:not(.disabled):not(.is-correct):not(.is-wrong) {
+  border-color: var(--brand) !important;
+  background-color: var(--bg-hover) !important;
+  box-shadow: 0 8px 20px -8px var(--brand-glow) !important;
+}
+
+/* 5. Softer Minimalist Orb & User Bubble in AI Gia Sư */
+.tutor-living-orb {
+  background: var(--brand-subtle) !important;
+  border: 1px solid var(--brand-border) !important;
+  color: var(--brand-text) !important;
+  box-shadow: none !important;
+}
+.gemini-user-bubble {
+  background: var(--brand) !important;
+  box-shadow: 0 6px 18px -6px var(--brand-glow) !important;
+}

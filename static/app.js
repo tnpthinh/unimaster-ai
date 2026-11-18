@@ -2130,8 +2130,8 @@ const DEFAULT_EXAM_SCHEDULE = [
 
 const DEFAULT_UI_PREFS = {
   theme: 'aurora', // 'aurora' | 'midnight' | 'dark' | 'contrast' | 'light' | 'sepia'
-  brand: '#7c3aed',
-  brand2: '#ec4899',
+  brand: '#6366f1',
+  brand2: '#4f46e5',
   ambientGlow: true,
   uiDensity: 'standard', // 'spacious' | 'standard' | 'compact'
   optionLayout: 'auto', // 'auto' | 'grid' | 'stack'
@@ -2139,7 +2139,7 @@ const DEFAULT_UI_PREFS = {
   autoAiOnWrong: false,
   dashWidgets: {
     schedule: true,
-    quests: true,
+    quests: false,
     kpi: true,
     subjects: true,
     studio: true,
@@ -2177,6 +2177,13 @@ const BUILT_IN_SUBJECT_CODES = new Set([
 function loadLocalPrefs() {
   try {
     const saved = JSON.parse(localStorage.getItem('unimaster_ui_prefs') || '{}');
+    if (saved.brand === '#7c3aed' && saved.brand2 === '#ec4899') {
+      saved.brand = '#6366f1';
+      saved.brand2 = '#4f46e5';
+    }
+    if (saved.dashWidgets && !saved._questsExplicit) {
+      saved.dashWidgets.quests = false;
+    }
     return { ...DEFAULT_UI_PREFS, ...saved };
   } catch (_) {
     return { ...DEFAULT_UI_PREFS };
@@ -3998,11 +4005,11 @@ function switchTab(tabName) {
   }
   if (typeof syncExamTutorSplitLayout === 'function') syncExamTutorSplitLayout();
 
-  // 2. Automatically cancel Zen/Fullscreen mode if navigating away from Exam
-  if (tabName !== 'exam') {
+  // 2. Only cancel Exam Zen mode if navigating away from Exam (keep App Fullscreen intact!)
+  if (tabName !== 'exam' && document.body.classList.contains('zen-active')) {
     document.body.classList.remove('zen-active');
     document.getElementById('exit-zen-btn')?.classList.add('hidden');
-    if (document.fullscreenElement && document.exitFullscreen) {
+    if (!document.body.classList.contains('app-fullscreen-mode') && document.fullscreenElement && document.exitFullscreen) {
       document.exitFullscreen().catch(() => {});
     }
   }
@@ -4298,13 +4305,6 @@ function renderDashboard() {
 
   const grid = document.getElementById('subjects-grid');
   if (grid) {
-    const accents = [
-      'linear-gradient(135deg, #7c3aed, #ec4899)',
-      'linear-gradient(135deg, #2563eb, #06b6d4)',
-      'linear-gradient(135deg, #10b981, #14b8a6)',
-      'linear-gradient(135deg, #f59e0b, #f43f5e)',
-      'linear-gradient(135deg, #8b5cf6, #3b82f6)'
-    ];
     const activeAcc = typeof getActiveAccount === 'function' ? getActiveAccount() : null;
     const enrolledIds = activeAcc && Array.isArray(activeAcc.enrolled_subjects) ? activeAcc.enrolled_subjects : [];
 
@@ -4323,54 +4323,29 @@ function renderDashboard() {
 
     grid.innerHTML = displaySubjects.length
       ? displaySubjects
-          .map((s, idx) => {
-            const grad = accents[idx % accents.length];
-            const tagHtml =
-              s.code === 'TOAN_RR'
-                ? '<span class="badge-brand px-1.5 py-0.2 rounded text-[10px] font-extrabold">📐 Toán Rời Rạc</span>'
-                : s.code === 'CTDL_GT'
-                ? '<span class="badge-cyan px-1.5 py-0.2 rounded text-[10px] font-extrabold">⚡ Giải Thuật</span>'
-                : s.code === 'OOP_CSHARP'
-                ? '<span class="badge-brand px-1.5 py-0.2 rounded text-[10px] font-extrabold">💻 CNTT</span>'
-                : s.code === 'HOASINH_CTUMP' || s.code === 'HOASINH_YDS_2024'
-                ? '<span class="badge-emerald px-1.5 py-0.2 rounded text-[10px] font-extrabold">🩺 Y Khoa</span>'
-                : '';
+          .map((s) => {
+            const metaParts = [`${s.question_count || 0} câu`];
+            if (s.flashcard_count) metaParts.push(`${s.flashcard_count} thẻ`);
+            if (s.exercise_count) metaParts.push(`${s.exercise_count} code`);
             return `
-            <div class="uni-card uni-card-interactive p-4 sm:p-5 flex flex-col justify-between gap-3.5">
-              <div class="flex items-start justify-between gap-3">
-                <div class="flex items-center gap-3 min-w-0">
-                  <div class="w-11 h-11 rounded-2xl flex items-center justify-center text-xl text-white shadow-md shrink-0" style="background: ${grad};">
-                    ${s.icon || '📘'}
-                  </div>
-                  <div class="min-w-0">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                      <span class="text-[10px] font-mono font-bold txt-muted uppercase">${escapeHtml(s.code)}</span>
-                      ${tagHtml}
-                    </div>
-                    <h3 class="font-extrabold text-sm sm:text-base txt-main leading-snug truncate">${escapeHtml(s.name)}</h3>
-                    <div class="flex flex-wrap gap-1.5 mt-1.5 text-[11px] font-bold">
-                      <span class="badge-brand px-2 py-0.5 rounded-lg">${s.question_count} câu</span>
-                      <span class="badge-subtle px-2 py-0.5 rounded-lg">${s.flashcard_count} thẻ</span>
-                      ${s.exercise_count ? `<span class="badge-amber px-2 py-0.5 rounded-lg">${s.exercise_count} bài code</span>` : ''}
-                    </div>
-                  </div>
+            <div onclick="openSubjectExam(${s.id})" class="uni-card uni-card-interactive p-3.5 sm:p-4 flex items-center justify-between gap-3 cursor-pointer">
+              <div class="flex items-center gap-3 min-w-0 flex-1">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+                  ${s.icon || '📘'}
                 </div>
-                <div class="flex items-center gap-1 shrink-0">
-                  <button onclick="quickExpandSubjectQuestions(${s.id}, this)" title="AI tự soạn thêm 5 câu mới cho môn này" class="ai-chip-btn !py-1 !px-2 !text-[11px]">
-                    ✨ +5
-                  </button>
-                  ${
-                    !BUILT_IN_SUBJECT_CODES.has(s.code)
-                      ? `<button onclick="deleteSubject(${s.id})" title="Xóa môn học" class="btn-soft p-1.5 txt-rose"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>`
-                      : ''
-                  }
+                <div class="min-w-0">
+                  <h3 class="font-bold text-sm txt-main leading-snug truncate">${escapeHtml(s.name)}</h3>
+                  <div class="text-[11px] txt-muted mt-0.5 truncate">${metaParts.join(' • ')}</div>
                 </div>
               </div>
-
-              <div class="grid grid-cols-3 gap-2 pt-3" style="border-top: 1px solid var(--border);">
-                <button onclick="openSubjectExam(${s.id})" class="btn-primary py-2 text-xs">Vào Thi</button>
-                <button onclick="openSubjectFlashcards(${s.id})" class="btn-soft py-2 text-xs">Thẻ Nhớ</button>
-                <button onclick="openSubjectBank(${s.id})" class="btn-soft py-2 text-xs">Tra Cứu</button>
+              <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
+                <button onclick="openSubjectFlashcards(${s.id})" class="btn-soft px-2.5 py-1.5 text-xs font-semibold rounded-lg" title="Thẻ nhớ">Thẻ</button>
+                <button onclick="openSubjectExam(${s.id})" class="btn-primary px-3 py-1.5 text-xs font-bold rounded-lg">Thi →</button>
+                ${
+                  !BUILT_IN_SUBJECT_CODES.has(s.code)
+                    ? `<button onclick="deleteSubject(${s.id})" title="Xóa môn" class="btn-soft p-1.5 txt-rose rounded-lg"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>`
+                    : ''
+                }
               </div>
             </div>
           `;
@@ -11732,14 +11707,10 @@ function updateHeaderUserPill() {
   if (avatar) {
     avatar.textContent = user.avatar || (user.name || user.username || 'U')[0].toUpperCase();
   }
+  pill.title = `${user.name || user.full_name || user.username || 'Tài khoản'} (${user.role === 'admin' ? 'Quản trị' : 'Sinh viên'})`;
   if (roleEl) {
-    if (user.role === 'admin') {
-      roleEl.textContent = '👑 Admin';
-      roleEl.className = 'badge-rose px-1.5 py-0.5 rounded text-[10px] font-black shrink-0';
-    } else {
-      roleEl.textContent = '🎓 SV';
-      roleEl.className = 'badge-brand px-1.5 py-0.5 rounded text-[10px] font-black text-emerald-400 shrink-0';
-    }
+    roleEl.textContent = user.role === 'admin' ? 'Admin' : 'SV';
+    roleEl.className = 'sr-only';
   }
 }
 
@@ -14816,13 +14787,14 @@ function renderSurvivalPredictor() {
 function applyDashboardWidgetVisibility() {
   const vis = {
     schedule: true,
-    quests: true,
+    quests: false,
     kpi: true,
     subjects: true,
     studio: true,
     insights: true,
     ...(STATE.ui?.dashWidgets || {})
   };
+  if (!STATE.ui?._questsExplicit) vis.quests = false;
   document.getElementById('survival-predictor-widget')?.classList.toggle('hidden', !vis.schedule);
   document.getElementById('daily-quests-wrap')?.classList.toggle('hidden', !vis.quests);
   document.getElementById('dashboard-kpi-grid')?.classList.toggle('hidden', !vis.kpi);
@@ -14844,8 +14816,9 @@ window.applyDashboardWidgetVisibility = applyDashboardWidgetVisibility;
 
 function toggleDashboardModuleVis(key, checked) {
   if (!STATE.ui.dashWidgets || typeof STATE.ui.dashWidgets !== 'object') {
-    STATE.ui.dashWidgets = { schedule: true, quests: true, kpi: true, subjects: true, studio: true, insights: true };
+    STATE.ui.dashWidgets = { schedule: true, quests: false, kpi: true, subjects: true, studio: true, insights: true };
   }
+  if (key === 'quests') STATE.ui._questsExplicit = true;
   STATE.ui.dashWidgets[key] = Boolean(checked);
   localStorage.setItem('unimaster_ui_prefs', JSON.stringify(STATE.ui));
   applyDashboardWidgetVisibility();
@@ -17417,7 +17390,8 @@ function toggleAppFullscreen() {
     document.fullscreenElement ||
     document.webkitFullscreenElement ||
     document.mozFullScreenElement ||
-    document.msFullscreenElement
+    document.msFullscreenElement ||
+    document.body.classList.contains('app-fullscreen-mode')
   );
 
   if (!isFs) {
@@ -17455,11 +17429,16 @@ function updateFullscreenUI(isFs) {
   const heroLbl = document.getElementById('hero-fs-label');
   const heroIcon = document.getElementById('hero-fs-icon');
   const fsBtn = document.getElementById('header-fullscreen-btn');
+  const fsLucide = document.getElementById('header-fs-lucide');
 
-  if (lbl) lbl.textContent = isFs ? 'Thu Nhỏ' : 'Toàn Màn Hình';
-  if (heroLbl) heroLbl.textContent = isFs ? 'Thu Nhỏ Màn Hình' : 'Toàn Màn Hình Không Vướng Tab';
+  if (lbl) lbl.textContent = isFs ? 'Thu nhỏ' : 'Toàn màn hình';
+  if (heroLbl) heroLbl.textContent = isFs ? 'Thu nhỏ' : 'Toàn màn hình';
   if (heroIcon) heroIcon.textContent = isFs ? '🗗' : '⛶';
   if (fsBtn) fsBtn.classList.toggle('active', isFs);
+  if (fsLucide) {
+    fsLucide.setAttribute('data-lucide', isFs ? 'minimize' : 'maximize');
+    if (typeof refreshIcons === 'function') refreshIcons();
+  }
 }
 
 document.addEventListener('fullscreenchange', () => {
@@ -27697,7 +27676,10 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
   function rollNumberSmooth(elId, isFloat = false) {
     const el = document.getElementById(elId);
     if (!el) return;
-    const target = Number(String(el.textContent || '0').replace(/[^\d.]/g, ''));
+    const raw = String(el.textContent || '0');
+    const target = isFloat
+      ? Number(raw.replace(/,/g, '.').replace(/[^\d.]/g, ''))
+      : Number(raw.replace(/[^\d]/g, ''));
     if (!Number.isFinite(target) || target <= 0) return;
     const startTs = performance.now();
     const dur = 520;
@@ -27705,9 +27687,9 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       const p = Math.min(1, (now - startTs) / dur);
       const eased = 1 - Math.pow(1 - p, 4);
       const val = target * eased;
-      el.textContent = isFloat ? val.toFixed(1) : String(Math.round(val));
+      el.textContent = isFloat ? val.toFixed(1) : Math.round(val).toLocaleString('vi-VN');
       if (p < 1) requestAnimationFrame(step);
-      else el.textContent = isFloat ? target.toFixed(1) : String(Math.round(target));
+      else el.textContent = isFloat ? target.toFixed(1) : Math.round(target).toLocaleString('vi-VN');
     }
     requestAnimationFrame(step);
   }
