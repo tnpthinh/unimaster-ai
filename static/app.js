@@ -597,6 +597,7 @@ function buildTutorMessageHtml(msg, compact = false, isLatestModel = false) {
       ${msg.response_length !== 'detailed' ? `
       <button type="button" onclick="askFollowUpDetailedOnAiReply(${escapeJsString(msgId)})" class="badge-soft px-2 py-0.5 rounded-full text-[10.5px] font-bold" title="Yêu cầu AI giải thích đầy đủ & sâu hơn">📖 Chi tiết</button>` : ''}
       <button type="button" onclick="sendTutorChatUnified('Giải thích ngắn gọn bằng 1 ví dụ đời thường kiểu Feynman!', { mode: 'explain' })" class="badge-soft px-2 py-0.5 rounded-full text-[10.5px] font-bold" title="Giải thích bằng hình ảnh đời thường dễ hiểu">🧒 Ví dụ</button>
+      <button type="button" onclick="sendTutorChatUnified('Tạo 1 câu thần chú hoặc mẹo ghi nhớ siêu tốc (Mnemonic) cho kiến thức này!', { mode: 'explain' })" class="badge-soft px-2 py-0.5 rounded-full text-[10.5px] font-bold" title="Mẹo ghi nhớ siêu tốc">💡 Mẹo nhớ</button>
     </div>
   ` : (isFallbackOrErr ? `
     <button type="button" onclick="retryLastTutorMessage()" class="badge-amber px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold">🔄 Thử lại</button>
@@ -616,7 +617,7 @@ function buildTutorMessageHtml(msg, compact = false, isLatestModel = false) {
           <div class="flex items-center gap-0.5 ml-auto">
             ${isLatestModel ? latChip : ''}
             <button type="button" onclick="copyAiReply(${escapeJsString(msgId)})" class="tutor-icon-btn" title="Sao chép">📋</button>
-            <button type="button" onclick="speakAiReply(${escapeJsString(msgId)})" class="tutor-icon-btn" title="Nghe đọc giọng nói">🔊</button>
+            <button type="button" data-speak-btn="${escapeHtml(msgId)}" onclick="speakAiReply(${escapeJsString(msgId)})" class="tutor-icon-btn" title="Bật / Tắt đọc giọng nói">🔊</button>
             <button type="button" onclick="saveAiReplyToNotebook(${escapeJsString(msgId)})" class="tutor-icon-btn" title="Lưu vào Sổ tay ghi chú">📌</button>
             <button type="button" onclick="saveAiReplyAsFlashcard(${escapeJsString(msgId)})" class="tutor-icon-btn" title="Tạo thẻ nhớ Flashcard">🃏</button>
           </div>
@@ -1608,13 +1609,61 @@ function speakAiReply(msgId) {
     showToast('Trình duyệt không hỗ trợ phát giọng nói.', 'warning');
     return;
   }
+
+  const updateSpeakButtons = (activeId) => {
+    document.querySelectorAll('[data-speak-btn]').forEach((btn) => {
+      const isAct = activeId && btn.getAttribute('data-speak-btn') === activeId;
+      btn.textContent = isAct ? '⏹' : '🔊';
+      btn.classList.toggle('txt-emerald', Boolean(isAct));
+    });
+  };
+
+  if (window._activeSpeakingMsgId === msgId && window.speechSynthesis.speaking) {
+    window.speechSynthesis.cancel();
+    window._activeSpeakingMsgId = null;
+    updateSpeakButtons(null);
+    showToast('⏹ Đã dừng đọc giọng nói.', 'info');
+    return;
+  }
+
   window.speechSynthesis.cancel();
-  const clean = text.replace(/<[^>]+>/g, '').replace(/[*_#`$~]/g, '').trim();
+  const clean = String(text)
+    .replace(/<[^>]+>/g, '')
+    .replace(/\\rightarrow|\\to\b/g, ' suy ra ')
+    .replace(/\\Rightarrow/g, ' dẫn đến ')
+    .replace(/\\Delta/g, ' đenta ')
+    .replace(/\\alpha/g, ' an-pha ')
+    .replace(/\\beta/g, ' bê-ta ')
+    .replace(/\\gamma/g, ' gam-ma ')
+    .replace(/\\sum/g, ' tổng ')
+    .replace(/\\ge\b|>=/g, ' lớn hơn hoặc bằng ')
+    .replace(/\\le\b|<=/g, ' nhỏ hơn hoặc bằng ')
+    .replace(/\\neq\b|!=/g, ' khác ')
+    .replace(/\\approx/g, ' xấp xỉ ')
+    .replace(/\^2\b/g, ' bình phương ')
+    .replace(/\^3\b/g, ' lập phương ')
+    .replace(/[*_#`$~\\{}]/g, '')
+    .trim();
+
   const utter = new SpeechSynthesisUtterance(clean);
   utter.lang = 'vi-VN';
-  utter.rate = 1.05;
+  utter.rate = (typeof STATE !== 'undefined' && Number(STATE.tutorVoiceSpeed)) ? Number(STATE.tutorVoiceSpeed) : 1.06;
+  window._activeSpeakingMsgId = msgId;
+  updateSpeakButtons(msgId);
+  utter.onend = () => {
+    if (window._activeSpeakingMsgId === msgId) {
+      window._activeSpeakingMsgId = null;
+      updateSpeakButtons(null);
+    }
+  };
+  utter.onerror = () => {
+    if (window._activeSpeakingMsgId === msgId) {
+      window._activeSpeakingMsgId = null;
+      updateSpeakButtons(null);
+    }
+  };
   window.speechSynthesis.speak(utter);
-  showToast('🔊 Đang đọc lời giải thích của AI...', 'info');
+  showToast('🔊 Đang đọc lời giải thích (bấm ⏹ để dừng)...', 'info');
 }
 
 async function saveAiReplyAsFlashcard(msgId) {
@@ -13397,7 +13446,16 @@ function loadSelectedEssayPrompt() {
     modelBox.innerHTML = formatRichText(prompt.model_solution || '');
   }
 
-  // Restore draft or leave empty
+  // Restore draft from memory or localStorage
+  if (!STATE.essay._draftsLoaded) {
+    STATE.essay._draftsLoaded = true;
+    try {
+      const savedDrafts = JSON.parse(localStorage.getItem('unimaster_essay_drafts_v55') || '{}');
+      if (savedDrafts && typeof savedDrafts === 'object') {
+        STATE.essay.drafts = { ...savedDrafts, ...(STATE.essay.drafts || {}) };
+      }
+    } catch (_) {}
+  }
   if (inputEl) {
     inputEl.value = STATE.essay.drafts[pid] || '';
     updateEssayLivePreview();
@@ -13425,6 +13483,16 @@ function updateEssayLivePreview() {
 
   const val = inputEl.value;
   STATE.essay.drafts[STATE.essay.currentPromptId] = val;
+  try {
+    localStorage.setItem('unimaster_essay_drafts_v55', JSON.stringify(STATE.essay.drafts || {}));
+  } catch (_) {}
+
+  const wcBadge = document.getElementById('essay-word-count-badge');
+  if (wcBadge) {
+    const trimmed = val.trim();
+    const words = trimmed ? trimmed.split(/\s+/).length : 0;
+    wcBadge.textContent = `${words} từ • ${val.length} ký tự • ✓ Đã lưu`;
+  }
 
   if (!val.trim()) {
     previewEl.innerHTML = '<p class="txt-muted italic">Xem trước công thức Toán KaTeX thời gian thực...</p>';
@@ -22848,12 +22916,17 @@ function renderMetacognitionMatrix(res) {
   if (!grid || !res) return;
 
   const questions = STATE.exam?.questions || [];
+  const detailMap = Object.fromEntries((res.details || []).map((d) => [Number(d.question_id), Boolean(d.is_correct)]));
   let mastery = 0, lucky = 0, illusion = 0, blindspot = 0;
   let totalSec = 0;
+  const topicStats = {};
 
   questions.forEach(q => {
     const userAns = STATE.exam?.answers?.[q.id] || '';
-    const isCorrect = userAns && String(userAns).toUpperCase() === String(q.correct_answer || '').toUpperCase();
+    const effCorr = q._effectiveCorrect || q.correct_option || q.correct_answer || '';
+    const isCorrect = detailMap[Number(q.id)] !== undefined
+      ? detailMap[Number(q.id)]
+      : Boolean(userAns && String(userAns).toUpperCase() === String(effCorr).toUpperCase());
     const conf = V41_STATE.confidenceMap[q.id] || 'sure';
     totalSec += (V41_STATE.telemetryMap[q.id] || 6);
 
@@ -22861,6 +22934,13 @@ function renderMetacognitionMatrix(res) {
     else if (isCorrect && (conf === 'hesitant' || conf === 'guess')) lucky++;
     else if (!isCorrect && conf === 'sure') illusion++;
     else blindspot++;
+
+    const parsedH = typeof parseQuestionHeader === 'function' ? parseQuestionHeader(q.question_text || '') : {};
+    const topicName = String(parsedH.topic || q.topic_tag || 'Kiến thức tổng hợp').trim() || 'Kiến thức tổng hợp';
+    if (!topicStats[topicName]) topicStats[topicName] = { total: 0, correct: 0, qIds: [] };
+    topicStats[topicName].total++;
+    if (isCorrect) topicStats[topicName].correct++;
+    topicStats[topicName].qIds.push(q.id);
   });
 
   const avgSec = questions.length ? (totalSec / questions.length).toFixed(1) : '0.0';
@@ -22899,6 +22979,43 @@ function renderMetacognitionMatrix(res) {
       <p class="text-[11px] txt-muted">Chưa nắm bài & Làm sai: Hãy đúc thẻ Flashcard SM-2 để ôn lại.</p>
     </div>
   `;
+
+  const topicBox = document.getElementById('res-topic-mastery-box');
+  if (topicBox) {
+    const entries = Object.entries(topicStats);
+    if (entries.length > 0) {
+      topicBox.classList.remove('hidden');
+      const rowsHtml = entries.map(([tName, st]) => {
+        const pct = Math.round((st.correct / Math.max(1, st.total)) * 100);
+        const barColor = pct >= 80 ? '#10b981' : pct >= 50 ? '#f59e0b' : '#f43f5e';
+        const statusTxt = pct >= 80 ? 'Vững vàng' : pct >= 50 ? 'Cần củng cố' : 'Điểm yếu';
+        const badgeCls = pct >= 80 ? 'badge-emerald' : pct >= 50 ? 'badge-amber' : 'badge-rose';
+        return `
+          <div class="p-2.5 rounded-xl border space-y-1.5" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="flex items-center justify-between gap-2 text-xs">
+              <span class="font-bold txt-main truncate">${escapeHtml(tName)}</span>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span class="font-mono font-bold txt-sub">${st.correct}/${st.total} (${pct}%)</span>
+                <span class="${badgeCls} text-[10px] px-2 py-0.5 rounded-full font-extrabold">${statusTxt}</span>
+              </div>
+            </div>
+            <div class="w-full h-1.5 rounded-full overflow-hidden" style="background-color: var(--bg-surface);">
+              <div class="h-full rounded-full transition-all duration-500" style="width: ${pct}%; background-color: ${barColor};"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      topicBox.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-extrabold txt-main">📊 Độ Vững Kiến Thức Theo Chuyên Đề / Chương</span>
+          <span class="text-[11px] txt-muted">${entries.length} chuyên đề</span>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">${rowsHtml}</div>
+      `;
+    } else {
+      topicBox.classList.add('hidden');
+    }
+  }
 }
 
 // Global Ctrl+K / Cmd+K Shortcut & Initializer for v41.0
@@ -27984,3 +28101,149 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     window.renderDashboard = renderDashboard;
   }
 })();
+
+// =========================================================================
+// UNIMASTER v55.0 PINNACLE ALL-IN-ONE SYSTEM UPGRADE
+// =========================================================================
+(function initV55PinnacleUpgrade() {
+  // 1. Weak-Spot Blitz Drill ("Luyện Điểm Yếu 1-Chạm")
+  async function startWeakSpotBlitzExam(customSid = null) {
+    const fallbackSub = (STATE?.subjects || []).find((s) => s.code === 'HOASINH_CTUMP') || (STATE?.subjects || [])[0];
+    const sid = Number(
+      customSid ||
+        document.getElementById('exam-subject-select')?.value ||
+        STATE?.activeSubjectId ||
+        STATE?.examConfig?.subjectId ||
+        fallbackSub?.id ||
+        5
+    );
+    try {
+      const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+      const pool = (res && res.questions) || [];
+      if (!pool.length) {
+        if (typeof showToast === 'function') showToast('Môn học này chưa có câu hỏi để luyện tập!', 'warning');
+        return;
+      }
+
+      const mistakeIds = new Set(
+        (Array.isArray(STATE?.mistakes) ? STATE.mistakes : []).map((m) => Number(typeof m === 'object' ? (m.question_id || m.id) : m))
+      );
+      const bookmarkIds = new Set(
+        (Array.isArray(STATE?.bookmarks) ? STATE.bookmarks : []).map((b) => Number(typeof b === 'object' ? b.id : b))
+      );
+
+      let weakCandidates = pool.filter((q) => mistakeIds.has(Number(q.id)) || bookmarkIds.has(Number(q.id)));
+      const sub = (STATE?.subjects || []).find((s) => Number(s.id) === sid);
+      const subName = sub ? sub.name : 'Chuyên đề';
+
+      STATE.examConfig.subjectId = sid;
+      STATE.examConfig.mode = 'practice';
+      const timeEl = document.getElementById('exam-custom-time');
+      if (timeEl) timeEl.value = '0';
+
+      if (weakCandidates.length > 0) {
+        const picked = [...weakCandidates].sort(() => Math.random() - 0.5).slice(0, 25);
+        launchExamWithQuestions(picked, `🎯 Khắc Phục Điểm Yếu: ${subName} (${picked.length} câu)`, false);
+        if (typeof showToast === 'function') {
+          showToast(`🎯 Đã nạp ${picked.length} câu hay sai / đánh dấu của môn ${subName}!`, 'success');
+        }
+      } else {
+        // Fallback to high-yield trap & challenge questions
+        const trapScored = pool.map((q) => {
+          const txt = String(q.question_text || '');
+          const isTrap = /NGOẠI TRỪ|KHÔNG ĐÚNG|\bSAI\b/i.test(txt);
+          return { q, score: (isTrap ? 50 : 10) + Math.random() * 25 };
+        }).sort((a, b) => b.score - a.score);
+        const picked = trapScored.slice(0, Math.min(20, trapScored.length)).map((x) => x.q);
+        launchExamWithQuestions(picked, `🎯 Luyện Chống Bẫy: ${subName} (${picked.length} câu)`, false);
+        if (typeof showToast === 'function') {
+          showToast(`Bạn chưa có câu sai nào ở môn ${subName}. Đã chọn ${picked.length} câu dễ bẫy nhất để thử sức!`, 'info');
+        }
+      }
+    } catch (err) {
+      if (typeof showToast === 'function') showToast('Không thể khởi tạo bài luyện điểm yếu.', 'error');
+    }
+  }
+  window.startWeakSpotBlitzExam = startWeakSpotBlitzExam;
+
+  // 2. Quick Algorithm & OOP Starter Templates for Code Sandbox
+  const QUICK_CODE_TEMPLATES = {
+    oop_class: `using System;\n\npublic class SinhVien\n{\n    public string MaSV { get; set; }\n    public string HoTen { get; set; }\n    public double DiemTB { get; set; }\n\n    public SinhVien(string ma, string ten, double diem)\n    {\n        MaSV = ma;\n        HoTen = ten;\n        DiemTB = diem < 0 ? 0 : diem;\n    }\n\n    public string XepLoai()\n    {\n        if (DiemTB >= 8.0) return "Gioi";\n        if (DiemTB >= 6.5) return "Kha";\n        if (DiemTB >= 5.0) return "Trung binh";\n        return "Yeu";\n    }\n}\n\npublic class Program\n{\n    public static void Main()\n    {\n        var sv = new SinhVien("B24001", "Nguyen Van A", 8.5);\n        Console.WriteLine($"{sv.HoTen} - {sv.XepLoai()}");\n    }\n}`,
+    oop_inherit: `using System;\n\npublic abstract class NhanVien\n{\n    public string HoTen { get; set; }\n    protected NhanVien(string ten) { HoTen = ten; }\n    public abstract double TinhLuong();\n}\n\npublic class NhanVienBienChe : NhanVien\n{\n    public double HeSoLuong { get; set; }\n    public NhanVienBienChe(string ten, double hs) : base(ten) { HeSoLuong = hs; }\n    public override double TinhLuong() => HeSoLuong * 2340000;\n}\n\npublic class Program\n{\n    public static void Main()\n    {\n        NhanVien nv = new NhanVienBienChe("Tran Thi B", 3.0);\n        Console.WriteLine($"{nv.HoTen}: {nv.TinhLuong():N0} VND");\n    }\n}`,
+    py_binsearch: `def binary_search(arr, target):\n    left, right = 0, len(arr) - 1\n    while left <= right:\n        mid = (left + right) // 2\n        if arr[mid] == target:\n            return mid\n        elif arr[mid] < target:\n            left = mid + 1\n        else:\n            right = mid - 1\n    return -1\n\nif __name__ == "__main__":\n    nums = [2, 5, 8, 12, 16, 23, 38, 56, 72, 91]\n    print("Vi tri cua 23:", binary_search(nums, 23))`,
+    py_bfs: `from collections import deque\n\ndef bfs_shortest_path(graph, start):\n    visited = {start: 0}\n    queue = deque([start])\n    order = []\n    while queue:\n        u = queue.popleft()\n        order.append(u)\n        for v in graph.get(u, []):\n            if v not in visited:\n                visited[v] = visited[u] + 1\n                queue.append(v)\n    return order, visited\n\nif __name__ == "__main__":\n    g = {'A': ['B', 'C'], 'B': ['D', 'E'], 'C': ['F'], 'D': [], 'E': ['F'], 'F': []}\n    order, dist = bfs_shortest_path(g, 'A')\n    print("Thu tu duyet BFS:", order)\n    print("Khoang cach tu A:", dist)`,
+    py_dp: `def knapsack_01(weights, values, capacity):\n    n = len(weights)\n    dp = [0] * (capacity + 1)\n    for i in range(n):\n        w, val = weights[i], values[i]\n        for c in range(capacity, w - 1, -1):\n            dp[c] = max(dp[c], dp[c - w] + val)\n    return dp[capacity]\n\nif __name__ == "__main__":\n    W = [2, 3, 4, 5]\n    V = [3, 4, 5, 8]\n    print("Gia tri toi da (S=7):", knapsack_01(W, V, 7))`
+  };
+
+  function insertQuickCodeTemplate(tplKey) {
+    if (!tplKey || !QUICK_CODE_TEMPLATES[tplKey]) return;
+    const editor = document.getElementById('code-editor-textarea');
+    if (!editor) return;
+    editor.value = QUICK_CODE_TEMPLATES[tplKey];
+    const ex = STATE?.exercises?.list?.[STATE.exercises.selectedIndex];
+    if (ex && STATE?.exercises?.userCode) {
+      STATE.exercises.userCode[ex.id] = editor.value;
+      if (typeof persistUserCodeToStorage === 'function') persistUserCodeToStorage();
+    }
+    if (typeof updateVscodeLineNumbers === 'function') updateVscodeLineNumbers();
+    if (typeof showToast === 'function') showToast('🧩 Đã chèn mẫu code chuẩn vào trình soạn thảo!', 'success');
+  }
+  window.insertQuickCodeTemplate = insertQuickCodeTemplate;
+
+  // 3. Live Ongoing Exam Auto-Save & Crash Recovery
+  const EXAM_LIVE_DRAFT_KEY = 'unimaster_exam_live_draft_v55';
+
+  function saveActiveExamDraft() {
+    if (!STATE?.exam?.active || !Array.isArray(STATE.exam.questions) || !STATE.exam.questions.length) return;
+    const ansKeys = Object.keys(STATE.exam.answers || {});
+    if (!ansKeys.length && (STATE.exam.currentIndex || 0) === 0) return;
+    try {
+      const snap = {
+        subjectId: STATE.exam.subjectId,
+        subjectName: STATE.exam.subjectName,
+        mode: STATE.exam.mode,
+        currentIndex: STATE.exam.currentIndex,
+        answers: STATE.exam.answers,
+        graded: STATE.exam.graded,
+        correctMap: STATE.exam.correctMap,
+        elapsedSeconds: STATE.exam.elapsedSeconds || 0,
+        questions: STATE.exam.questions.slice(0, 60),
+        savedAt: Date.now()
+      };
+      localStorage.setItem(EXAM_LIVE_DRAFT_KEY, JSON.stringify(snap));
+    } catch (_) {}
+  }
+
+  function clearActiveExamDraft() {
+    try { localStorage.removeItem(EXAM_LIVE_DRAFT_KEY); } catch (_) {}
+  }
+
+  if (typeof selectExamOption === 'function') {
+    const _origSelOpt = selectExamOption;
+    selectExamOption = function (...args) {
+      const r = _origSelOpt.apply(this, args);
+      saveActiveExamDraft();
+      return r;
+    };
+    window.selectExamOption = selectExamOption;
+  }
+
+  if (typeof submitExamNow === 'function') {
+    const _origSubmit = submitExamNow;
+    submitExamNow = async function (...args) {
+      clearActiveExamDraft();
+      return _origSubmit.apply(this, args);
+    };
+    window.submitExamNow = submitExamNow;
+  }
+
+  if (typeof resetToExamConfig === 'function') {
+    const _origReset = resetToExamConfig;
+    resetToExamConfig = function (...args) {
+      clearActiveExamDraft();
+      return _origReset.apply(this, args);
+    };
+    window.resetToExamConfig = resetToExamConfig;
+  }
+})();
+

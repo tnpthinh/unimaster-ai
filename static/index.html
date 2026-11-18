@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=54.1" />
+  <link rel="stylesheet" href="/static/style.css?v=55.0" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -248,6 +248,11 @@
                 class="btn-soft px-3.5 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
                 title="Chọn 20 câu trọng tâm theo lỗ hổng cá nhân">
                 <i data-lucide="sparkles" class="w-3.5 h-3.5 txt-brand"></i> Đề thông minh
+              </button>
+              <button onclick="startWeakSpotBlitzExam()"
+                class="btn-soft px-3.5 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
+                title="Ôn cấp tốc các câu từng làm sai">
+                <i data-lucide="target" class="w-3.5 h-3.5 text-rose-400"></i> Luyện điểm yếu
               </button>
               <button onclick="toggleAppFullscreen()"
                 class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
@@ -763,6 +768,9 @@
             <button type="button" onclick="startAdaptiveSmartExam()" class="btn-primary px-3.5 py-1.5 text-xs font-bold flex items-center gap-1.5">
               <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Đề thông minh (20 câu)
             </button>
+            <button type="button" onclick="startWeakSpotBlitzExam()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5" title="Tự động lọc và luyện lại các câu từng làm sai">
+              <i data-lucide="target" class="w-3.5 h-3.5 text-rose-400"></i> Luyện điểm yếu
+            </button>
             <button type="button" onclick="openPrintableExamModal('config')" class="btn-soft px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5">
               <i data-lucide="printer" class="w-3.5 h-3.5"></i> In PDF
             </button>
@@ -1021,6 +1029,10 @@
               <button onclick="togglePaletteDrawer()" title="Bảng câu hỏi" class="btn-soft px-2.5 py-2 text-xs flex items-center gap-1">
                 <i data-lucide="grid" class="w-4 h-4"></i>
                 <span id="answered-q-count" class="font-bold">0</span>
+              </button>
+
+              <button onclick="openCheatSheetModal()" title="Sổ tay tóm tắt trọng tâm &amp; công thức" class="btn-soft p-2 text-xs flex items-center justify-center">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
               </button>
 
               <button onclick="toggleZenMode()" title="Toàn màn hình / Phóng to (Z)" class="btn-soft p-2 text-xs flex items-center justify-center">
@@ -1328,6 +1340,7 @@
             <span id="res-avg-time-badge" class="badge-brand px-3 py-1 rounded-full text-xs font-mono font-bold">TB: 0.0s / câu</span>
           </div>
           <div id="res-metacognition-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs"></div>
+          <div id="res-topic-mastery-box" class="hidden pt-3 border-t space-y-2.5" style="border-color: var(--border);"></div>
         </div>
 
         <div class="space-y-3">
@@ -1366,6 +1379,14 @@
             <option value="5">💻 OOP (C#) — 10 bài</option>
             <option value="82">⚡ Giải Thuật &amp; CTDL — 10 bài</option>
             <option value="22">🐍 NNLT 1 (Python) — 10 bài</option>
+          </select>
+          <select id="code-template-select" onchange="insertQuickCodeTemplate(this.value); this.value='';" class="uni-input px-2.5 py-1.5 text-xs font-bold" title="Chèn nhanh mẫu thuật toán &amp; OOP">
+            <option value="">🧩 Mẫu code nhanh...</option>
+            <option value="oop_class">C#: Class &amp; Encapsulation</option>
+            <option value="oop_inherit">C#: Kế thừa &amp; Đa hình</option>
+            <option value="py_binsearch">Python: Tìm kiếm nhị phân</option>
+            <option value="py_bfs">Python: Duyệt đồ thị BFS/DFS</option>
+            <option value="py_dp">Python: Quy hoạch động</option>
           </select>
           <button onclick="submitCodeTestCases()" class="btn-primary px-3 py-1.5 text-xs flex items-center gap-1 font-bold shadow-md">
             <span>🧪</span> Chấm Test
@@ -1547,6 +1568,7 @@
                 </div>
               </div>
               <div class="flex items-center gap-2">
+                <span id="essay-word-count-badge" class="badge-soft px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold">0 từ • Tự động lưu</span>
                 <button type="button" onclick="loadSampleAnswerForPrompt()" class="btn-soft px-2.5 py-1 text-xs">📋 Điền bài mẫu</button>
                 <button type="button" onclick="clearEssayInput()" class="btn-soft px-2.5 py-1 text-xs txt-rose">🗑️ Xóa</button>
               </div>
@@ -7756,6 +7778,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=54.1"></script>
+  <script src="/static/app.js?v=55.0"></script>
 </body>
 </html>
