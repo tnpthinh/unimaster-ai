@@ -5278,8 +5278,377 @@ html[data-theme="sepia"] mark.exam-trap-mark {
   background-color: #f43f5e !important;
 }
 
+/* ==============================================================================
+   UniMaster AI v52.0: Liquid Glass, Living Aurora Orbs & 120Hz Spring Physics
+   ============================================================================== */
+
+/* 1. Soften Harsh Pure-Black Dark Theme into Deep Velvet Obsidian + Aurora */
+html[data-theme="dark"]:not(.contrast) {
+  --bg-app: #060813;
+  --bg-surface: rgba(14, 18, 34, 0.82);
+  --bg-subtle: rgba(23, 29, 52, 0.72);
+  --bg-elevated: rgba(28, 36, 64, 0.88);
+  --bg-hover: rgba(38, 49, 86, 0.82);
+  --border: rgba(148, 163, 184, 0.16);
+  --border-strong: rgba(148, 163, 184, 0.34);
+}
+html[data-theme="aurora"] {
+  --bg-app: #070a19;
+  --bg-surface: rgba(15, 21, 44, 0.78);
+  --bg-subtle: rgba(25, 35, 70, 0.66);
+  --bg-elevated: rgba(30, 42, 82, 0.88);
+  --bg-hover: rgba(42, 58, 108, 0.76);
+  --border: rgba(139, 152, 255, 0.2);
+}
+html[data-theme="midnight"] {
+  --bg-app: #070d1c;
+  --bg-surface: rgba(15, 23, 42, 0.8);
+  --bg-subtle: rgba(24, 36, 64, 0.68);
+  --border: rgba(125, 162, 224, 0.18);
+}
+
+/* 2. Living Breathing GPU Aurora Silk Clouds (Compositor-Only, Zero CPU) */
+@keyframes auroraDriftPrimary {
+  0%   { transform: translate3d(-2%, -1%, 0) scale(1); }
+  50%  { transform: translate3d(3%, 2.5%, 0) scale(1.06); }
+  100% { transform: translate3d(-1.5%, 3%, 0) scale(0.98); }
+}
+@keyframes auroraDriftSecondary {
+  0%   { transform: translate3d(2%, 1.5%, 0) scale(1.02); }
+  50%  { transform: translate3d(-3%, -2%, 0) scale(0.96); }
+  100% { transform: translate3d(1.5%, -2.5%, 0) scale(1.05); }
+}
+
+html:not(.perf-mode):not([data-theme="contrast"]) body::before {
+  content: '';
+  position: fixed;
+  inset: -12%;
+  pointer-events: none;
+  z-index: -2;
+  background:
+    radial-gradient(640px circle at 16% 14%, color-mix(in srgb, var(--brand) 22%, transparent), transparent 68%),
+    radial-gradient(580px circle at 84% 16%, color-mix(in srgb, var(--brand-2) 18%, transparent), transparent 66%),
+    radial-gradient(540px circle at 52% 86%, rgba(6, 182, 212, 0.13), transparent 70%);
+  animation: auroraDriftPrimary 22s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+html:not(.perf-mode):not([data-theme="contrast"]) body::after {
+  content: '';
+  position: fixed;
+  inset: -10%;
+  pointer-events: none;
+  z-index: -1;
+  background:
+    radial-gradient(480px circle at 76% 74%, color-mix(in srgb, var(--brand) 14%, transparent), transparent 70%),
+    radial-gradient(440px circle at 22% 78%, rgba(16, 185, 129, 0.1), transparent 72%);
+  animation: auroraDriftSecondary 28s ease-in-out infinite alternate;
+  will-change: transform;
+}
+
+html[data-theme="light"]:not(.perf-mode) body::before,
+html[data-theme="sepia"]:not(.perf-mode) body::before {
+  background:
+    radial-gradient(640px circle at 14% 10%, color-mix(in srgb, var(--brand) 12%, transparent), transparent 70%),
+    radial-gradient(560px circle at 86% 14%, color-mix(in srgb, var(--brand-2) 10%, transparent), transparent 68%),
+    radial-gradient(500px circle at 50% 88%, rgba(6, 182, 212, 0.08), transparent 72%);
+}
+
+/* 3. True Frosted Liquid Glass Cards + Interactive Pointer Spotlight */
+.uni-card {
+  border-radius: var(--card-radius, 1.375rem);
+  backdrop-filter: blur(18px) saturate(145%);
+  -webkit-backdrop-filter: blur(18px) saturate(145%);
+  background-image:
+    radial-gradient(
+      420px circle at var(--spot-x, -999px) var(--spot-y, -999px),
+      color-mix(in srgb, var(--brand) 10%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      160deg,
+      rgba(255, 255, 255, 0.045) 0%,
+      rgba(255, 255, 255, 0) 55%
+    );
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
+    0 16px 38px -14px rgba(2, 6, 23, 0.45);
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.24s ease,
+    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.24s ease;
+}
+
+html[data-theme="light"] .uni-card,
+html[data-theme="sepia"] .uni-card {
+  background-color: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.92),
+    0 14px 34px -12px rgba(15, 23, 42, 0.08);
+}
+
+/* 4. Tactile Elastic Spring Hover & Press Across Interactive Surfaces */
+.bento-tool-tile,
+.countdown-card,
+.mode-card,
+.gemini-compact-pill,
+#subjects-grid > div {
+  border-radius: 1.15rem !important;
+  background-image: radial-gradient(
+    260px circle at var(--spot-x, -999px) var(--spot-y, -999px),
+    color-mix(in srgb, var(--brand) 14%, transparent),
+    transparent 72%
+  );
+  transition:
+    transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 0.22s ease,
+    box-shadow 0.26s cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 0.22s ease !important;
+}
+
+.bento-tool-tile:hover,
+.mode-card:hover,
+.gemini-compact-pill:hover,
+#subjects-grid > div:hover {
+  transform: translate3d(0, -3.5px, 0) scale(1.012);
+  border-color: color-mix(in srgb, var(--brand) 62%, var(--border)) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 14px 28px -10px var(--brand-glow);
+}
+
+.bento-tool-tile:active,
+.countdown-card:active,
+.mode-card:active,
+.gemini-compact-pill:active {
+  transform: scale(0.972) !important;
+}
+
+/* Liquid Shimmer on Primary Buttons */
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+  border-radius: 0.95rem;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 8px 22px -4px var(--brand-glow);
+  transition:
+    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
+    box-shadow 0.24s ease,
+    filter 0.2s ease !important;
+}
+.btn-primary::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(112deg, transparent 30%, rgba(255, 255, 255, 0.26) 50%, transparent 70%);
+  transform: translateX(-130%);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+.btn-primary:hover:not(:disabled)::after {
+  transform: translateX(130%);
+}
+.btn-primary:hover:not(:disabled) {
+  transform: translate3d(0, -2px, 0) scale(1.018);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.36),
+    0 14px 28px -5px var(--brand-glow);
+}
+
+/* 5. Silky View Switch Choreography & Staggered Child Cards */
+@keyframes silkViewEnter {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 12px, 0) scale(0.992);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+section.silk-view-enter {
+  animation: silkViewEnter 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+section.silk-view-enter > * {
+  animation: silkViewEnter 0.36s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+section.silk-view-enter > *:nth-child(1) { animation-delay: 0.01s; }
+section.silk-view-enter > *:nth-child(2) { animation-delay: 0.045s; }
+section.silk-view-enter > *:nth-child(3) { animation-delay: 0.08s; }
+section.silk-view-enter > *:nth-child(4) { animation-delay: 0.115s; }
+section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
+
+/* 6. Directional Exam Question Glide & Tactile Option Cascade */
+@keyframes qGlideNext {
+  0%   { opacity: 0.25; transform: translate3d(20px, 0, 0) scale(0.994); }
+  100% { opacity: 1;    transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes qGlidePrev {
+  0%   { opacity: 0.25; transform: translate3d(-20px, 0, 0) scale(0.994); }
+  100% { opacity: 1;    transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes optCascadeIn {
+  0%   { opacity: 0; transform: translate3d(0, 8px, 0); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0); }
+}
+@keyframes badgeCelebrationPop {
+  0%   { transform: scale(0.85); }
+  55%  { transform: scale(1.22) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+#exam-question-stage.q-glide-next {
+  animation: qGlideNext 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+#exam-question-stage.q-glide-prev {
+  animation: qGlidePrev 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+#exam-question-stage.q-glide-next .option-row,
+#exam-question-stage.q-glide-prev .option-row {
+  animation: optCascadeIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+#exam-question-stage .option-row:nth-child(1) { animation-delay: 0.015s; }
+#exam-question-stage .option-row:nth-child(2) { animation-delay: 0.04s; }
+#exam-question-stage .option-row:nth-child(3) { animation-delay: 0.065s; }
+#exam-question-stage .option-row:nth-child(4) { animation-delay: 0.09s; }
+
+.option-row {
+  border-radius: 1.2rem;
+  background-image: radial-gradient(
+    280px circle at var(--spot-x, -999px) var(--spot-y, -999px),
+    color-mix(in srgb, var(--brand) 12%, transparent),
+    transparent 70%
+  );
+  transition:
+    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
+    border-color 0.18s ease,
+    background-color 0.18s ease,
+    box-shadow 0.22s ease !important;
+}
+.option-row:hover:not(.disabled) {
+  transform: translate3d(3px, -2px, 0) !important;
+}
+.option-row.is-correct .opt-badge {
+  animation: badgeCelebrationPop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  box-shadow: 0 6px 16px -2px rgba(16, 185, 129, 0.55);
+}
+
+#exam-progress-bar {
+  transition: width 0.48s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  box-shadow: 0 0 14px var(--brand-glow);
+}
+
+/* 7. Warm Frosted Glass AI Gia Sư Conversation Cards & Living Orb */
+@keyframes aiBubbleSpringReveal {
+  0%   { opacity: 0; transform: translate3d(0, 12px, 0) scale(0.985); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes tutorOrbFloat {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  50%      { transform: translate3d(0, -5px, 0) scale(1.05); }
+}
+
+.gemini-model-row {
+  animation: aiBubbleSpringReveal 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.gemini-model-bubble {
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--brand) 7%, var(--bg-subtle)),
+    color-mix(in srgb, var(--bg-surface) 90%, transparent)
+  ) !important;
+  border: 1px solid color-mix(in srgb, var(--brand) 22%, var(--border)) !important;
+  border-radius: 1.35rem !important;
+  padding: 0.95rem 1.15rem !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 12px 28px -12px rgba(2, 6, 23, 0.32) !important;
+  color: var(--text-main) !important;
+}
+
+.gemini-model-bubble .ai-tutor-content,
+.gemini-model-bubble .ai-tutor-content h1,
+.gemini-model-bubble .ai-tutor-content h2,
+.gemini-model-bubble .ai-tutor-content h3 {
+  color: var(--text-main) !important;
+}
+
+.gemini-user-bubble {
+  border-radius: 1.35rem 1.35rem 0.35rem 1.35rem !important;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2)) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 24px -6px var(--brand-glow) !important;
+  transition: transform 0.2s ease;
+}
+
+.tutor-living-orb {
+  width: 3.25rem;
+  height: 3.25rem;
+  margin: 0 auto 0.75rem;
+  border-radius: 1.15rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--brand), var(--brand-2), #06b6d4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    0 14px 32px -6px var(--brand-glow);
+  animation: tutorOrbFloat 3.8s ease-in-out infinite;
+}
+
+.gemini-input-capsule {
+  border-radius: 1.5rem !important;
+  transition: border-color 0.22s ease, box-shadow 0.25s ease, transform 0.2s ease !important;
+}
+.gemini-input-capsule:focus-within {
+  border-color: var(--brand) !important;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--brand) 20%, transparent),
+    0 14px 32px -10px var(--brand-glow) !important;
+  transform: translateY(-1px);
+}
+
+/* 8. Spring-Animated Modals & Floating Tutor Window */
+@keyframes modalSpringOpen {
+  0%   { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.955); }
+  100% { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+}
+@keyframes modalSpringClose {
+  0%   { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  100% { opacity: 0; transform: translate3d(0, 10px, 0) scale(0.965); }
+}
+
+.modal-overlay:not(.hidden) > .uni-card,
+#floating-tutor-window:not(.hidden) {
+  animation: modalSpringOpen 0.26s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.modal-overlay.is-closing {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.modal-overlay.is-closing > .uni-card {
+  animation: modalSpringClose 0.15s ease forwards !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html body::before,
+  html body::after,
+  .tutor-living-orb,
+  section.silk-view-enter,
+  section.silk-view-enter > *,
+  #exam-question-stage.q-glide-next,
+  #exam-question-stage.q-glide-prev {
+    animation: none !important;
+  }
+}
+
 </style>
-  <link rel="stylesheet" href="/static/minimal.css?v=3.0" />
+  <link rel="stylesheet" href="/static/minimal.css?v=52.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
@@ -13462,6 +13831,7 @@ function buildTutorGreetingMarkup(compact = false) {
 
   return `
     <div class="gemini-welcome-compact animate-fade-in">
+      <div class="tutor-living-orb">✨</div>
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold badge-brand mb-2">
         <span>🤖</span> <span>${escapeHtml(subName)}</span>
       </div>
@@ -15119,7 +15489,7 @@ const DEFAULT_UI_PREFS = {
   qFontRem: 1.14,
   optFontRem: 1.02,
   lineHeight: 1.62,
-  cardRadiusPx: 18,
+  cardRadiusPx: 22,
   shadowDepth: 'medium',
   soundEnabled: true,
   soundVolume: 0.8,
@@ -40548,6 +40918,151 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       pullUniversalVaultFromServer();
     }, 350);
   });
+})();
+
+// ==============================================================================
+// UNIMASTER AI v52.0: LIQUID GLASS SPOTLIGHT, SPRING TAB CHOREOGRAPHY & GLIDE FX
+// ==============================================================================
+(function initLiquidMotionSuiteV52() {
+  const SPOT_SELECTOR = '.uni-card, .option-row, .bento-tool-tile, .countdown-card, .mode-card, .gemini-compact-pill';
+  let activeSpotEl = null;
+  let spotRaf = 0;
+  let pendingX = 0;
+  let pendingY = 0;
+  let prevExamQIdx = -1;
+  const modalCloseTimers = new Map();
+
+  // 1. 60fps GPU Radial Pointer Spotlight (Zero Layout Thrash)
+  document.addEventListener('pointermove', (e) => {
+    if (document.documentElement.classList.contains('perf-mode')) return;
+    const target = e.target?.closest?.(SPOT_SELECTOR);
+    if (activeSpotEl && activeSpotEl !== target) {
+      activeSpotEl.style.removeProperty('--spot-x');
+      activeSpotEl.style.removeProperty('--spot-y');
+    }
+    activeSpotEl = target || null;
+    if (!activeSpotEl) return;
+    pendingX = e.clientX;
+    pendingY = e.clientY;
+    if (!spotRaf) {
+      spotRaf = requestAnimationFrame(() => {
+        spotRaf = 0;
+        if (!activeSpotEl) return;
+        const rect = activeSpotEl.getBoundingClientRect();
+        activeSpotEl.style.setProperty('--spot-x', `${Math.round(pendingX - rect.left)}px`);
+        activeSpotEl.style.setProperty('--spot-y', `${Math.round(pendingY - rect.top)}px`);
+      });
+    }
+  }, { passive: true });
+
+  // 2. Silky View Transition & Staggered Card Choreography on Every Tab Switch
+  if (typeof switchTab === 'function') {
+    const _origSwitchTabV52 = switchTab;
+    switchTab = function (tabName) {
+      const prevTab = STATE?.currentTab;
+      const res = _origSwitchTabV52(tabName);
+      if (prevTab !== tabName && !document.documentElement.classList.contains('perf-mode')) {
+        const viewEl = document.getElementById(`view-${tabName}`);
+        if (viewEl && !viewEl.classList.contains('hidden')) {
+          viewEl.classList.remove('silk-view-enter');
+          void viewEl.offsetWidth;
+          viewEl.classList.add('silk-view-enter');
+        }
+      }
+      return res;
+    };
+    window.switchTab = switchTab;
+  }
+
+  // 3. Directional Liquid Glide When Navigating Between Exam Questions
+  if (typeof renderCurrentExamQuestion === 'function') {
+    const _origRenderExamQV52 = renderCurrentExamQuestion;
+    renderCurrentExamQuestion = function (...args) {
+      const curIdx = Number(STATE?.exam?.currentIndex ?? 0);
+      const res = _origRenderExamQV52.apply(this, args);
+      if (STATE?.exam?.active && curIdx !== prevExamQIdx && !document.documentElement.classList.contains('perf-mode')) {
+        const stage = document.getElementById('exam-question-stage');
+        if (stage) {
+          const dirCls = prevExamQIdx >= 0 && curIdx < prevExamQIdx ? 'q-glide-prev' : 'q-glide-next';
+          stage.classList.remove('q-glide-next', 'q-glide-prev');
+          void stage.offsetWidth;
+          stage.classList.add(dirCls);
+        }
+      }
+      prevExamQIdx = curIdx;
+      return res;
+    };
+    window.renderCurrentExamQuestion = renderCurrentExamQuestion;
+  }
+
+  // 4. Spring-Animated Modal Open & Smooth Fade-Scale Exit
+  if (typeof openModal === 'function' && typeof closeModal === 'function') {
+    const _origOpenModalV52 = openModal;
+    const _origCloseModalV52 = closeModal;
+
+    openModal = function (id) {
+      const pending = modalCloseTimers.get(id);
+      if (pending) {
+        clearTimeout(pending);
+        modalCloseTimers.delete(id);
+      }
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('is-closing');
+      return _origOpenModalV52(id);
+    };
+    window.openModal = openModal;
+
+    closeModal = function (id) {
+      const el = document.getElementById(id);
+      if (!el || el.classList.contains('hidden') || !el.classList.contains('modal-overlay') || document.documentElement.classList.contains('perf-mode')) {
+        return _origCloseModalV52(id);
+      }
+      el.classList.add('is-closing');
+      const timer = setTimeout(() => {
+        el.classList.remove('is-closing');
+        _origCloseModalV52(id);
+        modalCloseTimers.delete(id);
+      }, 140);
+      modalCloseTimers.set(id, timer);
+    };
+    window.closeModal = closeModal;
+  }
+
+  // 5. Smooth EaseOutQuart KPI Number Roll-Up on Dashboard
+  function rollNumberSmooth(elId, isFloat = false) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const target = Number(String(el.textContent || '0').replace(/[^\d.]/g, ''));
+    if (!Number.isFinite(target) || target <= 0) return;
+    const startTs = performance.now();
+    const dur = 520;
+    function step(now) {
+      const p = Math.min(1, (now - startTs) / dur);
+      const eased = 1 - Math.pow(1 - p, 4);
+      const val = target * eased;
+      el.textContent = isFloat ? val.toFixed(1) : String(Math.round(val));
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = isFloat ? target.toFixed(1) : String(Math.round(target));
+    }
+    requestAnimationFrame(step);
+  }
+
+  if (typeof renderDashboard === 'function') {
+    const _origRenderDashV52 = renderDashboard;
+    let hasRolledOnce = false;
+    renderDashboard = function (...args) {
+      const r = _origRenderDashV52.apply(this, args);
+      if (!hasRolledOnce && !document.documentElement.classList.contains('perf-mode')) {
+        hasRolledOnce = true;
+        rollNumberSmooth('stat-subjects', false);
+        rollNumberSmooth('stat-questions', false);
+        rollNumberSmooth('stat-exams', false);
+        rollNumberSmooth('stat-avg-score', true);
+      }
+      return r;
+    };
+    window.renderDashboard = renderDashboard;
+  }
 })();
 
 </script>

@@ -496,6 +496,7 @@ function buildTutorGreetingMarkup(compact = false) {
 
   return `
     <div class="gemini-welcome-compact animate-fade-in">
+      <div class="tutor-living-orb">✨</div>
       <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold badge-brand mb-2">
         <span>🤖</span> <span>${escapeHtml(subName)}</span>
       </div>
@@ -2153,7 +2154,7 @@ const DEFAULT_UI_PREFS = {
   qFontRem: 1.14,
   optFontRem: 1.02,
   lineHeight: 1.62,
-  cardRadiusPx: 18,
+  cardRadiusPx: 22,
   shadowDepth: 'medium',
   soundEnabled: true,
   soundVolume: 0.8,
@@ -27582,4 +27583,149 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       pullUniversalVaultFromServer();
     }, 350);
   });
+})();
+
+// ==============================================================================
+// UNIMASTER AI v52.0: LIQUID GLASS SPOTLIGHT, SPRING TAB CHOREOGRAPHY & GLIDE FX
+// ==============================================================================
+(function initLiquidMotionSuiteV52() {
+  const SPOT_SELECTOR = '.uni-card, .option-row, .bento-tool-tile, .countdown-card, .mode-card, .gemini-compact-pill';
+  let activeSpotEl = null;
+  let spotRaf = 0;
+  let pendingX = 0;
+  let pendingY = 0;
+  let prevExamQIdx = -1;
+  const modalCloseTimers = new Map();
+
+  // 1. 60fps GPU Radial Pointer Spotlight (Zero Layout Thrash)
+  document.addEventListener('pointermove', (e) => {
+    if (document.documentElement.classList.contains('perf-mode')) return;
+    const target = e.target?.closest?.(SPOT_SELECTOR);
+    if (activeSpotEl && activeSpotEl !== target) {
+      activeSpotEl.style.removeProperty('--spot-x');
+      activeSpotEl.style.removeProperty('--spot-y');
+    }
+    activeSpotEl = target || null;
+    if (!activeSpotEl) return;
+    pendingX = e.clientX;
+    pendingY = e.clientY;
+    if (!spotRaf) {
+      spotRaf = requestAnimationFrame(() => {
+        spotRaf = 0;
+        if (!activeSpotEl) return;
+        const rect = activeSpotEl.getBoundingClientRect();
+        activeSpotEl.style.setProperty('--spot-x', `${Math.round(pendingX - rect.left)}px`);
+        activeSpotEl.style.setProperty('--spot-y', `${Math.round(pendingY - rect.top)}px`);
+      });
+    }
+  }, { passive: true });
+
+  // 2. Silky View Transition & Staggered Card Choreography on Every Tab Switch
+  if (typeof switchTab === 'function') {
+    const _origSwitchTabV52 = switchTab;
+    switchTab = function (tabName) {
+      const prevTab = STATE?.currentTab;
+      const res = _origSwitchTabV52(tabName);
+      if (prevTab !== tabName && !document.documentElement.classList.contains('perf-mode')) {
+        const viewEl = document.getElementById(`view-${tabName}`);
+        if (viewEl && !viewEl.classList.contains('hidden')) {
+          viewEl.classList.remove('silk-view-enter');
+          void viewEl.offsetWidth;
+          viewEl.classList.add('silk-view-enter');
+        }
+      }
+      return res;
+    };
+    window.switchTab = switchTab;
+  }
+
+  // 3. Directional Liquid Glide When Navigating Between Exam Questions
+  if (typeof renderCurrentExamQuestion === 'function') {
+    const _origRenderExamQV52 = renderCurrentExamQuestion;
+    renderCurrentExamQuestion = function (...args) {
+      const curIdx = Number(STATE?.exam?.currentIndex ?? 0);
+      const res = _origRenderExamQV52.apply(this, args);
+      if (STATE?.exam?.active && curIdx !== prevExamQIdx && !document.documentElement.classList.contains('perf-mode')) {
+        const stage = document.getElementById('exam-question-stage');
+        if (stage) {
+          const dirCls = prevExamQIdx >= 0 && curIdx < prevExamQIdx ? 'q-glide-prev' : 'q-glide-next';
+          stage.classList.remove('q-glide-next', 'q-glide-prev');
+          void stage.offsetWidth;
+          stage.classList.add(dirCls);
+        }
+      }
+      prevExamQIdx = curIdx;
+      return res;
+    };
+    window.renderCurrentExamQuestion = renderCurrentExamQuestion;
+  }
+
+  // 4. Spring-Animated Modal Open & Smooth Fade-Scale Exit
+  if (typeof openModal === 'function' && typeof closeModal === 'function') {
+    const _origOpenModalV52 = openModal;
+    const _origCloseModalV52 = closeModal;
+
+    openModal = function (id) {
+      const pending = modalCloseTimers.get(id);
+      if (pending) {
+        clearTimeout(pending);
+        modalCloseTimers.delete(id);
+      }
+      const el = document.getElementById(id);
+      if (el) el.classList.remove('is-closing');
+      return _origOpenModalV52(id);
+    };
+    window.openModal = openModal;
+
+    closeModal = function (id) {
+      const el = document.getElementById(id);
+      if (!el || el.classList.contains('hidden') || !el.classList.contains('modal-overlay') || document.documentElement.classList.contains('perf-mode')) {
+        return _origCloseModalV52(id);
+      }
+      el.classList.add('is-closing');
+      const timer = setTimeout(() => {
+        el.classList.remove('is-closing');
+        _origCloseModalV52(id);
+        modalCloseTimers.delete(id);
+      }, 140);
+      modalCloseTimers.set(id, timer);
+    };
+    window.closeModal = closeModal;
+  }
+
+  // 5. Smooth EaseOutQuart KPI Number Roll-Up on Dashboard
+  function rollNumberSmooth(elId, isFloat = false) {
+    const el = document.getElementById(elId);
+    if (!el) return;
+    const target = Number(String(el.textContent || '0').replace(/[^\d.]/g, ''));
+    if (!Number.isFinite(target) || target <= 0) return;
+    const startTs = performance.now();
+    const dur = 520;
+    function step(now) {
+      const p = Math.min(1, (now - startTs) / dur);
+      const eased = 1 - Math.pow(1 - p, 4);
+      const val = target * eased;
+      el.textContent = isFloat ? val.toFixed(1) : String(Math.round(val));
+      if (p < 1) requestAnimationFrame(step);
+      else el.textContent = isFloat ? target.toFixed(1) : String(Math.round(target));
+    }
+    requestAnimationFrame(step);
+  }
+
+  if (typeof renderDashboard === 'function') {
+    const _origRenderDashV52 = renderDashboard;
+    let hasRolledOnce = false;
+    renderDashboard = function (...args) {
+      const r = _origRenderDashV52.apply(this, args);
+      if (!hasRolledOnce && !document.documentElement.classList.contains('perf-mode')) {
+        hasRolledOnce = true;
+        rollNumberSmooth('stat-subjects', false);
+        rollNumberSmooth('stat-questions', false);
+        rollNumberSmooth('stat-exams', false);
+        rollNumberSmooth('stat-avg-score', true);
+      }
+      return r;
+    };
+    window.renderDashboard = renderDashboard;
+  }
 })();
