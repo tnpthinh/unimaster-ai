@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Luyện Đề Toán Rời Rạc — 3 Đề Tương Tự Có Hướng Dẫn</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0d12; --surface: #12151d; --subtle: #181c26; --border: #262b38;
+    --text: #e6e8ee; --sub: #a9afbf; --muted: #7a8194;
+    --brand: #6366f1; --brand-soft: rgba(99,102,241,.14);
+    --ok: #10b981; --ok-soft: rgba(16,185,129,.14);
+    --bad: #f43f5e; --bad-soft: rgba(244,63,94,.14);
+    --warn: #f59e0b; --warn-soft: rgba(245,158,11,.14);
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--brand); }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 16px 14px 120px; }
+  header.top { position: sticky; top: 0; z-index: 20; background: rgba(11,13,18,.94); border-bottom: 1px solid var(--border); }
+  header.top .in { max-width: 980px; margin: 0 auto; padding: 10px 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+  .brand { font-weight: 800; letter-spacing: -.01em; }
+  .brand small { color: var(--muted); font-weight: 600; margin-left: 6px; }
+  .tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+  .tab { border: 1px solid var(--border); background: var(--subtle); color: var(--sub); padding: 6px 12px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .tab.active { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .bar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pill { padding: 5px 10px; border-radius: 999px; font-size: 12.5px; font-weight: 800; border: 1px solid var(--border); background: var(--subtle); font-variant-numeric: tabular-nums; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 18px; margin: 14px 0; }
+  .card h2 { margin: 0 0 4px; font-size: 18px; }
+  .card h3 { margin: 0; font-size: 15.5px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .qhead { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; margin-bottom: 8px; }
+  .pts { font-size: 12px; font-weight: 800; color: var(--brand); background: var(--brand-soft); padding: 2px 8px; border-radius: 999px; white-space: nowrap; }
+  .part { border-top: 1px dashed var(--border); padding-top: 12px; margin-top: 12px; }
+  .prompt { margin: 4px 0 10px; }
+  .btn { border: 1px solid var(--border); background: var(--subtle); color: var(--text); padding: 7px 12px; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; }
+  .btn:hover { border-color: var(--brand); }
+  .btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  .btn.ok { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+  .btn.warn { background: var(--warn-soft); border-color: var(--warn); color: var(--warn); }
+  .btn.bad { background: var(--bad-soft); border-color: var(--bad); color: var(--bad); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 8px 0; }
+  input.ans, textarea.work { background: var(--subtle); border: 1px solid var(--border); color: var(--text); border-radius: 10px; padding: 8px 10px; font: 15px/1.4 ui-monospace, Consolas, monospace; }
+  input.ans { min-width: 120px; }
+  input.ans.right { border-color: var(--ok); background: var(--ok-soft); }
+  input.ans.wrong { border-color: var(--bad); background: var(--bad-soft); }
+  textarea.work { width: 100%; min-height: 70px; resize: vertical; font-size: 14px; }
+  .reveal { display: none; margin-top: 10px; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--border); background: var(--subtle); }
+  .reveal.show { display: block; }
+  .reveal.hint { border-color: rgba(245,158,11,.45); background: var(--warn-soft); }
+  .reveal.sol { border-color: rgba(16,185,129,.45); background: var(--ok-soft); }
+  .reveal ol, .reveal ul { margin: 6px 0; padding-left: 20px; }
+  .barem { font-size: 12.5px; color: var(--sub); }
+  .barem b { color: var(--ok); }
+  .feedback { font-size: 13px; font-weight: 700; }
+  .feedback.ok { color: var(--ok); } .feedback.bad { color: var(--bad); } .feedback.warn { color: var(--warn); }
+  table.tt { border-collapse: collapse; margin: 8px 0; font-size: 14px; }
+  table.tt th, table.tt td { border: 1px solid var(--border); padding: 6px 10px; text-align: center; min-width: 42px; }
+  table.tt th { background: var(--subtle); font-weight: 700; }
+  .ttwrap { overflow-x: auto; }
+  .cell { cursor: pointer; user-select: none; font-weight: 800; font-family: ui-monospace, Consolas, monospace; }
+  .cell.empty { color: var(--muted); }
+  .cell.right { background: var(--ok-soft); color: var(--ok); }
+  .cell.wrong { background: var(--bad-soft); color: var(--bad); }
+  .gates { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 8px; margin: 8px 0; }
+  .gate { border: 1px solid var(--border); background: var(--subtle); border-radius: 10px; padding: 8px 10px; font-size: 13.5px; }
+  .gate b { color: var(--brand); }
+  .tag { display: inline-block; font-size: 11px; font-weight: 800; padding: 1px 7px; border-radius: 6px; background: var(--brand-soft); color: #a5b4fc; margin-right: 4px; }
+  .legend { font-size: 12.5px; color: var(--sub); }
+  .cipher-ref { overflow-x: auto; }
+  .cipher-ref table { border-collapse: collapse; font: 12px ui-monospace, Consolas, monospace; }
+  .cipher-ref td { border: 1px solid var(--border); padding: 3px 5px; text-align: center; }
+  .cipher-ref tr:first-child td { color: #a5b4fc; font-weight: 800; }
+  .scorebox { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .note { border-left: 3px solid var(--brand); padding: 8px 12px; background: var(--brand-soft); border-radius: 0 10px 10px 0; font-size: 13.5px; }
+  .gen-out { margin-top: 10px; }
+
+  .mcq-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 8px; margin: 10px 0; }
+  .mcq-opt { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; border: 1.5px solid var(--border); background: var(--subtle); color: var(--text); cursor: pointer; text-align: left; transition: all .15s ease; }
+  .mcq-opt:hover { border-color: var(--brand); transform: translateY(-1px); }
+  .mcq-opt .m-badge { width: 28px; height: 28px; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px; background: var(--surface); border: 1px solid var(--border); flex-shrink: 0; }
+  .mcq-opt .m-tag { margin-left: auto; font-size: 11.5px; font-weight: 800; padding: 3px 8px; border-radius: 8px; white-space: nowrap; flex-shrink: 0; }
+  .mcq-opt.is-correct { border: 2px solid var(--ok) !important; background: var(--ok-soft) !important; color: #a7f3d0 !important; font-weight: 700; }
+  .mcq-opt.is-correct .m-badge { background: var(--ok) !important; border-color: var(--ok) !important; color: #fff !important; }
+  .mcq-opt.is-correct .m-tag { background: var(--ok); color: #fff; }
+  .mcq-opt.is-wrong { border: 2px solid var(--bad) !important; background: var(--bad-soft) !important; color: #fecdd3 !important; }
+  .mcq-opt.is-wrong .m-badge { background: var(--bad) !important; border-color: var(--bad) !important; color: #fff !important; }
+  .mcq-opt.is-wrong .m-tag { background: var(--bad); color: #fff; }
+  .ans-reveal-banner { margin-top: 8px; padding: 10px 14px; border-radius: 12px; border: 1.5px solid var(--ok); background: var(--ok-soft); color: #d1fae5; font-size: 13.5px; font-weight: 700; }
+
+  @media (max-width: 600px) {
+    .card { padding: 14px; border-radius: 14px; }
+    input.ans { min-width: 0; width: 100%; font-size: 16px; }
+    textarea.work { font-size: 16px; }
+    table.tt th, table.tt td { padding: 5px 6px; min-width: 34px; }
+  }
+  @media print {
+    header.top, .btn, textarea.work, .row input { display: none !important; }
+    .reveal.sol { display: block !important; }
+    body { background: #fff; color: #000; }
+    .card { border-color: #999; background: #fff; }
+  }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="in">
+    <div class="brand">∑ Luyện Đề Toán Rời Rạc <small>3 đề tương tự + tự luyện vô hạn</small></div>
+    <div class="tabs" id="tabs"></div>
+    <div class="bar">
+      <span class="pill" id="timer">⏱ 90:00</span>
+      <button class="btn" id="timerBtn">▶ Bấm giờ</button>
+      <span class="pill" id="score">Điểm: 0 / 10</span>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" id="app"></main>
+
+<script>
+/* =====================================================================
+   1. TIỆN ÍCH CHUNG
+   ===================================================================== */
+const R = String.raw;
+const $ = (s, el = document) => el.querySelector(s);
+const STORE_KEY = 'unimaster_trr_practice_v1';
+let store = {};
+try { store = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch (_) { store = {}; }
+const save = () => { try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (_) {} };
+
+function renderMath(el) {
+  if (window.renderMathInElement) {
+    renderMathInElement(el, { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false });
+  }
+}
+const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a; };
+const mod = (a, m) => ((a % m) + m) % m;
+const invMod = (a, m) => { for (let x = 1; x < m; x++) if (mod(a * x, m) === 1) return x; return null; };
+
+/* Bộ phân tích biểu thức Boole: x' / !x / ~x là phủ định, + là OR, viết liền / . / * là AND */
+function parseBool(src) {
+  const s = String(src).replace(/\s+/g, '').replace(/[’`´]/g, "'").replace(/[·∙×*.]/g, '&').replace(/[¬]/g, '!');
+  let i = 0;
+  const peek = () => s[i];
+  function expr() { let n = term(); while (peek() === '+' || peek() === '|' || peek() === '∨') { i++; const a = n, b = term(); n = (v) => a(v) || b(v); } return n; }
+  function term() {
+    let n = factor();
+    while (i < s.length && (peek() === '&' || peek() === '∧' || /[xyz01(!~]/i.test(peek()))) {
+      if (peek() === '&' || peek() === '∧') i++;
+      const a = n, b = factor(); n = (v) => a(v) && b(v);
+    }
+    return n;
+  }
+  function factor() { let n = atom(); while (peek() === "'") { i++; const a = n; n = (v) => !a(v); } return n; }
+  function atom() {
+    const c = peek();
+    if (c === '!' || c === '~') { i++; const a = atom(); return (v) => !a(v); }
+    if (c === '(') { i++; const n = expr(); if (peek() !== ')') throw new Error('Thiếu dấu )'); i++; return n; }
+    if (c === '0') { i++; return () => false; }
+    if (c === '1') { i++; return () => true; }
+    if (/[xyz]/i.test(c)) { i++; const k = c.toLowerCase(); return (v) => v[k]; }
+    throw new Error('Ký tự không hợp lệ: ' + (c || 'kết thúc'));
+  }
+  if (!s) throw new Error('Chưa nhập biểu thức');
+  const f = expr();
+  if (i !== s.length) throw new Error('Không đọc được phần: ' + s.slice(i));
+  return f;
+}
+function sameBool(src, fn) {
+  const f = parseBool(src);
+  for (const x of [0, 1]) for (const y of [0, 1]) for (const z of [0, 1]) {
+    const v = { x: !!x, y: !!y, z: !!z };
+    if (!!f(v) !== !!fn(v)) return false;
+  }
+  return true;
+}
+
+const CIPHER_TABLE = `<div class="cipher-ref"><table><tr>${'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('').map(c => `<td>${c}</td>`).join('')}</tr><tr>${Array.from({ length: 26 }, (_, i) => `<td>${i}</td>`).join('')}</tr></table></div>`;
+
+/* =====================================================================
+   2. NGÂN HÀNG 3 ĐỀ (đáp án đã kiểm chứng bằng máy)
+   ===================================================================== */
+const T = 'T', F = 'F';
+const MCQ_BANK = {"mau": {"c1a": {"A": "$\\overline{P}$: “$\\exists x \\in \\mathbb{R} \\mid 2026x^2 + x + 2027 \\ne 0$”", "B": "$\\overline{P}$: “$\\forall x \\in \\mathbb{R} \\mid 2026x^2 + x + 2027 \\ne 0$”", "C": "$\\overline{P}$: “$\\exists x \\in \\mathbb{R} \\mid 2026x^2 + x + 2027 = 0$”", "D": "$\\overline{P}$: “$\\exists x \\notin \\mathbb{R} \\mid 2026x^2 + x + 2027 \\ne 0$”", "correct": "A"}, "c1b": {"A": "$T,\\ T,\\ F,\\ T$", "B": "$T,\\ F,\\ T,\\ T$", "C": "$F,\\ F,\\ T,\\ T$", "D": "$F,\\ T,\\ T,\\ T$", "correct": "D"}, "c2a": {"A": "(1) $\\overline{x}$, (2) $\\overline{y}$, (3) $\\overline{y} + z$, (4) $\\overline{\\overline{y} + z}$, (5) $f(x,y,z) = \\overline{x}\\,\\overline{(\\overline{y} + z)}$", "B": "(1) $\\overline{x}$, (2) $\\overline{z}$, (3) $y\\overline{z}$, (4) $\\overline{y\\overline{z}}$, (5) $f(x,y,z) = \\overline{x} + \\overline{y\\overline{z}}$", "C": "(1) $x$, (2) $\\overline{z}$, (3) $y + z$, (4) $\\overline{y + z}$, (5) $f(x,y,z) = x\\overline{(y + z)}$", "D": "(1) $\\overline{x}$, (2) $\\overline{z}$, (3) $y + \\overline{z}$, (4) $\\overline{(y + \\overline{z})}$, (5) $f(x,y,z) = \\overline{x}\\,\\overline{(y + \\overline{z})}$", "correct": "D"}, "c2b": {"A": "$g(x,y,z) = \\overline{x} + \\overline{y}$", "B": "$g(x,y,z) = x + y$", "C": "$g(x,y,z) = x + \\overline{y}$", "D": "$g(x,y,z) = x\\overline{y} + z$", "correct": "C"}, "c3a": {"A": "$\\gcd(321, 843) = 1$", "B": "$\\gcd(321, 843) = 9$", "C": "$\\gcd(321, 843) = 3$ (qua 6 bước chia, số dư cuối khác 0 là $3$)", "D": "$\\gcd(321, 843) = 39$", "correct": "C"}, "c3b": {"A": "$84$ cách", "B": "$74$ cách", "C": "$64$ cách", "D": "$60$ cách", "correct": "B"}, "c4a": {"A": "$x \\equiv 1 \\pmod 6;\\ x \\equiv 4 \\pmod 6$", "B": "$x \\equiv 1 \\pmod 6;\\ x \\equiv 3 \\pmod 6;\\ x \\equiv 5 \\pmod 6$", "C": "$x \\equiv 2 \\pmod 6;\\ x \\equiv 4 \\pmod 6;\\ x \\equiv 0 \\pmod 6$", "D": "Phương trình vô nghiệm", "correct": "B"}, "c4b": {"A": "$905$ kit xét nghiệm", "B": "$895$ kit xét nghiệm", "C": "$900$ kit xét nghiệm", "D": "$925$ kit xét nghiệm", "correct": "A"}, "c5a": {"A": "`GXDQSXHSDR`", "B": "`GXDRSXHSDR`", "C": "`HXDQSXHSDR`", "D": "`GXDQSXISDR`", "correct": "A"}, "c5b": {"A": "$7^{-1} \\equiv 19 \\pmod{26}$ và $D(y) \\equiv 19y + 21 \\pmod{26}$", "B": "$7^{-1} \\equiv 11 \\pmod{26}$ và $D(y) \\equiv 11y + 19 \\pmod{26}$", "C": "$7^{-1} \\equiv 15 \\pmod{26}$ và $D(y) \\equiv 15y - 3 \\pmod{26}$", "D": "$7^{-1} \\equiv 15 \\pmod{26}$ và $D(y) = 15(y - 3) \\equiv 15y + 7 \\pmod{26}$", "correct": "D"}}, "de1": {"c1a": {"A": "$\\overline{P}$: “$\\exists x \\in \\mathbb{R} \\mid x^2 - 4x + 5 \\ne 0$”", "B": "$\\overline{P}$: “$\\exists x \\in \\mathbb{R} \\mid x^2 - 4x + 5 < 0$”", "C": "$\\overline{P}$: “$\\forall x \\in \\mathbb{R} \\mid x^2 - 4x + 5 \\le 0$”", "D": "$\\overline{P}$: “$\\exists x \\in \\mathbb{R} \\mid x^2 - 4x + 5 \\le 0$”", "correct": "D"}, "c1b": {"A": "$T,\\ T,\\ F,\\ T$", "B": "$F,\\ T,\\ T,\\ T$", "C": "$T,\\ F,\\ T,\\ T$", "D": "$T,\\ F,\\ F,\\ T$", "correct": "C"}, "c2a": {"A": "(1) $\\overline{x}$, (2) $\\overline{x}y$, (3) $\\overline{z}$, (4) $\\overline{x}y + \\overline{z}$, (5) $f(x,y,z) = \\overline{\\overline{x}y + \\overline{z}}$", "B": "(1) $\\overline{y}$, (2) $x + \\overline{y}$, (3) $\\overline{z}$, (4) $(x+\\overline{y})\\overline{z}$, (5) $f(x,y,z) = \\overline{(x+\\overline{y})\\overline{z}}$", "C": "(1) $\\overline{y}$, (2) $x\\overline{y}$, (3) $\\overline{z}$, (4) $x\\overline{y} + \\overline{z}$, (5) $f(x,y,z) = \\overline{x\\overline{y} + \\overline{z}}$", "D": "(1) $\\overline{y}$, (2) $x\\overline{y}$, (3) $z$, (4) $x\\overline{y} + z$, (5) $f(x,y,z) = \\overline{x\\overline{y} + z}$", "correct": "C"}, "c2b": {"A": "$g(x,y,z) = x + yz$", "B": "$g(x,y,z) = xy + z$", "C": "$g(x,y,z) = y + xz$", "D": "$g(x,y,z) = xy + \\overline{z}$", "correct": "B"}, "c3a": {"A": "$\\gcd(462, 1071) = 7$", "B": "$\\gcd(462, 1071) = 21$", "C": "$\\gcd(462, 1071) = 3$", "D": "$\\gcd(462, 1071) = 42$", "correct": "B"}, "c3b": {"A": "$700$ cách", "B": "$715$ cách", "C": "$680$ cách", "D": "$560$ cách", "correct": "A"}, "c4a": {"A": "$x \\equiv 4 \\pmod{15};\\ x \\equiv 9 \\pmod{15};\\ x \\equiv 14 \\pmod{15}$", "B": "$x \\equiv 3 \\pmod{15};\\ x \\equiv 8 \\pmod{15};\\ x \\equiv 13 \\pmod{15}$", "C": "$x \\equiv 4 \\pmod{15}$ (duy nhất 1 nghiệm)", "D": "$x \\equiv 1 \\pmod{15};\\ x \\equiv 6 \\pmod{15};\\ x \\equiv 11 \\pmod{15}$", "correct": "A"}, "c4b": {"A": "$383$ lọ", "B": "$357$ lọ", "C": "$360$ lọ", "D": "$363$ lọ", "correct": "D"}, "c5a": {"A": "`XIWRAT`", "B": "`XIWQAS`", "C": "`YIWRAS`", "D": "`XIWRAS`", "correct": "D"}, "c5b": {"A": "$5^{-1} \\equiv 21 \\pmod{26}$ và $D(y) \\equiv 21y - 8 \\pmod{26}$", "B": "$5^{-1} \\equiv 5 \\pmod{26}$ và $D(y) \\equiv 5y + 18 \\pmod{26}$", "C": "$5^{-1} \\equiv 21 \\pmod{26}$ và $D(y) = 21(y - 8) \\equiv 21y + 14 \\pmod{26}$", "D": "$5^{-1} \\equiv 17 \\pmod{26}$ và $D(y) \\equiv 17y + 20 \\pmod{26}$", "correct": "C"}}, "de2": {"c1a": {"A": "$\\overline{P}$: “$\\forall n \\notin \\mathbb{N} \\mid n^2 + 1 \\text{ không chia hết cho } 3$”", "B": "$\\overline{P}$: “$\\exists n \\in \\mathbb{N} \\mid n^2 + 1 \\text{ không chia hết cho } 3$”", "C": "$\\overline{P}$: “$\\forall n \\in \\mathbb{N} \\mid n^2 + 1 \\text{ không chia hết cho } 3$”", "D": "$\\overline{P}$: “$\\forall n \\in \\mathbb{N} \\mid n^2 + 1 \\text{ chia hết cho } 3$”", "correct": "C"}, "c1b": {"A": "$T,\\ F,\\ T,\\ F$", "B": "$F,\\ F,\\ T,\\ F$", "C": "$F,\\ T,\\ T,\\ F$", "D": "$F,\\ F,\\ T,\\ T$", "correct": "B"}, "c2a": {"A": "(1) $\\overline{x}$, (2) $yz$, (3) $\\overline{x}yz$, (4) $x+z$, (5) $f(x,y,z) = \\overline{x}yz + x + z$", "B": "(1) $\\overline{x}$, (2) $y+z$, (3) $\\overline{x}(y+z)$, (4) $xz$, (5) $f(x,y,z) = \\overline{x}(y+z) + xz$", "C": "(1) $\\overline{x}$, (2) $y+z$, (3) $\\overline{x}+y+z$, (4) $xz$, (5) $f(x,y,z) = (\\overline{x}+y+z)xz$", "D": "(1) $x$, (2) $\\overline{y+z}$, (3) $x\\overline{(y+z)}$, (4) $xz$, (5) $f(x,y,z) = x\\overline{(y+z)} + xz$", "correct": "B"}, "c2b": {"A": "$g(x,y,z) = y + \\overline{z}$", "B": "$g(x,y,z) = x + \\overline{z}$", "C": "$g(x,y,z) = \\overline{y} + z$", "D": "$g(x,y,z) = y + z$", "correct": "A"}, "c3a": {"A": "$\\gcd(748, 2024) = 44$", "B": "$\\gcd(748, 2024) = 22$", "C": "$\\gcd(748, 2024) = 88$", "D": "$\\gcd(748, 2024) = 11$", "correct": "A"}, "c3b": {"A": "$300$ số", "B": "$360$ số", "C": "$480$ số", "D": "$420$ số", "correct": "D"}, "c4a": {"A": "$x \\equiv 2;\\ 7;\\ 12;\\ 17 \\pmod{20}$", "B": "$x \\equiv 3;\\ 8;\\ 13;\\ 18 \\pmod{20}$", "C": "$x \\equiv 4;\\ 14 \\pmod{20}$", "D": "$x \\equiv 4;\\ 9;\\ 14;\\ 19 \\pmod{20}$", "correct": "D"}, "c4b": {"A": "$240$ thùng", "B": "$241$ thùng", "C": "$239$ thùng", "D": "$229$ thùng", "correct": "C"}, "c5a": {"A": "`BERFDC`", "B": "`AERFDD`", "C": "`AERFDC`", "D": "`AESFDC`", "correct": "C"}, "c5b": {"A": "$11^{-1} \\equiv 7 \\pmod{26}$ và $D(y) \\equiv 7y + 24 \\pmod{26}$", "B": "$11^{-1} \\equiv 19 \\pmod{26}$ và $D(y) = 19(y - 4) \\equiv 19y + 2 \\pmod{26}$", "C": "$11^{-1} \\equiv 19 \\pmod{26}$ và $D(y) \\equiv 19y - 4 \\pmod{26}$", "D": "$11^{-1} \\equiv 15 \\pmod{26}$ và $D(y) \\equiv 15y + 18 \\pmod{26}$", "correct": "B"}}, "de3": {"c1a": {"A": "$\\overline{P}$: “$\\exists x \\in \\mathbb{R},\\ \\exists y \\in \\mathbb{R} \\mid x + y \\ne 1$”", "B": "$\\overline{P}$: “$\\exists x \\in \\mathbb{R},\\ \\forall y \\in \\mathbb{R} \\mid x + y \\ne 1$”", "C": "$\\overline{P}$: “$\\forall x \\in \\mathbb{R},\\ \\forall y \\in \\mathbb{R} \\mid x + y \\ne 1$”", "D": "$\\overline{P}$: “$\\forall y \\in \\mathbb{R},\\ \\exists x \\in \\mathbb{R} \\mid x + y \\ne 1$”", "correct": "B"}, "c1b": {"A": "Cột cuối cùng có cả 8 dòng đều là $T$ (Hằng đúng — Quy tắc tam đoạn luận giả định)", "B": "Cột cuối cùng có 7 dòng $T$ và 1 dòng $F$ tại $(T,F,T)$", "C": "Cột cuối cùng có 4 dòng $T$ và 4 dòng $F$", "D": "Cột cuối cùng toàn $F$ (Hằng sai)", "correct": "A"}, "c2a": {"A": "(1) $\\overline{z}$, (2) $x\\overline{z}$, (3) $x+y$, (4) $\\overline{x+y}$, (5) $f(x,y,z) = x\\overline{z} + \\overline{x+y}$", "B": "(1) $\\overline{z}$, (2) $x+\\overline{z}$, (3) $xy$, (4) $\\overline{xy}$, (5) $f(x,y,z) = (x+\\overline{z})\\overline{xy}$", "C": "(1) $\\overline{x}$, (2) $\\overline{x}z$, (3) $x+y$, (4) $\\overline{x+y}$, (5) $f(x,y,z) = \\overline{x}z + \\overline{x+y}$", "D": "(1) $\\overline{z}$, (2) $x\\overline{z}$, (3) $x+y$, (4) $\\overline{x}+\\overline{y}$, (5) $f(x,y,z) = x\\overline{z}(\\overline{x}+\\overline{y})$", "correct": "A"}, "c2b": {"A": "$g(x,y,z) = \\overline{y} + x\\overline{z}$", "B": "$g(x,y,z) = z + x\\overline{y}$", "C": "$g(x,y,z) = \\overline{z} + \\overline{x}y$", "D": "$g(x,y,z) = \\overline{z} + x\\overline{y}$", "correct": "D"}, "c3a": {"A": "$\\gcd(560, 1547) = 1$", "B": "$\\gcd(560, 1547) = 14$", "C": "$\\gcd(560, 1547) = 21$", "D": "$\\gcd(560, 1547) = 7$", "correct": "D"}, "c3b": {"A": "$144$ cách", "B": "$5040$ cách", "C": "$720$ cách", "D": "$240$ cách", "correct": "C"}, "c4a": {"A": "$x \\equiv 2 \\pmod{14}$ (duy nhất)", "B": "$x \\equiv 3 \\pmod{14};\\ x \\equiv 10 \\pmod{14}$", "C": "$x \\equiv 2 \\pmod{14};\\ x \\equiv 9 \\pmod{14}$", "D": "$x \\equiv 5 \\pmod{14};\\ x \\equiv 12 \\pmod{14}$", "correct": "C"}, "c4b": {"A": "$133$ ống mẫu", "B": "$128$ ống mẫu", "C": "$123$ ống mẫu", "D": "$158$ ống mẫu", "correct": "B"}, "c5a": {"A": "`IWPNJWMO`", "B": "`IWPNJWMP`", "C": "`JWPNJWMP`", "D": "`IWQNJWMP`", "correct": "B"}, "c5b": {"A": "$9^{-1} \\equiv 3 \\pmod{26}$ và $D(y) = 3(y - 2) \\equiv 3y + 20 \\pmod{26}$", "B": "$9^{-1} \\equiv 3 \\pmod{26}$ và $D(y) \\equiv 3y - 2 \\pmod{26}$", "C": "$9^{-1} \\equiv 17 \\pmod{26}$ và $D(y) \\equiv 17y + 18 \\pmod{26}$", "D": "$9^{-1} \\equiv 15 \\pmod{26}$ và $D(y) \\equiv 15y + 22 \\pmod{26}$", "correct": "A"}}};
+const EXAMS = [
+
+/* ------------------------------ ĐỀ MẪU GỐC (PDF) ------------------------------ */
+{
+  id: 'mau', name: '📝 Đề Mẫu Gốc (PDF)',
+  questions: [
+    { title: 'Câu 1', pts: 2, parts: [
+      { id: 'c1a', type: 'self', pts: 1,
+        prompt: R`a) Viết mệnh đề phủ định $\overline{P}$ của mệnh đề $P$: “$\forall x \in \mathbb{R} \mid 2026x^2 + x + 2027 = 0$”.`,
+        hint: R`<ol><li>Đổi lượng từ: $\forall x \in \mathbb{R} \to \exists x \in \mathbb{R}$ (0.50đ).</li><li>Phủ định vị từ: “$= 0$” thành “$\ne 0$” (0.50đ).</li></ol>`,
+        sol: R`$\overline{P}: \exists x \in \mathbb{R} \mid 2026x^2 + x + 2027 \ne 0$.<div class="barem">Ý 1: viết đúng $\exists x \in \mathbb{R}$ — <b>0.50đ</b> · Ý 2: viết đúng $2026x^2+x+2027 \ne 0$ — <b>0.50đ</b></div>` },
+      { id: 'c1b', type: 'tt', pts: 1,
+        prompt: R`b) Lập bảng chân trị của mệnh đề phức hợp: $\big[(\overline{q} \to \overline{p}) \lor (p \land q)\big] \leftrightarrow \overline{p}$.`,
+        vars: ['p', 'q'],
+        cols: [
+          { h: R`$\overline{q}$`, v: [F, T, F, T] },
+          { h: R`$\overline{p}$`, v: [F, F, T, T] },
+          { h: R`$\overline{q} \to \overline{p}$`, v: [T, F, T, T] },
+          { h: R`$p \land q$`, v: [T, F, F, F] },
+          { h: R`$(\overline{q} \to \overline{p}) \lor (p \land q)$`, v: [T, F, T, T] },
+          { h: R`$[\dots] \leftrightarrow \overline{p}$`, v: [F, T, T, T] }
+        ],
+        hint: R`<ol><li>Xét 4 dòng TT, TF, FT, FF.</li><li>$\overline{q}\to\overline{p}$ chỉ sai khi $\overline{q}=T, \overline{p}=F$ (tức $p=T, q=F$).</li><li>$a \leftrightarrow \overline{p}$ đúng khi 2 vế cùng chân trị.</li></ol>`,
+        sol: R`Cột cuối cùng: $F, T, T, T$.<div class="barem">Mỗi dòng đúng <b>0.25đ</b> → tổng <b>1.00đ</b></div>` }
+    ]},
+    { title: 'Câu 2', pts: 2, parts: [
+      { id: 'c2a', type: 'circuit', pts: 1,
+        prompt: R`a) Xác định hàm Boole ứng với mạch logic đề thi mẫu (đầu vào $x, y, z$):`,
+        gates: [
+          R`<b>(1)</b> Cổng <span class="tag">NOT</span> nhận $x$`,
+          R`<b>(2)</b> Cổng <span class="tag">NOT</span> nhận $z$`,
+          R`<b>(3)</b> Cổng <span class="tag">OR</span> nhận $y$ và (2)`,
+          R`<b>(4)</b> Cổng <span class="tag">NOT</span> nhận (3)`,
+          R`<b>(5)</b> Cổng <span class="tag">AND</span> nhận (1) và (4) → $f(x,y,z)$`
+        ],
+        expect: [v => !v.x, v => !v.z, v => v.y || !v.z, v => !(v.y || !v.z), v => !v.x && !(v.y || !v.z)],
+        hint: R`(1) là <code>x'</code>, (2) là <code>z'</code>, (3) là <code>y+z'</code>, (4) là <code>(y+z')'</code>, (5) là <code>x'(y+z')'</code>.`,
+        sol: R`(1) $\overline{x}$ · (2) $\overline{z}$ · (3) $y+\overline{z}$ · (4) $\overline{(y+\overline{z})}$ · (5) $f(x,y,z) = \overline{x}\,\overline{(y+\overline{z})}$.<div class="barem">Mỗi vị trí đúng <b>0.20đ</b> → tổng <b>1.00đ</b></div>` },
+      { id: 'c2b', type: 'kmap', pts: 1,
+        prompt: R`b) Vẽ bảng Karnaugh và rút gọn hàm Boole $g(x,y,z) = xyz + xy\overline{z} + x\overline{y}z + x\overline{y}\overline{z} + \overline{x}\overline{y}z + \overline{x}\overline{y}\overline{z}$.`,
+        cells: [[1, 1, 1, 1], [0, 0, 1, 1]],
+        fn: v => v.x || !v.y,
+        hint: R`Dòng $x$ có cả 4 ô bằng 1 → rút gọn còn $x$. Hai cột cuối ($\overline{y}\overline{z}, \overline{y}z$) có 4 ô bằng 1 → rút gọn còn $\overline{y}$.`,
+        sol: R`Ý 1: Vẽ đúng bảng Karnaugh (dòng $x$: 1,1,1,1; dòng $\overline{x}$: 0,0,1,1) — <b>0.50đ</b>.<br>Ý 2: Cộng theo dòng $x$ còn $x$ — <b>0.25đ</b>.<br>Ý 3: Cộng 4 ô ở 2 cột cuối còn $\overline{y}$ — <b>0.25đ</b>.<br>Vậy $g(x,y,z) = x + \overline{y}$.` }
+    ]},
+    { title: 'Câu 3', pts: 2, parts: [
+      { id: 'c3a', type: 'num', pts: 1,
+        prompt: R`a) Dùng thuật toán Euclid tìm $\gcd(321, 843)$?`,
+        inputs: [{ label: R`$\gcd(321, 843) =$`, ans: 3 }],
+        hint: R`Thực hiện chia liên tiếp: $843 = 2\cdot 321 + 201$; $321 = 1\cdot 201 + 120$; $201 = 1\cdot 120 + 81$; $120 = 1\cdot 81 + 39$; $81 = 2\cdot 39 + 3$; $39 = 13\cdot 3 + 0$.`,
+        sol: R`$843 = 2\cdot 321 + 201$<br>$321 = 1\cdot 201 + 120$<br>$201 = 1\cdot 120 + 81$<br>$120 = 1\cdot 81 + 39$<br>$81 = 2\cdot 39 + 3$<br>$39 = 13\cdot 3 + 0$<br>Số dư khác 0 cuối cùng là $3 \Rightarrow \gcd(321,843)=3$.<div class="barem">Phân tích đúng <b>0.75đ</b> · Kết luận <b>0.25đ</b></div>` },
+      { id: 'c3b', type: 'num', pts: 1,
+        prompt: R`b) Một nhóm sinh viên gồm 4 nam và 5 nữ. Hỏi có bao nhiêu cách chọn ra 3 sinh viên từ nhóm sao cho có <b>ít nhất một sinh viên nam</b>?`,
+        inputs: [{ label: 'Số cách chọn =', ans: 74 }],
+        hint: R`Cách 1: $C_4^1 C_5^2 + C_4^2 C_5^1 + C_4^3$. Cách 2 (phần bù): $C_9^3 - C_5^3$.`,
+        sol: R`Cách 1: TH1 (1 nam, 2 nữ): $C_4^1 C_5^2 = 40$; TH2 (2 nam, 1 nữ): $C_4^2 C_5^1 = 30$; TH3 (3 nam): $C_4^3 = 4 \Rightarrow 40+30+4 = 74$ cách.<br>Cách 2: $C_9^3 - C_5^3 = 84 - 10 = 74$ cách.<div class="barem">Mỗi ý <b>0.25đ</b> → tổng <b>1.00đ</b></div>` }
+    ]},
+    { title: 'Câu 4', pts: 2, parts: [
+      { id: 'c4a', type: 'num', pts: 1,
+        prompt: R`a) Giải phương trình đồng dư: $9x \equiv 15 \pmod 6$. (Nhập các nghiệm mod 6 cách nhau bởi dấu phẩy)`,
+        inputs: [{ label: R`$x \equiv$`, ans: [1, 3, 5], kind: 'set', suffix: R`$\pmod 6$` }],
+        hint: R`$\gcd(9,6) = 3 \mid 15 \Rightarrow$ có 3 nghiệm. Chia cả 2 vế và mod cho 3 được $3x \equiv 5 \pmod 2 \iff x \equiv 1 \pmod 2$.`,
+        sol: R`Ý 1: $\gcd(9,6)=3$ và $3\mid 15$ nên có 3 nghiệm mod 6 (0.25đ).<br>Ý 2: Chia cho 3: $3x \equiv 5 \pmod 2$ (0.25đ).<br>Ý 3: Giải được $x \equiv 1 \pmod 2 \iff x = 1 + 2k$ (0.25đ).<br>Ý 4: Nghiệm mod 6: $x \equiv 1;\ 3;\ 5 \pmod 6$ (0.25đ).` },
+      { id: 'c4b', type: 'num', pts: 1,
+        prompt: R`b) Một đội y tế chia số kit xét nghiệm vào các hộp 20 cái, 25 cái hoặc 30 cái đều còn thừa 5 kit. Biết số kit nằm trong khoảng 800 đến 1000. Tính số kit xét nghiệm.`,
+        inputs: [{ label: 'Số kit xét nghiệm =', ans: 905 }],
+        hint: R`$(x - 5) \ \vdots\ \text{BCNN}(20,25,30) = 300 \Rightarrow x = 300k + 5$. Với $800 < x < 1000 \Rightarrow k = 3$.`,
+        sol: R`$(x-5)\ \vdots\ \text{BCNN}(20,25,30)=300 \Rightarrow x = 300k+5$.<br>Vì $800 < x < 1000 \Rightarrow k=3 \Rightarrow x = 905$ kit xét nghiệm.<div class="barem">4 ý × <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 5', pts: 2, parts: [
+      { id: 'c5a', type: 'num', pts: 1,
+        prompt: R`Cho hệ mật mã Affine có khóa $(a,b) = (7,3)$, bản rõ <b>TOANROIRAC</b>.<br>a) Dùng $E(x) \equiv 7x + 3 \pmod{26}$ để mã hóa bản rõ.` + CIPHER_TABLE,
+        inputs: [{ label: 'Bản mã =', ans: 'GXDQSXHSDR', kind: 'str' }],
+        hint: R`T=19, O=14, A=0, N=13, R=17, O=14, I=8, R=17, A=0, C=2. Tính $y = (7x+3) \bmod 26$.`,
+        sol: R`<table class="tt"><tr><th>Rõ</th><td>T</td><td>O</td><td>A</td><td>N</td><td>R</td><td>O</td><td>I</td><td>R</td><td>A</td><td>C</td></tr><tr><th>x</th><td>19</td><td>14</td><td>0</td><td>13</td><td>17</td><td>14</td><td>8</td><td>17</td><td>0</td><td>2</td></tr><tr><th>y</th><td>6</td><td>23</td><td>3</td><td>16</td><td>18</td><td>23</td><td>7</td><td>18</td><td>3</td><td>17</td></tr><tr><th>Mã</th><td>G</td><td>X</td><td>D</td><td>Q</td><td>S</td><td>X</td><td>H</td><td>S</td><td>D</td><td>R</td></tr></table>Bản mã: <b>GXDQSXHSDR</b>.<div class="barem">Dãy số $x$ <b>0.25đ</b> · Tính $E(x)$ <b>0.50đ</b> · Kết luận <b>0.25đ</b></div>` },
+      { id: 'c5b', type: 'num', pts: 1,
+        prompt: R`b) Tìm $7^{-1} \pmod{26}$, xác định hàm giải mã $D(y)$ và giải mã để kiểm chứng.`,
+        inputs: [{ label: R`$7^{-1}\equiv$`, ans: 15 }, { label: R`$D(y)\equiv$`, ans: 15, suffix: R`$y\ +$` }, { label: '', ans: 7, suffix: R`$\pmod{26}$` }, { label: 'Giải mã GXDQSXHSDR =', ans: 'TOANROIRAC', kind: 'str' }],
+        hint: R`$7\cdot 15 = 105 = 4\cdot 26 + 1 \Rightarrow 7^{-1} \equiv 15$. Khi đó $D(y) = 15(y-3) = 15y - 45 \equiv 15y + 7 \pmod{26}$.`,
+        sol: R`Ý 1: $7^{-1} \equiv 15 \pmod{26}$ (0.25đ).<br>Ý 2: $D(y) = 15(y-3) \equiv 15y + 7 \pmod{26}$ (0.25đ).<br>Ý 3: Giải mã $6,23,3,16,18,23,7,18,3,17$ thu được <b>TOANROIRAC</b> (0.50đ).` }
+    ]}
+  ]
+},
+
+/* ------------------------------ ĐỀ 1 ------------------------------ */
+{
+  id: 'de1', name: 'Đề 1',
+  questions: [
+    { title: 'Câu 1', pts: 2, parts: [
+      { id: 'c1a', type: 'self', pts: 1,
+        prompt: R`a) Viết mệnh đề phủ định $\overline{P}$ của mệnh đề $P$: “$\forall x \in \mathbb{R},\ x^2 - 4x + 5 > 0$”.`,
+        hint: R`<ol><li>Đổi lượng từ: $\forall \to \exists$ (và $\exists \to \forall$).</li><li>Giữ nguyên tập hợp $x \in \mathbb{R}$.</li><li>Phủ định vị từ: “$>$” thành “$\le$” (<b>không phải</b> “$<$”).</li></ol>`,
+        sol: R`$\overline{P}$: “$\exists x \in \mathbb{R},\ x^2 - 4x + 5 \le 0$”.<br><span class="muted">Nhận xét thêm: $x^2-4x+5=(x-2)^2+1>0$ nên $P$ đúng, $\overline{P}$ sai.</span>
+          <div class="barem">Ý 1: viết đúng $\exists x \in \mathbb{R}$ — <b>0.50đ</b> · Ý 2: viết đúng $x^2-4x+5 \le 0$ — <b>0.50đ</b></div>` },
+      { id: 'c1b', type: 'tt', pts: 1,
+        prompt: R`b) Lập bảng chân trị của mệnh đề phức hợp: $\big[(p \land \neg q) \lor (\neg p \to q)\big] \leftrightarrow q$.`,
+        vars: ['p', 'q'],
+        cols: [
+          { h: R`$\neg q$`, v: [F, T, F, T] },
+          { h: R`$p \land \neg q$`, v: [F, T, F, F] },
+          { h: R`$\neg p$`, v: [F, F, T, T] },
+          { h: R`$\neg p \to q$`, v: [T, T, T, F] },
+          { h: R`$(p \land \neg q) \lor (\neg p \to q)$`, v: [T, T, T, F] },
+          { h: R`$[\dots] \leftrightarrow q$`, v: [T, F, T, T] }
+        ],
+        hint: R`<ol><li>Liệt kê 4 dòng theo thứ tự TT, TF, FT, FF.</li><li>$a \to b$ chỉ <b>sai</b> khi $a=T,\ b=F$.</li><li>$a \leftrightarrow b$ đúng khi $a$ và $b$ <b>cùng</b> giá trị.</li><li>Bấm vào ô để đổi ? → T → F.</li></ol>`,
+        sol: R`Cột cuối: $T, F, T, T$. Mẹo: $\neg p \to q \equiv p \lor q$.<div class="barem">Mỗi dòng đúng <b>0.25đ</b> → tổng <b>1.00đ</b></div>` }
+    ]},
+    { title: 'Câu 2', pts: 2, parts: [
+      { id: 'c2a', type: 'circuit', pts: 1,
+        prompt: R`a) Xác định hàm Boole ứng với mạch logic gồm các cổng sau (đầu vào $x, y, z$):`,
+        gates: [
+          R`<b>(1)</b> Cổng <span class="tag">NOT</span> nhận $y$`,
+          R`<b>(2)</b> Cổng <span class="tag">AND</span> nhận $x$ và (1)`,
+          R`<b>(3)</b> Cổng <span class="tag">NOT</span> nhận $z$`,
+          R`<b>(4)</b> Cổng <span class="tag">OR</span> nhận (2) và (3)`,
+          R`<b>(5)</b> Cổng <span class="tag">NOT</span> nhận (4) → $f(x,y,z)$`
+        ],
+        expect: [v => !v.y, v => v.x && !v.y, v => !v.z, v => (v.x && !v.y) || !v.z, v => !((v.x && !v.y) || !v.z)],
+        hint: R`Đi từ trái sang phải, viết đầu ra của từng cổng. NOT → thêm dấu gạch (gõ <code>y'</code>), AND → viết liền (<code>xy'</code>), OR → dấu <code>+</code>. Phủ định cả cụm thì gõ <code>(…)'</code>.`,
+        sol: R`(1) $\bar{y}$ · (2) $x\bar{y}$ · (3) $\bar{z}$ · (4) $x\bar{y}+\bar{z}$ · (5) $f=\overline{x\bar{y}+\bar{z}}$.<br><span class="muted">Rút gọn thêm (De Morgan): $f=(\bar{x}+y)z=\bar{x}z+yz$.</span><div class="barem">Mỗi ô đúng <b>0.20đ</b></div>` },
+      { id: 'c2b', type: 'kmap', pts: 1,
+        prompt: R`b) Vẽ bảng Karnaugh và rút gọn hàm $g(x,y,z)=xyz+x\bar{y}z+\bar{x}yz+\bar{x}\bar{y}z+xy\bar{z}$.`,
+        cells: [[1, 1, 0, 1], [1, 0, 0, 1]],
+        fn: v => v.z || (v.x && v.y),
+        hint: R`<ol><li>Mỗi số hạng là 1 ô = 1. Cột theo thứ tự $yz,\ y\bar z,\ \bar y\bar z,\ \bar y z$ (2 ô kề nhau chỉ khác 1 biến; cột đầu và cột cuối cũng kề nhau).</li><li>Khoanh nhóm 4 ô hoặc 2 ô càng lớn càng tốt, phủ hết các ô 1.</li><li>Biến nào thay đổi trong nhóm thì bị loại.</li></ol>`,
+        sol: R`Nhóm 4 ô: cột $yz$ và cột $\bar y z$ (kề nhau qua mép) → còn $z$. Nhóm 2 ô: dòng $x$, cột $yz, y\bar z$ → còn $xy$.<br>Vậy $g = z + xy$.<div class="barem">Vẽ đúng bảng <b>0.50đ</b> · Nhóm $z$ <b>0.25đ</b> · Nhóm $xy$ <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 3', pts: 2, parts: [
+      { id: 'c3a', type: 'num', pts: 1,
+        prompt: R`a) Dùng thuật toán Euclid tìm $\gcd(462, 1071)$.`,
+        inputs: [{ label: R`$\gcd(462,1071)=$`, ans: 21 }],
+        hint: R`Lấy số lớn chia số nhỏ: $1071 = q\cdot 462 + r$. Sau đó thay (số chia, số dư) cho (số bị chia, số chia), lặp đến khi dư 0. <b>Số dư khác 0 cuối cùng</b> là gcd.`,
+        sol: R`$1071 = 2\cdot 462 + 147$<br>$462 = 3\cdot 147 + 21$<br>$147 = 7\cdot 21 + 0$<br>⇒ $\gcd(462,1071)=21$.<div class="barem">Phân tích đúng <b>0.75đ</b> · Kết luận <b>0.25đ</b></div>` },
+      { id: 'c3b', type: 'num', pts: 1,
+        prompt: R`b) Một lớp có 6 nam và 7 nữ. Có bao nhiêu cách chọn ban cán sự gồm 4 người sao cho có <b>ít nhất một nữ</b>?`,
+        inputs: [{ label: 'Số cách =', ans: 700 }],
+        hint: R`“Ít nhất một” → dùng <b>phần bù</b>: (tất cả cách chọn 4 người) − (cách chọn 4 người toàn nam). Hoặc chia trường hợp 1, 2, 3, 4 nữ.`,
+        sol: R`Cách 1 (phần bù): $C_{13}^4 - C_6^4 = 715 - 15 = 700$.<br>Cách 2: $C_7^1C_6^3 + C_7^2C_6^2 + C_7^3C_6^1 + C_7^4 = 140+315+210+35 = 700$.<div class="barem">Lập đúng các trường hợp/phần bù <b>0.75đ</b> · Kết luận <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 4', pts: 2, parts: [
+      { id: 'c4a', type: 'num', pts: 1,
+        prompt: R`a) Giải phương trình đồng dư $6x \equiv 9 \pmod{15}$. (Nhập các nghiệm theo mod 15, cách nhau bởi dấu phẩy)`,
+        inputs: [{ label: R`$x \equiv$`, ans: [4, 9, 14], kind: 'set', suffix: R`$\pmod{15}$` }],
+        hint: R`<ol><li>Tính $d=\gcd(6,15)$, kiểm tra $d \mid 9$ ⇒ có đúng $d$ nghiệm.</li><li>Chia cả hai vế và môđun cho $d$.</li><li>Giải phương trình mới (thử các lớp hoặc tìm nghịch đảo).</li><li>Cộng thêm bội của môđun mới để được $d$ nghiệm theo mod 15.</li></ol>`,
+        sol: R`$d=\gcd(6,15)=3$, $3\mid 9$ ⇒ có 3 nghiệm mod 15.<br>Chia cho 3: $2x \equiv 3 \pmod 5$. Vì $2\cdot 3 = 6 \equiv 1$ nên $2^{-1}\equiv 3$ ⇒ $x \equiv 9 \equiv 4 \pmod 5$.<br>Nghiệm: $x \equiv 4;\ 9;\ 14 \pmod{15}$.<div class="barem">4 ý, mỗi ý <b>0.25đ</b></div>` },
+      { id: 'c4b', type: 'num', pts: 1,
+        prompt: R`b) Số học sinh của một trường khi xếp hàng 12, hàng 15 hay hàng 18 đều thừa 3 em. Biết số học sinh trong khoảng 300 đến 400. Tìm số học sinh.`,
+        inputs: [{ label: 'Số học sinh =', ans: 363 }],
+        hint: R`Gọi $x$ là số học sinh. Thừa 3 ⇒ $x-3$ chia hết cho 12, 15, 18 ⇒ $x-3$ là bội của BCNN(12, 15, 18).`,
+        sol: R`$x - 3 \ \vdots\ \text{BCNN}(12,15,18) = 180$ ⇒ $x = 180k + 3$.<br>$300 < x < 400$ ⇒ $k=2$ ⇒ $x = 363$.<div class="barem">Đặt ẩn + điều kiện <b>0.25đ</b> · BCNN <b>0.25đ</b> · Tìm $k$ <b>0.25đ</b> · Kết luận <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 5', pts: 2, parts: [
+      { id: 'c5a', type: 'num', pts: 1,
+        prompt: R`Cho hệ mật mã Affine khóa $(a,b)=(5,8)$, bản rõ <b>DAIHOC</b>.<br>a) Dùng $E(x)\equiv 5x+8 \pmod{26}$ để mã hóa.` + CIPHER_TABLE,
+        inputs: [{ label: 'Bản mã =', ans: 'XIWRAS', kind: 'str' }],
+        hint: R`Đổi chữ → số: D=3, A=0, I=8, H=7, O=14, C=2. Tính $5x+8$ rồi lấy dư khi chia 26, đổi số → chữ.`,
+        sol: R`<table class="tt"><tr><th>Rõ</th><td>D</td><td>A</td><td>I</td><td>H</td><td>O</td><td>C</td></tr><tr><th>x</th><td>3</td><td>0</td><td>8</td><td>7</td><td>14</td><td>2</td></tr><tr><th>y</th><td>23</td><td>8</td><td>22</td><td>17</td><td>0</td><td>18</td></tr><tr><th>Mã</th><td>X</td><td>I</td><td>W</td><td>R</td><td>A</td><td>S</td></tr></table>Bản mã: <b>XIWRAS</b>.<div class="barem">Đổi số <b>0.25đ</b> · Tính $E(x)$ <b>0.50đ</b> · Kết luận <b>0.25đ</b></div>` },
+      { id: 'c5b', type: 'num', pts: 1,
+        prompt: R`b) Tìm $5^{-1} \pmod{26}$, xác định hàm giải mã $D(y)\equiv a'y + b' \pmod{26}$ và giải mã để kiểm chứng.`,
+        inputs: [{ label: R`$5^{-1}\equiv$`, ans: 21 }, { label: R`$D(y)\equiv$`, ans: 21, suffix: R`$y\ +$` }, { label: '', ans: 14, suffix: R`$\pmod{26}$` }, { label: 'Giải mã XIWRAS =', ans: 'DAIHOC', kind: 'str' }],
+        hint: R`Euclid mở rộng: $26 = 5\cdot 5 + 1$ ⇒ $1 = 26 - 5\cdot 5$. Từ đó $D(y) = 5^{-1}(y - 8)$, khai triển và rút gọn mod 26.`,
+        sol: R`$1 = 26 - 5\cdot 5$ ⇒ $5^{-1} \equiv -5 \equiv 21 \pmod{26}$.<br>$D(y) = 21(y-8) = 21y - 168 \equiv 21y + 14 \pmod{26}$.<br>Giải mã $23, 8, 22, 17, 0, 18$ → $3, 0, 8, 7, 14, 2$ → <b>DAIHOC</b> ✓.<div class="barem">$a^{-1}$ <b>0.25đ</b> · $D(y)$ <b>0.25đ</b> · Giải mã đúng <b>0.50đ</b></div>` }
+    ]}
+  ]
+},
+/* ------------------------------ ĐỀ 2 ------------------------------ */
+{
+  id: 'de2', name: 'Đề 2',
+  questions: [
+    { title: 'Câu 1', pts: 2, parts: [
+      { id: 'c1a', type: 'self', pts: 1,
+        prompt: R`a) Viết mệnh đề phủ định $\overline{P}$ của mệnh đề $P$: “$\exists n \in \mathbb{N},\ n^2 + 1$ chia hết cho 3”.`,
+        hint: R`$\exists \to \forall$; “chia hết” → “<b>không</b> chia hết”.`,
+        sol: R`$\overline{P}$: “$\forall n \in \mathbb{N},\ n^2+1$ không chia hết cho 3”.<br><span class="muted">Nhận xét: $n^2 \bmod 3 \in \{0,1\}$ nên $n^2+1 \bmod 3 \in \{1,2\}$ ⇒ $\overline{P}$ đúng.</span><div class="barem">Ý 1: $\forall n\in\mathbb N$ <b>0.50đ</b> · Ý 2: “không chia hết cho 3” <b>0.50đ</b></div>` },
+      { id: 'c1b', type: 'tt', pts: 1,
+        prompt: R`b) Lập bảng chân trị của mệnh đề: $(p \lor \neg q) \to (q \land \neg p)$.`,
+        vars: ['p', 'q'],
+        cols: [
+          { h: R`$\neg q$`, v: [F, T, F, T] },
+          { h: R`$p \lor \neg q$`, v: [T, T, F, T] },
+          { h: R`$\neg p$`, v: [F, F, T, T] },
+          { h: R`$q \land \neg p$`, v: [F, F, T, F] },
+          { h: R`$(p \lor \neg q) \to (q \land \neg p)$`, v: [F, F, T, F] }
+        ],
+        hint: R`Tính lần lượt từng cột trung gian. Phép kéo theo chỉ sai khi vế trái T, vế phải F.`,
+        sol: R`Cột cuối: $F, F, T, F$ (chỉ đúng khi $p=F, q=T$).<div class="barem">Mỗi dòng đúng <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 2', pts: 2, parts: [
+      { id: 'c2a', type: 'circuit', pts: 1,
+        prompt: R`a) Xác định hàm Boole ứng với mạch logic gồm các cổng sau:`,
+        gates: [
+          R`<b>(1)</b> Cổng <span class="tag">NOT</span> nhận $x$`,
+          R`<b>(2)</b> Cổng <span class="tag">OR</span> nhận $y$ và $z$`,
+          R`<b>(3)</b> Cổng <span class="tag">AND</span> nhận (1) và (2)`,
+          R`<b>(4)</b> Cổng <span class="tag">AND</span> nhận $x$ và $z$`,
+          R`<b>(5)</b> Cổng <span class="tag">OR</span> nhận (3) và (4) → $f(x,y,z)$`
+        ],
+        expect: [v => !v.x, v => v.y || v.z, v => !v.x && (v.y || v.z), v => v.x && v.z, v => (!v.x && (v.y || v.z)) || (v.x && v.z)],
+        hint: R`Đầu ra cổng OR có 2 biến phải đặt trong ngoặc khi đưa vào cổng AND: <code>x'(y+z)</code>.`,
+        sol: R`(1) $\bar{x}$ · (2) $y+z$ · (3) $\bar{x}(y+z)$ · (4) $xz$ · (5) $f = \bar{x}(y+z) + xz$.<br><span class="muted">Rút gọn: $f = \bar{x}y + \bar{x}z + xz = \bar{x}y + z$.</span><div class="barem">Mỗi ô đúng <b>0.20đ</b></div>` },
+      { id: 'c2b', type: 'kmap', pts: 1,
+        prompt: R`b) Vẽ bảng Karnaugh và rút gọn $g(x,y,z) = xy\bar{z} + x\bar{y}\bar{z} + \bar{x}y\bar{z} + \bar{x}\bar{y}\bar{z} + \bar{x}yz + xyz$.`,
+        cells: [[1, 1, 1, 0], [1, 1, 1, 0]],
+        fn: v => v.y || !v.z,
+        hint: R`Có 6 ô = 1 → tìm 2 nhóm 4 ô (mỗi nhóm là 2 cột kề nhau trọn 2 dòng). Hai nhóm được phép chồng lên nhau.`,
+        sol: R`Nhóm cột $yz, y\bar z$ → còn $y$. Nhóm cột $y\bar z, \bar y\bar z$ → còn $\bar z$.<br>Vậy $g = y + \bar{z}$.<div class="barem">Vẽ bảng <b>0.50đ</b> · Mỗi nhóm <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 3', pts: 2, parts: [
+      { id: 'c3a', type: 'num', pts: 1,
+        prompt: R`a) Dùng thuật toán Euclid tìm $\gcd(748, 2024)$.`,
+        inputs: [{ label: R`$\gcd =$`, ans: 44 }],
+        hint: R`Bắt đầu: $2024 = 2\cdot 748 + \dots$`,
+        sol: R`$2024 = 2\cdot 748 + 528$<br>$748 = 1\cdot 528 + 220$<br>$528 = 2\cdot 220 + 88$<br>$220 = 2\cdot 88 + 44$<br>$88 = 2\cdot 44 + 0$ ⇒ $\gcd = 44$.<div class="barem">Phân tích <b>0.75đ</b> · Kết luận <b>0.25đ</b></div>` },
+      { id: 'c3b', type: 'num', pts: 1,
+        prompt: R`b) Từ các chữ số $0, 1, 2, 3, 4, 5, 6$ lập được bao nhiêu số tự nhiên <b>chẵn</b> có 4 chữ số <b>khác nhau</b>?`,
+        inputs: [{ label: 'Số các số =', ans: 420 }],
+        hint: R`Chữ số 0 vừa không được đứng đầu vừa là chữ số chẵn ⇒ tách 2 trường hợp: chữ số hàng đơn vị là 0, và chữ số hàng đơn vị thuộc $\{2,4,6\}$.`,
+        sol: R`TH1: hàng đơn vị = 0: $6\cdot 5\cdot 4 = 120$ số.<br>TH2: hàng đơn vị $\in\{2,4,6\}$ (3 cách), hàng nghìn khác 0 và khác chữ số cuối (5 cách), 2 vị trí giữa: $5\cdot 4$ ⇒ $3\cdot 5\cdot 20 = 300$ số.<br>Tổng: $120 + 300 = 420$.<div class="barem">TH1 <b>0.25đ</b> · TH2 <b>0.50đ</b> · Kết luận <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 4', pts: 2, parts: [
+      { id: 'c4a', type: 'num', pts: 1,
+        prompt: R`a) Giải phương trình $8x \equiv 12 \pmod{20}$.`,
+        inputs: [{ label: R`$x \equiv$`, ans: [4, 9, 14, 19], kind: 'set', suffix: R`$\pmod{20}$` }],
+        hint: R`$d = \gcd(8,20)$ và kiểm tra $d \mid 12$. Số nghiệm theo mod 20 bằng $d$.`,
+        sol: R`$d = 4$, $4 \mid 12$ ⇒ 4 nghiệm.<br>Chia cho 4: $2x \equiv 3 \pmod 5$ ⇒ $x \equiv 3\cdot 3 = 9 \equiv 4 \pmod 5$.<br>Nghiệm: $x \equiv 4;\ 9;\ 14;\ 19 \pmod{20}$.<div class="barem">4 ý × <b>0.25đ</b></div>` },
+      { id: 'c4b', type: 'num', pts: 1,
+        prompt: R`b) Một kho có một số thùng thuốc. Nếu xếp mỗi kệ 8 thùng thì thừa 7, mỗi kệ 12 thùng thì thừa 11, mỗi kệ 15 thùng thì thừa 14. Biết số thùng trong khoảng 200 đến 300. Tìm số thùng.`,
+        inputs: [{ label: 'Số thùng =', ans: 239 }],
+        hint: R`Để ý: số dư luôn bằng (số chia − 1) ⇒ nếu thêm 1 thùng thì chia hết. Xét $x + 1$.`,
+        sol: R`$x+1$ chia hết cho 8, 12, 15 ⇒ $x + 1 = 120k$ ($\text{BCNN}=120$).<br>$200 < x < 300$ ⇒ $k = 2$ ⇒ $x = 239$.<div class="barem">4 ý × <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 5', pts: 2, parts: [
+      { id: 'c5a', type: 'num', pts: 1,
+        prompt: R`Cho hệ mật mã Affine khóa $(a,b) = (11, 4)$, bản rõ <b>CANTHO</b>.<br>a) Mã hóa bằng $E(x) \equiv 11x + 4 \pmod{26}$.` + CIPHER_TABLE,
+        inputs: [{ label: 'Bản mã =', ans: 'AERFDC', kind: 'str' }],
+        hint: R`C=2, A=0, N=13, T=19, H=7, O=14. Ví dụ: $11\cdot 13 + 4 = 147 = 5\cdot 26 + 17$ ⇒ R.`,
+        sol: R`<table class="tt"><tr><th>Rõ</th><td>C</td><td>A</td><td>N</td><td>T</td><td>H</td><td>O</td></tr><tr><th>x</th><td>2</td><td>0</td><td>13</td><td>19</td><td>7</td><td>14</td></tr><tr><th>y</th><td>0</td><td>4</td><td>17</td><td>5</td><td>3</td><td>2</td></tr><tr><th>Mã</th><td>A</td><td>E</td><td>R</td><td>F</td><td>D</td><td>C</td></tr></table>Bản mã: <b>AERFDC</b>.<div class="barem">Đổi số <b>0.25đ</b> · Tính $E(x)$ <b>0.50đ</b> · Kết luận <b>0.25đ</b></div>` },
+      { id: 'c5b', type: 'num', pts: 1,
+        prompt: R`b) Tìm $11^{-1} \pmod{26}$, hàm giải mã $D(y)$ và giải mã kiểm chứng.`,
+        inputs: [{ label: R`$11^{-1}\equiv$`, ans: 19 }, { label: R`$D(y)\equiv$`, ans: 19, suffix: R`$y\ +$` }, { label: '', ans: 2, suffix: R`$\pmod{26}$` }, { label: 'Giải mã AERFDC =', ans: 'CANTHO', kind: 'str' }],
+        hint: R`Euclid mở rộng: $26 = 2\cdot 11 + 4$, $11 = 2\cdot 4 + 3$, $4 = 1\cdot 3 + 1$. Thế ngược để biểu diễn $1 = s\cdot 26 + t\cdot 11$.`,
+        sol: R`$1 = 4 - 3 = 4 - (11 - 2\cdot 4) = 3\cdot 4 - 11 = 3(26 - 2\cdot 11) - 11 = 3\cdot 26 - 7\cdot 11$<br>⇒ $11^{-1} \equiv -7 \equiv 19 \pmod{26}$.<br>$D(y) = 19(y - 4) = 19y - 76 \equiv 19y + 2 \pmod{26}$.<br>Giải mã $0,4,17,5,3,2$ → $2,0,13,19,7,14$ → <b>CANTHO</b> ✓.<div class="barem">$a^{-1}$ <b>0.25đ</b> · $D(y)$ <b>0.25đ</b> · Giải mã <b>0.50đ</b></div>` }
+    ]}
+  ]
+},
+/* ------------------------------ ĐỀ 3 ------------------------------ */
+{
+  id: 'de3', name: 'Đề 3 (nâng cao)',
+  questions: [
+    { title: 'Câu 1', pts: 2, parts: [
+      { id: 'c1a', type: 'self', pts: 1,
+        prompt: R`a) Viết mệnh đề phủ định của $P$: “$\forall x \in \mathbb{R},\ \exists y \in \mathbb{R}:\ x + y = 1$”.`,
+        hint: R`Có <b>hai</b> lượng từ ⇒ đổi cả hai: $\forall \to \exists$, $\exists \to \forall$, giữ nguyên thứ tự; rồi phủ định “$=$” thành “$\ne$”.`,
+        sol: R`$\overline{P}$: “$\exists x \in \mathbb{R},\ \forall y \in \mathbb{R}:\ x + y \ne 1$”.<div class="barem">Đổi đúng 2 lượng từ <b>0.50đ</b> · $x+y\ne 1$ <b>0.50đ</b></div>` },
+      { id: 'c1b', type: 'tt', pts: 1,
+        prompt: R`b) Lập bảng chân trị của $\big[(p \to q) \land (q \to r)\big] \to (p \to r)$. Mệnh đề có phải hằng đúng không?`,
+        vars: ['p', 'q', 'r'],
+        cols: [
+          { h: R`$p \to q$`, v: [T, T, F, F, T, T, T, T] },
+          { h: R`$q \to r$`, v: [T, F, T, T, T, F, T, T] },
+          { h: R`$(p\to q)\land(q\to r)$`, v: [T, F, F, F, T, F, T, T] },
+          { h: R`$p \to r$`, v: [T, F, T, F, T, T, T, T] },
+          { h: R`Toàn bộ`, v: [T, T, T, T, T, T, T, T] }
+        ],
+        hint: R`3 biến ⇒ $2^3 = 8$ dòng. Thứ tự: TTT, TTF, TFT, TFF, FTT, FTF, FFT, FFF.`,
+        sol: R`Cột cuối toàn $T$ ⇒ <b>hằng đúng</b> (luật bắc cầu / tam đoạn luận giả định).<div class="barem">Mỗi dòng <b>0.125đ</b></div>` }
+    ]},
+    { title: 'Câu 2', pts: 2, parts: [
+      { id: 'c2a', type: 'circuit', pts: 1,
+        prompt: R`a) Xác định hàm Boole ứng với mạch logic gồm các cổng sau:`,
+        gates: [
+          R`<b>(1)</b> Cổng <span class="tag">NOT</span> nhận $z$`,
+          R`<b>(2)</b> Cổng <span class="tag">AND</span> nhận $x$ và (1)`,
+          R`<b>(3)</b> Cổng <span class="tag">OR</span> nhận $x$ và $y$`,
+          R`<b>(4)</b> Cổng <span class="tag">NOT</span> nhận (3)`,
+          R`<b>(5)</b> Cổng <span class="tag">OR</span> nhận (2) và (4) → $f(x,y,z)$`
+        ],
+        expect: [v => !v.z, v => v.x && !v.z, v => v.x || v.y, v => !(v.x || v.y), v => (v.x && !v.z) || !(v.x || v.y)],
+        hint: R`Cổng (4) phủ định <b>cả</b> biểu thức $x+y$ ⇒ gõ <code>(x+y)'</code>.`,
+        sol: R`(1) $\bar z$ · (2) $x\bar z$ · (3) $x+y$ · (4) $\overline{x+y}$ · (5) $f = x\bar z + \overline{x+y}$.<br><span class="muted">De Morgan: $\overline{x+y} = \bar x\bar y$ ⇒ $f = x\bar z + \bar x\bar y$.</span><div class="barem">Mỗi ô <b>0.20đ</b></div>` },
+      { id: 'c2b', type: 'kmap', pts: 1,
+        prompt: R`b) Vẽ bảng Karnaugh và rút gọn $g = xy\bar z + x\bar y\bar z + \bar x y\bar z + \bar x\bar y\bar z + x\bar y z$.`,
+        cells: [[0, 1, 1, 1], [0, 1, 1, 0]],
+        fn: v => !v.z || (v.x && !v.y),
+        hint: R`Tìm nhóm 4 ô trước (2 cột giữa), sau đó ô lẻ còn lại ghép với 1 ô kề cạnh nó.`,
+        sol: R`Nhóm 4 ô cột $y\bar z, \bar y\bar z$ → $\bar z$. Ô $x\bar y z$ ghép với $x\bar y\bar z$ → $x\bar y$.<br>Vậy $g = \bar z + x\bar y$.<div class="barem">Vẽ bảng <b>0.50đ</b> · Mỗi nhóm <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 3', pts: 2, parts: [
+      { id: 'c3a', type: 'num', pts: 1,
+        prompt: R`a) Dùng thuật toán Euclid tìm $\gcd(560, 1547)$.`,
+        inputs: [{ label: R`$\gcd =$`, ans: 7 }],
+        hint: R`Chuỗi chia khá dài (6 bước) — trình bày cẩn thận từng dòng.`,
+        sol: R`$1547 = 2\cdot 560 + 427$<br>$560 = 1\cdot 427 + 133$<br>$427 = 3\cdot 133 + 28$<br>$133 = 4\cdot 28 + 21$<br>$28 = 1\cdot 21 + 7$<br>$21 = 3\cdot 7 + 0$ ⇒ $\gcd = 7$.<div class="barem">Phân tích <b>0.75đ</b> · Kết luận <b>0.25đ</b></div>` },
+      { id: 'c3b', type: 'num', pts: 1,
+        prompt: R`b) Có bao nhiêu cách xếp 3 bạn nam và 4 bạn nữ thành một hàng ngang sao cho 3 bạn nam luôn đứng cạnh nhau?`,
+        inputs: [{ label: 'Số cách =', ans: 720 }],
+        hint: R`“Buộc” 3 nam thành 1 khối ⇒ hoán vị (khối + 4 nữ), sau đó hoán vị bên trong khối.`,
+        sol: R`Coi 3 nam là 1 khối ⇒ có 5 phần tử: $5! = 120$ cách. Trong khối nam: $3! = 6$ cách.<br>Tổng: $120\cdot 6 = 720$.<div class="barem">Ý tưởng khối <b>0.25đ</b> · $5!$ <b>0.25đ</b> · $3!$ <b>0.25đ</b> · Kết luận <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 4', pts: 2, parts: [
+      { id: 'c4a', type: 'num', pts: 1,
+        prompt: R`a) Giải phương trình $10x \equiv 6 \pmod{14}$.`,
+        inputs: [{ label: R`$x \equiv$`, ans: [2, 9], kind: 'set', suffix: R`$\pmod{14}$` }],
+        hint: R`$d = \gcd(10,14) = 2$. Sau khi chia: $5x \equiv 3 \pmod 7$ — tìm $5^{-1} \bmod 7$.`,
+        sol: R`$d = 2 \mid 6$ ⇒ 2 nghiệm. $5x \equiv 3 \pmod 7$, $5\cdot 3 = 15 \equiv 1$ ⇒ $5^{-1}\equiv 3$ ⇒ $x \equiv 9 \equiv 2 \pmod 7$.<br>Nghiệm: $x \equiv 2;\ 9 \pmod{14}$.<div class="barem">4 ý × <b>0.25đ</b></div>` },
+      { id: 'c4b', type: 'num', pts: 1,
+        prompt: R`b) Một số lọ thuốc khi chia cho 3 dư 2, chia cho 5 dư 3, chia cho 7 dư 2. Biết số lọ trong khoảng 100 đến 200. Tìm số lọ (dùng định lý phần dư Trung Hoa).`,
+        inputs: [{ label: 'Số lọ =', ans: 128 }],
+        hint: R`$M = 3\cdot5\cdot7 = 105$, $M_1 = 35,\ M_2 = 21,\ M_3 = 15$. Tìm $y_i$ với $M_i y_i \equiv 1 \pmod{m_i}$, rồi $x \equiv \sum a_i M_i y_i \pmod{105}$.`,
+        sol: R`$35 y_1 \equiv 1 \pmod 3$ ⇒ $y_1 = 2$; $21 y_2 \equiv 1 \pmod 5$ ⇒ $y_2 = 1$; $15 y_3 \equiv 1 \pmod 7$ ⇒ $y_3 = 1$.<br>$x \equiv 2\cdot35\cdot2 + 3\cdot21\cdot1 + 2\cdot15\cdot1 = 233 \equiv 23 \pmod{105}$.<br>$100 < x < 200$ ⇒ $x = 23 + 105 = 128$.<div class="barem">Lập hệ <b>0.25đ</b> · Tìm $y_i$ <b>0.25đ</b> · $x \equiv 23$ <b>0.25đ</b> · Kết luận <b>0.25đ</b></div>` }
+    ]},
+    { title: 'Câu 5', pts: 2, parts: [
+      { id: 'c5a', type: 'num', pts: 1,
+        prompt: R`Cho hệ mật mã Affine khóa $(a,b) = (9, 2)$, bản rõ <b>SINHVIEN</b>.<br>a) Mã hóa bằng $E(x) \equiv 9x + 2 \pmod{26}$.` + CIPHER_TABLE,
+        inputs: [{ label: 'Bản mã =', ans: 'IWPNJWMP', kind: 'str' }],
+        hint: R`S=18, I=8, N=13, H=7, V=21, E=4. Các chữ lặp lại (I, N) cho cùng kết quả — dùng để tự kiểm tra.`,
+        sol: R`<table class="tt"><tr><th>Rõ</th><td>S</td><td>I</td><td>N</td><td>H</td><td>V</td><td>I</td><td>E</td><td>N</td></tr><tr><th>x</th><td>18</td><td>8</td><td>13</td><td>7</td><td>21</td><td>8</td><td>4</td><td>13</td></tr><tr><th>y</th><td>8</td><td>22</td><td>15</td><td>13</td><td>9</td><td>22</td><td>12</td><td>15</td></tr><tr><th>Mã</th><td>I</td><td>W</td><td>P</td><td>N</td><td>J</td><td>W</td><td>M</td><td>P</td></tr></table>Bản mã: <b>IWPNJWMP</b>.<div class="barem">Đổi số <b>0.25đ</b> · Tính $E(x)$ <b>0.50đ</b> · Kết luận <b>0.25đ</b></div>` },
+      { id: 'c5b', type: 'num', pts: 1,
+        prompt: R`b) Tìm $9^{-1} \pmod{26}$, hàm giải mã $D(y)$ và giải mã kiểm chứng.`,
+        inputs: [{ label: R`$9^{-1}\equiv$`, ans: 3 }, { label: R`$D(y)\equiv$`, ans: 3, suffix: R`$y\ +$` }, { label: '', ans: 20, suffix: R`$\pmod{26}$` }, { label: 'Giải mã IWPNJWMP =', ans: 'SINHVIEN', kind: 'str' }],
+        hint: R`$26 = 2\cdot 9 + 8$, $9 = 1\cdot 8 + 1$.`,
+        sol: R`$1 = 9 - 8 = 9 - (26 - 2\cdot 9) = 3\cdot 9 - 26$ ⇒ $9^{-1} \equiv 3$.<br>$D(y) = 3(y - 2) = 3y - 6 \equiv 3y + 20 \pmod{26}$.<br>Giải mã → <b>SINHVIEN</b> ✓.<div class="barem">$a^{-1}$ <b>0.25đ</b> · $D(y)$ <b>0.25đ</b> · Giải mã <b>0.50đ</b></div>` }
+    ]}
+  ]
+}
+];
+
+/* =====================================================================
+   3. RENDER ĐỀ
+   ===================================================================== */
+let current = store.current || 'mau';
+
+function st(examId, partId) {
+  store[examId] = store[examId] || {};
+  store[examId][partId] = store[examId][partId] || {};
+  return store[examId][partId];
+}
+
+function partHtml(exam, p) {
+  const S = st(exam.id, p.id);
+  const key = `${exam.id}-${p.id}`;
+  let body = '';
+  if (p.type === 'tt') {
+    const rows = 2 ** p.vars.length;
+    const combos = Array.from({ length: rows }, (_, r) => p.vars.map((_, k) => ((r >> (p.vars.length - 1 - k)) & 1) ? F : T));
+    S.cells = S.cells || {};
+    body = `<div class="ttwrap"><table class="tt"><tr>${p.vars.map(v => `<th>$${v}$</th>`).join('')}${p.cols.map(c => `<th>${c.h}</th>`).join('')}</tr>
+      ${combos.map((cb, r) => `<tr>${cb.map(x => `<td>${x}</td>`).join('')}${p.cols.map((c, ci) => {
+        const val = S.cells[`${r}_${ci}`] || '?';
+        return `<td class="cell ${val === '?' ? 'empty' : ''}" data-cell="${key}" data-r="${r}" data-c="${ci}">${val}</td>`;
+      }).join('')}</tr>`).join('')}</table></div>
+      <div class="row"><button class="btn primary" data-check="${key}">✓ Kiểm tra bảng</button><span class="feedback" id="fb-${key}"></span></div>`;
+  } else if (p.type === 'kmap') {
+    S.k = S.k || {};
+    const cols = [R`$yz$`, R`$y\bar z$`, R`$\bar y\bar z$`, R`$\bar y z$`];
+    const rowsLbl = [R`$x$`, R`$\bar x$`];
+    body = `<div class="legend">Bấm vào ô để điền 1 / 0:</div><div class="ttwrap"><table class="tt"><tr><th></th>${cols.map(c => `<th>${c}</th>`).join('')}</tr>
+      ${rowsLbl.map((rl, r) => `<tr><th>${rl}</th>${cols.map((_, c) => {
+        const val = S.k[`${r}_${c}`] ?? '?';
+        return `<td class="cell ${val === '?' ? 'empty' : ''}" data-kcell="${key}" data-r="${r}" data-c="${c}">${val}</td>`;
+      }).join('')}</tr>`).join('')}</table></div>
+      <div class="row"><span>Kết quả rút gọn $g =$</span><input class="ans" id="in-${key}-expr" placeholder="vd: xy + z'" value="${(S.expr || '').replace(/"/g, '&quot;')}" />
+      <button class="btn primary" data-check="${key}">✓ Kiểm tra</button><span class="feedback" id="fb-${key}"></span></div>`;
+  } else if (p.type === 'circuit') {
+    S.g = S.g || [];
+    body = `<div class="gates">${p.gates.map(g => `<div class="gate">${g}</div>`).join('')}</div>
+      <div class="legend">Cú pháp: <code>x'</code> = $\\bar x$, viết liền = AND, <code>+</code> = OR, <code>(x+y)'</code> = phủ định cả cụm.</div>
+      ${p.gates.map((_, gi) => `<div class="row"><span style="min-width:44px"><b>(${gi + 1})</b></span><input class="ans" id="in-${key}-${gi}" value="${(S.g[gi] || '').replace(/"/g, '&quot;')}" placeholder="${gi === 4 ? 'f(x,y,z) = …' : '…'}" /></div>`).join('')}
+      <div class="row"><button class="btn primary" data-check="${key}">✓ Kiểm tra mạch</button><span class="feedback" id="fb-${key}"></span></div>`;
+  } else if (p.type === 'num') {
+    S.v = S.v || [];
+    body = `<div class="row">${p.inputs.map((inp, ii) => `<span>${inp.label}</span><input class="ans" id="in-${key}-${ii}" value="${(S.v[ii] ?? '').toString().replace(/"/g, '&quot;')}" placeholder="${inp.kind === 'set' ? 'vd: 1, 3, 5' : inp.kind === 'str' ? 'CHỮ IN HOA' : '…'}" />${inp.suffix ? `<span>${inp.suffix}</span>` : ''}`).join('')}</div>
+      <div class="row"><button class="btn primary" data-check="${key}">✓ Kiểm tra đáp số</button><span class="feedback" id="fb-${key}"></span></div>`;
+  } else if (p.type === 'self') {
+    body = `<div class="row"><span class="muted">Viết đáp án vào ô nháp, mở “Lời giải” rồi tự chấm:</span>
+      <button class="btn ok" data-self="${key}" data-val="1">Đúng hết (1đ)</button>
+      <button class="btn warn" data-self="${key}" data-val="0.5">Đúng 1 ý (0.5đ)</button>
+      <button class="btn bad" data-self="${key}" data-val="0">Sai (0đ)</button>
+      <span class="feedback" id="fb-${key}"></span></div>`;
+  }
+  const mcq = MCQ_BANK?.[exam.id]?.[p.id];
+  let mcqHtml = '';
+  if (mcq) {
+    const picked = S.mcqPick || '';
+    const corr = mcq.correct;
+    const optsHtml = ['A', 'B', 'C', 'D'].map((L) => {
+      let cls = 'mcq-opt';
+      let tag = '';
+      if (picked) {
+        if (L === corr) {
+          cls += ' is-correct';
+          tag = picked === corr ? '<span class="m-tag">✔ CHÍNH XÁC</span>' : '<span class="m-tag">✔ ĐÁP ÁN ĐÚNG</span>';
+        } else if (L === picked) {
+          cls += ' is-wrong';
+          tag = '<span class="m-tag">✖ BẠN CHỌN</span>';
+        }
+      }
+      return `<button type="button" class="${cls}" data-mcq="${key}" data-letter="${L}">
+        <span class="m-badge">${L}</span>
+        <span style="flex:1">${mcq[L]}</span>
+        ${tag}
+      </button>`;
+    }).join('');
+    const banner = picked
+      ? `<div class="ans-reveal-banner">
+          ${picked === corr
+            ? `✔ Chính xác! Bạn đã chọn đúng đáp án <b>${corr}</b>: ${mcq[corr]}`
+            : `✖ Bạn chọn <b>${picked}</b> (Chưa đúng) ➔ 🎯 <b>ĐÁP ÁN ĐÚNG LÀ ${corr}</b>: ${mcq[corr]}`}
+         </div>`
+      : '';
+    mcqHtml = `<div style="margin:8px 0 12px;padding:10px 12px;border-radius:12px;background:rgba(99,102,241,.07);border:1px solid rgba(99,102,241,.25);">
+      <div class="legend" style="font-weight:800;color:#a5b4fc;margin-bottom:6px;">⚡ Chọn nhanh đáp án trắc nghiệm (Hiện đáp án đúng & lời giải ngay khi chọn):</div>
+      <div class="mcq-grid">${optsHtml}</div>
+      ${banner}
+    </div>`;
+  }
+  const showSolNow = Boolean(S.mcqPick || S.checkedOnce);
+  return `<div class="part" id="part-${key}">
+    <div class="qhead"><div class="prompt">${p.prompt}</div><span class="pts">${p.pts}đ</span></div>
+    ${mcqHtml}
+    ${body}
+    <textarea class="work" data-work="${key}" placeholder="✍️ Nháp / trình bày bài làm của bạn (tự động lưu)...">${(S.work || '').replace(/</g, '&lt;')}</textarea>
+    <div class="row">
+      <button class="btn" data-toggle="hint-${key}">💡 Gợi ý từng bước</button>
+      <button class="btn ok" data-toggle="sol-${key}">📖 Lời giải & barem</button>
+      <button class="btn warn" data-fill="${key}">✨ Điền đáp án đúng vào ô</button>
+    </div>
+    <div class="reveal hint" id="hint-${key}">${p.hint}</div>
+    <div class="reveal sol ${showSolNow ? 'show' : ''}" id="sol-${key}">${p.sol}</div>
+  </div>`;
+}
+
+function examHtml(exam) {
+  return `<div class="card"><h2>${exam.name} — Toán Rời Rạc</h2>
+    <div class="muted">Thời gian 90 phút · 5 câu × 2 điểm · cấu trúc giống đề thi mẫu. Làm trực tiếp, bấm <b>Kiểm tra</b> để chấm tự động, mở <b>Gợi ý</b> khi bí.</div>
+    <div class="row"><button class="btn" id="resetExam">↺ Làm lại đề này</button><button class="btn" onclick="window.print()">🖨 In đề + đáp án</button></div></div>
+    ${exam.questions.map(q => `<div class="card"><div class="qhead"><h3>${q.title}</h3><span class="pts">${q.pts} điểm</span></div>${q.parts.map(p => partHtml(exam, p)).join('')}</div>`).join('')}
+    <div class="card"><h3>🏁 Tổng kết</h3><div class="scorebox" id="summary"></div></div>`;
+}
+
+/* =====================================================================
+   4. CHẤM ĐIỂM
+   ===================================================================== */
+function findPart(key) {
+  const [eid, pid] = key.split('-');
+  const exam = EXAMS.find(e => e.id === eid);
+  for (const q of exam.questions) for (const p of q.parts) if (p.id === pid) return { exam, p };
+}
+function setFb(key, text, cls) { const el = document.getElementById('fb-' + key); if (el) { el.textContent = text; el.className = 'feedback ' + cls; } }
+
+function checkPart(key) {
+  const { exam, p } = findPart(key);
+  const S = st(exam.id, p.id);
+  let score = 0;
+  if (p.type === 'tt') {
+    let rowsOk = 0; const rows = 2 ** p.vars.length;
+    for (let r = 0; r < rows; r++) {
+      let ok = true;
+      p.cols.forEach((c, ci) => {
+        const el = document.querySelector(`[data-cell="${key}"][data-r="${r}"][data-c="${ci}"]`);
+        const good = (S.cells[`${r}_${ci}`] || '?') === c.v[r];
+        el.classList.toggle('right', good); el.classList.toggle('wrong', !good);
+        if (!good) ok = false;
+      });
+      if (ok) rowsOk++;
+    }
+    score = +(p.pts * rowsOk / rows).toFixed(3);
+    setFb(key, `${rowsOk}/${rows} dòng đúng → ${score}đ`, rowsOk === rows ? 'ok' : 'warn');
+  } else if (p.type === 'kmap') {
+    let cellsOk = 0;
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
+      const el = document.querySelector(`[data-kcell="${key}"][data-r="${r}"][data-c="${c}"]`);
+      const good = String(S.k[`${r}_${c}`]) === String(p.cells[r][c]);
+      el.classList.toggle('right', good); el.classList.toggle('wrong', !good);
+      if (good) cellsOk++;
+    }
+    const tableOk = cellsOk === 8;
+    let exprOk = false, msg = '';
+    try { exprOk = sameBool(S.expr || '', p.fn); } catch (e) { msg = ' (' + e.message + ')'; }
+    const inp = document.getElementById(`in-${key}-expr`);
+    inp.classList.toggle('right', exprOk); inp.classList.toggle('wrong', !exprOk);
+    score = (tableOk ? 0.5 : 0) + (exprOk ? 0.5 : 0);
+    setFb(key, `Bảng: ${tableOk ? '✓' : cellsOk + '/8 ô'} · Biểu thức: ${exprOk ? '✓ tương đương' : '✗' + msg} → ${score}đ`, score === 1 ? 'ok' : 'warn');
+  } else if (p.type === 'circuit') {
+    let ok = 0;
+    p.expect.forEach((fn, gi) => {
+      const inp = document.getElementById(`in-${key}-${gi}`);
+      let good = false;
+      try { good = sameBool(S.g[gi] || '', fn); } catch (_) {}
+      inp.classList.toggle('right', good); inp.classList.toggle('wrong', !good);
+      if (good) ok++;
+    });
+    score = +(ok * 0.2).toFixed(2);
+    setFb(key, `${ok}/5 ô đúng → ${score}đ`, ok === 5 ? 'ok' : 'warn');
+  } else if (p.type === 'num') {
+    let ok = 0;
+    p.inputs.forEach((inp, ii) => {
+      const raw = String(S.v[ii] ?? '').trim();
+      let good = false;
+      if (inp.kind === 'set') {
+        const got = [...new Set(raw.split(/[,;\s]+/).filter(Boolean).map(Number))].sort((a, b) => a - b);
+        good = got.length === inp.ans.length && got.every((v, i) => v === inp.ans[i]);
+      } else if (inp.kind === 'str') {
+        good = raw.toUpperCase().replace(/\s+/g, '') === inp.ans;
+      } else {
+        good = raw !== '' && Number(raw.replace(',', '.')) === inp.ans;
+      }
+      const el = document.getElementById(`in-${key}-${ii}`);
+      el.classList.toggle('right', good); el.classList.toggle('wrong', !good);
+      if (good) ok++;
+    });
+    score = +(p.pts * ok / p.inputs.length).toFixed(2);
+    setFb(key, ok === p.inputs.length ? `✓ Chính xác → ${score}đ` : `${ok}/${p.inputs.length} ô đúng → ${score}đ. Thử mở 💡 Gợi ý!`, ok === p.inputs.length ? 'ok' : 'bad');
+  }
+  S.score = score;
+  S.checkedOnce = true;
+  const solEl = document.getElementById('sol-' + key);
+  if (solEl) solEl.classList.add('show');
+  if (p.type === 'num') {
+    const corrSummary = p.inputs.map(inp => `${inp.label || ''} ${Array.isArray(inp.ans) ? inp.ans.join(', ') : inp.ans}`).join(' · ');
+    const fbEl = document.getElementById('fb-' + key);
+    if (fbEl) fbEl.textContent += ` | 🎯 Đáp án đúng: ${corrSummary}`;
+  }
+  save(); updateScore();
+}
+
+function updateScore() {
+  const exam = EXAMS.find(e => e.id === current);
+  if (!exam) { $('#score').textContent = 'Tự luyện'; return; }
+  let total = 0, done = 0, n = 0;
+  exam.questions.forEach(q => q.parts.forEach(p => { n++; const s = store[exam.id]?.[p.id]?.score; if (typeof s === 'number') { total += s; done++; } }));
+  $('#score').textContent = `Điểm: ${(+total.toFixed(2))} / 10`;
+  const sum = $('#summary');
+  if (sum) {
+    const grade = total >= 8.5 ? '🏆 Xuất sắc' : total >= 7 ? '🌟 Khá giỏi' : total >= 5 ? '💪 Đạt' : '🔥 Cần luyện thêm';
+    sum.innerHTML = `<span class="pill">Đã chấm ${done}/${n} ý</span><span class="pill">Tổng: ${(+total.toFixed(2))} / 10</span><span class="pill">${done ? grade : 'Chưa chấm'}</span>`;
+  }
+}
+
+/* =====================================================================
+   5. TỰ LUYỆN VÔ HẠN (sinh đề ngẫu nhiên + lời giải từng bước)
+   ===================================================================== */
+const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+const WORDS = ['HOASINH', 'YKHOA', 'DUOCLY', 'TOANHOC', 'LOGIC', 'MATMA', 'BENHVIEN', 'THUOC', 'GIAIPHAU', 'DIEUDUONG', 'SINHLY', 'CANTHO'];
+
+function genEuclid() {
+  let g = rnd(3, 40), a = g * rnd(5, 60), b = g * rnd(5, 60);
+  if (a === b) b += g;
+  let A = Math.max(a, b), B = Math.min(a, b);
+  const prob = R`Dùng thuật toán Euclid tìm $\gcd(${B}, ${A})$.`;
+  const steps = []; let x = A, y = B;
+  while (y) { const q = Math.floor(x / y), r = x % y; steps.push(`$${x} = ${q}\\cdot ${y} + ${r}$`); [x, y] = [y, r]; }
+  return { prob, ans: x, sol: steps.join('<br>') + `<br>⇒ $\\gcd = ${x}$.` };
+}
+function genCong() {
+  let a, b, m, d;
+  do { d = rnd(2, 5); m = d * rnd(3, 9); a = d * rnd(2, 9); b = d * rnd(1, 9); } while (gcd(a, m) !== d || a % m === 0);
+  const a1 = a / d, b1 = b / d, m1 = m / d, inv = invMod(a1, m1), x0 = mod(inv * b1, m1);
+  const sols = Array.from({ length: d }, (_, k) => x0 + k * m1);
+  return {
+    prob: R`Giải phương trình $${a}x \equiv ${b} \pmod{${m}}$. (nhập các nghiệm mod ${m}, cách nhau dấu phẩy)`,
+    ans: sols, kind: 'set',
+    sol: R`$d = \gcd(${a}, ${m}) = ${d}$, $${d} \mid ${b}$ ⇒ có ${d} nghiệm.<br>Chia cho ${d}: $${a1}x \equiv ${b1} \pmod{${m1}}$. Nghịch đảo: $${a1}^{-1} \equiv ${inv} \pmod{${m1}}$ ⇒ $x \equiv ${inv}\cdot ${b1} \equiv ${x0} \pmod{${m1}}$.<br>Nghiệm: $x \equiv ${sols.join(';\\ ')} \pmod{${m}}$.`
+  };
+}
+function genAffine() {
+  const AS = [3, 5, 7, 9, 11, 15, 17, 19, 21, 23, 25];
+  const a = AS[rnd(0, AS.length - 1)], b = rnd(1, 25), w = WORDS[rnd(0, WORDS.length - 1)];
+  const xs = [...w].map(c => c.charCodeAt(0) - 65), ys = xs.map(x => mod(a * x + b, 26));
+  const ct = ys.map(y => String.fromCharCode(65 + y)).join(''), inv = invMod(a, 26), b2 = mod(-inv * b, 26);
+  return {
+    prob: R`Mã hóa bản rõ <b>${w}</b> bằng Affine khóa $(a,b) = (${a}, ${b})$. Sau đó tự tìm $a^{-1}$ và giải mã kiểm chứng.` + CIPHER_TABLE,
+    ans: ct, kind: 'str',
+    sol: `<table class="tt"><tr><th>Rõ</th>${[...w].map(c => `<td>${c}</td>`).join('')}</tr><tr><th>x</th>${xs.map(v => `<td>${v}</td>`).join('')}</tr><tr><th>y</th>${ys.map(v => `<td>${v}</td>`).join('')}</tr><tr><th>Mã</th>${[...ct].map(c => `<td>${c}</td>`).join('')}</tr></table>
+      Bản mã: <b>${ct}</b>.<br>$${a}^{-1} \\equiv ${inv} \\pmod{26}$ ⇒ $D(y) = ${inv}(y - ${b}) \\equiv ${inv}y + ${b2} \\pmod{26}$.`
+  };
+}
+function genCount() {
+  const nam = rnd(3, 8), nu = rnd(3, 8), k = rnd(3, 4);
+  const C = (n, r) => { let x = 1; for (let i = 0; i < r; i++) x = x * (n - i) / (i + 1); return Math.round(x); };
+  const ans = C(nam + nu, k) - C(nu, k);
+  return {
+    prob: `Nhóm có ${nam} nam và ${nu} nữ. Có bao nhiêu cách chọn ${k} người sao cho có ít nhất 1 nam?`,
+    ans,
+    sol: R`Phần bù: $C_{${nam + nu}}^{${k}} - C_{${nu}}^{${k}} = ${C(nam + nu, k)} - ${C(nu, k)} = ${ans}$.`
+  };
+}
+const GENS = { euclid: ['🔢 Euclid gcd', genEuclid], cong: ['≡ Đồng dư', genCong], affine: ['🔐 Affine', genAffine], count: ['🎲 Tổ hợp', genCount] };
+let genCur = null;
+
+function practiceHtml() {
+  return R`<div class="card"><h2>♾️ Tự luyện vô hạn</h2>
+    <div class="muted">Máy sinh bài ngẫu nhiên đúng dạng đề thi, chấm tự động và có lời giải từng bước.</div>
+    <div class="row">${Object.entries(GENS).map(([k, [lbl]]) => `<button class="btn" data-gen="${k}">${lbl}</button>`).join('')}</div>
+    <div id="genBox" class="gen-out"><div class="note">Chọn một dạng bài ở trên để bắt đầu.</div></div></div>
+    <div class="card"><h3>📌 Tóm tắt công thức cần nhớ</h3>
+      <ul>
+        <li>Phủ định: $\overline{\forall x, P(x)} \equiv \exists x, \overline{P(x)}$; $\overline{>}$ là $\le$, $\overline{=}$ là $\ne$.</li>
+        <li>$p \to q \equiv \neg p \lor q$ (chỉ sai khi T → F); $p \leftrightarrow q$ đúng khi cùng giá trị.</li>
+        <li>De Morgan: $\overline{x+y} = \bar x\bar y$, $\overline{xy} = \bar x + \bar y$.</li>
+        <li>K-map: thứ tự cột $yz,\ y\bar z,\ \bar y\bar z,\ \bar y z$; nhóm 1, 2, 4, 8 ô; mép trái – mép phải kề nhau.</li>
+        <li>$ax \equiv b \pmod m$: $d = \gcd(a,m)$; nếu $d \nmid b$ vô nghiệm, nếu $d \mid b$ có đúng $d$ nghiệm $x_0 + k\frac{m}{d}$.</li>
+        <li>“Thừa $r$ khi chia cho $m_1, m_2, \dots$” ⇒ $x - r$ là bội của BCNN.</li>
+        <li>Affine: $E(x) = ax + b$, $D(y) = a^{-1}(y - b) \pmod{26}$, cần $\gcd(a, 26) = 1$.</li>
+      </ul></div>`;
+}
+function showGen(kind) {
+  genCur = GENS[kind][1]();
+  const box = $('#genBox');
+  box.innerHTML = `<div class="prompt">${genCur.prob}</div>
+    <div class="row"><input class="ans" id="genIn" placeholder="${genCur.kind === 'set' ? 'vd: 1, 4, 7' : genCur.kind === 'str' ? 'CHỮ IN HOA' : 'đáp số'}" />
+    <button class="btn primary" id="genCheck">✓ Kiểm tra</button><button class="btn" data-gen="${kind}">🔄 Bài khác</button><span class="feedback" id="genFb"></span></div>
+    <textarea class="work" placeholder="✍️ Nháp..."></textarea>
+    <div class="row"><button class="btn" data-toggle="genSol">📖 Lời giải</button></div>
+    <div class="reveal sol" id="genSol">${genCur.sol}</div>`;
+  renderMath(box);
+}
+
+/* =====================================================================
+   6. KHUNG ỨNG DỤNG & SỰ KIỆN
+   ===================================================================== */
+function renderTabs() {
+  const tabs = [...EXAMS.map(e => [e.id, e.name]), ['practice', '♾️ Tự luyện']];
+  $('#tabs').innerHTML = tabs.map(([id, n]) => `<button class="tab ${id === current ? 'active' : ''}" data-tab="${id}">${n}</button>`).join('');
+}
+function render() {
+  renderTabs();
+  const exam = EXAMS.find(e => e.id === current);
+  $('#app').innerHTML = exam ? examHtml(exam) : practiceHtml();
+  renderMath($('#app'));
+  updateScore();
+  window.scrollTo({ top: 0 });
+}
+
+document.addEventListener('click', (e) => {
+  const t = e.target.closest('button, td');
+  if (!t) return;
+  if (t.dataset.tab) { current = t.dataset.tab; store.current = current; save(); render(); return; }
+  if (t.dataset.toggle) { document.getElementById(t.dataset.toggle)?.classList.toggle('show'); return; }
+  if (t.dataset.mcq) {
+    const key = t.dataset.mcq;
+    const letter = t.dataset.letter;
+    const { exam, p } = findPart(key);
+    const S = st(exam.id, p.id);
+    const mcq = MCQ_BANK?.[exam.id]?.[p.id];
+    S.mcqPick = letter;
+    S.checkedOnce = true;
+    if (mcq) S.score = letter === mcq.correct ? p.pts : 0;
+    save();
+    const partEl = document.getElementById('part-' + key);
+    if (partEl) {
+      partEl.outerHTML = partHtml(exam, p);
+      renderMath(document.getElementById('part-' + key));
+    }
+    updateScore();
+    return;
+  }
+  if (t.dataset.fill) {
+    const key = t.dataset.fill;
+    const { exam, p } = findPart(key);
+    const S = st(exam.id, p.id);
+    if (p.type === 'tt') {
+      S.cells = S.cells || {};
+      const rows = 2 ** p.vars.length;
+      for (let r = 0; r < rows; r++) p.cols.forEach((c, ci) => { S.cells[`${r}_${ci}`] = c.v[r]; });
+    } else if (p.type === 'kmap') {
+      S.k = S.k || {};
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) S.k[`${r}_${c}`] = p.cells[r][c];
+      const exprMap = { 'mau-c2b': "x + y'", 'de1-c2b': 'xy + z', 'de2-c2b': "y + z'", 'de3-c2b': "z' + xy'" };
+      S.expr = exprMap[key] || S.expr || '';
+    } else if (p.type === 'circuit') {
+      const gateMap = {
+        'mau-c2a': ["x'", "z'", "y + z'", "(y + z')'", "x'(y + z')'"],
+        'de1-c2a': ["y'", "xy'", "z'", "xy' + z'", "(xy' + z')'"],
+        'de2-c2a': ["x'", "y + z", "x'(y + z)", "xz", "x'(y + z) + xz"],
+        'de3-c2a': ["z'", "xz'", "x + y", "(x + y)'", "xz' + (x + y)'"]
+      };
+      S.g = [...(gateMap[key] || [])];
+    } else if (p.type === 'num') {
+      S.v = p.inputs.map(inp => Array.isArray(inp.ans) ? inp.ans.join(', ') : String(inp.ans));
+    }
+    S.checkedOnce = true;
+    S.score = p.pts;
+    save();
+    const partEl = document.getElementById('part-' + key);
+    if (partEl) {
+      partEl.outerHTML = partHtml(exam, p);
+      renderMath(document.getElementById('part-' + key));
+      checkPart(key);
+    }
+    return;
+  }
+  if (t.dataset.check) { checkPart(t.dataset.check); return; }
+  if (t.dataset.gen) { showGen(t.dataset.gen); return; }
+  if (t.id === 'genCheck' && genCur) {
+    const raw = $('#genIn').value.trim(); let good;
+    if (genCur.kind === 'set') { const got = [...new Set(raw.split(/[,;\s]+/).filter(Boolean).map(Number))].sort((a, b) => a - b); good = got.length === genCur.ans.length && got.every((v, i) => v === genCur.ans[i]); }
+    else if (genCur.kind === 'str') good = raw.toUpperCase().replace(/\s+/g, '') === genCur.ans;
+    else good = Number(raw) === genCur.ans;
+    $('#genIn').className = 'ans ' + (good ? 'right' : 'wrong');
+    const corrStr = Array.isArray(genCur.ans) ? genCur.ans.join(', ') : genCur.ans;
+    $('#genFb').textContent = good ? `✓ Chính xác! Đáp án: ${corrStr}` : `✗ Chưa đúng — 🎯 ĐÁP ÁN ĐÚNG LÀ: ${corrStr}`;
+    $('#genFb').className = 'feedback ' + (good ? 'ok' : 'bad');
+    document.getElementById('genSol')?.classList.add('show');
+    return;
+  }
+  if (t.id === 'resetExam') {
+    if (confirm('Xóa toàn bộ bài làm & điểm của đề này?')) { delete store[current]; save(); render(); }
+    return;
+  }
+  if (t.dataset.self) {
+    const { exam, p } = findPart(t.dataset.self); const S = st(exam.id, p.id);
+    S.score = Number(t.dataset.val); save(); setFb(t.dataset.self, `Đã tự chấm: ${S.score}đ`, S.score === 1 ? 'ok' : 'warn'); updateScore();
+    return;
+  }
+  if (t.dataset.cell) {
+    const { exam, p } = findPart(t.dataset.cell); const S = st(exam.id, p.id); const k = `${t.dataset.r}_${t.dataset.c}`;
+    const nxt = { '?': 'T', T: 'F', F: '?' }[S.cells[k] || '?']; S.cells[k] = nxt;
+    t.textContent = nxt; t.className = 'cell' + (nxt === '?' ? ' empty' : ''); save();
+    return;
+  }
+  if (t.dataset.kcell) {
+    const { exam, p } = findPart(t.dataset.kcell); const S = st(exam.id, p.id); const k = `${t.dataset.r}_${t.dataset.c}`;
+    const cur = S.k[k] ?? '?'; const nxt = cur === '?' ? 1 : cur === 1 ? 0 : '?'; S.k[k] = nxt;
+    t.textContent = nxt; t.className = 'cell' + (nxt === '?' ? ' empty' : ''); save();
+  }
+});
+
+document.addEventListener('input', (e) => {
+  const el = e.target;
+  if (el.dataset.work) { const { exam, p } = findPart(el.dataset.work); st(exam.id, p.id).work = el.value; save(); return; }
+  const m = el.id && el.id.match(/^in-(de\d)-(c\w+)-(\w+)$/);
+  if (!m) return;
+  const { p } = findPart(`${m[1]}-${m[2]}`); const S = st(m[1], m[2]);
+  el.classList.remove('right', 'wrong');
+  if (m[3] === 'expr') S.expr = el.value;
+  else if (p.type === 'circuit') { S.g = S.g || []; S.g[+m[3]] = el.value; }
+  else { S.v = S.v || []; S.v[+m[3]] = el.value; }
+  save();
+});
+
+/* Bấm giờ 90 phút */
+let remain = store.timerRemain ?? 5400, timerId = null;
+function drawTimer() { const m = Math.floor(remain / 60), s = remain % 60; $('#timer').textContent = `⏱ ${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`; $('#timer').style.color = remain < 600 ? 'var(--bad)' : ''; }
+$('#timerBtn').addEventListener('click', () => {
+  if (timerId) { clearInterval(timerId); timerId = null; $('#timerBtn').textContent = '▶ Tiếp tục'; return; }
+  if (remain <= 0) remain = 5400;
+  timerId = setInterval(() => { remain--; store.timerRemain = remain; if (remain % 10 === 0) save(); drawTimer(); if (remain <= 0) { clearInterval(timerId); timerId = null; alert('⏰ Hết 90 phút! Hãy bấm Kiểm tra các câu để xem điểm.'); } }, 1000);
+  $('#timerBtn').textContent = '⏸ Tạm dừng';
+});
+drawTimer();
+
+window.addEventListener('DOMContentLoaded', () => { render(); });
+if (document.readyState !== 'loading') render();
+</script>
+</body>
+</html>

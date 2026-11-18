@@ -5690,6 +5690,31 @@ html[data-theme="midnight"] {
   --bg-subtle: #171b26;
   --bg-elevated: #1d2230;
   --bg-hover: #242b3d;
+  --emerald-bg: rgba(16, 185, 129, 0.22);
+  --emerald-border: #10b981;
+  --emerald-text: #a7f3d0;
+  --rose-bg: rgba(244, 63, 94, 0.22);
+  --rose-border: #f43f5e;
+  --rose-text: #fecdd3;
+}
+
+.option-row.is-correct {
+  border: 2px solid #10b981 !important;
+  background-color: var(--emerald-bg) !important;
+  color: var(--emerald-text) !important;
+  box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.35), 0 8px 20px -6px rgba(16, 185, 129, 0.3) !important;
+}
+.option-row.is-correct .option-text {
+  color: var(--emerald-text) !important;
+  font-weight: 700 !important;
+}
+.option-row.is-wrong {
+  border: 2px solid #f43f5e !important;
+  background-color: var(--rose-bg) !important;
+  color: var(--rose-text) !important;
+}
+.option-row.is-wrong .option-text {
+  color: var(--rose-text) !important;
 }
 
 .uni-top-header {

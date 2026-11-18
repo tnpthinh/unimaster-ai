@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=55.0" />
+  <link rel="stylesheet" href="/static/style.css?v=55.1" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -254,6 +254,16 @@
                 title="Ôn cấp tốc các câu từng làm sai">
                 <i data-lucide="target" class="w-3.5 h-3.5 text-rose-400"></i> Luyện điểm yếu
               </button>
+              <button onclick="startTrrPdfPracticeExam('all')"
+                class="btn-soft px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-indigo-500/40"
+                title="Làm trực tiếp Bộ 4 Đề Mẫu &amp; Tương Tự Toán Rời Rạc có hướng dẫn từng bước">
+                <span>📐</span> 4 Đề Mẫu Toán Rời Rạc
+              </button>
+              <a href="/static/luyen_de_toan_roi_rac.html" target="_blank"
+                class="btn-soft px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-emerald-500/40"
+                title="Mở Phòng tự luyện Bảng Chân Trị, Bảng Karnaugh, Mạch Logic, Euclid, Đồng Dư &amp; Affine">
+                <span>✍️</span> Phòng Tự Luyện Bảng &amp; Mạch
+              </a>
               <button onclick="toggleAppFullscreen()"
                 class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
                 title="Chế độ toàn màn hình tập trung">
@@ -776,6 +786,39 @@
             </button>
             <button type="button" onclick="openAddQuestionModal()" class="btn-soft px-3 py-1.5 text-xs font-semibold flex items-center gap-1">
               <i data-lucide="plus" class="w-3.5 h-3.5"></i> Thêm câu
+            </button>
+          </div>
+        </div>
+
+        <!-- Bộ 4 Đề Thi Mẫu & Tương Tự Toán Rời Rạc (Chuẩn Đề Cương PDF — Có Hướng Dẫn Từng Bước) -->
+        <div id="trr-pdf-exam-suite-bar" class="p-3.5 sm:p-4 rounded-2xl border space-y-2.5" style="background-color: var(--bg-subtle); border-color: var(--brand-border);">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <span class="text-base">📐</span>
+              <div>
+                <div class="text-xs sm:text-sm font-extrabold txt-main">Bộ Đề Thi Mẫu &amp; Đề Tương Tự Toán Rời Rạc (Có Hướng Dẫn &amp; Barem 10đ)</div>
+                <div class="text-[11px] txt-muted">Phủ định mệnh đề • Bảng chân trị • Mạch Boole &amp; Karnaugh • Euclid &amp; Tổ hợp • Đồng dư &amp; BCNN • Mật mã Affine</div>
+              </div>
+            </div>
+            <a href="/static/luyen_de_toan_roi_rac.html" target="_blank" class="btn-primary px-3 py-1.5 text-xs font-extrabold flex items-center gap-1.5 rounded-xl">
+              <span>✍️</span> Mở Phòng Làm Bảng Chân Trị &amp; Karnaugh Trực Tiếp ↗
+            </a>
+          </div>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="startTrrPdfPracticeExam('mau')" class="btn-soft px-3 py-1.5 text-xs font-extrabold rounded-xl border border-indigo-500/40">
+              📝 Đề Mẫu Gốc PDF (10 câu)
+            </button>
+            <button type="button" onclick="startTrrPdfPracticeExam('de1')" class="btn-soft px-3 py-1.5 text-xs font-extrabold rounded-xl">
+              🔥 Đề Tương Tự Số 1 (10 câu)
+            </button>
+            <button type="button" onclick="startTrrPdfPracticeExam('de2')" class="btn-soft px-3 py-1.5 text-xs font-extrabold rounded-xl">
+              ⚡ Đề Tương Tự Số 2 (10 câu)
+            </button>
+            <button type="button" onclick="startTrrPdfPracticeExam('de3')" class="btn-soft px-3 py-1.5 text-xs font-extrabold rounded-xl">
+              🏆 Đề Tương Tự Số 3 — Nâng Cao (10 câu)
+            </button>
+            <button type="button" onclick="startTrrPdfPracticeExam('all')" class="btn-soft px-3 py-1.5 text-xs font-extrabold rounded-xl">
+              📚 Làm Trọn Bộ 4 Đề (40 câu)
             </button>
           </div>
         </div>
@@ -7778,6 +7821,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=55.0"></script>
+  <script src="/static/app.js?v=55.1"></script>
 </body>
 </html>
