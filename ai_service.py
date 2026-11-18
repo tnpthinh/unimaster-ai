@@ -2409,44 +2409,41 @@ async def ai_tutor_assist(
     chat_history: list = None,
     image_base64: str = "",
     image_mime: str = "image/jpeg",
+    response_length: str = "concise",
 ) -> dict:
-    """Gia sư AI hợp nhất hỗ trợ 7 chế độ sư phạm + đầy đủ ngữ cảnh câu hỏi & routing telemetry."""
+    """Gia sư AI hợp nhất hỗ trợ 7 chế độ sư phạm + độ dài tinh gọn (concise/detailed) + Vision."""
     norm_mode = _normalize_tutor_mode(mode, message)
+    msg_lower = (message or "").lower()
+    wants_detail = (
+        str(response_length or "").strip().lower() == "detailed"
+        or any(k in msg_lower for k in ("chi tiết", "đầy đủ", "sâu hơn", "phân tích kỹ", "bài giảng đầy đủ"))
+    )
+    eff_length = "detailed" if wants_detail else "concise"
+
     persona_map = {
-        "professor": "Phong cách Giáo sư Đại học uyên bác: phân tích cặn kẽ bản chất học thuật, chỉ rõ điều kiện áp dụng và bẫy đề thi.",
-        "feynman": "Phong cách Richard Feynman siêu trực quan: giải thích bằng hình ảnh đời thường sinh động, dễ hiểu trong 1 phút.",
-        "speed": "Phong cách Cao thủ Giải nhanh: chốt công thức trọng tâm, dấu hiệu nhận diện và mẹo khoanh đúng trong 5-10 giây.",
-        "examiner": "Phong cách Giảng viên Vấn đáp: cô đọng cốt lõi và đặt câu hỏi kích thích tư duy phản biện.",
+        "professor": "Giọng học thuật chuẩn xác, súc tích, đi thẳng vào bản chất & điều kiện áp dụng.",
+        "feynman": "Giọng Feynman trực quan: dùng 1 hình ảnh đời thường cực ngắn, đọc 10 giây hiểu ngay.",
+        "speed": "Giọng Giải nhanh: chốt công thức & dấu hiệu khoanh đúng trong 5 giây.",
+        "examiner": "Giọng Vấn đáp: cô đọng trọng tâm kèm 1 câu hỏi gợi mở ngắn.",
     }
     mode_instructions = {
         "explain": (
-            "CHẾ ĐỘ GIẢI THÍCH BẢN CHẤT (explain): "
-            "1) Nêu kết luận cốt lõi rõ ràng; "
-            "2) Phân tích cơ chế/công thức từng bước; "
-            "3) Nếu người học chọn sai, đối chiếu trực diện chỗ dễ nhầm với đáp án đúng; "
-            "4) Chốt mẹo tránh bẫy đề thi."
+            "CHẾ ĐỘ GIẢI THÍCH (explain): Chốt đáp án đúng ngay dòng đầu, giải thích ngắn gọn bản chất/công thức, đối chiếu chỗ sai (nếu có) và chốt 1 mẹo né bẫy."
         ),
         "eliminate": (
-            "CHẾ ĐỘ PHÂN TÍCH LOẠI TRỪ TỪNG ĐÁP ÁN (eliminate): "
-            "Bắt buộc liệt kê và đánh giá LẦN LƯỢT từng phương án A, B, C, D... (chỉ rõ mỗi phương án ĐÚNG hay SAI ở điểm nào). "
-            "Đặc biệt với câu hỏi 'NGOẠI TRỪ / KHÔNG ĐÚNG / SAI', đánh dấu rõ các ý ĐÚNG bị loại và làm nổi bật đáp án cần khoanh."
+            "CHẾ ĐỘ LOẠI TRỪ A/B/C/D (eliminate): Đánh giá ngắn gọn từng phương án A, B, C, D (mỗi ý 1 dòng: ĐÚNG hay SAI vì sao). Làm nổi bật đáp án cần khoanh (lưu ý câu hỏi NGOẠI TRỪ / SAI)."
         ),
         "socratic": (
-            "CHẾ ĐỘ GỢI MỞ TỪNG BƯỚC (socratic): "
-            "Không tuồn ngay chữ cái đáp án cuối cùng nếu chưa cần; chia nhỏ thành 2-3 bước suy luận kèm 1-2 câu hỏi dẫn dắt để người học tự phát hiện quy luật."
+            "CHẾ ĐỘ GỢI MỞ SOCRATIC (socratic): Chưa tiết lộ ngay chữ cái cuối cùng; đưa 2 gợi ý siêu ngắn kèm 1 câu hỏi dẫn dắt."
         ),
         "mnemonic": (
-            "CHẾ ĐỘ MẸO NHỚ NHANH (mnemonic): "
-            "Tạo câu thần chú vần điệu tiếng Việt, chữ viết tắt (acronym) hoặc liên tưởng hình ảnh độc đáo, súc tích, dễ nhớ trong 5 giây."
+            "CHẾ ĐỘ MẸO NHỚ 5 GIÂY (mnemonic): Tạo 1 câu thần chú vần điệu / viết tắt thật ngắn, độc đáo, nhớ ngay lập tức."
         ),
         "clinical": (
-            "CHẾ ĐỘ BIỆN LUẬN LÂM SÀNG (clinical): "
-            "Phân tích có hệ thống theo tư duy Y khoa/Dược lâm sàng: Dữ kiện mấu chốt (triệu chứng, cận lâm sàng) → Cơ chế bệnh sinh/Dược lực → "
-            "Chẩn đoán xác định & phân biệt → Hướng xử trí ưu tiên / Chống chỉ định & bẫy lâm sàng."
+            "CHẾ ĐỘ LÂM SÀNG (clinical): Tóm lược theo trục: Dữ kiện mấu chốt → Cơ chế → Chẩn đoán/Xử trí & 1 bẫy lâm sàng."
         ),
         "debug": (
-            "CHẾ ĐỘ DEBUG & TRACE CODE TỪNG DÒNG (debug): "
-            "Theo dõi từng dòng thực thi từ điểm vào (`Main`/hàm gọi), trạng thái biến qua từng bước, chỉ rõ lỗi compile/runtime/logic (nếu có) và đề xuất code sửa chuẩn sạch."
+            "CHẾ ĐỘ DEBUG & TRACE CODE (debug): Chỉ thẳng dòng lỗi / Output từng bước ngắn gọn, Big-O và khối code sửa sạch."
         ),
         "flashcard": (
             "CHẾ ĐỘ TẠO FLASHCARD (flashcard): "
@@ -2465,15 +2462,29 @@ async def ai_tutor_assist(
         else ""
     )
     term_guidance = ""
-    if selected_term or any(kw in (message or "").lower() for kw in ("gốc từ", "etymology", "thuật ngữ", "từ vựng", "ngữ pháp", "nghĩa là gì")):
+    if selected_term or any(kw in msg_lower for kw in ("gốc từ", "etymology", "thuật ngữ", "từ vựng", "ngữ pháp", "nghĩa là gì")):
         term_guidance = (
-            "\nKhi giải thích thuật ngữ hoặc từ vựng chuyên ngành: nêu gốc từ (tiền tố/hậu tố/Hy Lạp/Latin nếu có căn cứ), "
-            "từ họ hàng/đồng nguyên, ví dụ chuẩn và lỗi nhầm lẫn hay gặp."
+            "\nKhi giải thích thuật ngữ: nêu ngắn gọn gốc từ/nghĩa cốt lõi, 1 ví dụ và chỗ dễ nhầm."
         )
 
+    concise_rule = ""
+    if norm_mode != "flashcard":
+        if eff_length == "concise":
+            concise_rule = (
+                "\nQUY TẮC TINH GỌN BẮT BUỘC (KHÔNG VIẾT DÀI DÒNG):\n"
+                "- CẤM chào hỏi rườm rà hay tự giới thiệu ('Chào bạn...', 'Với tư cách là...', 'Câu hỏi rất hay...'). Vào thẳng câu trả lời ngay dòng 1!\n"
+                "- Giới hạn độ dài TỐI ĐA 90–150 từ (4–6 gạch đầu dòng ngắn gọn, mỗi dòng tối đa 18–22 từ, đọc lướt 5 giây nắm trọn ý).\n"
+                "- Trình bày thoáng mắt theo cấu trúc 3 nhịp ngắn: **🎯 Chốt nhanh** → **💡 Bản chất** (2–3 ý gạch đầu dòng, in đậm từ khóa) → **⚡ Mẹo / Bẫy thi** (1 dòng).\n"
+            )
+        else:
+            concise_rule = (
+                "\nQUY TẮC TRÌNH BÀY CHI TIẾT NHƯNG SẠCH SẼ:\n"
+                "- CẤM mở đầu xã giao ('Chào bạn, với tư cách là...'). Vào thẳng kết luận & phân tích có đề mục rõ ràng, dễ đọc lướt.\n"
+            )
+
     system_prompt = (
-        f"Bạn là UniMaster AI — Gia sư ôn thi Đại học & Y-Dược/CNTT cho học phần \"{subject_name or 'Tổng quát'}\".\n"
-        f"{style_desc}\n{mode_desc}{term_guidance}{custom_guidance}\n"
+        f"Bạn là UniMaster AI — Gia sư ôn thi học phần \"{subject_name or 'Tổng quát'}\".\n"
+        f"{style_desc}\n{mode_desc}{term_guidance}{custom_guidance}{concise_rule}\n"
         f"{'' if norm_mode == 'flashcard' else STEM_FORMAT_GUIDE}"
     )
 
@@ -2527,9 +2538,9 @@ async def ai_tutor_assist(
     user_parts.append({"text": user_prompt})
     contents_list.append({"role": "user", "parts": user_parts})
 
-    quality = "fast" if norm_mode in ("mnemonic", "flashcard", "socratic") else "deep"
-    thinking_budget = 192 if quality == "fast" else 384
-    max_tok = 2048 if norm_mode == "flashcard" else 6144
+    quality = "fast" if (eff_length == "concise" or norm_mode in ("mnemonic", "flashcard", "socratic")) else "deep"
+    thinking_budget = 128 if quality == "fast" else 384
+    max_tok = 2048 if norm_mode == "flashcard" else (1400 if eff_length == "concise" else 5120)
 
     res = await _run_llm_completion(
         system_instruction=system_prompt,
@@ -2593,6 +2604,7 @@ async def ai_tutor_assist(
 
     return {
         "success": True,
+        "response_length": eff_length,
         "reply": reply_text,
         "mode": norm_mode,
         "provider_used": res["provider_used"],

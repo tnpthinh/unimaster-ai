@@ -5090,3 +5090,111 @@ html[data-theme="sepia"] mark.exam-trap-mark {
   background: rgba(244, 63, 94, 0.16) !important;
   color: var(--rose-text) !important;
 }
+
+/* ==============================================================================
+   UniMaster AI v51.0: Calm Minimalist AI Tutor & Live Cross-Device Cloud Sync
+   ============================================================================== */
+
+/* 1. Smart Collapsible Clamp for Long AI Replies (Eliminates Walls of Text!) */
+.tutor-msg-clamp {
+  max-height: 260px;
+  overflow: hidden;
+  position: relative;
+}
+.tutor-msg-clamp::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 54px;
+  background: linear-gradient(to bottom, transparent, var(--bg-surface));
+  pointer-events: none;
+}
+.tutor-msg-clamp.tutor-msg-expanded {
+  max-height: none !important;
+  overflow: visible !important;
+}
+.tutor-msg-clamp.tutor-msg-expanded::after {
+  display: none !important;
+}
+
+/* 2. Minimalist 1-Line AI Message Footer (Icon Micro-Buttons + Smart Chips) */
+.tutor-micro-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding-top: 0.35rem;
+  margin-top: 0.25rem;
+  border-top: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+}
+.tutor-icon-btn {
+  width: 26px;
+  height: 26px;
+  border-radius: 0.5rem;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease, border-color 0.14s ease, transform 0.14s ease;
+}
+.tutor-icon-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border);
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+
+/* 3. Compact, Airy AI Tutor Welcome Layout */
+.gemini-welcome-compact {
+  max-width: 640px;
+  margin: 1.5rem auto;
+  padding: 0.5rem;
+  text-align: center;
+}
+.gemini-compact-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+@media (max-width: 640px) {
+  .gemini-compact-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.gemini-compact-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.9rem;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease, background-color 0.15s ease;
+}
+.gemini-compact-pill:hover {
+  border-color: var(--brand);
+  background: var(--bg-hover);
+  transform: translateY(-1px);
+}
+
+/* 4. Header Live Cloud Auto-Backup Status Pulse */
+#header-sync-btn.is-syncing #header-sync-dot {
+  background-color: #f59e0b !important;
+  animation: ping 1s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+#header-sync-btn.is-offline #header-sync-dot {
+  background-color: #f43f5e !important;
+}

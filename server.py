@@ -884,10 +884,27 @@ async def list_progress_handler(request):
         acc = _extract_account_id(request)
         ptype = request.query.get("progress_type")
         sid = request.query.get("subject_id")
-        lim = request.query.get("limit", "50")
-        drafts = await asyncio.to_thread(
-            db.list_study_progress, account_id=acc, progress_type=ptype, subject_id=sid, limit=lim
-        )
+        lim = int(request.query.get("limit", "50") or 50)
+        only_acc = request.query.get("only_account") == "1"
+
+        def _fetch_progress():
+            acc_drafts = db.list_study_progress(account_id=acc, progress_type=ptype, subject_id=sid, limit=lim)
+            if only_acc:
+                return acc_drafts
+            global_drafts = db.list_all_study_progress_global(progress_type=ptype, limit=lim)
+            if sid:
+                global_drafts = [d for d in global_drafts if str(d.get("subject_id") or "") == str(sid)]
+            by_key = {}
+            for d in acc_drafts + global_drafts:
+                dk = d.get("draft_key")
+                if not dk:
+                    continue
+                prev = by_key.get(dk)
+                if not prev or (d.get("updated_at_ms") or 0) >= (prev.get("updated_at_ms") or 0):
+                    by_key[dk] = d
+            return sorted(by_key.values(), key=lambda x: x.get("updated_at_ms") or 0, reverse=True)[:lim]
+
+        drafts = await asyncio.to_thread(_fetch_progress)
         return json_resp({"success": True, "account_id": acc, "drafts": drafts})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -899,7 +916,17 @@ async def get_progress_item_handler(request):
         draft_key = request.match_info.get("draft_key", "").strip()
         if not draft_key:
             return json_resp({"success": False, "error": "draft_key is required"}, 400)
-        draft = await asyncio.to_thread(db.get_study_progress, acc, draft_key)
+
+        def _fetch_one():
+            d = db.get_study_progress(acc, draft_key)
+            if d:
+                return d
+            for item in db.list_all_study_progress_global(limit=100):
+                if item.get("draft_key") == draft_key:
+                    return item
+            return None
+
+        draft = await asyncio.to_thread(_fetch_one)
         if not draft:
             return json_resp({"success": False, "error": "Draft not found"}, 404)
         return json_resp({"success": True, "draft": draft})
@@ -2166,6 +2193,7 @@ async def _handle_tutor_assist_common(request, default_mode: str = "explain"):
     selected_term = str(data.get("selected_term") or "").strip()
     image_base64 = str(data.get("image_base64") or "").strip()
     image_mime = str(data.get("image_mime") or data.get("mime_type") or "image/jpeg").strip()
+    response_length = str(data.get("response_length") or "concise").strip()
     chat_history = data.get("chat_history") if isinstance(data.get("chat_history"), list) else data.get("history")
 
     res = await ai.ai_tutor_assist(
@@ -2184,6 +2212,7 @@ async def _handle_tutor_assist_common(request, default_mode: str = "explain"):
         chat_history=chat_history if isinstance(chat_history, list) else None,
         image_base64=image_base64,
         image_mime=image_mime,
+        response_length=response_length,
     )
 
     session_id = str(data.get("session_id") or "").strip()
@@ -3330,6 +3359,293 @@ async def save_user_state(request):
         return json_resp({"success": False, "error": str(e)}, 500)
 
 
+def _merge_user_states(cur: dict, inc: dict) -> dict:
+    if not isinstance(cur, dict):
+        cur = {}
+    if not isinstance(inc, dict):
+        return cur
+    cur_ts = int(cur.get("updated_at_ms") or 0)
+    inc_ts = int(inc.get("updated_at_ms") or int(time.time() * 1000))
+    inc_is_newer = inc_ts >= cur_ts
+
+    merged = dict(cur)
+    if inc_is_newer:
+        merged.update(inc)
+    else:
+        for k, v in inc.items():
+            if k not in merged or merged.get(k) in (None, "", [], {}):
+                merged[k] = v
+
+    # Smart union / max merge so neither device loses bookmarks, notes, XP, or code drafts
+    for arr_key in ("bookmarks", "mistakes"):
+        a = cur.get(arr_key) if isinstance(cur.get(arr_key), list) else []
+        b = inc.get(arr_key) if isinstance(inc.get(arr_key), list) else []
+        seen = []
+        for x in (b + a if inc_is_newer else a + b):
+            if x not in seen:
+                seen.append(x)
+        merged[arr_key] = seen
+
+    for dict_key in ("notes", "plannerDone", "exercisesCode", "exercisesLang"):
+        da = cur.get(dict_key) if isinstance(cur.get(dict_key), dict) else {}
+        db_inc = inc.get(dict_key) if isinstance(inc.get(dict_key), dict) else {}
+        merged[dict_key] = {**da, **db_inc} if inc_is_newer else {**db_inc, **da}
+
+    for num_key in ("xp", "streakDays", "blitzBest"):
+        va = cur.get(num_key)
+        vb = inc.get(num_key)
+        nums = [n for n in (va, vb) if isinstance(n, (int, float))]
+        if nums:
+            merged[num_key] = max(nums)
+
+    merged["updated_at_ms"] = max(cur_ts, inc_ts, int(time.time() * 1000))
+    return merged
+
+
+def _build_server_vault_snapshot(uid: int = 1) -> dict:
+    state = db.get_user_sync_state(uid)
+    drafts = db.list_all_study_progress_global(limit=60)
+    tutor_sessions = db.list_all_tutor_sessions_global(limit=25)
+
+    # Auto-restore from rolling JSON backup if DB woke up empty (e.g., fresh DATA_DIR)
+    if not state and not drafts and not tutor_sessions:
+        disk_bak = db.read_rolling_vault_backup()
+        if disk_bak:
+            if isinstance(disk_bak.get("user_state"), dict) and disk_bak["user_state"]:
+                state = db.save_user_sync_state(uid, disk_bak["user_state"])
+            for d in (disk_bak.get("drafts") or [])[:40]:
+                if isinstance(d, dict) and d.get("draft_key"):
+                    try:
+                        db.upsert_study_progress(
+                            account_id=d.get("account_id") or "acc_default",
+                            draft_key=d["draft_key"],
+                            progress_type=d.get("progress_type", "exam"),
+                            subject_id=d.get("subject_id"),
+                            chapter_tag=d.get("chapter_tag", ""),
+                            title=d.get("title", ""),
+                            payload=d.get("payload") or {},
+                            current_index=d.get("current_index", 0),
+                            total_items=d.get("total_items", 0),
+                            answered_count=d.get("answered_count", 0),
+                        )
+                    except Exception:
+                        pass
+            drafts = db.list_all_study_progress_global(limit=60)
+
+    remote_url = db.get_setting("remote_cloud_bridge_url", "")
+    return {
+        "server_time_ms": int(time.time() * 1000),
+        "ephemeral_storage": bool(os.environ.get("DATA_DIR", "").startswith("/tmp")),
+        "remote_bridge_url": remote_url,
+        "user_state": state or {},
+        "drafts": drafts,
+        "tutor_sessions": tutor_sessions,
+    }
+
+
+def _apply_incoming_vault_sync(uid: int, data: dict) -> dict:
+    cur_state = db.get_user_sync_state(uid)
+    inc_state = data.get("user_state") if isinstance(data.get("user_state"), dict) else {}
+    if inc_state:
+        merged_state = _merge_user_states(cur_state, inc_state)
+        db.save_user_sync_state(uid, merged_state)
+
+    deleted_keys = data.get("deleted_draft_keys")
+    if isinstance(deleted_keys, list):
+        for dk in deleted_keys[:50]:
+            if dk:
+                db.delete_study_progress("acc_default", str(dk))
+
+    existing_drafts = {d["draft_key"]: d for d in db.list_all_study_progress_global(limit=100)}
+    inc_drafts = data.get("drafts")
+    if isinstance(inc_drafts, list):
+        del_set = set(str(x) for x in (deleted_keys or []))
+        for d in inc_drafts[:50]:
+            if not isinstance(d, dict) or not d.get("draft_key"):
+                continue
+            dkey = str(d["draft_key"]).strip()
+            if not dkey or dkey in del_set:
+                continue
+            inc_ms = int(d.get("updated_at_ms") or 0)
+            ex = existing_drafts.get(dkey)
+            ex_ms = int(ex.get("updated_at_ms") or 0) if ex else 0
+            if not ex or inc_ms >= ex_ms:
+                try:
+                    db.upsert_study_progress(
+                        account_id=d.get("account_id") or _extract_account_id_from_dict(data),
+                        draft_key=dkey,
+                        progress_type=d.get("progress_type", "exam"),
+                        subject_id=d.get("subject_id"),
+                        chapter_tag=d.get("chapter_tag", ""),
+                        title=d.get("title", ""),
+                        payload=d.get("payload") if isinstance(d.get("payload"), dict) else {},
+                        current_index=d.get("current_index", 0),
+                        total_items=d.get("total_items", 0),
+                        answered_count=d.get("answered_count", 0),
+                    )
+                except Exception:
+                    pass
+
+    inc_sessions = data.get("tutor_sessions")
+    if isinstance(inc_sessions, list):
+        existing_sess = {s["session_id"]: s for s in db.list_all_tutor_sessions_global(limit=50)}
+        for s in inc_sessions[:20]:
+            if not isinstance(s, dict) or not s.get("session_id"):
+                continue
+            sid = str(s["session_id"]).strip()
+            msgs = s.get("messages") if isinstance(s.get("messages"), list) else []
+            if not msgs:
+                continue
+            ex_s = existing_sess.get(sid)
+            if not ex_s or len(msgs) >= int(ex_s.get("message_count") or 0):
+                try:
+                    db.save_tutor_chat_turn(
+                        account_id=s.get("account_id") or "acc_default",
+                        session_id=sid,
+                        title=s.get("title") or "",
+                        subject_id=s.get("subject_id"),
+                        subject_name=s.get("subject_name") or "",
+                        mode=s.get("mode") or "explain",
+                        persona=s.get("persona") or "professor",
+                        messages=msgs[-60:],
+                        replace=True,
+                    )
+                except Exception:
+                    pass
+
+    snap = _build_server_vault_snapshot(uid)
+    db.write_rolling_vault_backup(snap)
+    return snap
+
+
+def _extract_account_id_from_dict(data: dict) -> str:
+    if isinstance(data, dict) and data.get("account_id"):
+        return db._sanitize_account_id(str(data["account_id"]))
+    return "acc_default"
+
+
+def _validate_public_bridge_url(raw_url: str) -> str:
+    u = str(raw_url or "").strip().rstrip("/")
+    if not u:
+        return ""
+    import urllib.parse
+    import ipaddress
+    parsed = urllib.parse.urlparse(u)
+    if parsed.scheme not in ("https",):
+        raise ValueError("Cầu nối Cloud chỉ hỗ trợ địa chỉ https:// công khai (ví dụ link Render).")
+    host = (parsed.hostname or "").strip().lower()
+    if not host or host in ("localhost", "127.0.0.1", "0.0.0.0", "::1"):
+        raise ValueError("Không thể trỏ cầu nối Cloud vào localhost.")
+    try:
+        ip = ipaddress.ip_address(host)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            raise ValueError("Địa chỉ IP nội bộ không được phép làm cầu nối Cloud.")
+    except ValueError as ve:
+        if "Cầu nối" in str(ve) or "Địa chỉ" in str(ve):
+            raise
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+async def _push_or_pull_remote_bridge(bridge_url: str, local_vault: dict, bridge_password: str = "") -> dict:
+    clean_url = _validate_public_bridge_url(bridge_url)
+    if not clean_url:
+        return {"synced": False}
+    timeout = aiohttp.ClientTimeout(total=8)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        if bridge_password:
+            try:
+                await session.post(f"{clean_url}/api/login", json={"password": bridge_password})
+            except Exception:
+                pass
+        async with session.post(f"{clean_url}/api/sync/vault", json=local_vault) as resp:
+            if resp.status == 401:
+                return {"synced": False, "error": "Cloud yêu cầu mật khẩu đăng nhập (hãy nhập mật khẩu App Render ở mục Cầu nối)."}
+            if resp.status != 200:
+                return {"synced": False, "error": f"Cloud trả về HTTP {resp.status}"}
+            remote_data = await resp.json()
+            return {"synced": True, "remote": remote_data}
+
+
+async def get_sync_vault(request):
+    try:
+        uid = (request.get("user") or {}).get("id", 1)
+        snap = await asyncio.to_thread(_build_server_vault_snapshot, uid)
+        return json_resp({"success": True, **snap})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def save_sync_vault(request):
+    try:
+        uid = (request.get("user") or {}).get("id", 1)
+        data = await safe_get_json(request)
+        if not isinstance(data, dict):
+            return json_resp({"success": False, "error": "JSON object expected"}, 400)
+        snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, data)
+
+        # Optional background mirror to Remote Cloud Bridge (e.g. localhost -> Render)
+        remote_url = snap.get("remote_bridge_url") or ""
+        if remote_url and not data.get("_from_bridge"):
+            bridge_pw = await asyncio.to_thread(db.get_setting, "remote_cloud_bridge_pw", "")
+            payload_copy = {**snap, "_from_bridge": True}
+            asyncio.create_task(_safe_bg_bridge_push(remote_url, payload_copy, bridge_pw, uid))
+
+        return json_resp({"success": True, **snap})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def _safe_bg_bridge_push(remote_url: str, payload: dict, bridge_pw: str, uid: int):
+    try:
+        res = await _push_or_pull_remote_bridge(remote_url, payload, bridge_pw)
+        if res.get("synced") and isinstance(res.get("remote"), dict):
+            rem = res["remote"]
+            if rem.get("drafts") or rem.get("user_state"):
+                await asyncio.to_thread(_apply_incoming_vault_sync, uid, {**rem, "_from_bridge": True})
+    except Exception:
+        pass
+
+
+async def sync_remote_bridge_handler(request):
+    try:
+        uid = (request.get("user") or {}).get("id", 1)
+        data = await safe_get_json(request)
+        raw_url = str(data.get("remote_url") or "").strip()
+        bridge_pw = str(data.get("password") or "").strip()
+
+        if data.get("clear"):
+            await asyncio.to_thread(db.set_setting, "remote_cloud_bridge_url", "")
+            await asyncio.to_thread(db.set_setting, "remote_cloud_bridge_pw", "")
+            return json_resp({"success": True, "remote_bridge_url": "", "message": "Đã ngắt cầu nối Cloud."})
+
+        clean_url = _validate_public_bridge_url(raw_url) if raw_url else await asyncio.to_thread(db.get_setting, "remote_cloud_bridge_url", "")
+        if not clean_url:
+            return json_resp({"success": False, "error": "Hãy nhập địa chỉ https:// của máy chủ Render."}, 400)
+
+        await asyncio.to_thread(db.set_setting, "remote_cloud_bridge_url", clean_url)
+        if bridge_pw:
+            await asyncio.to_thread(db.set_setting, "remote_cloud_bridge_pw", bridge_pw)
+        else:
+            bridge_pw = await asyncio.to_thread(db.get_setting, "remote_cloud_bridge_pw", "")
+
+        local_snap = await asyncio.to_thread(_build_server_vault_snapshot, uid)
+        res = await _push_or_pull_remote_bridge(clean_url, {**local_snap, "_from_bridge": True}, bridge_pw)
+        if not res.get("synced"):
+            return json_resp({"success": False, "error": res.get("error") or "Không thể đồng bộ tới Cloud."}, 400)
+
+        merged_snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, {**(res.get("remote") or {}), "_from_bridge": True})
+        return json_resp({
+            "success": True,
+            "remote_bridge_url": clean_url,
+            "message": f"Đã đồng bộ 2 chiều thành công với {clean_url}!",
+            **merged_snap,
+        })
+    except ValueError as ve:
+        return json_resp({"success": False, "error": str(ve)}, 400)
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
 def _image_url_to_base64(img_url: str, cache: dict) -> str:
     if not img_url or not img_url.startswith("/static/"):
         return img_url
@@ -3618,11 +3934,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v50-0';
+    const CACHE_NAME = 'unimaster-pwa-v51-0';
     const CORE_ASSETS = [
-      '/static/style.css?v=50.0',
+      '/static/style.css?v=51.0',
       '/static/minimal.css?v=3.0',
-      '/static/app.js?v=50.0',
+      '/static/app.js?v=51.0',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -6876,6 +7192,9 @@ def create_app():
     app.router.add_get("/api/network-info", get_network_info)
     app.router.add_get("/api/user-state", get_user_state)
     app.router.add_post("/api/user-state", save_user_state)
+    app.router.add_get("/api/sync/vault", get_sync_vault)
+    app.router.add_post("/api/sync/vault", save_sync_vault)
+    app.router.add_post("/api/sync/remote-bridge", sync_remote_bridge_handler)
     app.router.add_get("/api/offline-snapshot", get_offline_snapshot)
     app.router.add_get("/api/backup/export", export_backup)
     app.router.add_post("/api/admin/backup/upload", admin_upload_backup)

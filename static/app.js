@@ -22,6 +22,7 @@ const TUTOR_MODES_META = {
 let windowTutorSizeExpanded = false;
 let currentTutorPersona = localStorage.getItem('unimaster_tutor_persona') || 'professor';
 let currentTutorMode = localStorage.getItem(TUTOR_MODE_KEY) || 'explain';
+let currentTutorResponseLength = localStorage.getItem('unimaster_tutor_length') || 'concise';
 let tutorCustomStyle = localStorage.getItem(TUTOR_STYLE_KEY) || '';
 let tutorSessionsCache = [];
 let currentTutorSessionId = '';
@@ -116,6 +117,7 @@ function normalizeTutorMsgRecord(m, idx = 0) {
     model_used: m.model_used || meta.model_used || '',
     masked_key: m.masked_key || meta.masked_key || '',
     latency_ms: m.latency_ms ?? meta.latency_ms ?? null,
+    response_length: m.response_length || meta.response_length || 'concise',
     imageDataUrl: m.imageDataUrl || meta.imageDataUrl || '',
     inlineQuiz: m.inlineQuiz || meta.inlineQuiz || null,
     created_at: createdAt,
@@ -371,35 +373,101 @@ function getDynamicTutorWelcomeCards(subCode = '', subName = '') {
   const name = String(subName || '');
   if (code === 'TOAN_RR' || /rời rạc/i.test(name)) {
     return [
-      { icon: '🧮', title: 'Rút gọn biểu thức Boole & Bảng K-Map', sub: 'Chuẩn tắc DNF/CNF & luật De Morgan dễ nhớ', prompt: 'Hướng dẫn tôi quy trình lập bảng chân trị, chuẩn tắc hội/tuyển và rút gọn biểu thức Boole 3-4 biến bằng bìa Karnaugh kèm ví dụ thi!' },
-      { icon: '🕸️', title: 'Đồ thị Euler, Hamilton & Dijkstra', sub: 'Điều kiện cần & đủ + bảng chạy từng bước', prompt: 'Phân biệt rõ điều kiện tồn tại chu trình Euler vs Hamilton và minh họa từng bước thuật toán Dijkstra tìm đường đi ngắn nhất!' },
-      { icon: '🔢', title: 'Nguyên lý Bù trừ & Tổ hợp đếm', sub: 'Phân biệt Chỉnh hợp, Tổ hợp & Dirichlet', prompt: 'Cho tôi mẹo phân biệt nhanh Hoán vị, Chỉnh hợp, Tổ hợp lặp, Nguyên lý Dirichlet và Nguyên lý Bù trừ kèm 3 câu bẫy hay gặp!' },
-      { icon: '🎯', title: 'Mẹo loại trừ câu bẫy Toán Rời Rạc', sub: 'Phản ví dụ nhanh trong 10 giây', prompt: 'Chỉ cho tôi kỹ thuật dùng phản ví dụ nhỏ để loại trừ nhanh 3 phương án sai trong đề trắc nghiệm Toán Rời Rạc!' }
+      { icon: '🧮', title: 'Rút gọn Boole & K-Map', prompt: 'Tóm tắt ngắn gọn quy trình rút gọn biểu thức Boole bằng K-Map kèm 1 ví dụ!' },
+      { icon: '🕸️', title: 'Euler, Hamilton & Dijkstra', prompt: 'Phân biệt ngắn gọn chu trình Euler vs Hamilton và mẹo chạy nhanh Dijkstra!' },
+      { icon: '🔢', title: 'Tổ hợp, Bù trừ & Dirichlet', prompt: 'Mẹo phân biệt nhanh Hoán vị, Chỉnh hợp, Tổ hợp và Nguyên lý Bù trừ!' },
+      { icon: '🎯', title: 'Mẹo loại trừ bẫy đề thi', prompt: 'Chỉ nhanh kỹ thuật dùng phản ví dụ loại trừ đáp án sai Toán Rời Rạc!' }
     ];
   }
   if (code === 'CTDL_GT' || code === 'CS101' || /giải thuật|cấu trúc dữ liệu/i.test(name)) {
     return [
-      { icon: '🌳', title: 'Cây AVL (Xoay LL/RR/LR/RL) & BST', sub: 'Hệ số cân bằng & thứ tự duyệt NLR, LNR, LRN', prompt: 'Giải thích thật trực quan 4 phép xoay cân bằng cây AVL (LL, RR, LR, RL) và mẹo nhẩm nhanh kết quả duyệt Pre-order, In-order, Post-order!' },
-      { icon: '⚡', title: 'Bảng độ phức tạp Big-O các thuật toán Sort', sub: 'QuickSort, MergeSort, HeapSort & tính ổn định', prompt: 'Tổng hợp bảng so sánh độ phức tạp Tốt nhất / Trung bình / Xấu nhất, bộ nhớ phụ và tính ổn định (Stable) của QuickSort, MergeSort, HeapSort, InsertionSort!' },
-      { icon: '🧭', title: 'BFS, DFS, Kruskal & Prim trên Đồ thị', sub: 'Khi nào dùng Queue/Stack & Cây khung nhỏ nhất', prompt: 'So sánh BFS và DFS, đồng thời hướng dẫn cách nhẩm nhanh cây khung nhỏ nhất bằng thuật toán Kruskal và Prim không bị chu trình!' },
-      { icon: '💻', title: 'Đệ quy, Quy hoạch động & Bảng băm', sub: 'Khử đệ quy & xử lý đụng độ Hash Table', prompt: 'Phân tích cách tính độ phức tạp đệ quy bằng Định lý Master và so sánh xử lý đụng độ bảng băm Chaining vs Linear Probing!' }
+      { icon: '🌳', title: 'Cây AVL & Duyệt NLR/LNR/LRN', prompt: 'Tóm tắt 4 phép xoay cân bằng cây AVL và mẹo nhẩm nhanh NLR, LNR, LRN!' },
+      { icon: '⚡', title: 'Bảng Big-O các thuật toán Sort', prompt: 'Bảng so sánh cực gọn Big-O và tính ổn định của QuickSort, MergeSort, HeapSort!' },
+      { icon: '🧭', title: 'BFS, DFS, Kruskal & Prim', prompt: 'So sánh nhanh BFS vs DFS và mẹo tìm cây khung nhỏ nhất Kruskal / Prim!' },
+      { icon: '💻', title: 'Đệ quy & Bảng băm Hash', prompt: 'Tóm tắt Định lý Master và xử lý đụng độ Chaining vs Linear Probing!' }
     ];
   }
   if (code === 'OOP_CSHARP' || code === 'NNLT_PYTHON' || /lập trình|python|c#/i.test(name)) {
     return [
-      { icon: '🏗️', title: 'Đa hình: virtual/override vs Method Hiding', sub: 'Đọc nhanh Output các câu bẫy kế thừa', prompt: 'Phân biệt cực rõ virtual/override với từ khóa new (Method Hiding) trong OOP kèm đoạn code bẫy kết quả in ra màn hình!' },
-      { icon: '🛡️', title: 'Abstract Class vs Interface & 5 nguyên lý SOLID', sub: 'Khi nào chọn cái nào trong thiết kế hướng đối tượng', prompt: 'So sánh ngắn gọn Abstract Class và Interface, kèm ví dụ thực tế dễ nhớ cho 5 nguyên lý SOLID!' },
-      { icon: '💾', title: 'Stack vs Heap, Tham chiếu & Garbage Collector', sub: 'Value Type, Reference Type & rò rỉ bộ nhớ', prompt: 'Giải thích cơ chế cấp phát bộ nhớ Stack vs Heap, Boxing/Unboxing và cách tránh lỗi NullReference / biến tham chiếu ngoài ý muốn!' },
-      { icon: '🐛', title: 'Kỹ thuật nhẩm Output code & bắt lỗi biên', sub: 'Vòng lặp, đệ quy, ngoại lệ try-catch-finally', prompt: 'Chỉ cho tôi quy trình nhẩm Output đoạn code có vòng lặp lồng nhau và thứ tự chạy khối try - catch - finally có lệnh return!' }
+      { icon: '🏗️', title: 'virtual/override vs new Hiding', prompt: 'Phân biệt cực gọn virtual/override với new (Method Hiding) kèm ví dụ Output!' },
+      { icon: '🛡️', title: 'Abstract vs Interface & SOLID', prompt: 'So sánh ngắn gọn Abstract Class vs Interface và 5 nguyên lý SOLID!' },
+      { icon: '💾', title: 'Stack vs Heap & Tham chiếu', prompt: 'Tóm tắt Stack vs Heap, Value Type vs Reference Type dễ hiểu nhất!' },
+      { icon: '🐛', title: 'Mẹo nhẩm Output code bẫy', prompt: 'Quy tắc nhẩm nhanh Output vòng lặp và khối try-catch-finally có return!' }
     ];
   }
   return [
-    { icon: '🧬', title: `Trọng tâm cốt lõi: ${subName || 'Môn học hiện tại'}`, sub: 'Hệ thống hóa các cơ chế & công thức hay thi nhất', prompt: `Hãy tóm tắt có hệ thống những cơ chế, công thức và mốc kiến thức hay ra thi nhất của môn ${subName || 'này'} kèm bảng so sánh dễ nhớ!` },
-    { icon: '🪤', title: 'Phân tích câu bẫy NGOẠI TRỪ / KHÔNG ĐÚNG', sub: 'Nhận diện từ khóa đánh lừa sinh viên trong 5 giây', prompt: `Chỉ ra 5 kiểu câu hỏi bẫy (đặc biệt dạng NGOẠI TRỪ / KHÔNG ĐÚNG) sinh viên dễ sai nhất trong môn ${subName || 'này'} và mẹo né bẫy!` },
-    { icon: '🩺', title: 'Biện luận tình huống thực tiễn / Lâm sàng', sub: 'Rèn tư duy phân tích thay vì học vẹt', prompt: `Cho tôi 1 tình huống vận dụng thực tế / ca lâm sàng điển hình của môn ${subName || 'này'}, đặt câu hỏi gợi mở và giải thích từng bước!` },
-    { icon: '⚡', title: 'Đề mini 3 câu trắc nghiệm phân loại cao', sub: 'Thử sức nhanh kèm giải thích loại trừ A-B-C-D', prompt: `Hãy ra cho tôi 3 câu hỏi trắc nghiệm mức độ Vận dụng của môn ${subName || 'này'} kèm đáp án và giải thích loại trừ từng phương án A, B, C, D!` }
+    { icon: '✨', title: 'Trọng tâm hay thi nhất', prompt: `Tóm tắt ngắn gọn các ý trọng tâm hay ra thi nhất của môn ${subName || 'này'}!` },
+    { icon: '⚠️', title: '5 câu bẫy NGOẠI TRỪ hay sai', prompt: `Chỉ nhanh 5 bẫy câu hỏi NGOẠI TRỪ / KHÔNG ĐÚNG dễ sai nhất môn ${subName || 'này'}!` },
+    { icon: '🩺', title: 'Tình huống / Ca lâm sàng mẫu', prompt: `Cho 1 tình huống vận dụng ngắn gọn điển hình môn ${subName || 'này'} và giải thích!` },
+    { icon: '🎯', title: 'Thử sức 1 câu trắc nghiệm', prompt: '__SPAWN_INLINE_QUIZ__' }
   ];
 }
+
+function triggerWelcomeCardAction(promptText) {
+  if (typeof STATE !== 'undefined' && STATE.currentTab === 'tutor' && pinnedTutorQuestion) {
+    pinnedTutorQuestion = null;
+    persistPinnedTutorContext(null);
+    syncFloatingTutorSubjectContext();
+    syncTutorContextBarsUI();
+    renderFloatingActionChips();
+  }
+  if (promptText === '__SPAWN_INLINE_QUIZ__') {
+    spawnInteractiveTutorQuiz();
+    return;
+  }
+  fillAndSendTutorPrompt(promptText);
+}
+window.triggerWelcomeCardAction = triggerWelcomeCardAction;
+
+function toggleTutorResponseLength() {
+  currentTutorResponseLength = currentTutorResponseLength === 'concise' ? 'detailed' : 'concise';
+  try { localStorage.setItem('unimaster_tutor_length', currentTutorResponseLength); } catch (_) {}
+  updateTutorLengthUI();
+  if (typeof scheduleUniversalVaultPush === 'function') scheduleUniversalVaultPush(400);
+  if (typeof showToast === 'function') {
+    showToast(
+      currentTutorResponseLength === 'concise'
+        ? '⚡ Chế độ Ngắn gọn: AI trả lời súc tích, đọc lướt 5 giây nắm ý chính!'
+        : '📖 Chế độ Chi tiết: AI phân tích đầy đủ từng bước!',
+      'info'
+    );
+  }
+}
+window.toggleTutorResponseLength = toggleTutorResponseLength;
+
+function updateTutorLengthUI() {
+  const isConcise = currentTutorResponseLength !== 'detailed';
+  const mainLbl = document.getElementById('tutor-length-label');
+  const ftLbl = document.getElementById('ft-length-label');
+  const mainBtn = document.getElementById('btn-tutor-length-toggle');
+  const ftBtn = document.getElementById('btn-ft-length-toggle');
+  if (mainLbl) mainLbl.textContent = isConcise ? '⚡ Ngắn gọn' : '📖 Chi tiết';
+  if (ftLbl) ftLbl.textContent = isConcise ? '⚡ Gọn' : '📖 Đầy đủ';
+  [mainBtn, ftBtn].forEach((b) => {
+    if (!b) return;
+    b.classList.toggle('border-emerald-500/40', isConcise);
+    b.classList.toggle('border-indigo-500/40', !isConcise);
+  });
+}
+window.updateTutorLengthUI = updateTutorLengthUI;
+
+function toggleTutorMsgClamp(btnEl) {
+  const bodyEl = btnEl?.previousElementSibling;
+  if (!bodyEl) return;
+  const expanded = bodyEl.classList.toggle('tutor-msg-expanded');
+  btnEl.textContent = expanded ? '▴ Thu gọn bớt' : '▾ Xem đầy đủ';
+}
+window.toggleTutorMsgClamp = toggleTutorMsgClamp;
+
+async function askFollowUpDetailedOnAiReply(msgId) {
+  const prevReply = window._tutorReplies?.[msgId];
+  if (!prevReply) return;
+  await sendTutorChatUnified('Hãy phân tích chi tiết, đầy đủ từng bước phần kiến thức trên kèm ví dụ cụ thể.', {
+    mode: currentTutorMode,
+    responseLength: 'detailed'
+  });
+}
+window.askFollowUpDetailedOnAiReply = askFollowUpDetailedOnAiReply;
 
 function buildTutorGreetingMarkup(compact = false) {
   const subInfo = typeof getActiveSubjectInfoForTutor === 'function'
@@ -411,13 +479,8 @@ function buildTutorGreetingMarkup(compact = false) {
     return `
       <div class="gemini-message-row gemini-model-row animate-fade-in">
         <div class="gemini-sparkle-icon gemini-sparkle-sm mt-0.5"></div>
-        <div class="gemini-model-bubble space-y-1.5">
-          <div class="text-xs font-bold text-slate-200">
-            Xin chào! Tôi là <span class="gemini-gradient-text">Gia Sư AI</span> đồng hành môn <span class="txt-brand">${escapeHtml(subName)}</span>.
-          </div>
-          <div class="text-xs text-slate-400">
-            Bấm gợi ý nhanh bên trên hoặc nhập bất kỳ câu hỏi nào để mình giải thích bản chất &amp; mẹo nhớ ngay nhé!
-          </div>
+        <div class="gemini-model-bubble py-2 px-3 text-xs txt-sub">
+          Môn <strong class="txt-brand">${escapeHtml(subName)}</strong> — chọn nút nhanh bên trên, nhập câu hỏi hoặc nhấn <strong>Ctrl+V</strong> dán ảnh đề.
         </div>
       </div>
     `;
@@ -425,48 +488,35 @@ function buildTutorGreetingMarkup(compact = false) {
 
   const cards = getDynamicTutorWelcomeCards(subInfo.code, subName);
   const cardsHtml = cards.map((c) => `
-    <div class="gemini-prompt-card" onclick="fillAndSendTutorPrompt(${escapeJsString(c.prompt)})">
-      <div>
-        <div class="gemini-prompt-card-text">${escapeHtml(c.icon)} ${escapeHtml(c.title)}</div>
-        <div class="gemini-prompt-card-sub">${escapeHtml(c.sub)}</div>
-      </div>
-      <div class="gemini-prompt-card-icon">→</div>
-    </div>
+    <button type="button" class="gemini-compact-pill" onclick="triggerWelcomeCardAction(${escapeJsString(c.prompt)})">
+      <span class="truncate">${escapeHtml(c.icon)} ${escapeHtml(c.title)}</span>
+      <span class="txt-brand font-black shrink-0">→</span>
+    </button>
   `).join('');
 
   return `
-    <div class="gemini-welcome-container animate-fade-in">
-      <div class="flex items-center gap-2.5 mb-2">
-        <div class="gemini-sparkle-icon" style="width: 34px; height: 34px;"></div>
-        <span class="text-xs font-extrabold tracking-wider uppercase px-2.5 py-1 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-mono">
-          Gia Sư AI 1-1 • Sẵn Sàng Giải Đáp Tức Thì
-        </span>
+    <div class="gemini-welcome-compact animate-fade-in">
+      <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-extrabold badge-brand mb-2">
+        <span>🤖</span> <span>${escapeHtml(subName)}</span>
       </div>
-
-      <h1 class="gemini-hero-greeting">
-        <span class="gemini-gradient-text">Xin chào bạn,</span><br/>
-        Hôm nay mình cùng chinh phục phần nào?
-      </h1>
-      <p class="gemini-hero-sub">
-        Đang đồng hành môn <strong class="txt-brand">${escapeHtml(subName)}</strong> — chọn một chủ đề gợi ý bên dưới hoặc gửi câu hỏi / đoạn code / ca lâm sàng để mình phân tích sâu từng bước.
-      </p>
-
-      <div class="gemini-prompts-grid">
+      <h2 class="text-lg sm:text-xl font-black txt-main">Hỏi nhanh — Trả lời súc tích</h2>
+      <p class="text-xs txt-muted mt-1">Gửi câu hỏi, chọn chủ đề bên dưới hoặc nhấn <strong>Ctrl+V</strong> dán ảnh đề thi</p>
+      <div class="gemini-compact-grid">
         ${cardsHtml}
       </div>
     </div>
   `;
 }
 
-function buildTutorMessageHtml(msg, compact = false) {
+function buildTutorMessageHtml(msg, compact = false, isLatestModel = false) {
   if (!msg) return '';
 
   if (msg.role === 'user') {
     const ctxPill = msg.context
-      ? `<div class="text-[10px] text-cyan-300 font-bold mb-1.5 flex items-center gap-1.5 opacity-90"><span class="w-1.5 h-1.5 rounded-full bg-cyan-400"></span><span>📌 ${escapeHtml(msg.context)}</span></div>`
+      ? `<div class="text-[10px] text-cyan-300 font-bold mb-1 flex items-center gap-1 opacity-90"><span>📌 ${escapeHtml(msg.context)}</span></div>`
       : '';
     const imgHtml = msg.imageDataUrl
-      ? `<img src="${escapeHtml(msg.imageDataUrl)}" alt="Ảnh đính kèm" onclick="openImageLightbox('${escapeHtml(msg.imageDataUrl)}', 'Ảnh câu hỏi gửi Gia Sư AI')" class="max-h-44 rounded-xl border border-white/20 mb-2 cursor-zoom-in object-contain" />`
+      ? `<img src="${escapeHtml(msg.imageDataUrl)}" alt="Ảnh đính kèm" onclick="openImageLightbox('${escapeHtml(msg.imageDataUrl)}', 'Ảnh câu hỏi gửi Gia Sư AI')" class="max-h-40 rounded-xl border border-white/20 mb-1.5 cursor-zoom-in object-contain" />`
       : '';
     return `
       <div class="gemini-message-row gemini-user-row animate-fade-in">
@@ -507,82 +557,68 @@ function buildTutorMessageHtml(msg, compact = false) {
     return `
       <div class="gemini-message-row gemini-model-row animate-fade-in" id="${escapeHtml(msgId)}">
         <div class="gemini-sparkle-icon ${compact ? 'gemini-sparkle-sm' : ''} mt-1"></div>
-        <div class="gemini-model-bubble space-y-2.5">
-          <div class="flex items-center justify-between gap-2 pb-1 border-b border-white/10">
-            <span class="badge-brand text-[11px] px-2.5 py-0.5 rounded-full font-extrabold">🎯 Thử Sức Nhanh 1 Câu Tương Tự</span>
-            <button type="button" onclick="spawnInteractiveTutorQuiz()" class="text-[11px] font-bold txt-brand hover:underline">🔄 Đổi câu khác</button>
+        <div class="gemini-model-bubble space-y-2">
+          <div class="flex items-center justify-between gap-2">
+            <span class="badge-brand text-[10.5px] px-2 py-0.5 rounded-full font-extrabold">🎯 Câu tương tự</span>
+            <button type="button" onclick="spawnInteractiveTutorQuiz()" class="text-[11px] font-bold txt-brand hover:underline">🔄 Câu khác</button>
           </div>
           <div class="font-bold txt-main ${compact ? 'text-xs sm:text-sm' : 'text-sm'} leading-relaxed">${formatRichText(qz.question || '')}</div>
           <div class="grid grid-cols-1 gap-1.5">${optsHtml}</div>
           ${picked ? `
-            <div class="p-2.5 rounded-xl border text-xs space-y-1 animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="p-2 rounded-xl border text-xs space-y-0.5 animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--border);">
               <div class="font-extrabold ${picked === corr ? 'txt-emerald' : 'txt-rose'}">
-                ${picked === corr ? '🎉 Chính xác tuyệt đối! (+10 XP)' : `💡 Chưa chuẩn — Đáp án đúng là ${corr}`}
+                ${picked === corr ? '🎉 Chính xác! (+10 XP)' : `💡 Đáp án đúng: ${corr}`}
               </div>
               <div class="txt-sub leading-relaxed">${formatRichText(qz.explanation || '')}</div>
             </div>
-          ` : `<div class="text-[11px] txt-muted font-semibold">👆 Bấm chọn A, B, C hoặc D ngay trong khung chat để chấm điểm tức thì!</div>`}
+          ` : ''}
         </div>
       </div>
     `;
   }
 
-  const modeMeta = msg.mode && TUTOR_MODES_META[msg.mode] ? TUTOR_MODES_META[msg.mode] : null;
-  const provBadge = formatTutorProviderBadge(msg);
-  const subLabel = msg.context || 'Gia Sư AI UniMaster';
   const renderedBody = renderTutorAcademicHtml(msg.content);
   const isFallbackOrErr = msg.provider_used === 'fallback' || String(msgId).endsWith('_err');
+  const lineCount = (String(msg.content || '').match(/\n/g) || []).length;
+  const shouldClamp = !isFallbackOrErr && (String(msg.content || '').length > (compact ? 700 : 1050) || lineCount > (compact ? 12 : 18));
 
-  const followUpRow = !isFallbackOrErr ? `
-    <div class="flex flex-wrap items-center gap-1.5 pt-1.5 border-t" style="border-color: var(--border);">
-      <span class="text-[10px] font-bold txt-muted">Hỏi tiếp nhanh:</span>
-      <button type="button" onclick="spawnInteractiveTutorQuiz()" class="badge-brand px-2 py-0.5 rounded-full text-[10.5px] font-extrabold hover:opacity-90">🎯 Test 1 câu tương tự</button>
-      <button type="button" onclick="sendTutorChatUnified('Hãy giải thích lại nội dung trên cực kỳ dễ hiểu bằng ví dụ đời thường kiểu Feynman!', { mode: 'explain' })" class="badge-soft px-2 py-0.5 rounded-full text-[10.5px] font-bold">🧒 Giải kiểu Feynman</button>
-      <button type="button" onclick="sendTutorChatUnified('Lập bảng so sánh ngắn gọn các ý dễ nhầm lẫn nhất của phần này để đi thi khoanh trong 5 giây!', { mode: 'mnemonic' })" class="badge-soft px-2 py-0.5 rounded-full text-[10.5px] font-bold">📊 Bảng phân biệt nhanh</button>
+  let latChip = '';
+  if (msg.latency_ms != null) {
+    const ms = Number(msg.latency_ms);
+    const latStr = ms >= 1000 ? `${(ms / 1000).toFixed(1)}s` : `${ms}ms`;
+    const tip = [msg.provider_label || msg.provider_used, msg.model_used, msg.displayTime].filter(Boolean).join(' • ');
+    latChip = `<span class="text-[10px] font-mono txt-muted px-1" title="${escapeHtml(tip)}">⚡ ${escapeHtml(latStr)}</span>`;
+  }
+
+  const leftSmartChips = (!isFallbackOrErr && isLatestModel) ? `
+    <div class="flex items-center gap-1 flex-wrap">
+      <button type="button" onclick="spawnInteractiveTutorQuiz()" class="badge-brand px-2 py-0.5 rounded-full text-[10.5px] font-extrabold hover:opacity-90" title="Thử sức ngay 1 câu trắc nghiệm tương tự">🎯 Quiz</button>
+      ${msg.response_length !== 'detailed' ? `
+      <button type="button" onclick="askFollowUpDetailedOnAiReply(${escapeJsString(msgId)})" class="badge-soft px-2 py-0.5 rounded-full text-[10.5px] font-bold" title="Yêu cầu AI giải thích đầy đủ & sâu hơn">📖 Chi tiết</button>` : ''}
+      <button type="button" onclick="sendTutorChatUnified('Giải thích ngắn gọn bằng 1 ví dụ đời thường kiểu Feynman!', { mode: 'explain' })" class="badge-soft px-2 py-0.5 rounded-full text-[10.5px] font-bold" title="Giải thích bằng hình ảnh đời thường dễ hiểu">🧒 Ví dụ</button>
     </div>
-  ` : '';
+  ` : (isFallbackOrErr ? `
+    <button type="button" onclick="retryLastTutorMessage()" class="badge-amber px-2.5 py-0.5 rounded-full text-[10.5px] font-extrabold">🔄 Thử lại</button>
+  ` : `<div>${latChip}</div>`);
 
   return `
     <div class="gemini-message-row gemini-model-row animate-fade-in" id="${escapeHtml(msgId)}">
       <div class="gemini-sparkle-icon ${compact ? 'gemini-sparkle-sm' : ''} mt-1"></div>
-      <div class="gemini-model-bubble space-y-2">
-        <div class="flex items-center justify-between gap-2 flex-wrap pb-1 border-b border-white/5">
-          <div class="flex items-center gap-2 flex-wrap min-w-0">
-            <span class="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-              <span class="gemini-gradient-text">${escapeHtml(subLabel)}</span>
-            </span>
-            ${modeMeta ? `<span class="badge-soft text-[10px] px-2 py-0.5 rounded-full font-bold">${modeMeta.icon} ${escapeHtml(modeMeta.label)}</span>` : ''}
-            ${provBadge}
-          </div>
-          <span class="text-[10px] font-mono text-slate-500">${escapeHtml(msg.displayTime || '')}</span>
-        </div>
-
-        <div class="leading-relaxed ai-tutor-content markdown-body ${compact ? 'text-xs sm:text-sm' : 'text-sm'}">
+      <div class="gemini-model-bubble space-y-1.5">
+        <div class="leading-relaxed ai-tutor-content markdown-body ${compact ? 'text-xs sm:text-sm' : 'text-sm'} ${shouldClamp ? 'tutor-msg-clamp' : ''}">
           ${renderedBody}
         </div>
+        ${shouldClamp ? `<button type="button" onclick="toggleTutorMsgClamp(this)" class="text-[11px] font-extrabold txt-brand hover:underline pt-0.5">▾ Xem đầy đủ</button>` : ''}
 
-        ${followUpRow}
-
-        <div class="gemini-action-bar">
-          ${isFallbackOrErr ? `
-          <button type="button" onclick="retryLastTutorMessage()" class="gemini-action-pill !border-amber-500/40 !text-amber-300" title="Gửi lại câu hỏi này tới AI">
-            <span>🔄</span><span>Thử lại ngay</span>
-          </button>` : ''}
-          <button type="button" onclick="copyAiReply(${escapeJsString(msgId)})" class="gemini-action-pill" title="Sao chép câu trả lời">
-            <span>📋</span><span>Sao chép</span>
-          </button>
-          <button type="button" onclick="speakAiReply(${escapeJsString(msgId)})" class="gemini-action-pill" title="Đọc bài giảng bằng giọng nói AI">
-            <span>🔊</span><span>Đọc giải thích</span>
-          </button>
-          <button type="button" onclick="saveAiReplyToNotebook(${escapeJsString(msgId)})" class="gemini-action-pill" title="Lưu vào Sổ tay câu hỏi trọng tâm">
-            <span>📌</span><span>Lưu sổ tay</span>
-          </button>
-          <button type="button" onclick="saveAiReplyAsFlashcard(${escapeJsString(msgId)})" class="gemini-action-pill" title="Tự động tạo Flashcard thông minh">
-            <span>🃏</span><span>Đúc thẻ ôn</span>
-          </button>
-          <button type="button" onclick="askFollowUpOnAiReply(${escapeJsString(msgId)})" class="gemini-action-pill" title="Yêu cầu AI phân tích sâu hơn nữa">
-            <span>💡</span><span>Hỏi đào sâu</span>
-          </button>
+        <div class="tutor-micro-footer">
+          ${leftSmartChips}
+          <div class="flex items-center gap-0.5 ml-auto">
+            ${isLatestModel ? latChip : ''}
+            <button type="button" onclick="copyAiReply(${escapeJsString(msgId)})" class="tutor-icon-btn" title="Sao chép">📋</button>
+            <button type="button" onclick="speakAiReply(${escapeJsString(msgId)})" class="tutor-icon-btn" title="Nghe đọc giọng nói">🔊</button>
+            <button type="button" onclick="saveAiReplyToNotebook(${escapeJsString(msgId)})" class="tutor-icon-btn" title="Lưu vào Sổ tay ghi chú">📌</button>
+            <button type="button" onclick="saveAiReplyAsFlashcard(${escapeJsString(msgId)})" class="tutor-icon-btn" title="Tạo thẻ nhớ Flashcard">🃏</button>
+          </div>
         </div>
       </div>
     </div>
@@ -613,11 +649,22 @@ window.onTutorBoxScroll = onTutorBoxScroll;
 
 function renderActiveTutorMessages() {
   const history = Array.isArray(floatingTutorChatHistory) ? floatingTutorChatHistory.slice(-80) : [];
+  let lastModelIdx = -1;
+  for (let i = history.length - 1; i >= 0; i--) {
+    if (history[i] && history[i].role !== 'user' && !history[i].inlineQuiz) {
+      lastModelIdx = i;
+      break;
+    }
+  }
+  updateTutorLengthUI();
+
+  const topStrip = document.getElementById('tutor-top-bar-strip');
+  if (topStrip) topStrip.classList.toggle('hidden', history.length === 0);
 
   const floatBox = document.getElementById('floating-chat-messages');
   if (floatBox) {
     floatBox.innerHTML = history.length
-      ? history.map((m) => buildTutorMessageHtml(m, true)).join('')
+      ? history.map((m, idx) => buildTutorMessageHtml(m, true, idx === lastModelIdx)).join('')
       : buildTutorGreetingMarkup(true);
     if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(floatBox);
     if (history.length) {
@@ -634,7 +681,7 @@ function renderActiveTutorMessages() {
   const tabBox = document.getElementById('tutor-chat-box');
   if (tabBox) {
     tabBox.innerHTML = history.length
-      ? history.map((m) => buildTutorMessageHtml(m, false)).join('')
+      ? history.map((m, idx) => buildTutorMessageHtml(m, false, idx === lastModelIdx)).join('')
       : buildTutorGreetingMarkup(false);
     if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(tabBox);
     if (history.length) {
@@ -1042,62 +1089,41 @@ function renderFloatingActionChips() {
 
   if (pinnedTutorQuestion) {
     container.innerHTML = `
-      <button type="button" onclick="sendFloatingPrompt('Tại sao đáp án đúng là chính xác? Hãy phân tích bản chất và loại trừ từng phương án A/B/C/D.', 'eliminate')"
+      <button type="button" onclick="sendFloatingPrompt('Phân tích ngắn gọn đáp án đúng và loại trừ A/B/C/D.', 'eliminate')"
         class="badge-brand px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 shadow-sm hover:opacity-90 transition-opacity">
-        🔍 Loại trừ A/B/C/D
+        🔍 Loại trừ
       </button>
-      <button type="button" onclick="sendFloatingPrompt('Chỉ ra bẫy đề thi dễ mất điểm oan ở câu này!', 'explain')"
+      <button type="button" onclick="sendFloatingPrompt('Chỉ nhanh bẫy đề thi dễ nhầm ở câu này!', 'explain')"
         class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
-        ⚠️ Bẫy đề thi
+        ⚠️ Bẫy thi
       </button>
       ${(isCodeOrAlgo || pinnedTutorQuestion.code_snippet) ? `
-      <button type="button" onclick="sendFloatingPrompt('Phân tích luồng chạy code, Big-O và lỗi rò rỉ bộ nhớ nếu có!', 'debug')"
+      <button type="button" onclick="sendFloatingPrompt('Nhẩm nhanh luồng chạy code và độ phức tạp Big-O!', 'debug')"
         class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-amber">
-        💻 Debug &amp; Big-O
+        💻 Debug
       </button>` : `
-      <button type="button" onclick="sendFloatingPrompt('Tạo mẹo nhớ nhanh 5 giây để không bao giờ nhầm kiến thức này!', 'mnemonic')"
+      <button type="button" onclick="sendFloatingPrompt('Tạo mẹo nhớ 5 giây cực ngắn cho câu này!', 'mnemonic')"
         class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
-        💡 Mẹo nhớ 5s
+        💡 Mẹo 5s
       </button>`}
       <button type="button" onclick="spawnInteractiveTutorQuiz()"
         class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-emerald">
-        🎯 Test 1 câu tương tự
+        🎯 Quiz
       </button>
     `;
   } else {
-    container.innerHTML = isCodeOrAlgo ? `
-      <button type="button" onclick="sendFloatingPrompt('Tóm tắt 4 trụ cột OOP C# (Đóng gói, Kế thừa, Đa hình, Trừu tượng) và ví dụ ngắn gọn!', 'explain')"
+    container.innerHTML = `
+      <button type="button" onclick="sendFloatingPrompt('Tóm tắt 3 ý cốt lõi hay ra thi nhất của môn này!', 'explain')"
         class="badge-brand px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
-        💻 4 Trụ Cột OOP C#
+        ✨ Trọng tâm
       </button>
-      <button type="button" onclick="sendFloatingPrompt('So sánh Big-O của QuickSort, MergeSort, Dijkstra kèm lưu ý phòng thi!', 'explain')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-amber">
-        ⚡ Bảng Tra Big-O
-      </button>
-      <button type="button" onclick="sendFloatingPrompt('Phân biệt virtual vs override, new method hiding và abstract vs interface!', 'debug')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-cyan">
-        🔍 virtual vs interface
-      </button>
-      <button type="button" onclick="sendFloatingPrompt('Những lỗi sai & bẫy thi kinh điển ở môn OOP & Giải thuật?', 'debug')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-rose">
-        ⚠️ Bẫy Đề Thi C#
-      </button>
-    ` : `
-      <button type="button" onclick="sendFloatingPrompt('Tóm tắt 3 trọng tâm cốt lõi hay ra thi nhất của môn này!', 'explain')"
+      <button type="button" onclick="sendFloatingPrompt('Chỉ nhanh các bẫy câu hỏi NGOẠI TRỪ dễ sai môn này!', 'eliminate')"
         class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
-        ✨ 3 Ý Cốt Lõi
+        ⚠️ Bẫy thi
       </button>
-      <button type="button" onclick="sendFloatingPrompt('Đố tôi 1 câu trắc nghiệm vận dụng môn này (gợi mở từng bước trước)!', 'socratic')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
-        💡 Đố 1 Câu Socratic
-      </button>
-      <button type="button" onclick="sendFloatingPrompt('Những bẫy đề thi Ngoại Trừ và lỗi nhầm lẫn sinh viên Y/ĐH hay gặp nhất?', 'eliminate')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
-        ⚠️ Bẫy Đề Thi
-      </button>
-      <button type="button" onclick="sendFloatingPrompt('Cho 1 ca lâm sàng / tình huống thực tế tiêu biểu môn này!', 'clinical')"
-        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0">
-        🩺 Ca Lâm Sàng Nhanh
+      <button type="button" onclick="spawnInteractiveTutorQuiz()"
+        class="badge-soft px-2.5 py-1 rounded-md text-[11px] font-bold shrink-0 txt-emerald">
+        🎯 Đố 1 câu
       </button>
     `;
   }
@@ -1448,10 +1474,12 @@ async function sendTutorChatUnified(userMsg, opts = {}) {
     .slice(-10, -1)
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', content: m.content }));
 
+  const reqLength = opts.responseLength || currentTutorResponseLength || 'concise';
   const payload = {
     message: cleanText,
     mode: modeToUse,
     persona: currentTutorPersona || STATE?.tutorPersona || 'professor',
+    response_length: reqLength,
     tutor_style_prompt: getTutorStylePrompt(),
     subject_id: sub.id || 5,
     subject_name: sub.name,
@@ -1508,6 +1536,7 @@ async function sendTutorChatUnified(userMsg, opts = {}) {
       model_used: data?.model_used || '',
       masked_key: data?.masked_key || '',
       latency_ms: data?.latency_ms ?? null,
+      response_length: data?.response_length || reqLength,
       created_at: new Date().toISOString()
     });
 
@@ -7661,12 +7690,12 @@ function renderTutorQuickPrompts() {
   if (!wrap) return;
   const sid = document.getElementById('tutor-subject-select')?.value;
   const sub = STATE.subjects.find((s) => String(s.id) === String(sid)) || STATE.subjects[0];
-  const prompts = TUTOR_PROMPT_PRESETS[sub?.code] || TUTOR_PROMPT_PRESETS.DEFAULT;
+  const cards = getDynamicTutorWelcomeCards(sub?.code, sub?.name);
 
-  wrap.innerHTML = prompts
+  wrap.innerHTML = cards
     .map(
-      (p) =>
-        `<button type="button" onclick="sendQuickTutorPrompt(${JSON.stringify(p).replace(/"/g, '&quot;')})" class="btn-soft px-3 py-1.5 text-xs whitespace-nowrap">${escapeHtml(p)}</button>`
+      (c) =>
+        `<button type="button" onclick="triggerWelcomeCardAction(${escapeJsString(c.prompt)})" class="btn-soft px-2.5 py-1 text-[11px] font-bold whitespace-nowrap">${escapeHtml(c.icon)} ${escapeHtml(c.title)}</button>`
     )
     .join('');
 }
@@ -7705,7 +7734,14 @@ function initTutorGreeting() {
 }
 
 function clearTutorChat() {
-  return archiveCurrentTutorSessionInternal('🗂️ Đã mở khung chat mới — hội thoại cũ vẫn được giữ nguyên trong Kho Lưu Trữ Hội Thoại!');
+  if (typeof STATE !== 'undefined' && STATE.currentTab === 'tutor' && pinnedTutorQuestion) {
+    pinnedTutorQuestion = null;
+    persistPinnedTutorContext(null);
+    syncFloatingTutorSubjectContext();
+    syncTutorContextBarsUI();
+    renderFloatingActionChips();
+  }
+  return archiveCurrentTutorSessionInternal('✨ Đã mở phiên chat mới (hội thoại cũ vẫn lưu trong Lịch sử).');
 }
 
 function sendQuickTutorPrompt(text) {
@@ -18472,6 +18508,13 @@ document.addEventListener('keydown', (e) => {
       return;
     }
 
+    if (draft.progress_type === 'timed_exam') {
+      if (typeof window.resumeTimedExamFromDraft === 'function') {
+        await window.resumeTimedExamFromDraft(draft);
+      }
+      return;
+    }
+
     // --- Exam Resume ---
     const sid = Number(p.subjectId || draft.subject_id || STATE.examConfig?.subjectId || 0);
     const qIds = Array.isArray(p.question_ids) ? p.question_ids : [];
@@ -18693,8 +18736,9 @@ document.addEventListener('keydown', (e) => {
   function renderResumePanelMarkup(drafts, context = 'dashboard') {
     const typeMeta = {
       exam: { icon: '📝', label: 'Phòng thi', badge: 'badge-brand' },
+      timed_exam: { icon: '⏱️', label: 'Thi 60p', badge: 'badge-rose' },
       essay: { icon: '✍️', label: 'Tự luận', badge: 'badge-amber' },
-      code: { icon: '💻', label: 'Thực hành Code', badge: 'badge-cyan' },
+      code: { icon: '💻', label: 'Code', badge: 'badge-cyan' },
       flashcard: { icon: '🗂️', label: 'Thẻ nhớ', badge: 'badge-emerald' }
     };
     const visible = drafts.filter((d) => d.progress_type !== 'tutor');
@@ -18706,60 +18750,53 @@ document.addEventListener('keydown', (e) => {
         const meta = typeMeta[d.progress_type] || typeMeta.exam;
         const p = d.payload || {};
         const total = Math.max(1, Number(d.total_items || p.totalQuestions || 1));
-        const curPos = d.progress_type === 'exam' || d.progress_type === 'flashcard'
-          ? Math.min(total, Math.max(1, Number(d.current_index || 0) + 1))
-          : 1;
+        const isQType = d.progress_type === 'exam' || d.progress_type === 'timed_exam' || d.progress_type === 'flashcard';
+        const curPos = isQType ? Math.min(total, Math.max(1, Number(d.current_index || 0) + 1)) : 1;
         const answered = Math.max(0, Number(d.answered_count || 0));
-        const pct = d.progress_type === 'exam'
+        const pct = (d.progress_type === 'exam' || d.progress_type === 'timed_exam')
           ? Math.min(100, Math.round((Math.max(answered, curPos) / total) * 100))
           : d.progress_type === 'flashcard'
           ? Math.min(100, Math.round((curPos / total) * 100))
           : 50;
 
-        const progressSummary = d.progress_type === 'exam'
-          ? `Câu ${curPos}/${total} • Đã trả lời ${answered}/${total} (${pct}%)`
+        const progressSummary = (d.progress_type === 'exam' || d.progress_type === 'timed_exam')
+          ? `Câu ${curPos}/${total} • Đã chọn ${answered}/${total}`
           : d.progress_type === 'flashcard'
-          ? `Thẻ ${curPos}/${total} (${pct}%)`
+          ? `Thẻ ${curPos}/${total}`
           : d.progress_type === 'essay'
-          ? `Nháp tự luận • ${(p.text || '').length} ký tự`
-          : `Nháp code • ${(p.code || '').split('\n').length} dòng`;
+          ? `${(p.text || '').length} ký tự`
+          : `${(p.code || '').split('\n').length} dòng code`;
 
         const timeChips = [];
-        if (d.progress_type === 'exam') {
-          if (Number(p.elapsedSeconds || 0) > 0 && typeof formatDuration === 'function') {
-            timeChips.push(`⏱️ Đã làm ${formatDuration(p.elapsedSeconds)}`);
-          }
+        if (d.progress_type === 'exam' || d.progress_type === 'timed_exam') {
           if (Number(p.durationSeconds || 0) > 0 && typeof formatDuration === 'function') {
             timeChips.push(`⏳ Còn ${formatDuration(Math.max(0, p.timeLeft ?? 0))}`);
+          } else if (Number(p.elapsedSeconds || 0) > 0 && typeof formatDuration === 'function') {
+            timeChips.push(`⏱️ ${formatDuration(p.elapsedSeconds)}`);
           }
         }
-        timeChips.push(`🕒 ${formatDraftUpdatedLabel(d.updated_at_ms)}`);
+        timeChips.push(`☁️ ${formatDraftUpdatedLabel(d.updated_at_ms)}`);
 
         const safeKeyJs = escapeHtml(d.draft_key).replace(/'/g, '&#39;');
         return `
-          <div class="resume-draft-item p-3.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div class="space-y-1.5 min-w-0 flex-1">
+          <div class="resume-draft-item px-3.5 py-2.5 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div class="space-y-1 min-w-0 flex-1">
               <div class="flex items-center gap-2 flex-wrap">
                 <span class="${meta.badge} text-[10px] px-2 py-0.5 rounded-full font-extrabold shrink-0">${meta.icon} ${meta.label}</span>
                 <span class="font-extrabold text-xs sm:text-sm txt-main truncate">${escapeHtml(d.title)}</span>
-              </div>
-              <div class="flex items-center justify-between gap-2 text-[11px] font-bold txt-sub">
-                <span>${escapeHtml(progressSummary)}</span>
-                <span class="font-mono txt-brand">${pct}%</span>
+                <span class="text-[11px] font-bold txt-brand font-mono">${escapeHtml(progressSummary)}</span>
+                <span class="text-[10px] txt-muted font-semibold hidden md:inline">${timeChips.map((c) => escapeHtml(c)).join(' • ')}</span>
               </div>
               <div class="resume-progress-track">
                 <div class="resume-progress-fill" style="width: ${pct}%"></div>
               </div>
-              <div class="flex items-center flex-wrap gap-x-3 gap-y-1 text-[10px] txt-muted font-semibold">
-                ${timeChips.map((c) => `<span>${escapeHtml(c)}</span>`).join('')}
-              </div>
             </div>
-            <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
-              <button type="button" onclick="resumeSavedDraft('${safeKeyJs}')" class="btn-primary px-3.5 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm">
-                ▶ Tiếp tục ngay
+            <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+              <button type="button" onclick="resumeSavedDraft('${safeKeyJs}')" class="btn-primary px-3.5 py-1.5 text-xs font-extrabold whitespace-nowrap shadow-sm">
+                ▶ Tiếp tục
               </button>
-              <button type="button" onclick="discardProgressDraftUI('${safeKeyJs}')" class="btn-soft px-2.5 py-2 text-xs txt-rose font-bold whitespace-nowrap" title="Xóa nháp">
-                🗑️ Xóa nháp
+              <button type="button" onclick="discardProgressDraftUI('${safeKeyJs}')" class="btn-soft px-2 py-1.5 text-xs txt-rose font-bold whitespace-nowrap" title="Xóa bản lưu này">
+                ✕
               </button>
             </div>
           </div>
@@ -26790,3 +26827,759 @@ window.openPrintableExamModal = openPrintableExamModal;
 window.refreshPrintableExamPreview = refreshPrintableExamPreview;
 window.triggerBrowserPrintExamSheet = triggerBrowserPrintExamSheet;
 window.downloadPrintableExamHtml = downloadPrintableExamHtml;
+
+// ==============================================================================
+// UNIMASTER AI v51.0: UNIVERSAL REAL-TIME CROSS-DEVICE AUTO-BACKUP & RESUME VAULT
+// ==============================================================================
+(function initUniversalCrossDeviceVaultV51() {
+  const VAULT_TS_KEY = 'unimaster_vault_updated_ms_v51';
+  let vaultPushTimer = null;
+  let vaultPullInFlight = false;
+  let vaultPushInFlight = false;
+  let lastSyncedTimeMs = Number(localStorage.getItem(VAULT_TS_KEY) || 0);
+  let lastTimed60Bucket = -1;
+
+  function safeJsonParse(raw, fallback) {
+    if (!raw) return fallback;
+    try {
+      const p = JSON.parse(raw);
+      return p !== null && p !== undefined ? p : fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
+
+  function touchLocalVaultTimestamp() {
+    const now = Date.now();
+    lastSyncedTimeMs = now;
+    try { localStorage.setItem(VAULT_TS_KEY, String(now)); } catch (_) {}
+    return now;
+  }
+
+  function setHeaderSyncStatus(mode = 'saved', customLabel = '') {
+    const btn = document.getElementById('header-sync-btn');
+    const lbl = document.getElementById('header-sync-label');
+    const modalSt = document.getElementById('cloud-sync-modal-status');
+    const modalLast = document.getElementById('cloud-sync-last-time');
+    if (btn) {
+      btn.classList.toggle('is-syncing', mode === 'syncing');
+      btn.classList.toggle('is-offline', mode === 'offline');
+    }
+    if (lbl) {
+      lbl.textContent = customLabel || (
+        mode === 'syncing' ? '🔄 Đang lưu...' :
+        mode === 'offline' ? '📴 Lưu cục bộ' :
+        '☁️ Đã lưu'
+      );
+    }
+    if (modalSt) {
+      modalSt.textContent = mode === 'offline'
+        ? '🟡 Đang lưu trên trình duyệt (Sẽ tự đồng bộ khi có máy chủ)'
+        : '🟢 Đang tự động sao lưu thời gian thực (0.4s/lần)';
+    }
+    if (modalLast && mode === 'saved') {
+      const tStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      modalLast.textContent = `Đã sao lưu lúc ${tStr} • Sang máy khác mở web sẽ thấy ngay tiến trình đang làm dở`;
+    }
+  }
+  window.setHeaderSyncStatus = setHeaderSyncStatus;
+
+  function buildUniversalUserStatePayload(explicitTs = null) {
+    const ts = explicitTs || Number(localStorage.getItem(VAULT_TS_KEY) || Date.now());
+    return {
+      bookmarks: Array.isArray(STATE?.bookmarks) ? STATE.bookmarks : safeJsonParse(localStorage.getItem('unimaster_bookmarks'), []),
+      mistakes: Array.isArray(STATE?.mistakes) ? STATE.mistakes : safeJsonParse(localStorage.getItem('unimaster_mistakes'), []),
+      notes: STATE?.notes && typeof STATE.notes === 'object' ? STATE.notes : safeJsonParse(localStorage.getItem('unimaster_notes'), {}),
+      xp: Number(STATE?.xp || localStorage.getItem('unimaster_xp') || 0),
+      streakDays: Number(STATE?.streakDays || localStorage.getItem('unimaster_streak_days') || 1),
+      lastStudyDate: STATE?.lastStudyDate || localStorage.getItem('unimaster_last_date') || '',
+      blitzBest: Number(STATE?.blitzBest || localStorage.getItem('unimaster_blitz_best') || 0),
+      ui: STATE?.ui || safeJsonParse(localStorage.getItem('unimaster_ui_prefs'), {}),
+      appearancePrefs: safeJsonParse(localStorage.getItem('unimaster_prefs_v46'), null),
+      deadlines: safeJsonParse(localStorage.getItem('unimaster_deadlines_v49'), null),
+      examDate: localStorage.getItem('unimaster_exam_date') || '',
+      plannerDone: safeJsonParse(localStorage.getItem('unimaster_planner_done'), {}),
+      dailyQuota: safeJsonParse(localStorage.getItem('unimaster_daily_quota'), null),
+      activeSubjectId: STATE?.activeSubjectId || localStorage.getItem('unimaster_active_subject_id') || '',
+      activeAccountId: localStorage.getItem('unimaster_active_account_id_v2') || '',
+      accountsList: safeJsonParse(localStorage.getItem('unimaster_accounts_v2'), null),
+      exercisesCode: safeJsonParse(localStorage.getItem('unimaster_exercises_user_code_v2'), {}),
+      exercisesLang: safeJsonParse(localStorage.getItem('unimaster_exercises_lang_v2'), {}),
+      tutorPrefs: {
+        mode: typeof currentTutorMode !== 'undefined' ? currentTutorMode : 'explain',
+        persona: typeof currentTutorPersona !== 'undefined' ? currentTutorPersona : 'professor',
+        responseLength: typeof currentTutorResponseLength !== 'undefined' ? currentTutorResponseLength : 'concise',
+        splitDock: localStorage.getItem('unimaster_tutor_split_dock') !== '0',
+        customStyle: typeof tutorCustomStyle !== 'undefined' ? tutorCustomStyle : ''
+      },
+      updated_at_ms: ts
+    };
+  }
+
+  function collectAllLocalDraftsAcrossAccounts() {
+    const byKey = {};
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith('unimaster_study_progress_v1_')) continue;
+        const map = safeJsonParse(localStorage.getItem(k), {});
+        Object.values(map).forEach((d) => {
+          if (!d || !d.draft_key) return;
+          const prev = byKey[d.draft_key];
+          if (!prev || Number(d.updated_at_ms || 0) >= Number(prev.updated_at_ms || 0)) {
+            byKey[d.draft_key] = d;
+          }
+        });
+      }
+    } catch (_) {}
+    return Object.values(byKey).sort((a, b) => Number(b.updated_at_ms || 0) - Number(a.updated_at_ms || 0));
+  }
+
+  function collectDeletedTombstoneKeys() {
+    const keys = new Set();
+    const cutoff = Date.now() - 2 * 86400 * 1000;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith('unimaster_progress_tombstones_v1_')) continue;
+        const map = safeJsonParse(localStorage.getItem(k), {});
+        Object.entries(map).forEach(([dk, ts]) => {
+          if (Number(ts) > cutoff) keys.add(dk);
+        });
+      }
+    } catch (_) {}
+    return Array.from(keys);
+  }
+
+  function collectLocalTutorSessionsPayload() {
+    if (typeof readLocalTutorSessions !== 'function') return [];
+    const acc = typeof getTutorAccountIdSafe === 'function' ? getTutorAccountIdSafe() : 'acc_default';
+    return (readLocalTutorSessions(acc) || []).slice(0, 12).map((s) => ({
+      account_id: acc,
+      session_id: s.session_id,
+      title: s.title || 'Hội thoại AI Gia Sư',
+      subject_id: s.subject_id || null,
+      subject_name: s.subject_name || '',
+      mode: s.mode || 'explain',
+      persona: s.persona || 'professor',
+      messages: (s.messages || []).slice(-40).map((m) => ({
+        role: m.role === 'user' ? 'user' : 'model',
+        content: m.content || '',
+        mode: m.mode || '',
+        context: m.context || '',
+        provider_used: m.provider_used || '',
+        model_used: m.model_used || '',
+        latency_ms: m.latency_ms ?? null
+      }))
+    })).filter((s) => s.messages.length > 0);
+  }
+
+  // --- 60-Minute Timed Exam Auto-Save & Cross-Device Resume ---
+  function buildTimedExamDraftObject() {
+    const te = window.TIMED_EXAM;
+    if (!te || !te.active || !Array.isArray(te.questions) || !te.questions.length) return null;
+    const sid = Number(te.subjectId || 5);
+    const draftKey = te.draftKey || `timed_exam_sub${sid}`;
+    te.draftKey = draftKey;
+    const curIdx = Math.min(Math.max(0, Number(te.currentIndex || 0)), te.questions.length - 1);
+    const answeredCount = Object.keys(te.answers || {}).length;
+    return {
+      account_id: typeof getProgressAccountId === 'function' ? getProgressAccountId() : 'acc_default',
+      draft_key: draftKey,
+      progress_type: 'timed_exam',
+      subject_id: sid,
+      chapter_tag: 'timed_60p',
+      title: `Thi thử 60p: ${te.subjectName || 'Môn học'}`,
+      current_index: curIdx,
+      total_items: te.questions.length,
+      answered_count: answeredCount,
+      payload: {
+        draftKey,
+        subjectId: sid,
+        subjectName: te.subjectName || 'Môn học',
+        question_ids: te.questions.map((q) => q.id),
+        answers: { ...(te.answers || {}) },
+        flags: { ...(te.flags || {}) },
+        currentIndex: curIdx,
+        timeLeft: Math.max(1, Number(te.remainingSeconds || 3600)),
+        durationSeconds: 3600
+      }
+    };
+  }
+
+  function saveActiveTimedExamDraftNow({ syncServer = true, keepalive = false } = {}) {
+    const d = buildTimedExamDraftObject();
+    if (!d || typeof window.saveProgressDraft !== 'function') return null;
+    return window.saveProgressDraft(d, { syncServer, keepalive });
+  }
+  window.saveActiveTimedExamDraftNow = saveActiveTimedExamDraftNow;
+
+  window.resumeTimedExamFromDraft = async function resumeTimedExamFromDraft(draft) {
+    const p = draft?.payload || {};
+    const sid = Number(p.subjectId || draft.subject_id || 5);
+    const qIds = Array.isArray(p.question_ids) ? p.question_ids : [];
+    if (!qIds.length) {
+      showToast('Không tìm thấy câu hỏi của bài thi thử 60p.', 'warning');
+      return;
+    }
+    showToast('⏳ Đang khôi phục Phòng thi 60 phút...', 'info');
+    let pool = [];
+    try {
+      const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+      if (Array.isArray(res?.questions)) pool = res.questions;
+    } catch (_) {}
+    const byId = new Map(pool.map((q) => [String(q.id), q]));
+    const restoredQs = qIds.map((id) => byId.get(String(id))).filter(Boolean);
+    if (!restoredQs.length) {
+      showToast('Không thể tải lại ngân hàng câu hỏi để tiếp tục thi 60p.', 'error');
+      return;
+    }
+
+    const subName = p.subjectName || (STATE?.subjects || []).find((s) => Number(s.id) === sid)?.name || 'Môn học';
+    clearInterval(window.TIMED_EXAM?.timerInterval);
+    window.TIMED_EXAM = {
+      active: true,
+      draftKey: draft.draft_key,
+      subjectId: sid,
+      subjectName: subName,
+      questions: restoredQs,
+      currentIndex: Math.min(Math.max(0, Number(p.currentIndex ?? draft.current_index ?? 0)), restoredQs.length - 1),
+      answers: { ...(p.answers || {}) },
+      flags: { ...(p.flags || {}) },
+      remainingSeconds: Math.max(10, Number(p.timeLeft || 3600)),
+      timerInterval: null
+    };
+
+    document.getElementById('timed-exam-result-pane')?.classList.add('hidden');
+    document.getElementById('modal-timed-exam')?.classList.remove('hidden');
+    const titleEl = document.getElementById('timed-exam-subject-title');
+    if (titleEl) titleEl.textContent = `Thi Thử 60p: ${subName}`;
+    document.getElementById('floating-tutor-container')?.classList.remove('hidden');
+    document.getElementById('floating-next-q-btn')?.classList.remove('hidden');
+    document.getElementById('floating-prev-q-btn')?.classList.remove('hidden');
+
+    if (typeof updateTimedExamClockDisplay === 'function') updateTimedExamClockDisplay();
+    window.TIMED_EXAM.timerInterval = setInterval(() => {
+      window.TIMED_EXAM.remainingSeconds--;
+      if (typeof updateTimedExamClockDisplay === 'function') updateTimedExamClockDisplay();
+      if (window.TIMED_EXAM.remainingSeconds <= 0) {
+        clearInterval(window.TIMED_EXAM.timerInterval);
+        if (typeof submitTimedExamNow === 'function') submitTimedExamNow(true);
+      }
+    }, 1000);
+
+    if (typeof renderTimedExamPalette === 'function') renderTimedExamPalette();
+    if (typeof renderTimedExamQuestion === 'function') renderTimedExamQuestion(window.TIMED_EXAM.currentIndex);
+    showToast(`▶ Tiếp tục Thi 60p tại Câu ${window.TIMED_EXAM.currentIndex + 1}/${restoredQs.length}!`, 'success');
+  };
+
+  // Hook Timed Exam functions for real-time auto-save
+  if (typeof startTimedExam === 'function') {
+    const _origStartTimed = startTimedExam;
+    startTimedExam = async function (...args) {
+      const r = await _origStartTimed.apply(this, args);
+      if (window.TIMED_EXAM?.active) {
+        saveActiveTimedExamDraftNow({ syncServer: true });
+        scheduleUniversalVaultPush(400);
+      }
+      return r;
+    };
+    window.startTimedExam = startTimedExam;
+  }
+  if (typeof selectTimedExamOption === 'function') {
+    const _origSelTimed = selectTimedExamOption;
+    selectTimedExamOption = function (opt) {
+      const r = _origSelTimed(opt);
+      if (window.TIMED_EXAM?.active) {
+        saveActiveTimedExamDraftNow({ syncServer: true });
+        scheduleUniversalVaultPush(400);
+      }
+      return r;
+    };
+    window.selectTimedExamOption = selectTimedExamOption;
+  }
+  if (typeof toggleFlagCurrentQuestion === 'function') {
+    const _origFlagTimed = toggleFlagCurrentQuestion;
+    toggleFlagCurrentQuestion = function () {
+      const r = _origFlagTimed();
+      if (window.TIMED_EXAM?.active) saveActiveTimedExamDraftNow({ syncServer: true });
+      return r;
+    };
+    window.toggleFlagCurrentQuestion = toggleFlagCurrentQuestion;
+  }
+  if (typeof renderTimedExamQuestion === 'function') {
+    const _origRenderTimed = renderTimedExamQuestion;
+    renderTimedExamQuestion = function (idx) {
+      const r = _origRenderTimed(idx);
+      if (window.TIMED_EXAM?.active) saveActiveTimedExamDraftNow({ syncServer: false });
+      return r;
+    };
+    window.renderTimedExamQuestion = renderTimedExamQuestion;
+  }
+  if (typeof submitTimedExamNow === 'function') {
+    const _origSubTimed = submitTimedExamNow;
+    submitTimedExamNow = async function (isAuto = false) {
+      const dk = window.TIMED_EXAM?.draftKey || (window.TIMED_EXAM?.subjectId ? `timed_exam_sub${window.TIMED_EXAM.subjectId}` : '');
+      const r = await _origSubTimed(isAuto);
+      if (dk && typeof window.discardProgressDraft === 'function') {
+        await window.discardProgressDraft(dk, { silent: true });
+      }
+      return r;
+    };
+    window.submitTimedExamNow = submitTimedExamNow;
+  }
+
+  setInterval(() => {
+    if (window.TIMED_EXAM?.active) {
+      const b = Math.floor(Number(window.TIMED_EXAM.remainingSeconds || 0) / 5);
+      if (b !== lastTimed60Bucket) {
+        lastTimed60Bucket = b;
+        saveActiveTimedExamDraftNow({ syncServer: true });
+      }
+    }
+  }, 1500);
+
+  // --- Push & Pull Universal Vault ---
+  async function pushUniversalVaultToServer({ keepalive = false } = {}) {
+    if (STATE?.isOfflineStandalone) {
+      setHeaderSyncStatus('offline');
+      return null;
+    }
+    if (STATE?.exam?.active && typeof window.saveActiveExamDraftNow === 'function') {
+      window.saveActiveExamDraftNow({ syncServer: false });
+    }
+    if (window.TIMED_EXAM?.active) {
+      saveActiveTimedExamDraftNow({ syncServer: false });
+    }
+
+    const acc = typeof getProgressAccountId === 'function' ? getProgressAccountId() : 'acc_default';
+    const ts = touchLocalVaultTimestamp();
+    const payload = {
+      account_id: acc,
+      user_state: buildUniversalUserStatePayload(ts),
+      drafts: collectAllLocalDraftsAcrossAccounts().slice(0, 35),
+      deleted_draft_keys: collectDeletedTombstoneKeys(),
+      tutor_sessions: collectLocalTutorSessionsPayload()
+    };
+    const bodyStr = JSON.stringify(payload);
+
+    if (keepalive) {
+      try {
+        if (bodyStr.length <= 60000) {
+          fetch('/api/sync/vault', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Account-Id': acc },
+            body: bodyStr,
+            keepalive: true,
+            credentials: 'same-origin'
+          }).catch(() => {});
+        } else if (navigator.sendBeacon) {
+          navigator.sendBeacon('/api/sync/vault', new Blob([bodyStr], { type: 'application/json' }));
+        }
+      } catch (_) {}
+      return null;
+    }
+
+    if (vaultPushInFlight) return null;
+    vaultPushInFlight = true;
+    setHeaderSyncStatus('syncing');
+    try {
+      const resp = await fetch('/api/sync/vault', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Account-Id': acc },
+        credentials: 'same-origin',
+        body: bodyStr
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const snap = await resp.json();
+      if (snap?.success) {
+        applyServerVaultSnapshot(snap, { skipAutoHeal: true });
+        setHeaderSyncStatus('saved');
+        refreshCloudSyncModalUI(snap);
+        return snap;
+      }
+      setHeaderSyncStatus('offline');
+    } catch (_) {
+      setHeaderSyncStatus('offline');
+    } finally {
+      vaultPushInFlight = false;
+    }
+    return null;
+  }
+  window.pushUniversalVaultToServer = pushUniversalVaultToServer;
+
+  function scheduleUniversalVaultPush(delayMs = 450) {
+    touchLocalVaultTimestamp();
+    setHeaderSyncStatus('syncing');
+    clearTimeout(vaultPushTimer);
+    vaultPushTimer = setTimeout(() => {
+      pushUniversalVaultToServer({ keepalive: false });
+    }, delayMs);
+  }
+  window.scheduleUniversalVaultPush = scheduleUniversalVaultPush;
+
+  function applyServerVaultSnapshot(snap, { skipAutoHeal = false } = {}) {
+    if (!snap || typeof snap !== 'object') return;
+    const acc = typeof getProgressAccountId === 'function' ? getProgressAccountId() : 'acc_default';
+    const localTs = Number(localStorage.getItem(VAULT_TS_KEY) || 0);
+    const srvState = snap.user_state && typeof snap.user_state === 'object' ? snap.user_state : {};
+    const srvTs = Number(srvState.updated_at_ms || 0);
+    const srvIsNewer = srvTs > localTs;
+
+    // 1. Merge User State (Union + Timestamp Winner)
+    if (Object.keys(srvState).length > 0) {
+      if (Array.isArray(srvState.bookmarks)) {
+        STATE.bookmarks = Array.from(new Set([...(STATE.bookmarks || []), ...srvState.bookmarks]));
+        localStorage.setItem('unimaster_bookmarks', JSON.stringify(STATE.bookmarks));
+      }
+      if (Array.isArray(srvState.mistakes)) {
+        STATE.mistakes = Array.from(new Set([...(STATE.mistakes || []), ...srvState.mistakes]));
+        localStorage.setItem('unimaster_mistakes', JSON.stringify(STATE.mistakes));
+      }
+      if (srvState.notes && typeof srvState.notes === 'object') {
+        STATE.notes = srvIsNewer ? { ...(STATE.notes || {}), ...srvState.notes } : { ...srvState.notes, ...(STATE.notes || {}) };
+        localStorage.setItem('unimaster_notes', JSON.stringify(STATE.notes));
+      }
+      if (typeof srvState.xp === 'number' && srvState.xp > Number(STATE.xp || 0)) {
+        STATE.xp = srvState.xp;
+        localStorage.setItem('unimaster_xp', String(STATE.xp));
+      }
+      if (typeof srvState.streakDays === 'number' && srvState.streakDays > Number(STATE.streakDays || 1)) {
+        STATE.streakDays = srvState.streakDays;
+        localStorage.setItem('unimaster_streak_days', String(STATE.streakDays));
+      }
+      if (typeof srvState.blitzBest === 'number' && srvState.blitzBest > Number(STATE.blitzBest || 0)) {
+        STATE.blitzBest = srvState.blitzBest;
+        localStorage.setItem('unimaster_blitz_best', String(STATE.blitzBest));
+      }
+      if (srvState.exercisesCode && typeof srvState.exercisesCode === 'object') {
+        const curCode = safeJsonParse(localStorage.getItem('unimaster_exercises_user_code_v2'), {});
+        const mergedCode = srvIsNewer ? { ...curCode, ...srvState.exercisesCode } : { ...srvState.exercisesCode, ...curCode };
+        localStorage.setItem('unimaster_exercises_user_code_v2', JSON.stringify(mergedCode));
+        if (STATE?.exercises) STATE.exercises.userCode = mergedCode;
+      }
+      if ((srvIsNewer || !localStorage.getItem('unimaster_deadlines_v49')) && Array.isArray(srvState.deadlines) && srvState.deadlines.length) {
+        localStorage.setItem('unimaster_deadlines_v49', JSON.stringify(srvState.deadlines));
+        if (typeof renderCustomExamCountdowns === 'function') renderCustomExamCountdowns();
+      }
+      if ((srvIsNewer || !localStorage.getItem('unimaster_prefs_v46')) && srvState.appearancePrefs && typeof srvState.appearancePrefs === 'object') {
+        localStorage.setItem('unimaster_prefs_v46', JSON.stringify(srvState.appearancePrefs));
+        if (typeof applyAllAppearancePrefs === 'function') applyAllAppearancePrefs();
+      }
+      if (srvState.tutorPrefs && (srvIsNewer || !localStorage.getItem('unimaster_tutor_length'))) {
+        const tp = srvState.tutorPrefs;
+        if (tp.responseLength) {
+          currentTutorResponseLength = tp.responseLength;
+          localStorage.setItem('unimaster_tutor_length', tp.responseLength);
+          if (typeof updateTutorLengthUI === 'function') updateTutorLengthUI();
+        }
+        if (tp.mode && typeof setTutorMode === 'function' && tp.mode !== currentTutorMode) {
+          currentTutorMode = tp.mode;
+          localStorage.setItem(TUTOR_MODE_KEY, tp.mode);
+          if (typeof updateTutorModeUI === 'function') updateTutorModeUI();
+        }
+      }
+      if (srvIsNewer && srvTs) {
+        lastSyncedTimeMs = srvTs;
+        try { localStorage.setItem(VAULT_TS_KEY, String(srvTs)); } catch (_) {}
+      }
+      if (typeof updateXpUI === 'function') updateXpUI();
+    }
+
+    // 2. Merge ALL Cross-Device Study Progress Drafts (Regardless of Persona!)
+    const srvDrafts = Array.isArray(snap.drafts) ? snap.drafts : [];
+    const tombKeys = new Set(collectDeletedTombstoneKeys());
+    const localKey = 'unimaster_study_progress_v1_' + acc;
+    const curMap = safeJsonParse(localStorage.getItem(localKey), {});
+    let draftsChanged = false;
+
+    srvDrafts.forEach((sd) => {
+      if (!sd || !sd.draft_key || tombKeys.has(sd.draft_key)) return;
+      const loc = curMap[sd.draft_key];
+      const srvMs = Number(sd.updated_at_ms || (sd.updated_at ? Date.parse(sd.updated_at) : 0) || 0);
+      const locMs = Number(loc?.updated_at_ms || 0);
+      if (!loc || srvMs > locMs) {
+        curMap[sd.draft_key] = { ...sd, account_id: acc, updated_at_ms: srvMs || Date.now() };
+        draftsChanged = true;
+      }
+    });
+
+    if (draftsChanged) {
+      try { localStorage.setItem(localKey, JSON.stringify(curMap)); } catch (_) {}
+      if (typeof window.renderResumePanels === 'function') window.renderResumePanels();
+      if (typeof window.decorateChapterDraftCards === 'function') window.decorateChapterDraftCards();
+    }
+
+    // 3. Merge AI Tutor Chat Sessions Across Devices
+    const srvSessions = Array.isArray(snap.tutor_sessions) ? snap.tutor_sessions : [];
+    if (srvSessions.length && typeof readLocalTutorSessions === 'function' && typeof writeLocalTutorSessions === 'function') {
+      const tutorAcc = typeof getTutorAccountIdSafe === 'function' ? getTutorAccountIdSafe() : 'acc_default';
+      const locSessions = readLocalTutorSessions(tutorAcc) || [];
+      const bySid = new Map(locSessions.map((s) => [s.session_id, s]));
+      let sessChanged = false;
+      srvSessions.forEach((ss) => {
+        if (!ss || !ss.session_id || !Array.isArray(ss.messages) || !ss.messages.length) return;
+        const ex = bySid.get(ss.session_id);
+        if (!ex || ss.messages.length > (ex.messages || []).length) {
+          bySid.set(ss.session_id, {
+            ...ss,
+            account_id: tutorAcc,
+            messages: ss.messages.map((m, idx) => normalizeTutorMsgRecord(m, idx)).filter(Boolean)
+          });
+          sessChanged = true;
+        }
+      });
+      if (sessChanged) {
+        const mergedList = Array.from(bySid.values());
+        tutorSessionsCache = mergedList;
+        writeLocalTutorSessions(mergedList, tutorAcc);
+        if (!Array.isArray(floatingTutorChatHistory) || floatingTutorChatHistory.length === 0) {
+          const latestActive = mergedList.find((s) => !s.is_archived && s.messages?.length);
+          if (latestActive) {
+            currentTutorSessionId = latestActive.session_id;
+            floatingTutorChatHistory = [...latestActive.messages];
+            window.TUTOR_CHAT_HISTORY = floatingTutorChatHistory;
+            if (typeof renderActiveTutorMessages === 'function') renderActiveTutorMessages();
+          }
+        }
+        if (typeof updateTutorSessionsBadges === 'function') updateTutorSessionsBadges();
+      }
+    }
+
+    // 4. Browser-to-Server Auto-Heal (e.g. if Render Free Tier woke up empty!)
+    if (!skipAutoHeal) {
+      const localDraftCount = collectAllLocalDraftsAcrossAccounts().length;
+      if ((srvDrafts.length === 0 && localDraftCount > 0) || (localTs > srvTs + 2500 && Object.keys(srvState).length === 0)) {
+        pushUniversalVaultToServer({ keepalive: false });
+      }
+    }
+  }
+
+  async function pullUniversalVaultFromServer() {
+    if (STATE?.isOfflineStandalone || vaultPullInFlight || vaultPushInFlight) return null;
+    vaultPullInFlight = true;
+    try {
+      const acc = typeof getProgressAccountId === 'function' ? getProgressAccountId() : 'acc_default';
+      const resp = await fetch(`/api/sync/vault?account_id=${encodeURIComponent(acc)}`, {
+        headers: { 'X-Account-Id': acc },
+        credentials: 'same-origin'
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      const snap = await resp.json();
+      if (snap?.success) {
+        applyServerVaultSnapshot(snap);
+        setHeaderSyncStatus('saved');
+        refreshCloudSyncModalUI(snap);
+        return snap;
+      }
+    } catch (_) {
+      setHeaderSyncStatus('offline');
+    } finally {
+      vaultPullInFlight = false;
+    }
+    return null;
+  }
+  window.pullUniversalVaultFromServer = pullUniversalVaultFromServer;
+
+  // --- Hook State Mutators so Every Action Auto-Backs Up ---
+  if (typeof window.saveProgressDraft === 'function') {
+    const _origSaveDraft = window.saveProgressDraft;
+    window.saveProgressDraft = async function (draftInput, opts = {}) {
+      const r = await _origSaveDraft(draftInput, opts);
+      touchLocalVaultTimestamp();
+      setHeaderSyncStatus('saved');
+      return r;
+    };
+  }
+  if (typeof syncUserStateToServer === 'function') {
+    const _origSyncUser = syncUserStateToServer;
+    syncUserStateToServer = function (...args) {
+      const r = _origSyncUser.apply(this, args);
+      scheduleUniversalVaultPush(500);
+      return r;
+    };
+    window.syncUserStateToServer = syncUserStateToServer;
+  }
+  ['saveAppearancePrefs', 'saveExamDeadlinesToStorage', 'addCustomExamDeadline', 'deleteCustomExamDeadline', 'resetDefaultExamDeadlines'].forEach((fnName) => {
+    if (typeof window[fnName] === 'function') {
+      const _origFn = window[fnName];
+      window[fnName] = function (...args) {
+        const r = _origFn.apply(this, args);
+        scheduleUniversalVaultPush(450);
+        return r;
+      };
+    }
+  });
+
+  // Flush immediately on tab hide / close & pull immediately on tab focus / wakeup
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') {
+      pushUniversalVaultToServer({ keepalive: true });
+    } else if (document.visibilityState === 'visible') {
+      pullUniversalVaultFromServer();
+    }
+  });
+  window.addEventListener('pagehide', () => pushUniversalVaultToServer({ keepalive: true }));
+  window.addEventListener('beforeunload', () => pushUniversalVaultToServer({ keepalive: true }));
+  window.addEventListener('focus', () => {
+    if (!STATE?.exam?.active && !window.TIMED_EXAM?.active) {
+      pullUniversalVaultFromServer();
+    }
+  });
+
+  // Lightweight 12s cross-device live poll when viewing Dashboard or Exam Config
+  setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    if (STATE?.exam?.active || window.TIMED_EXAM?.active) return;
+    pullUniversalVaultFromServer();
+  }, 12000);
+
+  // --- Cloud Sync Modal & Remote Render Bridge UI ---
+  function refreshCloudSyncModalUI(snap = null) {
+    const listEl = document.getElementById('cloud-sync-drafts-list');
+    const cntEl = document.getElementById('cloud-sync-drafts-count');
+    const urlInp = document.getElementById('cloud-bridge-url-input');
+    const fbEl = document.getElementById('cloud-bridge-feedback');
+
+    if (snap?.remote_bridge_url && urlInp && !urlInp.value) {
+      urlInp.value = snap.remote_bridge_url;
+    }
+    if (snap?.remote_bridge_url && fbEl) {
+      fbEl.textContent = `🟢 Đang đồng bộ 2 chiều với: ${snap.remote_bridge_url}`;
+      fbEl.className = 'text-[11px] font-bold text-emerald-400';
+    }
+
+    const drafts = (typeof window.listAllProgressDrafts === 'function' ? window.listAllProgressDrafts() : collectAllLocalDraftsAcrossAccounts())
+      .filter((d) => d.progress_type !== 'tutor');
+    if (cntEl) cntEl.textContent = String(drafts.length);
+    if (!listEl) return;
+
+    if (!drafts.length) {
+      listEl.innerHTML = `<div class="p-3 rounded-xl border text-center txt-muted" style="border-color: var(--border);">Chưa có bài thi hoặc bài làm nào đang bỏ dở.</div>`;
+      return;
+    }
+    listEl.innerHTML = drafts.slice(0, 8).map((d) => {
+      const safeKey = escapeHtml(d.draft_key).replace(/'/g, '&#39;');
+      const cur = Math.min(Math.max(1, Number(d.current_index || 0) + 1), Math.max(1, Number(d.total_items || 1)));
+      const tot = Math.max(1, Number(d.total_items || 1));
+      return `
+        <div class="px-3 py-2 rounded-xl border flex items-center justify-between gap-2" style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <div class="min-w-0">
+            <div class="font-extrabold txt-main truncate">${escapeHtml(d.title)}</div>
+            <div class="text-[11px] txt-muted">Vị trí: ${cur}/${tot} • Đã trả lời: ${Number(d.answered_count || 0)}</div>
+          </div>
+          <button type="button" onclick="closeModal('modal-cloud-sync'); resumeSavedDraft('${safeKey}')" class="btn-primary px-3 py-1.5 text-[11px] font-extrabold rounded-lg shrink-0">
+            ▶ Tiếp tục
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  window.openCloudSyncModal = async function openCloudSyncModal() {
+    if (typeof openModal === 'function') openModal('modal-cloud-sync');
+    else document.getElementById('modal-cloud-sync')?.classList.remove('hidden');
+    refreshCloudSyncModalUI();
+    await pullUniversalVaultFromServer();
+  };
+
+  window.forceFullVaultSyncNow = async function forceFullVaultSyncNow() {
+    showToast('🔄 Đang đồng bộ toàn bộ tiến trình & dữ liệu...', 'info');
+    const snap = await pushUniversalVaultToServer({ keepalive: false });
+    if (snap) showToast('☁️ Đã sao lưu & đồng bộ hoàn tất!', 'success');
+    else showToast('Đã lưu an toàn trên trình duyệt!', 'info');
+  };
+
+  window.saveAndSyncRemoteCloudBridge = async function saveAndSyncRemoteCloudBridge() {
+    const urlInp = document.getElementById('cloud-bridge-url-input');
+    const pwInp = document.getElementById('cloud-bridge-pw-input');
+    const fbEl = document.getElementById('cloud-bridge-feedback');
+    const remoteUrl = String(urlInp?.value || '').trim();
+    const password = String(pwInp?.value || '').trim();
+    if (!remoteUrl) {
+      showToast('Hãy nhập địa chỉ https://...onrender.com của bạn.', 'warning');
+      return;
+    }
+    if (fbEl) {
+      fbEl.textContent = '⏳ Đang kết nối và đồng bộ 2 chiều với máy chủ Cloud...';
+      fbEl.className = 'text-[11px] font-bold text-amber-400';
+    }
+    await pushUniversalVaultToServer({ keepalive: false });
+    const res = await apiFetch('/api/sync/remote-bridge', {
+      method: 'POST',
+      body: JSON.stringify({ remote_url: remoteUrl, password })
+    });
+    if (pwInp) pwInp.value = '';
+    if (res?.success) {
+      applyServerVaultSnapshot(res, { skipAutoHeal: true });
+      refreshCloudSyncModalUI(res);
+      showToast(res.message || '☁️ Đã đồng bộ 2 chiều thành công!', 'success');
+    } else {
+      if (fbEl) {
+        fbEl.textContent = '✘ ' + (res?.error || 'Không kết nối được Cloud.');
+        fbEl.className = 'text-[11px] font-bold text-rose-400';
+      }
+      showToast(res?.error || 'Lỗi kết nối Cloud Bridge', 'error');
+    }
+  };
+
+  window.clearRemoteCloudBridge = async function clearRemoteCloudBridge() {
+    await apiFetch('/api/sync/remote-bridge', { method: 'POST', body: JSON.stringify({ clear: true }) });
+    const urlInp = document.getElementById('cloud-bridge-url-input');
+    const fbEl = document.getElementById('cloud-bridge-feedback');
+    if (urlInp) urlInp.value = '';
+    if (fbEl) {
+      fbEl.textContent = 'Đã ngắt cầu nối ngoài.';
+      fbEl.className = 'text-[11px] font-bold txt-muted';
+    }
+    showToast('Đã ngắt cầu nối Cloud.', 'info');
+  };
+
+  window.exportPortableVaultFile = function exportPortableVaultFile() {
+    if (STATE?.exam?.active && typeof window.saveActiveExamDraftNow === 'function') window.saveActiveExamDraftNow({ syncServer: false });
+    if (window.TIMED_EXAM?.active) saveActiveTimedExamDraftNow({ syncServer: false });
+    const data = {
+      exported_at: new Date().toISOString(),
+      version: '51.0',
+      user_state: buildUniversalUserStatePayload(Date.now()),
+      drafts: collectAllLocalDraftsAcrossAccounts(),
+      tutor_sessions: collectLocalTutorSessionsPayload()
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `UniMaster_TienTrinh_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1500);
+    showToast('📥 Đã tải file sao lưu tiến trình (.json)!', 'success');
+  };
+
+  window.importPortableVaultFile = async function importPortableVaultFile(inputEl) {
+    const file = inputEl?.files?.[0];
+    if (!file) return;
+    try {
+      const txt = await file.text();
+      const parsed = JSON.parse(txt);
+      if (!parsed || typeof parsed !== 'object') throw new Error('File không đúng định dạng JSON');
+      if (parsed.user_state) parsed.user_state.updated_at_ms = Date.now() + 1000;
+      applyServerVaultSnapshot(parsed, { skipAutoHeal: true });
+      await pushUniversalVaultToServer({ keepalive: false });
+      refreshCloudSyncModalUI(parsed);
+      showToast('🎉 Đã khôi phục toàn bộ đề đang làm, chat AI & cài đặt!', 'success');
+    } catch (err) {
+      showToast('Lỗi đọc file sao lưu: ' + err.message, 'error');
+    } finally {
+      inputEl.value = '';
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', () => {
+    if (typeof updateTutorLengthUI === 'function') updateTutorLengthUI();
+    setTimeout(() => {
+      pullUniversalVaultFromServer();
+    }, 350);
+  });
+})();

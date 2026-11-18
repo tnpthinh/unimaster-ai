@@ -9,7 +9,9 @@ online_password.txt
 online_tunnel.json
 telegram_token.txt
 *.bak
+*.bak_*
 *.tmp
+backups/
 # Cổng AI 9Router: secret, PID và URL tunnel chỉ lưu trên máy, tuyệt đối không commit
 ai_gateway_secret.txt
 ai_gateway.pid

@@ -594,19 +594,55 @@ def upsert_study_progress(
         conn.close()
 
 
-def delete_study_progress(account_id, draft_key) -> bool:
+def delete_study_progress_session_or_global(account_id, draft_key, all_accounts: bool = True) -> bool:
     acc = _sanitize_account_id(account_id)
     dkey = _sanitize_draft_key(draft_key)
     if not dkey:
         return False
     conn = get_connection()
     try:
-        cur = conn.execute(
-            "DELETE FROM study_progress WHERE account_id = ? AND draft_key = ?",
-            (acc, dkey),
-        )
+        if all_accounts:
+            cur = conn.execute("DELETE FROM study_progress WHERE draft_key = ?", (dkey,))
+        else:
+            cur = conn.execute(
+                "DELETE FROM study_progress WHERE account_id = ? AND draft_key = ?",
+                (acc, dkey),
+            )
         conn.commit()
         return cur.rowcount > 0
+    finally:
+        conn.close()
+
+
+def delete_study_progress(account_id, draft_key) -> bool:
+    return delete_study_progress_session_or_global(account_id, draft_key, all_accounts=True)
+
+
+def list_all_study_progress_global(progress_type: str = None, limit: int = 60) -> list:
+    """Return latest deduplicated study_progress drafts across all local persona account_ids."""
+    lim = max(1, min(200, int(limit or 60)))
+    conn = get_connection()
+    try:
+        if progress_type:
+            rows = conn.execute(
+                "SELECT * FROM study_progress WHERE progress_type = ? ORDER BY updated_at DESC LIMIT ?",
+                (str(progress_type).strip()[:64], lim * 2),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT * FROM study_progress ORDER BY updated_at DESC LIMIT ?",
+                (lim * 2,),
+            ).fetchall()
+        dedup = {}
+        for r in rows:
+            ser = _serialize_progress_row(r)
+            if not ser:
+                continue
+            dk = ser["draft_key"]
+            prev = dedup.get(dk)
+            if not prev or (ser.get("updated_at_ms") or 0) >= (prev.get("updated_at_ms") or 0):
+                dedup[dk] = ser
+        return sorted(dedup.values(), key=lambda x: x.get("updated_at_ms") or 0, reverse=True)[:lim]
     finally:
         conn.close()
 
@@ -1874,9 +1910,76 @@ def delete_tutor_chat_session(account_id: str = "acc_default", session_id: str =
         return False
     conn = get_connection()
     try:
-        conn.execute("DELETE FROM tutor_chats WHERE account_id = ? AND session_id = ?", (acc, sid))
-        cur = conn.execute("DELETE FROM ai_chat_sessions WHERE account_id = ? AND session_id = ?", (acc, sid))
+        conn.execute("DELETE FROM tutor_chats WHERE session_id = ?", (sid,))
+        cur = conn.execute("DELETE FROM ai_chat_sessions WHERE session_id = ?", (sid,))
         conn.commit()
         return cur.rowcount > 0
     finally:
         conn.close()
+
+
+def list_all_tutor_sessions_global(limit: int = 30) -> list:
+    """Return latest AI Tutor chat sessions across all persona account_ids so cross-device sync never misses chats."""
+    lim = max(1, min(100, int(limit or 30)))
+    conn = get_connection()
+    try:
+        srows = conn.execute(
+            "SELECT * FROM ai_chat_sessions ORDER BY updated_at DESC LIMIT ?",
+            (lim * 2,),
+        ).fetchall()
+        seen = {}
+        for sr in srows:
+            sid = sr["session_id"]
+            if sid not in seen:
+                seen[sid] = sr
+            if len(seen) >= lim:
+                break
+        sids = list(seen.keys())
+        msg_map = {sid: [] for sid in sids}
+        if sids:
+            placeholders = ",".join("?" * len(sids))
+            mrows = conn.execute(
+                f"SELECT * FROM tutor_chats WHERE session_id IN ({placeholders}) ORDER BY id ASC",
+                tuple(sids),
+            ).fetchall()
+            seen_msg_ids = set()
+            for mr in mrows:
+                ser_m = _serialize_chat_message(mr)
+                mid = (mr["session_id"], ser_m.get("id") or mr["id"])
+                if mid not in seen_msg_ids:
+                    seen_msg_ids.add(mid)
+                    msg_map[mr["session_id"]].append(ser_m)
+        return [_serialize_chat_session(seen[sid], msg_map.get(sid, [])) for sid in sids]
+    finally:
+        conn.close()
+
+
+def get_rolling_backup_path() -> str:
+    base = _DATA_DIR if _DATA_DIR else os.path.join(os.path.dirname(os.path.abspath(__file__)), "backups")
+    os.makedirs(base, exist_ok=True)
+    return os.path.join(base, "unimaster_auto_backup.json")
+
+
+def write_rolling_vault_backup(vault_dict: dict) -> bool:
+    try:
+        path = get_rolling_backup_path()
+        tmp_path = path + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(vault_dict, f, ensure_ascii=False)
+        os.replace(tmp_path, path)
+        return True
+    except Exception:
+        return False
+
+
+def read_rolling_vault_backup() -> dict:
+    try:
+        path = get_rolling_backup_path()
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                if isinstance(data, dict):
+                    return data
+    except Exception:
+        pass
+    return {}
