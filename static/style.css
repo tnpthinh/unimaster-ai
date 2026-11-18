@@ -4981,3 +4981,112 @@ html.ui-density-compact .option-row {
 #floating-tutor-container.tutor-expanded-parent {
   z-index: 1260 !important;
 }
+
+/* ==============================================================================
+   UniMaster AI v50.0: Pinnacle Exam Room, Split-Dock AI Tutor & Floating Next CTA
+   ============================================================================== */
+
+/* 1. Glowing Floating Next Question CTA (Lights Up When Question Is Graded!) */
+@keyframes nextReadyPulse {
+  0%, 100% {
+    box-shadow: 0 12px 28px -4px rgba(16, 185, 129, 0.58), 0 0 0 0 rgba(16, 185, 129, 0.45);
+  }
+  50% {
+    box-shadow: 0 14px 34px -2px rgba(6, 182, 212, 0.75), 0 0 0 6px rgba(16, 185, 129, 0);
+  }
+}
+
+#floating-next-q-btn.floating-next-ready {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 55%, #3b82f6 100%) !important;
+  border-color: rgba(255, 255, 255, 0.55) !important;
+  animation: nextReadyPulse 2s ease-in-out infinite;
+}
+
+/* 2. Desktop Side-by-Side Split-Screen Mode (Exam Left ↔ AI Tutor Right, Zero Overlap!) */
+@media (min-width: 1280px) {
+  body.exam-tutor-split-active main {
+    max-width: min(1440px, 100vw) !important;
+    padding-right: 468px !important;
+    transition: padding-right 0.22s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  body.exam-tutor-split-active #floating-tutor-window:not(.expanded) {
+    position: fixed !important;
+    top: 4.4rem !important;
+    right: 1rem !important;
+    bottom: 4.8rem !important;
+    width: 440px !important;
+    max-width: 440px !important;
+    height: calc(100dvh - 9.2rem) !important;
+    max-height: calc(100dvh - 9.2rem) !important;
+    margin: 0 !important;
+    border-color: color-mix(in srgb, var(--brand) 55%, var(--border)) !important;
+  }
+}
+
+/* 3. Negative / Trap Keyword Highlighter in Exam Stem */
+mark.exam-trap-mark {
+  background: rgba(244, 63, 94, 0.18);
+  color: #fda4af;
+  border-bottom: 2px solid #f43f5e;
+  padding: 0 0.3rem;
+  border-radius: 0.35rem;
+  font-weight: 800;
+}
+html[data-theme="light"] mark.exam-trap-mark,
+html[data-theme="sepia"] mark.exam-trap-mark {
+  background: rgba(244, 63, 94, 0.14);
+  color: #be123c;
+}
+
+/* 4. Per-Option "🤖 Sao sai?" Micro-Pill on Graded Wrong Options */
+.opt-why-wrong-btn {
+  padding: 0.22rem 0.55rem;
+  border-radius: 9999px;
+  font-size: 10.5px;
+  font-weight: 800;
+  white-space: nowrap;
+  flex-shrink: 0;
+  background: rgba(99, 102, 241, 0.16);
+  color: var(--brand-text);
+  border: 1px solid rgba(99, 102, 241, 0.38);
+  cursor: pointer;
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+.opt-why-wrong-btn:hover {
+  background: var(--brand);
+  color: #ffffff;
+  transform: scale(1.05);
+}
+
+/* 5. Interactive Inline Mini-Quiz Card Inside AI Tutor Stream */
+.tutor-inline-quiz-opt {
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  font-size: 0.78rem;
+  font-weight: 600;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: transform 0.14s ease, border-color 0.14s ease, background-color 0.14s ease;
+}
+.tutor-inline-quiz-opt:hover:not(.is-graded) {
+  border-color: var(--brand);
+  background: var(--bg-hover);
+  transform: translateX(2px);
+}
+.tutor-inline-quiz-opt.is-right {
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.16) !important;
+  color: var(--emerald-text) !important;
+}
+.tutor-inline-quiz-opt.is-wrong-pick {
+  border-color: #f43f5e !important;
+  background: rgba(244, 63, 94, 0.16) !important;
+  color: var(--rose-text) !important;
+}

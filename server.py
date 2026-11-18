@@ -2164,6 +2164,8 @@ async def _handle_tutor_assist_common(request, default_mode: str = "explain"):
     question_image_hint = str(data.get("question_image_hint") or "").strip()
     code_snippet = str(data.get("code_snippet") or "").strip()
     selected_term = str(data.get("selected_term") or "").strip()
+    image_base64 = str(data.get("image_base64") or "").strip()
+    image_mime = str(data.get("image_mime") or data.get("mime_type") or "image/jpeg").strip()
     chat_history = data.get("chat_history") if isinstance(data.get("chat_history"), list) else data.get("history")
 
     res = await ai.ai_tutor_assist(
@@ -2180,6 +2182,8 @@ async def _handle_tutor_assist_common(request, default_mode: str = "explain"):
         code_snippet=code_snippet,
         selected_term=selected_term,
         chat_history=chat_history if isinstance(chat_history, list) else None,
+        image_base64=image_base64,
+        image_mime=image_mime,
     )
 
     session_id = str(data.get("session_id") or "").strip()
@@ -3614,11 +3618,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v49-0';
+    const CACHE_NAME = 'unimaster-pwa-v50-0';
     const CORE_ASSETS = [
-      '/static/style.css?v=49.0',
+      '/static/style.css?v=50.0',
       '/static/minimal.css?v=3.0',
-      '/static/app.js?v=49.0',
+      '/static/app.js?v=50.0',
       '/manifest.json',
       '/icon.svg'
     ];

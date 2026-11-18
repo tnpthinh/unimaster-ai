@@ -2407,6 +2407,8 @@ async def ai_tutor_assist(
     code_snippet: str = "",
     selected_term: str = "",
     chat_history: list = None,
+    image_base64: str = "",
+    image_mime: str = "image/jpeg",
 ) -> dict:
     """Gia sư AI hợp nhất hỗ trợ 7 chế độ sư phạm + đầy đủ ngữ cảnh câu hỏi & routing telemetry."""
     norm_mode = _normalize_tutor_mode(mode, message)
@@ -2510,7 +2512,20 @@ async def ai_tutor_assist(
             txt = str(turn.get("content") or turn.get("text") or "").strip()
             if txt:
                 contents_list.append({"role": role, "parts": [{"text": txt}]})
-    contents_list.append({"role": "user", "parts": [{"text": user_prompt}]})
+    user_parts = []
+    raw_img = str(image_base64 or "").strip()
+    clean_mime = str(image_mime or "image/jpeg").strip() or "image/jpeg"
+    if raw_img:
+        if raw_img.startswith("data:") and "," in raw_img:
+            hdr, raw_img = raw_img.split(",", 1)
+            m_mime = re.search(r"data:([^;]+);base64", hdr)
+            if m_mime:
+                clean_mime = m_mime.group(1)
+        user_parts.append({"inlineData": {"mimeType": clean_mime, "data": raw_img}})
+        if not message:
+            user_prompt += "\n\nHãy đọc kỹ hình ảnh đề bài / bài giải / sơ đồ đính kèm, phân tích từng bước và giải thích đáp án chính xác!"
+    user_parts.append({"text": user_prompt})
+    contents_list.append({"role": "user", "parts": user_parts})
 
     quality = "fast" if norm_mode in ("mnemonic", "flashcard", "socratic") else "deep"
     thinking_budget = 192 if quality == "fast" else 384

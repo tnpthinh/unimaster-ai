@@ -76,7 +76,7 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=49.0" />
+  <link rel="stylesheet" href="/static/style.css?v=50.0" />
   <link rel="stylesheet" href="/static/minimal.css?v=3.0" />
   <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
@@ -1009,7 +1009,7 @@
       </div>
 
       <!-- 2B: ACTIVE EXAM SCREEN -->
-      <div id="exam-active-screen" class="hidden space-y-4">
+      <div id="exam-active-screen" class="hidden space-y-4 pb-24">
         <!-- Sticky Top Control Bar -->
         <div class="uni-card sticky top-[4.15rem] z-30 overflow-hidden">
           <div class="w-full h-1.5" style="background-color: var(--bg-subtle);">
@@ -1021,8 +1021,9 @@
             <div class="flex items-center gap-2.5">
               <button onclick="confirmExitExam()" class="btn-soft p-2 text-xs"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
               <div>
-                <div class="flex items-center gap-2">
+                <div class="flex items-center gap-2 flex-wrap">
                   <span class="font-extrabold text-sm txt-main">Câu <span id="current-q-num">1</span>/<span id="total-q-num">20</span></span>
+                  <span id="exam-live-accuracy-pill" class="hidden badge-emerald text-[11px] px-2 py-0.5 rounded-full font-mono font-extrabold">✔ 0 • ✖ 0</span>
                   <span id="blitz-lives-badge" class="hidden badge-rose text-xs px-2 py-0.5 rounded-full font-extrabold">❤️❤️❤️</span>
                   <span id="streak-badge" class="hidden badge-amber text-xs px-2 py-0.5 rounded-full font-extrabold">🔥 x3</span>
                 </div>
@@ -1943,18 +1944,24 @@
             ⬇ Xuống cuối
           </button>
 
-          <!-- Gemini Floating Input Capsule -->
+          <!-- Gemini Multimodal Input Capsule (Supports Ctrl+V Screenshot Paste & Image Upload) -->
           <div class="gemini-input-wrapper pt-2">
+            <input type="file" id="tutor-img-file-input" accept="image/*" class="hidden" onchange="handleTutorImageSelected(this.files)" />
+            <div id="tutor-img-preview-bar" class="hidden mb-2 px-3 py-1.5 rounded-xl border flex items-center justify-between gap-2 text-xs animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--brand-border);"></div>
             <div class="gemini-input-capsule">
+              <button type="button" onclick="document.getElementById('tutor-img-file-input')?.click()" title="Gửi ảnh chụp đề bài / bài giải viết tay (hoặc nhấn Ctrl+V để dán ảnh)" class="gemini-btn-circle" style="margin-bottom: 2px;">
+                <span class="text-base">📷</span>
+              </button>
               <button id="btn-tutor-mic" type="button" onclick="toggleVoiceInputForTutor()" title="Nói trực tiếp bằng Giọng nói (Web Speech API)" class="gemini-btn-circle" style="margin-bottom: 2px;">
                 <span class="text-base">🎙️</span>
               </button>
               <textarea id="tutor-input" rows="1"
                 oninput="autoGrowGeminiInput(this)"
                 onkeydown="handleGeminiInputKey(event)"
-                placeholder="Hỏi Gemini bất kỳ câu hỏi nào (Hóa Sinh, Y khoa, C#, Giải thuật, Lâm sàng...)..."
+                onpaste="handleTutorClipboardPaste(event)"
+                placeholder="Hỏi bất kỳ câu nào hoặc nhấn Ctrl+V dán ảnh chụp đề thi để AI giải..."
                 class="gemini-textarea"></textarea>
-              <button type="button" onclick="sendTutorMessage()" class="gemini-btn-circle gemini-btn-send" title="Gửi câu hỏi tới Gemini (Enter)">
+              <button type="button" onclick="sendTutorMessage()" class="gemini-btn-circle gemini-btn-send" title="Gửi câu hỏi tới AI Gia Sư (Enter)">
                 <svg class="w-4 h-4 transform rotate-90 translate-x-0.5" fill="currentColor" viewBox="0 0 20 20">
                   <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
                 </svg>
@@ -4983,15 +4990,23 @@
   <div id="floating-tutor-backdrop" onclick="closeFloatingTutor()" class="hidden fixed inset-0 z-[9990] bg-black/60 backdrop-blur-sm transition-opacity"></div>
 
   <div id="floating-tutor-container" class="hidden fixed bottom-20 lg:bottom-6 right-3 sm:right-6 z-50 flex flex-col-reverse items-end gap-2.5">
-    <!-- Row chứa các nút Floating ở góc dưới cùng: Nút Câu Tiếp Theo nổi bật + Nút AI -->
+    <!-- Row chứa các nút Floating ở góc dưới cùng: Câu Trước + Câu Tiếp Theo nổi bật + Nút AI -->
     <div class="flex items-center gap-2">
+      <!-- Nút nổi Câu Trước (Gọn gàng hỗ trợ quay lại 1 chạm) -->
+      <button id="floating-prev-q-btn" onclick="triggerFloatingPrevAction()"
+        class="hidden px-2.5 py-2 sm:px-3 sm:py-2.5 rounded-full sm:rounded-xl shadow-xl flex items-center justify-center hover:scale-105 active:scale-95 transition-all cursor-pointer font-black text-xs text-white disabled:opacity-40 disabled:pointer-events-none"
+        style="background: rgba(15, 23, 42, 0.9); border: 1.5px solid rgba(148, 163, 184, 0.35); backdrop-filter: blur(10px);"
+        title="Quay lại câu trước (Phím ←)">
+        <span>←</span>
+      </button>
+
       <!-- Nút nổi Câu Tiếp Theo (Floating Action Button kế bên nút AI) -->
       <button id="floating-next-q-btn" onclick="triggerFloatingNextAction()"
-        class="hidden group px-2.5 py-2 sm:px-3.5 sm:py-2.5 rounded-full sm:rounded-xl shadow-2xl flex items-center gap-1.5 sm:gap-2 hover:scale-105 active:scale-95 transition-all relative cursor-pointer font-black text-[11px] sm:text-xs text-white"
-        style="background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%); border: 1.5px solid rgba(255, 255, 255, 0.25); box-shadow: 0 10px 25px -4px rgba(16, 185, 129, 0.5);"
-        title="Câu tiếp theo (hoặc Nộp bài khi hoàn thành)">
+        class="hidden group px-3.5 py-2.5 sm:px-4 sm:py-2.5 rounded-full sm:rounded-xl shadow-2xl flex items-center gap-1.5 sm:gap-2 hover:scale-105 active:scale-95 transition-all relative cursor-pointer font-black text-xs sm:text-sm text-white"
+        style="background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0891b2 100%); border: 1.5px solid rgba(255, 255, 255, 0.3); box-shadow: 0 12px 28px -4px rgba(16, 185, 129, 0.55);"
+        title="Chuyển sang câu tiếp theo (Phím → hoặc Enter / Space sau khi chọn)">
         <span class="animate-pulse text-sm sm:text-base">➔</span>
-        <span id="floating-next-q-text" class="font-bold">Câu Tiếp Theo</span>
+        <span id="floating-next-q-text" class="font-extrabold whitespace-nowrap">Câu Tiếp Theo</span>
       </button>
 
       <!-- Floating Trigger Button (Sleek Gradient Gem with Context Badge) -->
@@ -5032,6 +5047,9 @@
           <button type="button" id="btn-ft-mode-toggle" onclick="toggleFloatingTutorSettings()" class="btn-soft px-2 py-1 rounded-xl text-[11px] font-bold flex items-center gap-1 whitespace-nowrap" title="Đổi chế độ sư phạm &amp; giọng giảng AI">
             <span id="ft-active-mode-label">🧠 Giải sâu</span>
             <span id="ft-settings-chevron" class="opacity-70">▾</span>
+          </button>
+          <button type="button" id="btn-ft-dock-split" onclick="toggleFloatingTutorSplitDock()" class="hidden xl:inline-flex btn-soft px-2 py-1 rounded-xl text-[11px] font-bold items-center gap-1 whitespace-nowrap" title="Ghim cạnh đề thi (Chia đôi màn hình không che chữ!)">
+            <span id="ft-dock-split-label">📌 Ghim cạnh</span>
           </button>
           <button type="button" onclick="transferChatToTutorTab()" id="btn-ft-transfer" class="btn-soft p-1.5 rounded-xl text-[11px] font-black shadow-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-white/20 active:scale-95 flex items-center gap-1" title="Mở sang Tab AI Gia Sư đầy đủ">
             <i data-lucide="arrow-right-left" class="w-3.5 h-3.5 shrink-0"></i>
@@ -5113,19 +5131,23 @@
         <button type="button" onclick="stopFloatingVoiceInput()" class="underline text-[10px]">Dừng</button>
       </div>
 
-      <!-- Input Footer -->
-            <!-- Gemini Floating Chat Footer -->
+      <!-- Gemini Floating Chat Footer (Multimodal Ctrl+V Screenshot + Voice) -->
       <div class="p-2.5 border-t" style="border-color: var(--border); background-color: var(--bg-surface); padding-bottom: max(0.625rem, env(safe-area-inset-bottom, 0px));">
-        <div class="gemini-input-capsule !p-1.5 !pl-3 !rounded-2xl">
+        <div id="ft-img-preview-bar" class="hidden mb-1.5 px-2.5 py-1 rounded-xl border flex items-center justify-between gap-2 text-[11px] animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--brand-border);"></div>
+        <div class="gemini-input-capsule !p-1.5 !pl-2.5 !rounded-2xl">
+          <button type="button" onclick="document.getElementById('tutor-img-file-input')?.click()" class="gemini-btn-circle !w-7 !h-7 !text-xs" title="Gửi ảnh đề bài hoặc nhấn Ctrl+V dán ảnh chụp màn hình">
+            📷
+          </button>
           <textarea id="floating-chat-input" rows="1"
             oninput="autoGrowGeminiInput(this)"
+            onpaste="handleTutorClipboardPaste(event)"
             onkeydown="if(event.key==='Enter' && !event.shiftKey && !event.isComposing){ event.preventDefault(); sendFloatingTutorMessage(); this.style.height='auto'; }"
-            placeholder="Hỏi Gemini về câu hỏi này..."
+            placeholder="Hỏi AI hoặc Ctrl+V dán ảnh đề..."
             class="gemini-textarea !text-xs !py-1"></textarea>
           <button type="button" onclick="toggleFloatingVoiceInput()" id="btn-ft-mic" class="gemini-btn-circle !w-7 !h-7 !text-xs" title="Nói bằng giọng nói">
             🎙️
           </button>
-          <button type="button" onclick="sendFloatingTutorMessage()" class="gemini-btn-circle gemini-btn-send !w-7 !h-7" title="Gửi tới Gemini">
+          <button type="button" onclick="sendFloatingTutorMessage()" class="gemini-btn-circle gemini-btn-send !w-7 !h-7" title="Gửi tới Gia Sư AI">
             <svg class="w-3.5 h-3.5 transform rotate-90 translate-x-0.5" fill="currentColor" viewBox="0 0 20 20">
               <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"></path>
             </svg>
@@ -5138,7 +5160,7 @@
   <!-- ===================================================================
        MODAL: PHÒNG THI THỬ GIỚI HẠN THỜI GIAN 60 PHÚT (40 CÂU)
        =================================================================== -->
-  <div id="modal-timed-exam" class="hidden fixed inset-0 z-50 overflow-y-auto" style="background: rgba(5, 6, 10, 0.96);">
+  <div id="modal-timed-exam" class="hidden fixed inset-0 z-[62] overflow-y-auto" style="background: rgba(5, 6, 10, 0.96);">
     <div class="max-w-5xl mx-auto px-4 py-6 min-h-screen flex flex-col justify-between">
       <!-- Exam Sticky Bar -->
       <div class="sticky top-0 z-10 p-4 rounded-2xl flex items-center justify-between gap-3 shadow-xl backdrop-blur-xl border mb-5"
@@ -7669,6 +7691,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=49.0"></script>
+  <script src="/static/app.js?v=50.0"></script>
 </body>
 </html>
