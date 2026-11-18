@@ -4,9 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="UniMaster AI" />
-  <meta name="theme-color" content="#000000" />
+  <meta name="theme-color" content="#090b10" />
   <link rel="manifest" href="/manifest.json" />
   <link rel="icon" type="image/svg+xml" href="/icon.svg" />
   <link rel="apple-touch-icon" href="/icon.svg" />
@@ -51,36 +52,35 @@
     })();
   </script>
 
-  <!-- Rich Font Collection (Google Sans, Inter, Roboto, Lexend, Serif, Monospace & Vietnamese Support) -->
+  <!-- Ultra-Fast Core Vietnamese & Monospace Font Suite (Zero Render-Blocking Font Bloat) -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;600;700&family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Lexend:wght@400;500;600;700;800&family=Lora:ital,wght@0,500;0,600;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Montserrat:wght@500;600;700;800&family=Nunito:wght@500;600;700;800&family=Open+Sans:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Quicksand:wght@500;600;700&family=Roboto:wght@400;500;700&family=Source+Code+Pro:wght@400;500;600;700&family=Source+Serif+4:wght@400;600;700&display=swap" rel="stylesheet" />
-  <link href="https://fonts.cdnfonts.com/css/google-sans" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
 
   <!-- Tailwind Layout Utilities -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { darkMode: 'class' };</script>
 
-  <!-- KaTeX + mhchem (Math, Physics, Chemistry \ce{...}, Biology), PrismJS, Marked, Lucide, Confetti, QR -->
+  <!-- KaTeX + mhchem (Math/Chem), Marked & Lucide (Core) + Deferred Secondary Scripts -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/mhchem.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-clike.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-csharp.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-sql.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=53.2" />
-  <link rel="stylesheet" href="/static/minimal.css?v=53.2" />
-  <!-- Monaco Editor CDN & Pyodide for Serverless Python -->
-  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
+  <link rel="stylesheet" href="/static/style.css?v=54.1" />
+  <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
+  <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
+  <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
 
 </head>
 <body class="antialiased">
@@ -147,23 +147,23 @@
         </button>
       </nav>
 
-      <!-- Right: Calm Control Bar (Sync, Search, FULLSCREEN, Theme, Profile, Settings) -->
-      <div class="flex items-center gap-1.5 shrink-0">
-        <button id="header-sync-btn" onclick="openCloudSyncModal()" title="Sao lưu tự động &amp; Đồng bộ tiến trình giữa các máy"
-          class="btn-soft px-2 h-8 sm:h-9 text-xs font-semibold flex items-center gap-1.5 rounded-xl">
+      <!-- Right: Calm Control Bar (Online & Real-Time Sync, Search, FULLSCREEN, Theme, Profile, Settings) -->
+      <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+        <button id="header-sync-btn" onclick="openCloudSyncModal()" title="Truy cập Online mọi thiết bị &amp; Sao lưu thời gian thực"
+          class="btn-soft px-2 sm:px-2.5 h-8 sm:h-9 text-xs font-semibold flex items-center gap-1.5 rounded-xl">
           <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-          <span id="header-sync-label" class="hidden 2xl:inline txt-sub text-[11px] whitespace-nowrap">Đã lưu</span>
-          <i data-lucide="cloud" class="w-3.5 h-3.5 2xl:hidden txt-sub"></i>
+          <span id="header-sync-label" class="hidden md:inline txt-sub text-[11px] whitespace-nowrap">Online</span>
+          <i data-lucide="globe" class="w-3.5 h-3.5 md:hidden txt-sub"></i>
         </button>
 
         <button id="header-cmdk-btn" onclick="openCommandPaletteModal()" title="Tìm kiếm &amp; Lệnh nhanh (Ctrl+K)"
-          class="btn-soft px-2 h-8 sm:h-9 text-xs font-semibold flex items-center gap-1.5 rounded-xl">
+          class="btn-soft w-8 h-8 sm:w-auto sm:px-2 sm:h-9 text-xs font-semibold flex items-center justify-center gap-1.5 rounded-xl">
           <i data-lucide="search" class="w-3.5 h-3.5 txt-sub"></i>
           <kbd class="hidden xl:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted);">Ctrl+K</kbd>
         </button>
 
         <button id="header-fullscreen-btn" onclick="toggleAppFullscreen()" title="Toàn màn hình không vướng thanh trình duyệt (F11)"
-          class="btn-soft px-2 sm:px-2.5 h-8 sm:h-9 text-xs font-bold flex items-center gap-1.5 rounded-xl">
+          class="btn-soft w-8 h-8 sm:w-auto sm:px-2.5 sm:h-9 text-xs font-bold flex items-center justify-center gap-1.5 rounded-xl">
           <i id="header-fs-lucide" data-lucide="maximize" class="w-4 h-4"></i>
           <span id="header-fs-label" class="hidden xl:inline text-[11px]">Toàn màn hình</span>
         </button>
@@ -175,7 +175,7 @@
         </button>
 
         <button id="header-user-btn" onclick="openAccountModal()" title="Hồ sơ tài khoản"
-          class="btn-soft w-8 h-8 sm:w-9 sm:h-9 p-0 rounded-xl flex items-center justify-center shrink-0">
+          class="hidden sm:flex btn-soft w-8 h-8 sm:w-9 sm:h-9 p-0 rounded-xl items-center justify-center shrink-0">
           <div id="header-user-avatar" class="w-6 h-6 rounded-lg text-xs font-extrabold flex items-center justify-center shrink-0" style="background: var(--brand-subtle); color: var(--brand-text);">
             A
           </div>
@@ -5000,11 +5000,11 @@
           <button type="button" id="btn-ft-dock-split" onclick="toggleFloatingTutorSplitDock()" class="hidden xl:inline-flex btn-soft px-2 py-1 rounded-xl text-[11px] font-bold items-center gap-1 whitespace-nowrap" title="Ghim cạnh đề thi (Chia đôi màn hình không che chữ!)">
             <span id="ft-dock-split-label">📌 Ghim cạnh</span>
           </button>
-          <button type="button" onclick="transferChatToTutorTab()" id="btn-ft-transfer" class="btn-soft p-1.5 rounded-xl text-[11px] font-black shadow-sm transition-all bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white border border-white/20 active:scale-95 flex items-center gap-1" title="Mở sang Tab AI Gia Sư đầy đủ">
+          <button type="button" onclick="transferChatToTutorTab()" id="btn-ft-transfer" class="hidden sm:flex btn-soft p-1.5 rounded-xl text-[11px] font-black shadow-sm transition-all items-center gap-1" title="Mở sang Tab AI Gia Sư đầy đủ">
             <i data-lucide="arrow-right-left" class="w-3.5 h-3.5 shrink-0"></i>
           </button>
-          <button type="button" onclick="openTutorHistoryModal()" id="btn-ft-history" class="btn-soft p-1.5 text-xs" title="Kho Lưu Trữ Hội Thoại &amp; Lịch Sử AI">🗂️</button>
-          <button type="button" onclick="toggleFloatingTutorSize()" id="btn-ft-expand" class="flex items-center gap-1 p-1.5 rounded-xl text-[11px] font-black shadow-sm transition-all bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white border border-white/20 active:scale-95" title="Mở rộng toàn màn hình">
+          <button type="button" onclick="openTutorHistoryModal()" id="btn-ft-history" class="hidden sm:inline-flex btn-soft p-1.5 text-xs" title="Kho Lưu Trữ Hội Thoại &amp; Lịch Sử AI">🗂️</button>
+          <button type="button" onclick="toggleFloatingTutorSize()" id="btn-ft-expand" class="hidden sm:flex items-center gap-1 p-1.5 rounded-xl text-[11px] font-black shadow-sm transition-all btn-soft" title="Mở rộng toàn màn hình">
             <svg id="ft-expand-svg" class="w-3.5 h-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>
             </svg>
@@ -5032,7 +5032,11 @@
             <button type="button" onclick="setFloatingPersona('speed')" id="ft-persona-speed" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">⚡ Giải Nhanh</button>
             <button type="button" onclick="setFloatingPersona('examiner')" id="ft-persona-examiner" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">🎤 Vấn Đáp</button>
           </div>
-          <button type="button" onclick="exportFloatingTutorNotes()" class="btn-soft px-2 py-0.5 text-[10px] font-bold shrink-0" title="Xuất hội thoại ra tệp">📄 Xuất file</button>
+          <div class="flex items-center gap-1 shrink-0">
+            <button type="button" onclick="openTutorHistoryModal()" class="sm:hidden btn-soft px-2 py-0.5 text-[10px] font-bold shrink-0">🗂️ Lịch sử</button>
+            <button type="button" onclick="transferChatToTutorTab()" class="sm:hidden btn-soft px-2 py-0.5 text-[10px] font-bold shrink-0">↗ Tab đầy đủ</button>
+            <button type="button" onclick="exportFloatingTutorNotes()" class="btn-soft px-2 py-0.5 text-[10px] font-bold shrink-0" title="Xuất hội thoại ra tệp">📄 Xuất file</button>
+          </div>
         </div>
       </div>
 
@@ -7641,76 +7645,117 @@ public class Student {
   </div>
 
   <!-- =====================================================================
-       MODAL: SAO LƯU TỰ ĐỘNG & ĐỒNG BỘ LIÊN THIẾT BỊ (v51.0)
+       MODAL: TRUY CẬP ONLINE MỌI THIẾT BỊ & SAO LƯU THỜI GIAN THỰC (v54.0)
        ===================================================================== -->
   <div id="modal-cloud-sync" class="modal-overlay hidden fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in" onclick="if(event.target===this) closeModal('modal-cloud-sync')">
-    <div class="uni-card w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl border" style="border-color: var(--brand-border); background-color: var(--bg-surface);">
-      <div class="px-5 py-3.5 border-b flex items-center justify-between gap-3 shrink-0" style="border-color: var(--border);">
-        <div class="flex items-center gap-2.5">
-          <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-sm font-black shadow">☁️</div>
-          <div>
-            <h3 class="text-sm sm:text-base font-extrabold txt-main">Sao Lưu Tự Động &amp; Đồng Bộ Liên Thiết Bị</h3>
-            <div id="cloud-sync-modal-status" class="text-[11px] font-bold text-emerald-400">🟢 Đang tự động lưu mọi thao tác (0.4s)</div>
+    <div class="uni-card w-full max-w-xl max-h-[90dvh] flex flex-col overflow-hidden shadow-2xl border" style="border-color: var(--brand-border); background-color: var(--bg-surface);">
+      <div class="px-4 sm:px-5 py-3.5 border-b flex items-center justify-between gap-3 shrink-0" style="border-color: var(--border);">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl text-white flex items-center justify-center text-sm font-black shrink-0" style="background: var(--brand);">🌐</div>
+          <div class="min-w-0">
+            <h3 class="text-sm sm:text-base font-extrabold txt-main truncate">Truy Cập Online &amp; Sao Lưu Thời Gian Thực</h3>
+            <div id="cloud-sync-modal-status" class="text-[11px] font-bold text-emerald-400 truncate">⚡ Đang đồng bộ trực tiếp WebSocket (&lt; 50ms)</div>
           </div>
         </div>
-        <button type="button" onclick="closeModal('modal-cloud-sync')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕</button>
+        <button type="button" onclick="closeModal('modal-cloud-sync')" class="btn-soft w-8 h-8 p-0 text-xs font-bold flex items-center justify-center rounded-xl shrink-0">✕</button>
       </div>
 
-      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 text-xs flex-1">
-        <!-- Quick Summary + Sync Now -->
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-3.5 text-xs flex-1">
+        <!-- 1. Live Online Public URLs (Render 24/7 + Instant Cloudflare HTTPS + QR Code) -->
+        <div class="p-3.5 rounded-2xl border space-y-2.5" style="background-color: var(--bg-subtle); border-color: var(--brand-border);">
+          <div class="flex items-center justify-between gap-2 flex-wrap">
+            <span class="font-extrabold txt-main">🌍 Địa chỉ Online (iPhone • iPad • Android • PC)</span>
+            <span class="badge-emerald px-2 py-0.5 rounded-full text-[10px] font-bold">Không cần Local</span>
+          </div>
+
+          <!-- Cloud 24/7 URL -->
+          <div class="p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2" style="background-color: var(--bg-surface); border-color: var(--border);">
+            <div class="min-w-0">
+              <div class="text-[10px] font-bold uppercase tracking-wider txt-muted">☁️ Cloud 24/7 (Chạy cả khi tắt PC)</div>
+              <a id="online-render-link" href="https://unimaster-ai.onrender.com" target="_blank" rel="noopener" class="font-mono font-bold text-xs txt-brand hover:underline break-all">https://unimaster-ai.onrender.com</a>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" onclick="copyOnlinePortalUrl('render')" class="btn-soft px-2.5 py-1.5 text-[11px] font-bold rounded-lg">📋 Chép</button>
+              <button type="button" onclick="showOnlinePortalQr('render')" class="btn-soft px-2.5 py-1.5 text-[11px] font-bold rounded-lg">📱 QR</button>
+              <a id="online-render-open-btn" href="https://unimaster-ai.onrender.com" target="_blank" rel="noopener" class="btn-primary px-3 py-1.5 text-[11px] font-extrabold rounded-lg">↗ Mở Online</a>
+            </div>
+          </div>
+
+          <!-- Instant High-Speed Cloudflare HTTPS Tunnel (Shown when available or on PC) -->
+          <div id="online-tunnel-row" class="p-2.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2" style="background-color: var(--bg-surface); border-color: var(--border);">
+            <div class="min-w-0">
+              <div class="text-[10px] font-bold uppercase tracking-wider txt-muted">⚡ Cổng HTTPS Trực Tiếp Tốc Độ Cao</div>
+              <a id="online-tunnel-link" href="#" target="_blank" rel="noopener" class="font-mono font-bold text-xs txt-main hover:underline break-all">Đang kiểm tra đường hầm HTTPS...</a>
+            </div>
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button type="button" id="btn-copy-tunnel-url" onclick="copyOnlinePortalUrl('tunnel')" class="hidden btn-soft px-2.5 py-1.5 text-[11px] font-bold rounded-lg">📋 Chép</button>
+              <button type="button" id="btn-qr-tunnel-url" onclick="showOnlinePortalQr('tunnel')" class="hidden btn-soft px-2.5 py-1.5 text-[11px] font-bold rounded-lg">📱 QR</button>
+              <button type="button" id="btn-start-online-tunnel" onclick="startInstantOnlineTunnel()" class="btn-soft px-3 py-1.5 text-[11px] font-extrabold rounded-lg txt-brand">🚀 Bật Link Online</button>
+            </div>
+          </div>
+
+          <!-- Scannable Camera QR Box for iPhone / iPad / Android -->
+          <div id="online-qr-panel" class="hidden pt-2 flex flex-col items-center gap-1.5 text-center animate-fade-in">
+            <div id="online-qr-canvas" class="p-2.5 bg-white rounded-2xl shadow-md inline-block"></div>
+            <div id="online-qr-caption" class="text-[11px] font-mono txt-sub break-all"></div>
+            <div class="text-[10px] txt-muted">Mở Camera iPhone / iPad / Android quét mã để vào học ngay</div>
+          </div>
+        </div>
+
+        <!-- 2. Real-Time Sync Summary + Sync Now -->
         <div class="p-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-3" style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <div class="space-y-0.5">
-            <div class="font-extrabold txt-main" id="cloud-sync-summary-line">Đang đồng bộ: Đề đang làm, Chat AI, Ghi chú, Lịch thi &amp; Giao diện</div>
-            <div class="text-[11px] txt-muted" id="cloud-sync-last-time">Cập nhật vừa xong • Đổi máy mở cùng địa chỉ web sẽ tự tiếp tục ngay</div>
+          <div class="space-y-0.5 min-w-0 flex-1">
+            <div class="font-extrabold txt-main" id="cloud-sync-summary-line">Sao lưu tức thì: Câu đang làm, Đề 60p, Chat AI, Ghi chú &amp; Lịch thi</div>
+            <div class="text-[11px] txt-muted" id="cloud-sync-last-time">Tự động đồng bộ trực tiếp giữa các thiết bị mở cùng link Online</div>
           </div>
           <button type="button" onclick="forceFullVaultSyncNow()" class="btn-primary px-3.5 py-2 text-xs font-extrabold rounded-xl shrink-0">
             🔄 Đồng bộ ngay
           </button>
         </div>
 
-        <!-- Active Drafts Ready to Resume Across Devices -->
+        <!-- 3. Active Drafts Ready to Resume Across Devices -->
         <div class="space-y-2">
           <div class="font-extrabold txt-main flex items-center justify-between">
             <span>📌 Tiến trình đang làm dở</span>
             <span id="cloud-sync-drafts-count" class="badge-brand px-2 py-0.5 rounded-full text-[10px] font-mono">0</span>
           </div>
-          <div id="cloud-sync-drafts-list" class="space-y-2 max-h-44 overflow-y-auto pr-1"></div>
+          <div id="cloud-sync-drafts-list" class="space-y-2 max-h-40 overflow-y-auto pr-1"></div>
         </div>
 
-        <!-- Cross-Server Bridge (Localhost <-> Render Cloud) -->
-        <div class="p-3.5 rounded-2xl border space-y-2.5" style="background-color: var(--bg-subtle); border-color: var(--border);">
-          <div class="font-extrabold txt-main flex items-center gap-1.5">
-            <span>🌐</span> <span>Cầu nối Máy cục bộ (Localhost) ↔ Đám mây Render</span>
-          </div>
-          <p class="text-[11px] txt-muted leading-relaxed">
-            Nếu máy này đang chạy <code>localhost:8080</code> còn máy khác mở trên Render, dán địa chỉ Render (<code>https://...onrender.com</code>) vào đây để hai bên tự đồng bộ 2 chiều:
-          </p>
-          <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
-            <input id="cloud-bridge-url-input" type="url" placeholder="https://ten-app-cua-ban.onrender.com" class="uni-input sm:col-span-7 px-3 py-2 text-xs font-mono" />
-            <input id="cloud-bridge-pw-input" type="password" placeholder="Mật khẩu web (nếu có)" class="uni-input sm:col-span-5 px-3 py-2 text-xs" />
-          </div>
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <span id="cloud-bridge-feedback" class="text-[11px] font-bold txt-muted">Chưa gắn cầu nối ngoài (mặc định tự đồng bộ trên cùng địa chỉ web).</span>
-            <div class="flex items-center gap-1.5">
-              <button type="button" onclick="clearRemoteCloudBridge()" class="btn-soft px-2.5 py-1.5 text-[11px] font-bold">Ngắt</button>
-              <button type="button" onclick="saveAndSyncRemoteCloudBridge()" class="btn-primary px-3 py-1.5 text-[11px] font-extrabold">🔗 Kết nối &amp; Đồng bộ</button>
+        <!-- 4. Cross-Server Bridge (Localhost <-> Render Cloud) -->
+        <details class="p-3 rounded-2xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <summary class="font-extrabold txt-main cursor-pointer select-none flex items-center justify-between">
+            <span>🔗 Cầu nối tự động Localhost ↔ Cloud Render</span>
+            <span class="text-[10px] txt-muted font-normal">Mở rộng ▾</span>
+          </summary>
+          <div class="pt-2.5 space-y-2">
+            <div class="grid grid-cols-1 sm:grid-cols-12 gap-2">
+              <input id="cloud-bridge-url-input" type="url" value="https://unimaster-ai.onrender.com" placeholder="https://unimaster-ai.onrender.com" class="uni-input sm:col-span-7 px-3 py-2 text-xs font-mono" />
+              <input id="cloud-bridge-pw-input" type="password" placeholder="Mật khẩu Cloud (VD: uni-5292)" class="uni-input sm:col-span-5 px-3 py-2 text-xs" />
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <span id="cloud-bridge-feedback" class="text-[11px] font-bold txt-muted">Đồng bộ dữ liệu từ máy cục bộ lên thẳng Cloud Render.</span>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="clearRemoteCloudBridge()" class="btn-soft px-2.5 py-1.5 text-[11px] font-bold">Ngắt</button>
+                <button type="button" onclick="saveAndSyncRemoteCloudBridge()" class="btn-primary px-3 py-1.5 text-[11px] font-extrabold">🔗 Đồng bộ lên Cloud</button>
+              </div>
             </div>
           </div>
-        </div>
+        </details>
 
-        <!-- Portable 1-Click JSON Snapshot Export / Import -->
+        <!-- 5. Portable 1-Click JSON Snapshot Export / Import -->
         <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t" style="border-color: var(--border);">
-          <span class="text-[11px] txt-muted font-semibold">Sao lưu thủ công sang file rời (.json):</span>
+          <span class="text-[11px] txt-muted font-semibold">Sao lưu file rời (.json):</span>
           <div class="flex items-center gap-2">
             <input type="file" id="portable-vault-file-input" accept=".json,application/json" class="hidden" onchange="importPortableVaultFile(this)" />
-            <button type="button" onclick="exportPortableVaultFile()" class="btn-soft px-3 py-1.5 text-xs font-bold">📥 Tải bản sao lưu</button>
-            <button type="button" onclick="document.getElementById('portable-vault-file-input')?.click()" class="btn-soft px-3 py-1.5 text-xs font-bold txt-brand">📤 Khôi phục từ file</button>
+            <button type="button" onclick="exportPortableVaultFile()" class="btn-soft px-3 py-1.5 text-xs font-bold">📥 Tải file</button>
+            <button type="button" onclick="document.getElementById('portable-vault-file-input')?.click()" class="btn-soft px-3 py-1.5 text-xs font-bold txt-brand">📤 Khôi phục</button>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <script src="/static/app.js?v=53.2"></script>
+  <script src="/static/app.js?v=54.1"></script>
 </body>
 </html>

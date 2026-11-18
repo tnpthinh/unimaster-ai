@@ -2411,10 +2411,22 @@ function showToast(message, variant = 'info') {
   }, 2600);
 }
 
-function refreshIcons() {
-  if (window.lucide) {
-    try { lucide.createIcons(); } catch (_) {}
-  }
+function _installFastLucideGuard() {
+  if (!window.lucide || window.lucide.__fastGuarded) return;
+  const origCreate = window.lucide.createIcons.bind(window.lucide);
+  window.lucide.createIcons = function fastCreateIcons(opts) {
+    if (!document.querySelector('i[data-lucide], span[data-lucide]')) return;
+    return origCreate(opts);
+  };
+  window.lucide.__fastGuarded = true;
+}
+
+function refreshIcons(root) {
+  if (!window.lucide) return;
+  _installFastLucideGuard();
+  const scope = root && root.querySelector ? root : document;
+  if (!scope.querySelector('i[data-lucide], span[data-lucide]')) return;
+  try { lucide.createIcons(); } catch (_) {}
 }
 
 function setText(id, val) {
@@ -2792,18 +2804,18 @@ function toggleHighContrastBoost(enabled) {
   showToast(enabled ? '👁️ Đã bật Tăng cường tương phản chữ' : 'Đã tắt Tăng cường tương phản', 'info');
 }
 
-function renderAllMathOnPage(root = document.body) {
-  if (window.renderMathInElement) {
-    try {
-      renderMathInElement(root, {
-        delimiters: [
-          { left: '$$', right: '$$', display: true },
-          { left: '$', right: '$', display: false }
-        ],
-        throwOnError: false
-      });
-    } catch (_) {}
-  }
+function renderAllMathOnPage(root = null) {
+  const target = root || document.getElementById(`view-${STATE?.currentTab || 'dashboard'}`) || document.querySelector('main');
+  if (!target || !window.renderMathInElement) return;
+  try {
+    renderMathInElement(target, {
+      delimiters: [
+        { left: '$$', right: '$$', display: true },
+        { left: '$', right: '$', display: false }
+      ],
+      throwOnError: false
+    });
+  } catch (_) {}
 }
 
 function setThemeMode(mode) {
@@ -3798,7 +3810,8 @@ function updateLiveClock() {
   }
 }
 
-setInterval(updateLiveClock, 1000);
+updateLiveClock();
+setInterval(updateLiveClock, 30000);
 window.updateLiveClock = updateLiveClock;
 
 async function loadSubjectsAndStats() {
@@ -9714,12 +9727,12 @@ async function syncFullSnapshotToBrowserForPcOff(silent = false) {
   }
 }
 
-// Auto-cache in background 2.5s after page load when PC is online
-setTimeout(() => {
-  if (!STATE.isOfflineStandalone) {
-    syncFullSnapshotToBrowserForPcOff(true);
-  }
-}, 2500);
+// Hydrate cached IndexedDB snapshot passively in idle time (0 bytes network download; full sync is manual-only)
+if (typeof requestIdleCallback === 'function') {
+  requestIdleCallback(() => { ensureOfflineSnapshotReady(); }, { timeout: 4000 });
+} else {
+  setTimeout(() => { ensureOfflineSnapshotReady(); }, 3000);
+}
 
 let _browserKeyCursor = 0;
 async function callGeminiRawFromBrowser(promptText, imageBase64 = null, mimeType = 'image/jpeg') {
@@ -19436,13 +19449,13 @@ document.addEventListener('keydown', (e) => {
       STATE.exam.draftKey &&
       !recentlyDiscardedKeys.has(STATE.exam.draftKey)
     ) {
-      const bucket = Math.floor(Number(STATE.exam.elapsedSeconds || 0) / 5);
+      const bucket = Math.floor(Number(STATE.exam.elapsedSeconds || 0) / 20);
       if (bucket !== lastTimedSyncBucket) {
         lastTimedSyncBucket = bucket;
         saveActiveExamDraftNow({ syncServer: true });
       }
     }
-  }, 1000);
+  }, 5000);
 
   // Save draft on Exit (keep draft intact) & Clean up on Submit
   if (typeof confirmExitExam === 'function') {
@@ -26813,11 +26826,23 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
 // ==============================================================================
 (function initUniversalCrossDeviceVaultV51() {
   const VAULT_TS_KEY = 'unimaster_vault_updated_ms_v51';
+  const CLIENT_CID = 'cid_' + Math.random().toString(36).slice(2, 10);
   let vaultPushTimer = null;
   let vaultPullInFlight = false;
   let vaultPushInFlight = false;
   let lastSyncedTimeMs = Number(localStorage.getItem(VAULT_TS_KEY) || 0);
+  let lastServerMutationMs = 0;
   let lastTimed60Bucket = -1;
+  let syncWs = null;
+  let syncWsConnected = false;
+  let syncWsRetryMs = 1500;
+  let syncWsTimer = null;
+  let cachedOnlineInfo = {
+    render_url: 'https://unimaster-ai.onrender.com',
+    tunnel_url: '',
+    tunnel_active: false,
+    is_local_origin: /^(localhost|127\.0\.0\.1|192\.168\.|10\.|172\.)/.test(window.location.hostname || '')
+  };
 
   function safeJsonParse(raw, fallback) {
     if (!raw) return fallback;
@@ -26847,19 +26872,21 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     }
     if (lbl) {
       lbl.textContent = customLabel || (
-        mode === 'syncing' ? '🔄 Đang lưu...' :
-        mode === 'offline' ? '📴 Lưu cục bộ' :
-        '☁️ Đã lưu'
+        mode === 'syncing' ? 'Đang lưu' :
+        mode === 'offline' ? 'Cục bộ' :
+        (cachedOnlineInfo.is_local_origin ? '🌐 Mở Online' : '⚡ Live')
       );
     }
     if (modalSt) {
       modalSt.textContent = mode === 'offline'
-        ? '🟡 Đang lưu trên trình duyệt (Sẽ tự đồng bộ khi có máy chủ)'
-        : '🟢 Đang tự động sao lưu thời gian thực (0.4s/lần)';
+        ? '🟡 Đang lưu trên trình duyệt (Sẽ tự đồng bộ khi có mạng)'
+        : (syncWsConnected
+          ? '⚡ Đồng bộ thời gian thực WebSocket (< 50ms)'
+          : '🟢 Đang tự động sao lưu thời gian thực');
     }
     if (modalLast && mode === 'saved') {
       const tStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      modalLast.textContent = `Đã sao lưu lúc ${tStr} • Sang máy khác mở web sẽ thấy ngay tiến trình đang làm dở`;
+      modalLast.textContent = `Đã lưu lúc ${tStr} • Mọi thiết bị mở cùng link Online đều tự cập nhật tức thì`;
     }
   }
   window.setHeaderSyncStatus = setHeaderSyncStatus;
@@ -27111,13 +27138,13 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
 
   setInterval(() => {
     if (window.TIMED_EXAM?.active) {
-      const b = Math.floor(Number(window.TIMED_EXAM.remainingSeconds || 0) / 5);
+      const b = Math.floor(Number(window.TIMED_EXAM.remainingSeconds || 0) / 20);
       if (b !== lastTimed60Bucket) {
         lastTimed60Bucket = b;
         saveActiveTimedExamDraftNow({ syncServer: true });
       }
     }
-  }, 1500);
+  }, 5000);
 
   // --- Push & Pull Universal Vault ---
   async function pushUniversalVaultToServer({ keepalive = false } = {}) {
@@ -27335,21 +27362,136 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     }
   }
 
-  async function pullUniversalVaultFromServer() {
+  function applyIncomingRealtimeDraft(sd) {
+    if (!sd || !sd.draft_key) return;
+    const tombKeys = new Set(collectDeletedTombstoneKeys());
+    if (tombKeys.has(sd.draft_key)) return;
+    const acc = typeof getProgressAccountId === 'function' ? getProgressAccountId() : 'acc_default';
+    const localKey = 'unimaster_study_progress_v1_' + acc;
+    const curMap = safeJsonParse(localStorage.getItem(localKey), {});
+    const loc = curMap[sd.draft_key];
+    const srvMs = Number(sd.updated_at_ms || (sd.updated_at ? Date.parse(sd.updated_at) : 0) || Date.now());
+    const locMs = Number(loc?.updated_at_ms || 0);
+    if (!loc || srvMs >= locMs) {
+      curMap[sd.draft_key] = { ...sd, account_id: acc, updated_at_ms: srvMs };
+      try { localStorage.setItem(localKey, JSON.stringify(curMap)); } catch (_) {}
+      if (typeof window.renderResumePanels === 'function') window.renderResumePanels();
+      if (typeof window.decorateChapterDraftCards === 'function') window.decorateChapterDraftCards();
+      refreshCloudSyncModalUI();
+
+      // Live Co-Sync if the exact same exam draft is currently open on this screen
+      const p = sd.payload;
+      if (STATE?.exam?.active && STATE.exam.draftKey === sd.draft_key && p && typeof p === 'object') {
+        const incAns = p.answers && typeof p.answers === 'object' ? p.answers : {};
+        const curAnsCount = Object.keys(STATE.exam.answers || {}).length;
+        const incAnsCount = Object.keys(incAns).length;
+        if (incAnsCount > curAnsCount || (srvMs > locMs + 300 && Number(p.currentIndex) !== Number(STATE.exam.currentIndex))) {
+          STATE.exam.answers = { ...(STATE.exam.answers || {}), ...incAns };
+          if (p.graded && typeof p.graded === 'object') {
+            STATE.exam.graded = { ...(STATE.exam.graded || {}), ...p.graded };
+          }
+          if (Number.isFinite(Number(p.currentIndex)) && Number(p.currentIndex) >= 0 && Number(p.currentIndex) < (STATE.exam.questions?.length || 0)) {
+            STATE.exam.currentIndex = Number(p.currentIndex);
+          }
+          if (typeof renderCurrentExamQuestion === 'function') renderCurrentExamQuestion();
+          if (typeof renderExamQuestionPalette === 'function') renderExamQuestionPalette();
+        }
+      }
+    }
+  }
+
+  function applyIncomingRealtimeDelete(draftKey) {
+    if (!draftKey) return;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith('unimaster_study_progress_v1_')) continue;
+        const map = safeJsonParse(localStorage.getItem(k), {});
+        if (map[draftKey]) {
+          delete map[draftKey];
+          localStorage.setItem(k, JSON.stringify(map));
+        }
+      }
+    } catch (_) {}
+    if (typeof window.renderResumePanels === 'function') window.renderResumePanels();
+    if (typeof window.decorateChapterDraftCards === 'function') window.decorateChapterDraftCards();
+    refreshCloudSyncModalUI();
+  }
+
+  function connectRealtimeSyncWebSocket() {
+    if (STATE?.isOfflineStandalone || window.location.protocol === 'file:') return;
+    if (syncWs && (syncWs.readyState === WebSocket.OPEN || syncWs.readyState === WebSocket.CONNECTING)) return;
+    clearTimeout(syncWsTimer);
+    try {
+      const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${proto}//${window.location.host}/ws/sync?cid=${encodeURIComponent(CLIENT_CID)}`;
+      const ws = new WebSocket(wsUrl);
+      syncWs = ws;
+
+      ws.onopen = () => {
+        syncWsConnected = true;
+        syncWsRetryMs = 1500;
+        setHeaderSyncStatus('saved');
+      };
+
+      ws.onmessage = (ev) => {
+        const msg = safeJsonParse(ev.data, null);
+        if (!msg || typeof msg !== 'object') return;
+        if (msg.server_time_ms) {
+          lastServerMutationMs = Math.max(lastServerMutationMs, Number(msg.server_time_ms) || 0);
+        }
+        if (msg.sender_cid && msg.sender_cid === CLIENT_CID) return;
+
+        if (msg.type === 'draft_updated' && msg.draft) {
+          applyIncomingRealtimeDraft(msg.draft);
+          setHeaderSyncStatus('saved');
+        } else if (msg.type === 'draft_deleted' && msg.draft_key) {
+          applyIncomingRealtimeDelete(msg.draft_key);
+        } else if (msg.type === 'state_updated' && msg.user_state) {
+          applyServerVaultSnapshot({ user_state: msg.user_state, drafts: [] }, { skipAutoHeal: true });
+          setHeaderSyncStatus('saved');
+        } else if (msg.type === 'vault_updated') {
+          applyServerVaultSnapshot(msg, { skipAutoHeal: true });
+          setHeaderSyncStatus('saved');
+          refreshCloudSyncModalUI(msg);
+        }
+      };
+
+      ws.onclose = () => {
+        syncWsConnected = false;
+        syncWs = null;
+        clearTimeout(syncWsTimer);
+        syncWsTimer = setTimeout(connectRealtimeSyncWebSocket, syncWsRetryMs);
+        syncWsRetryMs = Math.min(15000, Math.round(syncWsRetryMs * 1.7));
+      };
+
+      ws.onerror = () => {
+        try { ws.close(); } catch (_) {}
+      };
+    } catch (_) {}
+  }
+
+  async function pullUniversalVaultFromServer({ forceFull = false } = {}) {
     if (STATE?.isOfflineStandalone || vaultPullInFlight || vaultPushInFlight) return null;
     vaultPullInFlight = true;
     try {
       const acc = typeof getProgressAccountId === 'function' ? getProgressAccountId() : 'acc_default';
-      const resp = await fetch(`/api/sync/vault?account_id=${encodeURIComponent(acc)}`, {
+      const sinceParam = !forceFull && lastServerMutationMs > 0 ? `&since=${lastServerMutationMs}` : '';
+      const resp = await fetch(`/api/sync/vault?account_id=${encodeURIComponent(acc)}${sinceParam}`, {
         headers: { 'X-Account-Id': acc },
         credentials: 'same-origin'
       });
       if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
       const snap = await resp.json();
       if (snap?.success) {
-        applyServerVaultSnapshot(snap);
+        if (snap.server_time_ms) {
+          lastServerMutationMs = Math.max(lastServerMutationMs, Number(snap.server_time_ms) || 0);
+        }
+        if (!snap.unchanged) {
+          applyServerVaultSnapshot(snap);
+          refreshCloudSyncModalUI(snap);
+        }
         setHeaderSyncStatus('saved');
-        refreshCloudSyncModalUI(snap);
         return snap;
       }
     } catch (_) {
@@ -27361,12 +27503,21 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
   }
   window.pullUniversalVaultFromServer = pullUniversalVaultFromServer;
 
-  // --- Hook State Mutators so Every Action Auto-Backs Up ---
+  // --- Hook State Mutators so Every Action Broadcasts Over WebSocket (< 50ms) ---
   if (typeof window.saveProgressDraft === 'function') {
     const _origSaveDraft = window.saveProgressDraft;
     window.saveProgressDraft = async function (draftInput, opts = {}) {
       const r = await _origSaveDraft(draftInput, opts);
       touchLocalVaultTimestamp();
+      if (syncWsConnected && syncWs?.readyState === WebSocket.OPEN && r && r.draft_key) {
+        try {
+          syncWs.send(JSON.stringify({
+            type: 'draft_push',
+            account_id: r.account_id || 'acc_default',
+            draft: r
+          }));
+        } catch (_) {}
+      }
       setHeaderSyncStatus('saved');
       return r;
     };
@@ -27375,7 +27526,7 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     const _origSyncUser = syncUserStateToServer;
     syncUserStateToServer = function (...args) {
       const r = _origSyncUser.apply(this, args);
-      scheduleUniversalVaultPush(500);
+      scheduleUniversalVaultPush(350);
       return r;
     };
     window.syncUserStateToServer = syncUserStateToServer;
@@ -27385,7 +27536,7 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       const _origFn = window[fnName];
       window[fnName] = function (...args) {
         const r = _origFn.apply(this, args);
-        scheduleUniversalVaultPush(450);
+        scheduleUniversalVaultPush(350);
         return r;
       };
     }
@@ -27396,23 +27547,170 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     if (document.visibilityState === 'hidden') {
       pushUniversalVaultToServer({ keepalive: true });
     } else if (document.visibilityState === 'visible') {
+      connectRealtimeSyncWebSocket();
       pullUniversalVaultFromServer();
     }
   });
   window.addEventListener('pagehide', () => pushUniversalVaultToServer({ keepalive: true }));
   window.addEventListener('beforeunload', () => pushUniversalVaultToServer({ keepalive: true }));
   window.addEventListener('focus', () => {
+    connectRealtimeSyncWebSocket();
     if (!STATE?.exam?.active && !window.TIMED_EXAM?.active) {
       pullUniversalVaultFromServer();
     }
   });
 
-  // Lightweight 12s cross-device live poll when viewing Dashboard or Exam Config
+  // Lightweight fallback check (only fires HTTP if WebSocket is disconnected; otherwise sends tiny WS ping)
   setInterval(() => {
     if (document.visibilityState !== 'visible') return;
-    if (STATE?.exam?.active || window.TIMED_EXAM?.active) return;
-    pullUniversalVaultFromServer();
-  }, 12000);
+    if (syncWsConnected && syncWs?.readyState === WebSocket.OPEN) {
+      try { syncWs.send('{"type":"ping"}'); } catch (_) {}
+      return;
+    }
+    connectRealtimeSyncWebSocket();
+    if (!STATE?.exam?.active && !window.TIMED_EXAM?.active) {
+      pullUniversalVaultFromServer();
+    }
+  }, 20000);
+
+  // --- Online Portal Info, Instant Cloudflare HTTPS Tunnel & Camera QR Code ---
+  function renderOnlineInfoIntoModal(info) {
+    if (!info) return;
+    cachedOnlineInfo = { ...cachedOnlineInfo, ...info };
+    const renderLink = document.getElementById('online-render-link');
+    const renderOpen = document.getElementById('online-render-open-btn');
+    const tunnelRow = document.getElementById('online-tunnel-row');
+    const tunnelLink = document.getElementById('online-tunnel-link');
+    const btnCopyTunnel = document.getElementById('btn-copy-tunnel-url');
+    const btnQrTunnel = document.getElementById('btn-qr-tunnel-url');
+    const btnStartTunnel = document.getElementById('btn-start-online-tunnel');
+
+    const rUrl = info.render_url || 'https://unimaster-ai.onrender.com';
+    if (renderLink) {
+      renderLink.href = rUrl;
+      renderLink.textContent = rUrl;
+    }
+    if (renderOpen) renderOpen.href = rUrl;
+
+    if (!info.is_local_origin && window.location.protocol === 'https:') {
+      // Already running live on a public HTTPS domain (Render or Cloudflare Tunnel)!
+      if (tunnelRow) {
+        if (window.location.origin !== rUrl) {
+          tunnelRow.classList.remove('hidden');
+          if (tunnelLink) {
+            tunnelLink.href = window.location.origin;
+            tunnelLink.textContent = window.location.origin;
+          }
+          cachedOnlineInfo.tunnel_url = window.location.origin;
+          btnCopyTunnel?.classList.remove('hidden');
+          btnQrTunnel?.classList.remove('hidden');
+          btnStartTunnel?.classList.add('hidden');
+        } else {
+          tunnelRow.classList.add('hidden');
+        }
+      }
+      setHeaderSyncStatus('saved');
+      return;
+    }
+
+    if (tunnelRow) tunnelRow.classList.remove('hidden');
+    if (info.tunnel_active && info.tunnel_url) {
+      if (tunnelLink) {
+        tunnelLink.href = info.tunnel_url;
+        tunnelLink.textContent = info.tunnel_url;
+        tunnelLink.className = 'font-mono font-bold text-xs text-emerald-400 hover:underline break-all';
+      }
+      btnCopyTunnel?.classList.remove('hidden');
+      btnQrTunnel?.classList.remove('hidden');
+      if (btnStartTunnel) {
+        btnStartTunnel.textContent = '↗ Mở Link';
+        btnStartTunnel.onclick = () => window.open(info.tunnel_url, '_blank', 'noopener');
+      }
+    } else {
+      if (tunnelLink) {
+        tunnelLink.href = rUrl;
+        tunnelLink.textContent = info.can_start_tunnel
+          ? 'Bấm "🚀 Bật Link Online" để mở địa chỉ HTTPS trực tiếp'
+          : (info.lan_url || 'Sử dụng link Cloud 24/7 bên trên');
+        tunnelLink.className = 'font-mono font-semibold text-xs txt-muted break-all';
+      }
+      btnCopyTunnel?.classList.add('hidden');
+      btnQrTunnel?.classList.add('hidden');
+      if (btnStartTunnel) {
+        btnStartTunnel.textContent = '🚀 Bật Link Online';
+        btnStartTunnel.onclick = () => window.startInstantOnlineTunnel();
+        btnStartTunnel.classList.toggle('hidden', !info.can_start_tunnel);
+      }
+    }
+    setHeaderSyncStatus('saved');
+  }
+
+  async function refreshOnlinePortalInfo() {
+    if (STATE?.isOfflineStandalone) return;
+    try {
+      const resp = await fetch('/api/online-info', { credentials: 'same-origin' });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      if (data?.success) renderOnlineInfoIntoModal(data);
+    } catch (_) {}
+  }
+
+  window.startInstantOnlineTunnel = async function startInstantOnlineTunnel() {
+    const btn = document.getElementById('btn-start-online-tunnel');
+    const tunnelLink = document.getElementById('online-tunnel-link');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = '⏳ Đang mở...';
+    }
+    if (tunnelLink) tunnelLink.textContent = '⏳ Đang khởi tạo đường hầm HTTPS Cloudflare (~3 giây)...';
+    try {
+      const res = await apiFetch('/api/online-start', { method: 'POST', body: '{}' });
+      if (res?.success && res.tunnel_url) {
+        renderOnlineInfoIntoModal({ ...cachedOnlineInfo, ...res, tunnel_active: true });
+        window.showOnlinePortalQr('tunnel');
+        showToast('🌐 Đã bật Link Online HTTPS thành công!', 'success');
+      } else {
+        showToast(res?.error || res?.message || 'Hãy dùng trực tiếp link Cloud 24/7 phía trên.', 'info');
+        await refreshOnlinePortalInfo();
+      }
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  };
+
+  window.copyOnlinePortalUrl = async function copyOnlinePortalUrl(kind = 'render') {
+    const url = kind === 'tunnel' && cachedOnlineInfo.tunnel_url
+      ? cachedOnlineInfo.tunnel_url
+      : (cachedOnlineInfo.render_url || 'https://unimaster-ai.onrender.com');
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast(`📋 Đã chép địa chỉ Online: ${url}`, 'success');
+    } catch (_) {
+      showToast(url, 'info');
+    }
+  };
+
+  window.showOnlinePortalQr = function showOnlinePortalQr(kind = 'render') {
+    const url = kind === 'tunnel' && cachedOnlineInfo.tunnel_url
+      ? cachedOnlineInfo.tunnel_url
+      : (cachedOnlineInfo.render_url || 'https://unimaster-ai.onrender.com');
+    const panel = document.getElementById('online-qr-panel');
+    const canvas = document.getElementById('online-qr-canvas');
+    const caption = document.getElementById('online-qr-caption');
+    if (!panel || !canvas) return;
+    panel.classList.remove('hidden');
+    if (caption) caption.textContent = url;
+    if (typeof window.qrcode === 'function') {
+      try {
+        const qr = window.qrcode(0, 'M');
+        qr.addData(url);
+        qr.make();
+        canvas.innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2 });
+        return;
+      } catch (_) {}
+    }
+    canvas.innerHTML = `<a href="${escapeHtml(url)}" target="_blank" rel="noopener" class="text-xs font-mono text-indigo-600 font-bold underline px-2 py-1 block">${escapeHtml(url)}</a>`;
+  };
 
   // --- Cloud Sync Modal & Remote Render Bridge UI ---
   function refreshCloudSyncModalUI(snap = null) {
@@ -27421,7 +27719,7 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     const urlInp = document.getElementById('cloud-bridge-url-input');
     const fbEl = document.getElementById('cloud-bridge-feedback');
 
-    if (snap?.remote_bridge_url && urlInp && !urlInp.value) {
+    if (snap?.remote_bridge_url && urlInp) {
       urlInp.value = snap.remote_bridge_url;
     }
     if (snap?.remote_bridge_url && fbEl) {
@@ -27460,7 +27758,8 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     if (typeof openModal === 'function') openModal('modal-cloud-sync');
     else document.getElementById('modal-cloud-sync')?.classList.remove('hidden');
     refreshCloudSyncModalUI();
-    await pullUniversalVaultFromServer();
+    refreshOnlinePortalInfo();
+    await pullUniversalVaultFromServer({ forceFull: true });
   };
 
   window.forceFullVaultSyncNow = async function forceFullVaultSyncNow() {
@@ -27558,48 +27857,22 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
 
   document.addEventListener('DOMContentLoaded', () => {
     if (typeof updateTutorLengthUI === 'function') updateTutorLengthUI();
+    connectRealtimeSyncWebSocket();
     setTimeout(() => {
       pullUniversalVaultFromServer();
+      refreshOnlinePortalInfo();
     }, 350);
   });
 })();
 
 // ==============================================================================
-// UNIMASTER AI v52.0: LIQUID GLASS SPOTLIGHT, SPRING TAB CHOREOGRAPHY & GLIDE FX
+// UNIMASTER AI v54.0: ZERO-THRASH SPRING TAB CHOREOGRAPHY & EXAM GLIDE FX
 // ==============================================================================
 (function initLiquidMotionSuiteV52() {
-  const SPOT_SELECTOR = '.uni-card, .option-row, .bento-tool-tile, .countdown-card, .mode-card, .gemini-compact-pill';
-  let activeSpotEl = null;
-  let spotRaf = 0;
-  let pendingX = 0;
-  let pendingY = 0;
   let prevExamQIdx = -1;
   const modalCloseTimers = new Map();
 
-  // 1. 60fps GPU Radial Pointer Spotlight (Zero Layout Thrash)
-  document.addEventListener('pointermove', (e) => {
-    if (document.documentElement.classList.contains('perf-mode')) return;
-    const target = e.target?.closest?.(SPOT_SELECTOR);
-    if (activeSpotEl && activeSpotEl !== target) {
-      activeSpotEl.style.removeProperty('--spot-x');
-      activeSpotEl.style.removeProperty('--spot-y');
-    }
-    activeSpotEl = target || null;
-    if (!activeSpotEl) return;
-    pendingX = e.clientX;
-    pendingY = e.clientY;
-    if (!spotRaf) {
-      spotRaf = requestAnimationFrame(() => {
-        spotRaf = 0;
-        if (!activeSpotEl) return;
-        const rect = activeSpotEl.getBoundingClientRect();
-        activeSpotEl.style.setProperty('--spot-x', `${Math.round(pendingX - rect.left)}px`);
-        activeSpotEl.style.setProperty('--spot-y', `${Math.round(pendingY - rect.top)}px`);
-      });
-    }
-  }, { passive: true });
-
-  // 2. Silky View Transition & Staggered Card Choreography on Every Tab Switch
+  // 1. Silky View Transition & Staggered Card Choreography on Every Tab Switch
   if (typeof switchTab === 'function') {
     const _origSwitchTabV52 = switchTab;
     switchTab = function (tabName) {

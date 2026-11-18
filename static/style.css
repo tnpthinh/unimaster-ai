@@ -1889,14 +1889,14 @@ body.app-fullscreen-mode #header-fullscreen-btn {
   background-color: rgba(99, 102, 241, 0.12) !important;
 }
 
-/* Native iOS / iPadOS Safe Area & Touch Optimizations */
+/* Native iOS / iPadOS Safe Area & Touch Optimizations (Preserving Text Selection for AI Tooltip) */
 @supports (-webkit-touch-callout: none) {
   body {
-    -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
   }
-  input, textarea {
+  input, textarea, #exam-question-stage, .ai-tutor-content, .gemini-model-bubble, pre, code, p {
     -webkit-user-select: text;
+    user-select: text;
   }
 }
 
@@ -2410,18 +2410,13 @@ header > div > nav {
     height 0.3s ease,
     opacity 0.25s ease;
 }
-/* Ánh sáng quét qua chỉ báo */
+/* Ánh sáng tĩnh tinh tế trên chỉ báo (Không chạy animation CPU liên tục) */
 .nav-indicator::after {
   content: "";
   position: absolute; inset: 0;
   border-radius: inherit;
-  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.35) 50%, transparent 65%);
-  background-size: 250% 100%;
-  animation: ind-sheen 3.5s ease-in-out infinite;
-}
-@keyframes ind-sheen {
-  0%   { background-position: 160% 0; }
-  60%, 100% { background-position: -60% 0; }
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.14) 0%, transparent 60%);
+  animation: none !important;
 }
 /* Khi chỉ báo đã sẵn sàng, tab active bỏ nền riêng (chỉ báo đảm nhiệm) */
 header > div > nav.has-indicator .nav-indicator { opacity: 1; }
@@ -2430,24 +2425,13 @@ header > div > nav.has-indicator .nav-tab.active-tab {
   box-shadow: none !important;
 }
 
-/* Nút tab */
+/* Nút tab (Hiển thị tức thì 0ms, không bị ẩn khi xoay ngang iPad / mở rộng cửa sổ) */
 header .nav-tab {
   position: relative;
   z-index: 1;
   overflow: hidden;
-  animation: nav-pop-in 0.5s cubic-bezier(0.22, 1, 0.36, 1) backwards;
-}
-header .nav-tab:nth-of-type(1) { animation-delay: 0.03s; }
-header .nav-tab:nth-of-type(2) { animation-delay: 0.07s; }
-header .nav-tab:nth-of-type(3) { animation-delay: 0.11s; }
-header .nav-tab:nth-of-type(4) { animation-delay: 0.15s; }
-header .nav-tab:nth-of-type(5) { animation-delay: 0.19s; }
-header .nav-tab:nth-of-type(6) { animation-delay: 0.23s; }
-header .nav-tab:nth-of-type(7) { animation-delay: 0.27s; }
-header .nav-tab:nth-of-type(8) { animation-delay: 0.31s; }
-@keyframes nav-pop-in {
-  from { opacity: 0; transform: translateY(-6px) scale(0.92); }
-  to   { opacity: 1; transform: none; }
+  opacity: 1 !important;
+  animation: none !important;
 }
 /* Gạch chân gradient mọc từ giữa khi hover (tab chưa active) */
 header .nav-tab::after {
@@ -5275,57 +5259,41 @@ html[data-theme="sepia"]:not(.perf-mode) body::before {
     radial-gradient(500px circle at 50% 88%, rgba(6, 182, 212, 0.08), transparent 72%);
 }
 
-/* 3. True Frosted Liquid Glass Cards + Interactive Pointer Spotlight */
+/* 3. Ultra-Fast 120Hz Solid Architectural Cards (Zero GPU Blur Overdraw) */
 .uni-card {
-  border-radius: var(--card-radius, 1.375rem);
-  backdrop-filter: blur(18px) saturate(145%);
-  -webkit-backdrop-filter: blur(18px) saturate(145%);
-  background-image:
-    radial-gradient(
-      420px circle at var(--spot-x, -999px) var(--spot-y, -999px),
-      color-mix(in srgb, var(--brand) 10%, transparent),
-      transparent 70%
-    ),
-    linear-gradient(
-      160deg,
-      rgba(255, 255, 255, 0.045) 0%,
-      rgba(255, 255, 255, 0) 55%
-    );
+  border-radius: var(--card-radius, 1.25rem);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background-image: none;
   box-shadow:
-    inset 0 1px 0 0 rgba(255, 255, 255, 0.09),
-    0 16px 38px -14px rgba(2, 6, 23, 0.45);
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.06),
+    0 10px 26px -12px rgba(2, 6, 23, 0.42);
   transition:
-    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 0.24s ease,
-    box-shadow 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 0.24s ease;
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.18s ease,
+    background-color 0.18s ease;
 }
 
 html[data-theme="light"] .uni-card,
 html[data-theme="sepia"] .uni-card {
-  background-color: color-mix(in srgb, var(--bg-surface) 88%, transparent);
+  background-color: var(--bg-surface);
   box-shadow:
     inset 0 1px 0 0 rgba(255, 255, 255, 0.92),
-    0 14px 34px -12px rgba(15, 23, 42, 0.08);
+    0 8px 22px -10px rgba(15, 23, 42, 0.07);
 }
 
-/* 4. Tactile Elastic Spring Hover & Press Across Interactive Surfaces */
+/* 4. Crisp Low-Latency Interactive Surfaces */
 .bento-tool-tile,
 .countdown-card,
 .mode-card,
 .gemini-compact-pill,
 #subjects-grid > div {
-  border-radius: 1.15rem !important;
-  background-image: radial-gradient(
-    260px circle at var(--spot-x, -999px) var(--spot-y, -999px),
-    color-mix(in srgb, var(--brand) 14%, transparent),
-    transparent 72%
-  );
+  border-radius: 1.1rem !important;
+  background-image: none !important;
   transition:
-    transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-    border-color 0.22s ease,
-    box-shadow 0.26s cubic-bezier(0.22, 1, 0.36, 1),
-    background-color 0.22s ease !important;
+    transform 0.18s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.18s ease,
+    background-color 0.18s ease !important;
 }
 
 .bento-tool-tile:hover,
@@ -5437,17 +5405,12 @@ section.silk-view-enter > *:nth-child(5) { animation-delay: 0.15s; }
 #exam-question-stage .option-row:nth-child(4) { animation-delay: 0.09s; }
 
 .option-row {
-  border-radius: 1.2rem;
-  background-image: radial-gradient(
-    280px circle at var(--spot-x, -999px) var(--spot-y, -999px),
-    color-mix(in srgb, var(--brand) 12%, transparent),
-    transparent 70%
-  );
+  border-radius: 1.1rem;
+  background-image: none !important;
   transition:
-    transform 0.24s cubic-bezier(0.34, 1.56, 0.64, 1),
-    border-color 0.18s ease,
-    background-color 0.18s ease,
-    box-shadow 0.22s ease !important;
+    transform 0.16s cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 0.15s ease,
+    background-color 0.15s ease !important;
 }
 .option-row:hover:not(.disabled) {
   transform: translate3d(3px, -2px, 0) !important;
@@ -5712,4 +5675,219 @@ html body::after {
 .gemini-user-bubble {
   background: var(--brand) !important;
   box-shadow: 0 6px 18px -6px var(--brand-glow) !important;
+}
+
+/* ==============================================================================
+   UniMaster AI v54.0: 120Hz Zero-Lag Engine & Native iPhone / iPad / Android UX
+   ============================================================================== */
+
+/* 1. Opaque Surfaces for Zero GPU Compositing Lag (Only Sticky Bars Use Light Blur) */
+html[data-theme="dark"]:not(.contrast),
+html[data-theme="aurora"],
+html[data-theme="midnight"] {
+  --bg-app: #090b10;
+  --bg-surface: #11141d;
+  --bg-subtle: #171b26;
+  --bg-elevated: #1d2230;
+  --bg-hover: #242b3d;
+}
+
+.uni-top-header {
+  padding-top: env(safe-area-inset-top, 0px);
+  background-color: color-mix(in srgb, var(--bg-surface) 92%, transparent) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+.mobile-bottom-nav {
+  background-color: color-mix(in srgb, var(--bg-surface) 94%, transparent) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+#floating-tutor-window {
+  background: var(--bg-surface) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.floating-dock-neutral {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+#floating-next-q-btn.floating-next-ready {
+  animation: none !important;
+}
+
+/* Offscreen Layout Virtualization for Instant Scrolling & Tab Paint */
+#dashboard-v41-hub,
+#dashboard-insights-section {
+  content-visibility: auto;
+  contain-intrinsic-size: 1px 320px;
+}
+
+/* Instant Zero-Delay Touch Response Across All Devices */
+button,
+[role="button"],
+a,
+.option-row,
+.nav-tab,
+.mobile-nav-item,
+.preset-pill {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#floating-chat-messages,
+#tutor-chat-messages,
+.modal-overlay > .uni-card {
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Eliminate Sticky Hover Jumps on Touchscreens (iPhone, iPad, Android) */
+@media (hover: none) and (pointer: coarse) {
+  .bento-tool-tile:hover,
+  .mode-card:hover,
+  .gemini-compact-pill:hover,
+  #subjects-grid > div:hover,
+  .option-row:hover:not(.disabled),
+  .btn-primary:hover:not(:disabled),
+  .floating-dock-neutral:hover:not(:disabled) {
+    transform: none !important;
+  }
+  .btn-primary::after {
+    display: none !important;
+  }
+}
+
+/* 2. Native iPhone (390x844) & Android (360x800) Mobile Ergonomics */
+@media (max-width: 767px) {
+  /* Prevent iOS Safari Auto-Zoom on Input Focus */
+  input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+
+  main {
+    padding-left: 0.75rem !important;
+    padding-right: 0.75rem !important;
+    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* Generous Bottom Clearance in Active Exam so Floating Dock Never Covers Option D */
+  #exam-active-screen,
+  #modal-timed-exam > div {
+    padding-bottom: calc(8.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  .option-row {
+    min-height: 52px;
+    padding: 0.8rem 0.95rem !important;
+  }
+
+  /* Native Bottom-Sheet Floating AI Tutor on iPhone & Android */
+  #floating-tutor-container {
+    right: 0.65rem !important;
+    bottom: calc(4.6rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  #floating-tutor-window:not(.expanded) {
+    position: fixed !important;
+    left: 0.5rem !important;
+    right: 0.5rem !important;
+    bottom: calc(4.65rem + env(safe-area-inset-bottom, 0px)) !important;
+    top: auto !important;
+    width: auto !important;
+    max-width: none !important;
+    height: min(68dvh, calc(100dvh - 8.5rem)) !important;
+    max-height: calc(100dvh - 8.5rem) !important;
+    margin: 0 !important;
+    border-radius: 1.25rem !important;
+    z-index: 65 !important;
+  }
+
+  #floating-tutor-window.expanded {
+    position: fixed !important;
+    top: max(0.5rem, env(safe-area-inset-top, 0.5rem)) !important;
+    left: 0.35rem !important;
+    right: 0.35rem !important;
+    bottom: calc(0.5rem + env(safe-area-inset-bottom, 0px)) !important;
+    transform: none !important;
+    width: auto !important;
+    max-width: none !important;
+    height: auto !important;
+    max-height: none !important;
+    border-radius: 1.25rem !important;
+    z-index: 9999 !important;
+  }
+
+  /* Native Sheet Alignment for Modals on Phones */
+  .modal-overlay {
+    align-items: flex-end !important;
+    padding: 0.4rem !important;
+    padding-bottom: max(0.4rem, env(safe-area-inset-bottom, 0px)) !important;
+  }
+  .modal-overlay > .uni-card {
+    max-height: calc(91dvh - env(safe-area-inset-top, 0px)) !important;
+    border-radius: 1.35rem !important;
+  }
+}
+
+/* 3. Native iPadOS Portrait & Landscape (768px – 1023px) Floating Dock & Wide Stage */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mobile-bottom-nav {
+    left: 50% !important;
+    right: auto !important;
+    bottom: max(0.75rem, env(safe-area-inset-bottom, 0px)) !important;
+    transform: translateX(-50%) !important;
+    width: min(650px, 92vw) !important;
+    border: 1px solid var(--border-strong) !important;
+    border-radius: 1.35rem !important;
+    padding: 0.35rem 0.65rem !important;
+    box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.55) !important;
+  }
+  .mobile-bottom-nav > div {
+    max-width: none !important;
+  }
+  .mobile-nav-item {
+    flex-direction: row !important;
+    gap: 0.4rem !important;
+    min-height: 44px !important;
+    font-size: 0.78rem !important;
+    padding: 0.4rem 0.6rem !important;
+  }
+
+  #exam-active-screen {
+    padding-bottom: 7.5rem !important;
+  }
+
+  #floating-tutor-container {
+    right: 1.25rem !important;
+    bottom: calc(5.4rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  #floating-tutor-window:not(.expanded) {
+    width: min(440px, 56vw) !important;
+    max-width: 440px !important;
+    height: min(68dvh, 620px) !important;
+    max-height: calc(100dvh - 9.5rem) !important;
+  }
+}
+
+/* 4. Immersive Fullscreen Mode on iPhone / iPad / Android (Works Even Without Fullscreen API) */
+@media (max-width: 1023px) {
+  body.app-fullscreen-mode .mobile-bottom-nav {
+    transform: translateY(120%) !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+  body.app-fullscreen-mode #floating-tutor-container {
+    bottom: max(0.85rem, env(safe-area-inset-bottom, 0.85rem)) !important;
+  }
+  body.app-fullscreen-mode main {
+    padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
+  }
 }

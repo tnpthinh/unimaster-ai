@@ -199,7 +199,7 @@ async def auth_middleware(request, handler):
     if user_info:
         return await handler(request)
 
-    if request.path.startswith("/api/"):
+    if request.path.startswith("/api/") or request.path.startswith("/ws/"):
         return json_resp({"success": False, "error": "Phiên đăng nhập đã hết hạn. Hãy đăng nhập lại.", "auth_required": True}, 401)
     raise web.HTTPFound("/login")
 
@@ -626,11 +626,31 @@ async def no_cache_static_middleware(request, handler):
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+
     if (
+        isinstance(resp, web.StreamResponse)
+        and not isinstance(resp, web.WebSocketResponse)
+        and not resp.prepared
+    ):
+        ctype = (getattr(resp, "content_type", "") or "").lower()
+        if (
+            request.path == "/"
+            or request.path.startswith("/static/")
+            or any(t in ctype for t in ("json", "javascript", "css", "html", "svg", "text"))
+        ):
+            if not any(request.path.lower().endswith(ext) for ext in (".png", ".jpg", ".jpeg", ".webp", ".gif", ".woff2", ".mp3")):
+                try:
+                    resp.enable_compression()
+                except Exception:
+                    pass
+
+    if request.path.startswith("/static/") and "v=" in (request.query_string or ""):
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    elif (
         request.path == "/"
         or request.path.startswith("/static/")
         or request.path.startswith("/api/ai/")
-        or request.path in ("/api/settings", "/api/progress")
+        or request.path in ("/api/settings", "/api/progress", "/api/sync/vault")
         or request.path.startswith("/api/progress/")
     ):
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
@@ -957,6 +977,8 @@ async def save_progress_handler(request):
             total_items=data.get("total_items", 0),
             answered_count=data.get("answered_count", 0),
         )
+        uid = (request.get("user") or {}).get("id", 1)
+        _notify_realtime_sync_clients(uid, {"type": "draft_updated", "draft": draft})
         return json_resp({"success": True, "draft": draft})
     except ValueError as ve:
         return json_resp({"success": False, "error": str(ve)}, 400)
@@ -986,6 +1008,8 @@ async def delete_progress_handler(request):
         if not draft_key:
             return json_resp({"success": False, "error": "draft_key is required"}, 400)
         deleted = await asyncio.to_thread(db.delete_study_progress, acc, draft_key)
+        uid = (request.get("user") or {}).get("id", 1)
+        _notify_realtime_sync_clients(uid, {"type": "draft_deleted", "draft_key": draft_key})
         return json_resp({"success": True, "deleted": deleted, "account_id": acc, "draft_key": draft_key})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -3353,7 +3377,8 @@ async def save_user_state(request):
     try:
         uid = request.get("user", {}).get("id", 1)
         incoming = await safe_get_json(request)
-        saved = db.save_user_sync_state(uid, incoming)
+        saved = await asyncio.to_thread(db.save_user_sync_state, uid, incoming)
+        _notify_realtime_sync_clients(uid, {"type": "state_updated", "user_state": saved})
         return json_resp({"success": True, "state": saved})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -3566,11 +3591,139 @@ async def _push_or_pull_remote_bridge(bridge_url: str, local_vault: dict, bridge
             return {"synced": True, "remote": remote_data}
 
 
+_SYNC_WS_CLIENTS: dict[int, set] = {}
+_LAST_VAULT_MUTATION_MS: dict[int, int] = {}
+_DEFAULT_RENDER_ONLINE_URL = os.environ.get("PUBLIC_CLOUD_URL", "https://unimaster-ai.onrender.com").strip().rstrip("/")
+_CLOUDFLARED_PROC_LOCK = asyncio.Lock()
+
+
+def _notify_realtime_sync_clients(uid: int, message: dict, exclude_ws=None):
+    now_ms = int(time.time() * 1000)
+    _LAST_VAULT_MUTATION_MS[uid] = max(now_ms, int(message.get("server_time_ms") or 0))
+    peers = list(_SYNC_WS_CLIENTS.get(uid) or ())
+    if not peers:
+        return
+    payload = _FAST_JSON_DUMPS({**message, "server_time_ms": _LAST_VAULT_MUTATION_MS[uid]})
+
+    async def _broadcast():
+        dead = []
+        for ws in peers:
+            if ws is exclude_ws or ws.closed:
+                if ws.closed:
+                    dead.append(ws)
+                continue
+            try:
+                await ws.send_str(payload)
+            except Exception:
+                dead.append(ws)
+        if dead and uid in _SYNC_WS_CLIENTS:
+            for d in dead:
+                _SYNC_WS_CLIENTS[uid].discard(d)
+
+    try:
+        loop = asyncio.get_running_loop()
+        loop.create_task(_broadcast())
+    except RuntimeError:
+        pass
+
+
+async def websocket_sync_handler(request):
+    ws = web.WebSocketResponse(heartbeat=25.0, max_msg_size=4 * 1024 * 1024)
+    await ws.prepare(request)
+    uid = (request.get("user") or {}).get("id", 1)
+    client_id = str(request.query.get("cid") or "")[:40]
+    peers = _SYNC_WS_CLIENTS.setdefault(uid, set())
+    peers.add(ws)
+
+    try:
+        await ws.send_str(_FAST_JSON_DUMPS({
+            "type": "hello",
+            "server_time_ms": _LAST_VAULT_MUTATION_MS.get(uid) or int(time.time() * 1000),
+            "online_devices": len(peers),
+        }))
+        async for msg in ws:
+            if msg.type == aiohttp.WSMsgType.TEXT:
+                try:
+                    data = json.loads(msg.data)
+                except Exception:
+                    continue
+                if not isinstance(data, dict):
+                    continue
+                mtype = data.get("type")
+                if mtype == "ping":
+                    await ws.send_str(_FAST_JSON_DUMPS({
+                        "type": "pong",
+                        "server_time_ms": _LAST_VAULT_MUTATION_MS.get(uid) or int(time.time() * 1000),
+                        "online_devices": len(_SYNC_WS_CLIENTS.get(uid) or ()),
+                    }))
+                elif mtype == "draft_push":
+                    d = data.get("draft")
+                    if isinstance(d, dict) and d.get("draft_key"):
+                        saved_draft = await asyncio.to_thread(
+                            db.upsert_study_progress,
+                            account_id=d.get("account_id") or _extract_account_id_from_dict(data),
+                            draft_key=str(d["draft_key"]).strip(),
+                            progress_type=d.get("progress_type", "exam"),
+                            subject_id=d.get("subject_id"),
+                            chapter_tag=d.get("chapter_tag", ""),
+                            title=d.get("title", ""),
+                            payload=d.get("payload") if isinstance(d.get("payload"), dict) else {},
+                            current_index=d.get("current_index", 0),
+                            total_items=d.get("total_items", 0),
+                            answered_count=d.get("answered_count", 0),
+                        )
+                        _notify_realtime_sync_clients(
+                            uid,
+                            {"type": "draft_updated", "draft": saved_draft, "sender_cid": client_id},
+                            exclude_ws=ws,
+                        )
+                        await ws.send_str(_FAST_JSON_DUMPS({
+                            "type": "ack",
+                            "server_time_ms": _LAST_VAULT_MUTATION_MS.get(uid),
+                        }))
+                elif mtype == "vault_push":
+                    vault_data = data.get("vault") if isinstance(data.get("vault"), dict) else data
+                    snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, vault_data)
+                    _notify_realtime_sync_clients(
+                        uid,
+                        {"type": "vault_updated", "sender_cid": client_id, **snap},
+                        exclude_ws=ws,
+                    )
+                    await ws.send_str(_FAST_JSON_DUMPS({
+                        "type": "ack",
+                        "server_time_ms": _LAST_VAULT_MUTATION_MS.get(uid),
+                    }))
+            elif msg.type in (aiohttp.WSMsgType.ERROR, aiohttp.WSMsgType.CLOSE):
+                break
+    finally:
+        if uid in _SYNC_WS_CLIENTS:
+            _SYNC_WS_CLIENTS[uid].discard(ws)
+    return ws
+
+
 async def get_sync_vault(request):
     try:
         uid = (request.get("user") or {}).get("id", 1)
+        try:
+            since_ms = int(request.query.get("since") or 0)
+        except (TypeError, ValueError):
+            since_ms = 0
+        last_mut = _LAST_VAULT_MUTATION_MS.get(uid, 0)
+        if since_ms > 0 and last_mut > 0 and since_ms >= last_mut:
+            return json_resp({
+                "success": True,
+                "unchanged": True,
+                "server_time_ms": last_mut,
+                "online_devices": len(_SYNC_WS_CLIENTS.get(uid) or ()),
+            })
         snap = await asyncio.to_thread(_build_server_vault_snapshot, uid)
-        return json_resp({"success": True, **snap})
+        if not _LAST_VAULT_MUTATION_MS.get(uid):
+            _LAST_VAULT_MUTATION_MS[uid] = snap["server_time_ms"]
+        return json_resp({
+            "success": True,
+            "online_devices": len(_SYNC_WS_CLIENTS.get(uid) or ()),
+            **snap,
+        })
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
 
@@ -3582,6 +3735,7 @@ async def save_sync_vault(request):
         if not isinstance(data, dict):
             return json_resp({"success": False, "error": "JSON object expected"}, 400)
         snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, data)
+        _notify_realtime_sync_clients(uid, {"type": "vault_updated", **snap})
 
         # Optional background mirror to Remote Cloud Bridge (e.g. localhost -> Render)
         remote_url = snap.get("remote_bridge_url") or ""
@@ -3590,9 +3744,149 @@ async def save_sync_vault(request):
             payload_copy = {**snap, "_from_bridge": True}
             asyncio.create_task(_safe_bg_bridge_push(remote_url, payload_copy, bridge_pw, uid))
 
-        return json_resp({"success": True, **snap})
+        return json_resp({
+            "success": True,
+            "online_devices": len(_SYNC_WS_CLIENTS.get(uid) or ()),
+            **snap,
+        })
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
+
+
+def _read_local_tunnel_info_sync() -> dict:
+    root_dir = os.path.dirname(os.path.abspath(__file__))
+    tjson = os.path.join(root_dir, "online_tunnel.json")
+    cf_exe = os.path.join(root_dir, "tools", "cloudflared.exe")
+    tunnel_url = ""
+    if os.path.exists(tjson):
+        try:
+            with open(tjson, encoding="utf-8") as f:
+                tdata = json.load(f)
+            tunnel_url = str(tdata.get("public_url") or "").strip().rstrip("/")
+        except Exception:
+            tunnel_url = ""
+    return {
+        "tunnel_url": tunnel_url,
+        "has_cloudflared": os.path.exists(cf_exe),
+        "cf_exe": cf_exe,
+        "tjson": tjson,
+        "cf_log": os.path.join(root_dir, "cloudflared.log"),
+    }
+
+
+async def _probe_public_url_health(url: str, timeout_sec: float = 2.6) -> bool:
+    if not url or not url.startswith("https://"):
+        return False
+    try:
+        timeout = aiohttp.ClientTimeout(total=timeout_sec)
+        async with aiohttp.ClientSession(timeout=timeout) as session:
+            async with session.get(f"{url.rstrip('/')}/healthz") as resp:
+                return resp.status == 200
+    except Exception:
+        return False
+
+
+async def api_online_info_handler(request):
+    info = await asyncio.to_thread(_read_local_tunnel_info_sync)
+    host = (request.host or "").lower()
+    is_local_host = any(h in host for h in ("localhost", "127.0.0.1", "0.0.0.0", "192.168.", "10.", "172."))
+    tunnel_url = info["tunnel_url"]
+    tunnel_live = await _probe_public_url_health(tunnel_url, 2.2) if (is_local_host and tunnel_url) else False
+    lan_ip = await asyncio.to_thread(get_lan_ip)
+    return json_resp({
+        "success": True,
+        "render_url": _DEFAULT_RENDER_ONLINE_URL,
+        "tunnel_url": tunnel_url if tunnel_live else "",
+        "tunnel_active": tunnel_live,
+        "can_start_tunnel": bool(is_local_host and info["has_cloudflared"]),
+        "lan_url": f"http://{lan_ip}:{PORT}" if is_local_host else "",
+        "is_local_origin": is_local_host,
+        "current_origin": f"{'https' if _is_https(request) else 'http'}://{request.host}",
+    })
+
+
+async def api_online_start_handler(request):
+    """Khởi chạy ngay đường hầm HTTPS công khai (Cloudflare Quick Tunnel) từ máy chủ nội bộ."""
+    host = (request.host or "").lower()
+    if not any(h in host for h in ("localhost", "127.0.0.1", "0.0.0.0", "192.168.", "10.", "172.")):
+        return json_resp({
+            "success": True,
+            "tunnel_url": f"https://{request.host}",
+            "render_url": _DEFAULT_RENDER_ONLINE_URL,
+            "tunnel_active": True,
+            "message": "Bạn đang truy cập trực tiếp trên máy chủ Online!",
+        })
+
+    async with _CLOUDFLARED_PROC_LOCK:
+        info = await asyncio.to_thread(_read_local_tunnel_info_sync)
+        if info["tunnel_url"] and await _probe_public_url_health(info["tunnel_url"], 2.5):
+            return json_resp({
+                "success": True,
+                "tunnel_url": info["tunnel_url"],
+                "render_url": _DEFAULT_RENDER_ONLINE_URL,
+                "tunnel_active": True,
+                "message": "Đường truyền Online đang hoạt động ổn định!",
+            })
+        if not info["has_cloudflared"]:
+            return json_resp({
+                "success": True,
+                "tunnel_url": "",
+                "render_url": _DEFAULT_RENDER_ONLINE_URL,
+                "tunnel_active": False,
+                "message": f"Dùng trực tiếp bản Cloud 24/7 tại {_DEFAULT_RENDER_ONLINE_URL}",
+            })
+
+        def _spawn_cf():
+            import subprocess
+            creationflags = 0
+            if os.name == "nt":
+                creationflags = getattr(subprocess, "CREATE_NO_WINDOW", 0x08000000) | getattr(subprocess, "DETACHED_PROCESS", 0x00000008)
+            log_f = open(info["cf_log"], "w", encoding="utf-8", errors="ignore")
+            subprocess.Popen(
+                [info["cf_exe"], "tunnel", "--url", f"http://127.0.0.1:{PORT}", "--no-autoupdate"],
+                stdout=log_f,
+                stderr=subprocess.STDOUT,
+                creationflags=creationflags,
+                close_fds=False,
+            )
+
+        await asyncio.to_thread(_spawn_cf)
+        url_pattern = re.compile(r"https://[a-z0-9-]+\.trycloudflare\.com")
+        found_url = ""
+        for _ in range(28):
+            await asyncio.sleep(0.35)
+            try:
+                with open(info["cf_log"], encoding="utf-8", errors="ignore") as f:
+                    txt = f.read()
+                m = url_pattern.search(txt)
+                if m:
+                    found_url = m.group(0)
+                    break
+            except Exception:
+                pass
+
+        if found_url:
+            def _save_tjson():
+                with open(info["tjson"], "w", encoding="utf-8") as f:
+                    json.dump({
+                        "public_url": found_url,
+                        "permanent_gateway_url": "https://ntfy.sh/unimaster_ctump_5292",
+                        "updated_at": time.time(),
+                    }, f, indent=2)
+            await asyncio.to_thread(_save_tjson)
+            return json_resp({
+                "success": True,
+                "tunnel_url": found_url,
+                "render_url": _DEFAULT_RENDER_ONLINE_URL,
+                "tunnel_active": True,
+                "message": f"🌐 Đã mở cổng Online thành công: {found_url}",
+            })
+
+        return json_resp({
+            "success": False,
+            "render_url": _DEFAULT_RENDER_ONLINE_URL,
+            "error": f"Đang khởi tạo đường hầm... Bạn có thể mở ngay Cloud 24/7: {_DEFAULT_RENDER_ONLINE_URL}",
+        })
 
 
 async def _safe_bg_bridge_push(remote_url: str, payload: dict, bridge_pw: str, uid: int):
@@ -3934,11 +4228,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v53-2';
+    const CACHE_NAME = 'unimaster-pwa-v54-1';
     const CORE_ASSETS = [
-      '/static/style.css?v=53.2',
-      '/static/minimal.css?v=53.2',
-      '/static/app.js?v=53.2',
+      '/static/style.css?v=54.1',
+      '/static/minimal.css?v=54.1',
+      '/static/app.js?v=54.1',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -7190,11 +7484,14 @@ def create_app():
     app.router.add_post("/api/settings", save_settings)
 
     app.router.add_get("/api/network-info", get_network_info)
+    app.router.add_get("/api/online-info", api_online_info_handler)
+    app.router.add_post("/api/online-start", api_online_start_handler)
     app.router.add_get("/api/user-state", get_user_state)
     app.router.add_post("/api/user-state", save_user_state)
     app.router.add_get("/api/sync/vault", get_sync_vault)
     app.router.add_post("/api/sync/vault", save_sync_vault)
     app.router.add_post("/api/sync/remote-bridge", sync_remote_bridge_handler)
+    app.router.add_get("/ws/sync", websocket_sync_handler)
     app.router.add_get("/api/offline-snapshot", get_offline_snapshot)
     app.router.add_get("/api/backup/export", export_backup)
     app.router.add_post("/api/admin/backup/upload", admin_upload_backup)
