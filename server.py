@@ -979,7 +979,8 @@ async def save_progress_handler(request):
             answered_count=data.get("answered_count", 0),
         )
         uid = (request.get("user") or {}).get("id", 1)
-        _notify_realtime_sync_clients(uid, {"type": "draft_updated", "draft": draft})
+        sender_cid = (request.headers.get("X-Sync-Client-Id") or (data.get("sender_cid") if isinstance(data, dict) else "") or "").strip()
+        _notify_realtime_sync_clients(uid, {"type": "draft_updated", "draft": draft, "sender_cid": sender_cid})
         return json_resp({"success": True, "draft": draft})
     except ValueError as ve:
         return json_resp({"success": False, "error": str(ve)}, 400)
@@ -1010,7 +1011,8 @@ async def delete_progress_handler(request):
             return json_resp({"success": False, "error": "draft_key is required"}, 400)
         deleted = await asyncio.to_thread(db.delete_study_progress, acc, draft_key)
         uid = (request.get("user") or {}).get("id", 1)
-        _notify_realtime_sync_clients(uid, {"type": "draft_deleted", "draft_key": draft_key})
+        sender_cid = (request.headers.get("X-Sync-Client-Id") or (data.get("sender_cid") if isinstance(data, dict) else "") or "").strip()
+        _notify_realtime_sync_clients(uid, {"type": "draft_deleted", "draft_key": draft_key, "sender_cid": sender_cid})
         return json_resp({"success": True, "deleted": deleted, "account_id": acc, "draft_key": draft_key})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -3379,7 +3381,8 @@ async def save_user_state(request):
         uid = request.get("user", {}).get("id", 1)
         incoming = await safe_get_json(request)
         saved = await asyncio.to_thread(db.save_user_sync_state, uid, incoming)
-        _notify_realtime_sync_clients(uid, {"type": "state_updated", "user_state": saved})
+        sender_cid = (request.headers.get("X-Sync-Client-Id") or (incoming.get("sender_cid") if isinstance(incoming, dict) else "") or "").strip()
+        _notify_realtime_sync_clients(uid, {"type": "state_updated", "user_state": saved, "sender_cid": sender_cid})
         return json_resp({"success": True, "state": saved})
     except Exception as e:
         return json_resp({"success": False, "error": str(e)}, 500)
@@ -3736,7 +3739,8 @@ async def save_sync_vault(request):
         if not isinstance(data, dict):
             return json_resp({"success": False, "error": "JSON object expected"}, 400)
         snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, data)
-        _notify_realtime_sync_clients(uid, {"type": "vault_updated", **snap})
+        sender_cid = (request.headers.get("X-Sync-Client-Id") or data.get("sender_cid") or "").strip()
+        _notify_realtime_sync_clients(uid, {"type": "vault_updated", "sender_cid": sender_cid, **snap})
 
         # Optional background mirror to Remote Cloud Bridge (e.g. localhost -> Render)
         remote_url = snap.get("remote_bridge_url") or ""

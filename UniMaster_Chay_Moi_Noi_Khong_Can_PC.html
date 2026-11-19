@@ -16890,7 +16890,13 @@ async function apiFetch(url, options = {}) {
     return handleStandaloneOfflineApi(url, options);
   }
   try {
-    const opts = { headers: { 'Content-Type': 'application/json' }, credentials: 'same-origin', ...options };
+    const baseHeaders = { 'Content-Type': 'application/json' };
+    if (window._UNIMASTER_CLIENT_CID) baseHeaders['X-Sync-Client-Id'] = window._UNIMASTER_CLIENT_CID;
+    const opts = {
+      credentials: 'same-origin',
+      ...options,
+      headers: { ...baseHeaders, ...(options.headers || {}) }
+    };
     const resp = await fetch(url, opts);
     if (resp.status === 401) {
       window.location.href = '/login';
@@ -19504,40 +19510,71 @@ function renderCurrentExamQuestion() {
   }
   if (typeof syncExamTutorSplitLayout === 'function') syncExamTutorSplitLayout();
 
+  const modeKey = isLast ? 'last' : 'next';
   if (isLast) {
     if (nextBtn) {
-      nextBtn.innerHTML = `<span class="animate-pulse">✓</span> <span id="btn-next-q-text">Nộp Bài & Chấm Điểm</span>`;
+      if (nextBtn.dataset.btnMode !== modeKey) {
+        nextBtn.dataset.btnMode = modeKey;
+        nextBtn.innerHTML = `<span class="animate-pulse">✓</span> <span id="btn-next-q-text">Nộp Bài &amp; Chấm Điểm</span>`;
+      } else {
+        const lbl = document.getElementById('btn-next-q-text');
+        if (lbl) lbl.textContent = 'Nộp Bài & Chấm Điểm';
+      }
       nextBtn.onclick = () => submitExamNow();
     }
     if (topNextBtn) {
-      topNextBtn.innerHTML = `<span id="top-btn-next-label" class="hidden md:inline">Nộp</span> <i data-lucide="check" class="w-4 h-4"></i>`;
+      if (topNextBtn.dataset.btnMode !== modeKey) {
+        topNextBtn.dataset.btnMode = modeKey;
+        topNextBtn.innerHTML = `<span id="top-btn-next-label" class="hidden md:inline">Nộp</span> <i data-lucide="check" class="w-4 h-4"></i>`;
+      } else {
+        const lbl = document.getElementById('top-btn-next-label');
+        if (lbl) lbl.textContent = 'Nộp';
+      }
       topNextBtn.onclick = () => submitExamNow();
     }
     if (floatingNextBtn) {
-      floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">✓</span> <span id="floating-next-q-text" class="font-extrabold">Nộp Bài &amp; Chấm</span>`;
+      if (floatingNextBtn.dataset.btnMode !== modeKey) {
+        floatingNextBtn.dataset.btnMode = modeKey;
+        floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">✓</span> <span id="floating-next-q-text" class="font-extrabold">Nộp Bài &amp; Chấm</span>`;
+      } else {
+        const lbl = document.getElementById('floating-next-q-text');
+        if (lbl) lbl.textContent = 'Nộp Bài & Chấm';
+      }
       floatingNextBtn.onclick = () => submitExamNow();
     }
-    if (topNextLabel) topNextLabel.textContent = 'Nộp';
-    if (bottomNextText) bottomNextText.textContent = 'Nộp Bài & Chấm Điểm';
-    if (floatingNextText) floatingNextText.textContent = 'Nộp Bài & Chấm';
   } else {
-    const nextNum = STATE.exam.currentIndex + 2;
+    const nextNum = Number(STATE.exam.currentIndex || 0) + 2;
     const floatLbl = isCurGraded ? `Câu Tiếp (${nextNum}/${total}) ↵` : 'Câu Tiếp Theo';
     if (nextBtn) {
-      nextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="btn-next-q-text">Câu Tiếp Theo</span>`;
+      if (nextBtn.dataset.btnMode !== modeKey) {
+        nextBtn.dataset.btnMode = modeKey;
+        nextBtn.innerHTML = `<span class="animate-pulse">➔</span> <span id="btn-next-q-text">Câu Tiếp Theo</span>`;
+      } else {
+        const lbl = document.getElementById('btn-next-q-text');
+        if (lbl) lbl.textContent = 'Câu Tiếp Theo';
+      }
       nextBtn.onclick = () => nextQuestion();
     }
     if (topNextBtn) {
-      topNextBtn.innerHTML = `<span id="top-btn-next-label" class="hidden md:inline">Tiếp</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
+      if (topNextBtn.dataset.btnMode !== modeKey) {
+        topNextBtn.dataset.btnMode = modeKey;
+        topNextBtn.innerHTML = `<span id="top-btn-next-label" class="hidden md:inline">Tiếp</span> <i data-lucide="chevron-right" class="w-4 h-4"></i>`;
+      } else {
+        const lbl = document.getElementById('top-btn-next-label');
+        if (lbl) lbl.textContent = 'Tiếp';
+      }
       topNextBtn.onclick = () => nextQuestion();
     }
     if (floatingNextBtn) {
-      floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">➔</span> <span id="floating-next-q-text" class="font-extrabold whitespace-nowrap">${floatLbl}</span>`;
+      if (floatingNextBtn.dataset.btnMode !== modeKey) {
+        floatingNextBtn.dataset.btnMode = modeKey;
+        floatingNextBtn.innerHTML = `<span class="animate-pulse text-base">➔</span> <span id="floating-next-q-text" class="font-extrabold whitespace-nowrap">${floatLbl}</span>`;
+      } else {
+        const lbl = document.getElementById('floating-next-q-text');
+        if (lbl) lbl.textContent = floatLbl;
+      }
       floatingNextBtn.onclick = () => triggerFloatingNextAction();
     }
-    if (topNextLabel) topNextLabel.textContent = 'Tiếp';
-    if (bottomNextText) bottomNextText.textContent = 'Câu Tiếp Theo';
-    if (floatingNextText) floatingNextText.textContent = floatLbl;
   }
 
   renderPaletteGrid();
@@ -20446,9 +20483,17 @@ function triggerFloatingNextAction() {
 window.triggerFloatingNextAction = triggerFloatingNextAction;
 
 function nextQuestion() {
-  if (STATE.exam.active && !STATE.exam.paused && STATE.exam.currentIndex < STATE.exam.questions.length - 1) {
-    STATE.exam.currentIndex++;
-    playSound('click');
+  if (!STATE?.exam?.active || !Array.isArray(STATE.exam.questions) || !STATE.exam.questions.length) return;
+  if (STATE.exam.paused) {
+    STATE.exam.paused = false;
+    document.getElementById('exam-pause-overlay')?.classList.add('hidden');
+    document.getElementById('exam-question-stage')?.classList.remove('exam-paused-blur');
+  }
+  const cur = Number(STATE.exam.currentIndex || 0);
+  if (cur < STATE.exam.questions.length - 1) {
+    window._lastLocalExamActionTs = Date.now();
+    STATE.exam.currentIndex = cur + 1;
+    try { playSound('click'); } catch (_) {}
     renderCurrentExamQuestion();
   }
 }
@@ -40830,6 +40875,7 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
 (function initUniversalCrossDeviceVaultV51() {
   const VAULT_TS_KEY = 'unimaster_vault_updated_ms_v51';
   const CLIENT_CID = 'cid_' + Math.random().toString(36).slice(2, 10);
+  window._UNIMASTER_CLIENT_CID = CLIENT_CID;
   let vaultPushTimer = null;
   let vaultPullInFlight = false;
   let vaultPushInFlight = false;
@@ -41388,12 +41434,14 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
         const incAns = p.answers && typeof p.answers === 'object' ? p.answers : {};
         const curAnsCount = Object.keys(STATE.exam.answers || {}).length;
         const incAnsCount = Object.keys(incAns).length;
-        if (incAnsCount > curAnsCount || (srvMs > locMs + 300 && Number(p.currentIndex) !== Number(STATE.exam.currentIndex))) {
+        const recentlyActedLocally = (Date.now() - Number(window._lastLocalExamActionTs || 0)) < 6000;
+        if (incAnsCount > curAnsCount) {
           STATE.exam.answers = { ...(STATE.exam.answers || {}), ...incAns };
           if (p.graded && typeof p.graded === 'object') {
             STATE.exam.graded = { ...(STATE.exam.graded || {}), ...p.graded };
           }
-          if (Number.isFinite(Number(p.currentIndex)) && Number(p.currentIndex) >= 0 && Number(p.currentIndex) < (STATE.exam.questions?.length || 0)) {
+          // Only sync currentIndex forward when user is NOT actively navigating locally
+          if (!recentlyActedLocally && Number.isFinite(Number(p.currentIndex)) && Number(p.currentIndex) > Number(STATE.exam.currentIndex || 0) && Number(p.currentIndex) < (STATE.exam.questions?.length || 0)) {
             STATE.exam.currentIndex = Number(p.currentIndex);
           }
           if (typeof renderCurrentExamQuestion === 'function') renderCurrentExamQuestion();
