@@ -18337,9 +18337,20 @@ async function quickExpandSubjectQuestions(sid, btnEl) {
 }
 
 function openSubjectExam(sid) {
-  const sel = document.getElementById('exam-subject-select');
-  if (sel) sel.value = String(sid);
+  if (sid) {
+    STATE.activeSubjectId = Number(sid);
+    STATE.examConfig.subjectId = Number(sid);
+    const matched = (STATE.subjects || []).find((s) => Number(s.id) === Number(sid));
+    if (matched) {
+      if (typeof setText === 'function') {
+        setText('active-subj-name', matched.name);
+        if (matched.icon) setText('active-subj-icon', matched.icon);
+      }
+    }
+  }
   switchTab('exam');
+  const sel = document.getElementById('exam-subject-select');
+  if (sel && sid) sel.value = String(sid);
   resetToExamConfig();
 }
 
