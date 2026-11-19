@@ -30,6 +30,9 @@ SECRET_SETTING_KEYS = (
     "router_model",
     "ai_provider_priority",
     "user_sync_state",
+    "session_signing_secret",
+    "remote_cloud_bridge_pw",
+    "remote_cloud_bridge_url",
 )
 
 # Bảng chứa dữ liệu cá nhân — không được đưa lên kho mã công khai

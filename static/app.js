@@ -3135,12 +3135,47 @@ function isShortAnswerMatch(userAns, expectedAns) {
   return false;
 }
 
+// v56.0 Client-Side Hot-Cache for Subjects & Question Banks (Instant 0ms subject switching)
+window._UM_CLIENT_CACHE = new Map();
+window._UM_CLIENT_CACHE_STATS = { hits: 0, misses: 0 };
+
+function _umIsCacheableGet(url, method) {
+  if (method !== 'GET') return false;
+  if (url === '/api/subjects') return true;
+  if (/^\/api\/subjects\/\d+\/questions(\?|$)/.test(url) && !/[?&]random=1\b/.test(url)) return true;
+  return false;
+}
+
+function invalidateClientQuestionCache(urlHint = '') {
+  if (!window._UM_CLIENT_CACHE) return;
+  if (!urlHint || /\/api\/(subjects|backup|import|admin\/backup)/.test(urlHint)) {
+    window._UM_CLIENT_CACHE.clear();
+  }
+}
+window.invalidateClientQuestionCache = invalidateClientQuestionCache;
+
 async function apiFetch(url, options = {}) {
   if (STATE.isOfflineStandalone) {
     return handleStandaloneOfflineApi(url, options);
   }
+  const method = String(options.method || 'GET').toUpperCase();
+  const useCache = _umIsCacheableGet(url, method) && !options.bypassCache;
+  if (useCache) {
+    const cached = window._UM_CLIENT_CACHE.get(url);
+    if (cached && (Date.now() - cached.ts) < 180000) {
+      window._UM_CLIENT_CACHE_STATS.hits++;
+      return cached.data;
+    }
+    window._UM_CLIENT_CACHE_STATS.misses++;
+  }
+  if (method !== 'GET' && /\/api\/(subjects|import-direct-questions|backup|admin\/backup|ai\/generate-quiz|ai\/expand-bank)/.test(url)) {
+    invalidateClientQuestionCache(url);
+  }
   try {
-    const baseHeaders = { 'Content-Type': 'application/json' };
+    const baseHeaders = {
+      'Content-Type': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest'
+    };
     if (window._UNIMASTER_CLIENT_CID) baseHeaders['X-Sync-Client-Id'] = window._UNIMASTER_CLIENT_CID;
     const opts = {
       credentials: 'same-origin',
@@ -3152,7 +3187,21 @@ async function apiFetch(url, options = {}) {
       window.location.href = '/login';
       return { success: false, error: 'Cần đăng nhập lại' };
     }
+    if (resp.status === 429) {
+      let rlData = {};
+      try { rlData = await resp.json(); } catch (_) {}
+      const msg = rlData.error || 'Bạn thao tác quá nhanh, vui lòng đợi vài giây rồi thử lại.';
+      if (typeof showToast === 'function') showToast('🛡️ ' + msg, 'warning');
+      return { success: false, status: 429, error: msg };
+    }
     const data = await resp.json();
+    if (useCache && data && data.success) {
+      if (window._UM_CLIENT_CACHE.size > 48) {
+        const firstKey = window._UM_CLIENT_CACHE.keys().next().value;
+        if (firstKey) window._UM_CLIENT_CACHE.delete(firstKey);
+      }
+      window._UM_CLIENT_CACHE.set(url, { ts: Date.now(), data });
+    }
     return data;
   } catch (err) {
     // PC-Off Auto-Failover: Nếu PC đã tắt nhưng trình duyệt đã lưu Snapshot trong IndexedDB / bộ nhớ, tự động chạy Offline + Direct Cloud Gemini AI!
@@ -8267,7 +8316,10 @@ function switchSettingsTab(tab) {
     btn.classList.toggle('active', btn.getAttribute('data-stab') === tab);
   });
   if (tab === 'dashboard' && typeof initDashboardSettingsPanel === 'function') initDashboardSettingsPanel();
-  if (tab === 'sync') fetchNetworkQrInfo();
+  if (tab === 'sync') {
+    fetchNetworkQrInfo();
+    if (typeof refreshSecurityAndPerfPanels === 'function') refreshSecurityAndPerfPanels();
+  }
   if (tab === 'ai') checkApiKeyStatus();
   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
 }
@@ -28468,3 +28520,1099 @@ function startTrrPdfPracticeExam(examCode = 'mau') {
   }
 }
 window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
+
+// =========================================================================
+// UNIMASTER AI PRO v56.0 — SECURITY FORTRESS, PERFORMANCE & STUDY SUITE
+// 1. Daily Goal Ring & Accuracy Tracker (Synced via localStorage)
+// 2. Smart Multi-Topic Custom Exam Mixer (Trộn Đề Đa Chương)
+// 3. 60-Second Rapid-Fire Recall Arena (Tia Chớp 60 Giây)
+// 4. In-Exam Scratchpad + Zero-Eval Safe Math Parser + Trap Highlighter
+// 5. Privacy Blur / Quick Screen Lock (Alt+L) + SHA-256 PIN Lock
+// 6. Security Fortress & Live Performance Monitor (Settings → Bảo mật)
+// 7. Compact Floating Pomodoro Focus Timer (Alt+P)
+// =========================================================================
+(function initUniMasterV56Suite() {
+  if (window.__UNIMASTER_V56_INIT__) return;
+  window.__UNIMASTER_V56_INIT__ = true;
+
+  const DAILY_GOAL_KEY = 'unimaster_daily_goal_v56';
+  const BLITZ60_BEST_KEY = 'unimaster_blitz60_best_v56';
+  const SCRATCHPAD_KEY = 'unimaster_scratchpad_v56';
+  const PRIVACY_PIN_KEY = 'unimaster_privacy_pin_sha256_v56';
+
+  function _todayKey() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
+
+  function _esc(s) {
+    return typeof escapeHtml === 'function'
+      ? escapeHtml(String(s ?? ''))
+      : String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // -----------------------------------------------------------------------
+  // 1. DAILY STUDY GOAL RING & REAL-TIME ACCURACY TRACKER
+  // -----------------------------------------------------------------------
+  function _loadDailyGoal() {
+    const today = _todayKey();
+    try {
+      const raw = JSON.parse(localStorage.getItem(DAILY_GOAL_KEY) || '{}');
+      const target = [20, 40, 60, 100].includes(Number(raw.target)) ? Number(raw.target) : 40;
+      if (raw.date === today) {
+        return {
+          date: today,
+          target,
+          answered: Number(raw.answered || 0),
+          correct: Number(raw.correct || 0),
+          streak: Math.max(1, Number(raw.streak || 1)),
+        };
+      }
+      // Check consecutive day streak
+      const prev = new Date();
+      prev.setDate(prev.getDate() - 1);
+      const yKey = `${prev.getFullYear()}-${String(prev.getMonth() + 1).padStart(2, '0')}-${String(prev.getDate()).padStart(2, '0')}`;
+      const nextStreak = raw.date === yKey && Number(raw.answered || 0) > 0 ? Number(raw.streak || 1) + 1 : 1;
+      const fresh = { date: today, target, answered: 0, correct: 0, streak: nextStreak };
+      localStorage.setItem(DAILY_GOAL_KEY, JSON.stringify(fresh));
+      return fresh;
+    } catch (_) {
+      return { date: today, target: 40, answered: 0, correct: 0, streak: 1 };
+    }
+  }
+
+  function _saveDailyGoal(g) {
+    try { localStorage.setItem(DAILY_GOAL_KEY, JSON.stringify(g)); } catch (_) {}
+  }
+
+  function updateDailyGoalWidget() {
+    const g = _loadDailyGoal();
+    const pct = Math.min(100, Math.round((g.answered / Math.max(1, g.target)) * 100));
+    const arc = document.getElementById('daily-goal-ring-arc');
+    const pctEl = document.getElementById('daily-goal-pct-text');
+    const cntEl = document.getElementById('daily-goal-count-text');
+    const accEl = document.getElementById('daily-goal-acc-text');
+    if (arc) {
+      const circ = 94.25;
+      arc.setAttribute('stroke-dashoffset', String((circ * (1 - pct / 100)).toFixed(2)));
+      arc.setAttribute('stroke', pct >= 100 ? '#10b981' : '#6366f1');
+    }
+    if (pctEl) pctEl.textContent = `${pct}%`;
+    if (cntEl) cntEl.textContent = `${g.answered} / ${g.target} câu`;
+    if (accEl) {
+      const acc = g.answered > 0 ? Math.round((g.correct / g.answered) * 100) : 0;
+      accEl.textContent = g.answered > 0
+        ? `Chuỗi ${g.streak} ngày • Chính xác ${acc}%`
+        : `Chuỗi ${g.streak} ngày • Sẵn sàng`;
+    }
+  }
+  window.updateDailyGoalWidget = updateDailyGoalWidget;
+
+  function recordDailyStudyAnswer(isCorrect) {
+    const g = _loadDailyGoal();
+    const prevPct = Math.round((g.answered / Math.max(1, g.target)) * 100);
+    g.answered += 1;
+    if (isCorrect) g.correct += 1;
+    _saveDailyGoal(g);
+    updateDailyGoalWidget();
+    const newPct = Math.round((g.answered / Math.max(1, g.target)) * 100);
+    if (prevPct < 100 && newPct >= 100) {
+      if (typeof showToast === 'function') showToast(`🎯 Tuyệt vời! Bạn đã hoàn thành mục tiêu ${g.target} câu hôm nay!`, 'success');
+      if (typeof confetti === 'function') { try { confetti({ particleCount: 45, spread: 55, origin: { y: 0.7 } }); } catch (_) {} }
+    }
+  }
+  window.recordDailyStudyAnswer = recordDailyStudyAnswer;
+
+  function cycleDailyGoalTarget() {
+    const levels = [20, 40, 60, 100];
+    const g = _loadDailyGoal();
+    const idx = levels.indexOf(g.target);
+    g.target = levels[(idx + 1) % levels.length];
+    _saveDailyGoal(g);
+    updateDailyGoalWidget();
+    if (typeof showToast === 'function') showToast(`🎯 Đã đặt mục tiêu ôn tập hôm nay: ${g.target} câu/ngày`, 'info');
+  }
+  window.cycleDailyGoalTarget = cycleDailyGoalTarget;
+
+  // Hook into selectExamOption so every graded question updates the Daily Goal Ring
+  const _countedQKeys = new Set();
+  if (typeof selectExamOption === 'function') {
+    const _origSelV56 = selectExamOption;
+    selectExamOption = function (letter, ...rest) {
+      const qBefore = STATE?.exam?.questions?.[STATE?.exam?.currentIndex];
+      const qKey = qBefore ? `${STATE.exam.subjectId || 0}:${qBefore.id || STATE.exam.currentIndex}:${STATE.exam.startedAt || 0}` : '';
+      const r = _origSelV56.call(this, letter, ...rest);
+      if (qBefore && qKey && !_countedQKeys.has(qKey)) {
+        _countedQKeys.add(qKey);
+        const corr = typeof getQuestionCorrectLetter === 'function'
+          ? getQuestionCorrectLetter(qBefore, STATE.exam.currentIndex)
+          : String(qBefore.correct_option || 'A').trim().toUpperCase().charAt(0);
+        const isOk = String(letter || '').trim().toUpperCase().charAt(0) === corr;
+        recordDailyStudyAnswer(isOk);
+      }
+      return r;
+    };
+    window.selectExamOption = selectExamOption;
+  }
+
+  // -----------------------------------------------------------------------
+  // 2. SMART MULTI-TOPIC CUSTOM EXAM MIXER (TRỘN ĐỀ ĐA CHƯƠNG)
+  // -----------------------------------------------------------------------
+  let _mixerState = { subjectId: null, subjectName: '', allQs: [], topicGroups: [], selectedTopics: new Set() };
+
+  function _resolveActiveSubjectId() {
+    return Number(
+      document.getElementById('exam-subject-select')?.value ||
+      STATE?.examConfig?.subjectId ||
+      STATE?.activeSubjectId ||
+      (STATE?.subjects?.[0]?.id) ||
+      5
+    );
+  }
+
+  async function openMultiTopicMixerModal() {
+    const sid = _resolveActiveSubjectId();
+    const sub = (STATE?.subjects || []).find((s) => Number(s.id) === sid);
+    const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+    const allQs = (res && res.questions) || [];
+    if (!allQs.length) {
+      if (typeof showToast === 'function') showToast('Môn học này chưa có câu hỏi để trộn đề!', 'warning');
+      return;
+    }
+
+    const groupsMap = new Map();
+    allQs.forEach((q, idx) => {
+      const rawTag = String(q.topic_tag || '').trim();
+      const label = rawTag || `Phần ${Math.floor(idx / 50) + 1} (Câu ${Math.floor(idx / 50) * 50 + 1}–${Math.min(allQs.length, (Math.floor(idx / 50) + 1) * 50)})`;
+      if (!groupsMap.has(label)) groupsMap.set(label, []);
+      groupsMap.get(label).push(q);
+    });
+
+    const topicGroups = Array.from(groupsMap.entries()).map(([label, qs]) => ({ label, count: qs.length, qs }));
+    _mixerState = {
+      subjectId: sid,
+      subjectName: sub ? sub.name : `Môn #${sid}`,
+      allQs,
+      topicGroups,
+      selectedTopics: new Set(topicGroups.slice(0, Math.min(4, topicGroups.length)).map((t) => t.label)),
+    };
+
+    const subtitle = document.getElementById('mixer-subject-subtitle');
+    if (subtitle) subtitle.textContent = `${_mixerState.subjectName} • ${allQs.length} câu hỏi trong ${topicGroups.length} bài/chương`;
+
+    _renderMixerTopicChips();
+    updateMixerPreviewCount();
+    openModal('modal-multi-topic-mixer');
+    if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+  }
+  window.openMultiTopicMixerModal = openMultiTopicMixerModal;
+
+  function _renderMixerTopicChips() {
+    const grid = document.getElementById('mixer-topics-grid');
+    if (!grid) return;
+    grid.innerHTML = _mixerState.topicGroups.map((tg, i) => {
+      const checked = _mixerState.selectedTopics.has(tg.label);
+      return `
+        <label class="mixer-topic-chip ${checked ? 'selected' : ''} flex items-center justify-between gap-2 cursor-pointer select-none">
+          <span class="flex items-center gap-2 min-w-0">
+            <input type="checkbox" data-mixer-idx="${i}" ${checked ? 'checked' : ''}
+              onchange="toggleMixerTopicIdx(${i}, this.checked)"
+              class="w-4 h-4 accent-indigo-500 rounded shrink-0" />
+            <span class="text-xs font-bold txt-main truncate" title="${_esc(tg.label)}">${_esc(tg.label)}</span>
+          </span>
+          <span class="badge-soft px-1.5 py-0.5 rounded text-[10px] font-mono font-bold shrink-0">${tg.count}c</span>
+        </label>`;
+    }).join('');
+  }
+
+  function toggleMixerTopicIdx(idx, isChecked) {
+    const tg = _mixerState.topicGroups[idx];
+    if (!tg) return;
+    if (isChecked) _mixerState.selectedTopics.add(tg.label);
+    else _mixerState.selectedTopics.delete(tg.label);
+    _renderMixerTopicChips();
+    updateMixerPreviewCount();
+  }
+  window.toggleMixerTopicIdx = toggleMixerTopicIdx;
+
+  function mixerSelectAllTopics(selectAll) {
+    _mixerState.selectedTopics.clear();
+    if (selectAll) _mixerState.topicGroups.forEach((tg) => _mixerState.selectedTopics.add(tg.label));
+    _renderMixerTopicChips();
+    updateMixerPreviewCount();
+  }
+  window.mixerSelectAllTopics = mixerSelectAllTopics;
+
+  function _computeMixerPool() {
+    const diff = document.getElementById('mixer-diff-select')?.value || 'all';
+    const pool = [];
+    _mixerState.topicGroups.forEach((tg) => {
+      if (_mixerState.selectedTopics.has(tg.label)) {
+        tg.qs.forEach((q) => {
+          if (diff === 'all' || String(q.difficulty || 'medium').toLowerCase() === diff) {
+            pool.push(q);
+          }
+        });
+      }
+    });
+    return pool;
+  }
+
+  function updateMixerPreviewCount() {
+    const pool = _computeMixerPool();
+    const want = parseInt(document.getElementById('mixer-count-select')?.value || '40', 10);
+    const actual = Math.min(pool.length, want);
+    const el = document.getElementById('mixer-preview-summary');
+    if (el) {
+      el.textContent = `Đã chọn ${_mixerState.selectedTopics.size} bài • ${pool.length} câu khả dụng → Đề ${actual} câu`;
+    }
+  }
+  window.updateMixerPreviewCount = updateMixerPreviewCount;
+
+  function launchMixedMultiTopicExam() {
+    const pool = _computeMixerPool();
+    if (!pool.length) {
+      if (typeof showToast === 'function') showToast('Hãy chọn ít nhất 1 bài / chương có câu hỏi!', 'warning');
+      return;
+    }
+    const want = parseInt(document.getElementById('mixer-count-select')?.value || '40', 10);
+    const mins = parseInt(document.getElementById('mixer-time-select')?.value || '0', 10);
+    const prioritizeWeak = document.getElementById('mixer-priority-weak')?.checked ?? true;
+    const shuffleOpts = document.getElementById('mixer-shuffle-opts')?.checked ?? true;
+
+    const mistakeIds = new Set(
+      (Array.isArray(STATE?.mistakes) ? STATE.mistakes : []).map((m) => Number(typeof m === 'object' ? (m.question_id || m.id) : m))
+    );
+    const ranked = pool
+      .map((q) => ({ q, score: (prioritizeWeak && mistakeIds.has(Number(q.id)) ? 100 : 0) + Math.random() * 40 }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, Math.min(pool.length, want))
+      .map((x) => x.q);
+
+    const timeEl = document.getElementById('exam-custom-time');
+    if (timeEl) timeEl.value = String(mins);
+    const shufEl = document.getElementById('exam-shuffle-opts-toggle');
+    if (shufEl) shufEl.checked = shuffleOpts;
+    if (STATE?.examConfig) {
+      STATE.examConfig.subjectId = _mixerState.subjectId;
+      STATE.examConfig.timeMinutes = mins;
+    }
+
+    closeModal('modal-multi-topic-mixer');
+    if (typeof switchTab === 'function') switchTab('exam');
+    const title = `🎛️ Đề Trộn ${_mixerState.selectedTopics.size} Bài — ${_mixerState.subjectName}`;
+    launchExamWithQuestions(ranked, title, !shuffleOpts);
+    if (typeof showToast === 'function') showToast(`🚀 Đã trộn ${ranked.length} câu từ ${_mixerState.selectedTopics.size} bài/chương!`, 'success');
+  }
+  window.launchMixedMultiTopicExam = launchMixedMultiTopicExam;
+
+  // -----------------------------------------------------------------------
+  // 3. 60-SECOND RAPID-FIRE RECALL ARENA (TIA CHỚP 60 GIÂY)
+  // -----------------------------------------------------------------------
+  let _b60 = {
+    active: false,
+    timerId: null,
+    timeLeft: 60,
+    score: 0,
+    combo: 0,
+    correct: 0,
+    wrong: 0,
+    subjectId: null,
+    subjectName: '',
+    pool: [],
+    idx: 0,
+    missed: [],
+    locked: false,
+  };
+
+  function _getBlitz60Best(sid) {
+    try {
+      const map = JSON.parse(localStorage.getItem(BLITZ60_BEST_KEY) || '{}');
+      return Number(map[String(sid)] || 0);
+    } catch (_) { return 0; }
+  }
+
+  function _setBlitz60Best(sid, score) {
+    try {
+      const map = JSON.parse(localStorage.getItem(BLITZ60_BEST_KEY) || '{}');
+      if (score > Number(map[String(sid)] || 0)) {
+        map[String(sid)] = score;
+        localStorage.setItem(BLITZ60_BEST_KEY, JSON.stringify(map));
+      }
+    } catch (_) {}
+  }
+
+  async function openSpeedBlitz60Modal() {
+    const sid = _resolveActiveSubjectId();
+    const sub = (STATE?.subjects || []).find((s) => Number(s.id) === sid);
+    const res = await apiFetch(`/api/subjects/${sid}/questions?type=mcq`);
+    const pool = ((res && res.questions) || []).filter((q) => q.option_a && q.option_b && q.correct_option);
+    if (pool.length < 3) {
+      if (typeof showToast === 'function') showToast('Môn học này cần ít nhất 3 câu trắc nghiệm để chơi Tia Chớp 60s!', 'warning');
+      return;
+    }
+    _b60.subjectId = sid;
+    _b60.subjectName = sub ? sub.name : `Môn #${sid}`;
+    _b60.pool = pool;
+
+    const lbl = document.getElementById('blitz60-subject-label');
+    if (lbl) lbl.textContent = `${_b60.subjectName} (${pool.length} câu) • Phím tắt A/B/C/D hoặc 1/2/3/4`;
+    openModal('modal-speed-blitz60');
+    startSpeedBlitz60Round();
+  }
+  window.openSpeedBlitz60Modal = openSpeedBlitz60Modal;
+
+  function _stopBlitz60Timer() {
+    if (_b60.timerId) {
+      clearInterval(_b60.timerId);
+      _b60.timerId = null;
+    }
+    _b60.active = false;
+  }
+
+  function closeSpeedBlitz60Modal() {
+    _stopBlitz60Timer();
+    closeModal('modal-speed-blitz60');
+  }
+  window.closeSpeedBlitz60Modal = closeSpeedBlitz60Modal;
+
+  function _updateBlitz60Hud() {
+    const mult = Math.min(5, 1 + Math.floor(_b60.combo / 3));
+    const best = Math.max(_b60.score, _getBlitz60Best(_b60.subjectId));
+    const tEl = document.getElementById('blitz60-timer-val');
+    const sEl = document.getElementById('blitz60-score-val');
+    const cEl = document.getElementById('blitz60-combo-val');
+    const bEl = document.getElementById('blitz60-best-val');
+    const bar = document.getElementById('blitz60-time-bar');
+    if (tEl) {
+      tEl.textContent = `${_b60.timeLeft}s`;
+      tEl.style.color = _b60.timeLeft <= 10 ? '#f43f5e' : '';
+    }
+    if (sEl) sEl.textContent = String(_b60.score);
+    if (cEl) cEl.textContent = `x${mult}`;
+    if (bEl) bEl.textContent = String(best);
+    if (bar) {
+      bar.style.width = `${Math.max(0, (_b60.timeLeft / 60) * 100)}%`;
+      bar.style.background = _b60.timeLeft <= 10 ? '#f43f5e' : '#6366f1';
+    }
+  }
+
+  function _renderBlitz60Question() {
+    if (!_b60.active) return;
+    if (_b60.idx >= _b60.pool.length) {
+      _b60.pool = [..._b60.pool].sort(() => Math.random() - 0.5);
+      _b60.idx = 0;
+    }
+    const q = _b60.pool[_b60.idx];
+    _b60.locked = false;
+    const tagEl = document.getElementById('blitz60-q-tag');
+    const qEl = document.getElementById('blitz60-q-text');
+    const optWrap = document.getElementById('blitz60-options-wrap');
+    const fb = document.getElementById('blitz60-feedback-line');
+    if (tagEl) tagEl.textContent = `Câu #${_b60.correct + _b60.wrong + 1}${q.topic_tag ? ' • ' + q.topic_tag : ''}`;
+    if (qEl) qEl.textContent = String(q.question_text || '');
+    if (fb) fb.textContent = '';
+
+    const letters = ['A', 'B', 'C', 'D'];
+    if (optWrap) {
+      optWrap.innerHTML = letters.map((L) => {
+        const text = q['option_' + L.toLowerCase()] || '';
+        if (!text) return '';
+        return `
+          <button type="button" data-b60-opt="${L}" onclick="answerSpeedBlitz60('${L}')" class="blitz60-opt-btn">
+            <span class="w-6 h-6 rounded-lg font-mono text-xs font-extrabold flex items-center justify-center shrink-0" style="background: var(--bg-surface); border: 1px solid var(--border);">${L}</span>
+            <span class="flex-1 leading-snug">${_esc(text)}</span>
+          </button>`;
+      }).join('');
+    }
+    if (typeof renderMathInElement === 'function' && qEl && optWrap) {
+      try {
+        const mathOpts = { delimiters: [{ left: '$$', right: '$$', display: true }, { left: '$', right: '$', display: false }], throwOnError: false };
+        renderMathInElement(qEl, mathOpts);
+        renderMathInElement(optWrap, mathOpts);
+      } catch (_) {}
+    }
+  }
+
+  function startSpeedBlitz60Round() {
+    _stopBlitz60Timer();
+    _b60.pool = [..._b60.pool].sort(() => Math.random() - 0.5);
+    _b60.idx = 0;
+    _b60.timeLeft = 60;
+    _b60.score = 0;
+    _b60.combo = 0;
+    _b60.correct = 0;
+    _b60.wrong = 0;
+    _b60.missed = [];
+    _b60.active = true;
+    _b60.locked = false;
+
+    document.getElementById('blitz60-play-stage')?.classList.remove('hidden');
+    document.getElementById('blitz60-summary-stage')?.classList.add('hidden');
+    _updateBlitz60Hud();
+    _renderBlitz60Question();
+
+    _b60.timerId = setInterval(() => {
+      if (!_b60.active) return;
+      _b60.timeLeft -= 1;
+      _updateBlitz60Hud();
+      if (_b60.timeLeft <= 0) _finishSpeedBlitz60Round();
+    }, 1000);
+  }
+  window.startSpeedBlitz60Round = startSpeedBlitz60Round;
+
+  function answerSpeedBlitz60(letter) {
+    if (!_b60.active || _b60.locked) return;
+    _b60.locked = true;
+    const q = _b60.pool[_b60.idx];
+    const picked = String(letter || '').trim().toUpperCase().charAt(0);
+    const corr = String(q.correct_option || 'A').trim().toUpperCase().charAt(0);
+    const isOk = picked === corr;
+
+    document.querySelectorAll('#blitz60-options-wrap button[data-b60-opt]').forEach((btn) => {
+      btn.disabled = true;
+      const optL = btn.getAttribute('data-b60-opt');
+      if (optL === corr) btn.classList.add('is-correct');
+      else if (optL === picked && !isOk) btn.classList.add('is-wrong');
+    });
+
+    const fb = document.getElementById('blitz60-feedback-line');
+    if (isOk) {
+      _b60.combo += 1;
+      _b60.correct += 1;
+      const mult = Math.min(5, 1 + Math.floor(_b60.combo / 3));
+      const pts = 10 * mult;
+      _b60.score += pts;
+      if (fb) {
+        fb.style.color = '#10b981';
+        fb.textContent = `✔ Chính xác! +${pts} điểm (Combo x${mult})`;
+      }
+    } else {
+      _b60.combo = 0;
+      _b60.wrong += 1;
+      _b60.missed.push(q);
+      if (fb) {
+        fb.style.color = '#f43f5e';
+        fb.textContent = `✖ Đáp án đúng là ${corr}`;
+      }
+    }
+
+    recordDailyStudyAnswer(isOk);
+    _updateBlitz60Hud();
+    setTimeout(() => {
+      if (!_b60.active) return;
+      _b60.idx += 1;
+      _renderBlitz60Question();
+    }, isOk ? 240 : 620);
+  }
+  window.answerSpeedBlitz60 = answerSpeedBlitz60;
+
+  function _finishSpeedBlitz60Round() {
+    _stopBlitz60Timer();
+    const prevBest = _getBlitz60Best(_b60.subjectId);
+    _setBlitz60Best(_b60.subjectId, _b60.score);
+    _updateBlitz60Hud();
+
+    document.getElementById('blitz60-play-stage')?.classList.add('hidden');
+    document.getElementById('blitz60-summary-stage')?.classList.remove('hidden');
+
+    const total = _b60.correct + _b60.wrong;
+    const acc = total > 0 ? Math.round((_b60.correct / total) * 100) : 0;
+    const isRecord = _b60.score > prevBest && _b60.score > 0;
+    const desc = document.getElementById('blitz60-summary-desc');
+    if (desc) {
+      desc.textContent = `Điểm: ${_b60.score}${isRecord ? ' (🎉 Kỷ lục mới!)' : ''} • Đúng ${_b60.correct}/${total} câu (${acc}%) • Môn: ${_b60.subjectName}`;
+    }
+    const reviewBtn = document.getElementById('blitz60-review-wrong-btn');
+    if (reviewBtn) reviewBtn.classList.toggle('hidden', _b60.missed.length === 0);
+    if (isRecord && typeof confetti === 'function') {
+      try { confetti({ particleCount: 50, spread: 60, origin: { y: 0.65 } }); } catch (_) {}
+    }
+  }
+
+  function reviewBlitz60MissedQuestions() {
+    if (!_b60.missed.length) return;
+    const qs = [..._b60.missed];
+    closeSpeedBlitz60Modal();
+    if (typeof switchTab === 'function') switchTab('exam');
+    launchExamWithQuestions(qs, `🎯 Ôn lại ${qs.length} câu sai Tia Chớp 60s`, true);
+  }
+  window.reviewBlitz60MissedQuestions = reviewBlitz60MissedQuestions;
+
+  // -----------------------------------------------------------------------
+  // 4. IN-EXAM SCRATCHPAD + ZERO-EVAL SAFE MATH PARSER + TRAP HIGHLIGHTER
+  // -----------------------------------------------------------------------
+  let _trapHighlightEnabled = false;
+
+  function toggleExamScratchpad(forceState) {
+    const drawer = document.getElementById('exam-scratchpad-drawer');
+    if (!drawer) return;
+    const open = typeof forceState === 'boolean' ? forceState : drawer.classList.contains('hidden');
+    drawer.classList.toggle('hidden', !open);
+    const notesEl = document.getElementById('exam-scratchpad-notes');
+    if (open && notesEl && !notesEl.value) {
+      try { notesEl.value = localStorage.getItem(SCRATCHPAD_KEY) || ''; } catch (_) {}
+    }
+    if (open && notesEl) notesEl.focus();
+  }
+  window.toggleExamScratchpad = toggleExamScratchpad;
+
+  function saveExamScratchpadNotes() {
+    const val = document.getElementById('exam-scratchpad-notes')?.value || '';
+    try { localStorage.setItem(SCRATCHPAD_KEY, val.slice(0, 8000)); } catch (_) {}
+  }
+  window.saveExamScratchpadNotes = saveExamScratchpadNotes;
+
+  function clearExamScratchpad() {
+    const notesEl = document.getElementById('exam-scratchpad-notes');
+    const calcEl = document.getElementById('exam-scratchpad-calc');
+    const outEl = document.getElementById('exam-scratchpad-calc-out');
+    if (notesEl) notesEl.value = '';
+    if (calcEl) calcEl.value = '';
+    if (outEl) outEl.textContent = 'Kết quả: —';
+    try { localStorage.removeItem(SCRATCHPAD_KEY); } catch (_) {}
+  }
+  window.clearExamScratchpad = clearExamScratchpad;
+
+  // Pure recursive-descent safe arithmetic evaluator (ZERO eval / Function)
+  function _safeEvalMathExpr(rawExpr) {
+    const src = String(rawExpr || '').trim();
+    if (!src || src.length > 160) throw new Error('Biểu thức trống hoặc quá dài');
+    const tokens = [];
+    let i = 0;
+    while (i < src.length) {
+      const ch = src[i];
+      if (/\s/.test(ch)) { i++; continue; }
+      if (/[0-9.]/.test(ch)) {
+        let num = '';
+        while (i < src.length && /[0-9.]/.test(src[i])) num += src[i++];
+        const val = Number(num);
+        if (!Number.isFinite(val)) throw new Error('Số không hợp lệ');
+        tokens.push({ type: 'num', val });
+        continue;
+      }
+      if (/[a-zA-Z_]/.test(ch)) {
+        let id = '';
+        while (i < src.length && /[a-zA-Z0-9_]/.test(src[i])) id += src[i++];
+        tokens.push({ type: 'id', val: id.toLowerCase() });
+        continue;
+      }
+      if ('+-*/%^(),'.includes(ch)) {
+        tokens.push({ type: 'op', val: ch });
+        i++;
+        continue;
+      }
+      throw new Error(`Ký tự không hỗ trợ: ${ch}`);
+    }
+
+    let pos = 0;
+    const peek = () => tokens[pos] || null;
+    const eat = (expected) => {
+      const t = tokens[pos];
+      if (!t || (expected && t.val !== expected)) throw new Error('Cú pháp không hợp lệ');
+      pos++;
+      return t;
+    };
+
+    const _gcd = (a, b) => {
+      a = Math.abs(Math.trunc(a));
+      b = Math.abs(Math.trunc(b));
+      while (b !== 0) { const tmp = b; b = a % b; a = tmp; }
+      return a;
+    };
+
+    const FUNCS = {
+      sqrt: (a) => Math.sqrt(a),
+      abs: (a) => Math.abs(a),
+      round: (a) => Math.round(a),
+      floor: (a) => Math.floor(a),
+      ceil: (a) => Math.ceil(a),
+      pow: (a, b) => Math.pow(a, b),
+      mod: (a, b) => ((a % b) + b) % b,
+      gcd: (a, b) => _gcd(a, b),
+      lcm: (a, b) => { const g = _gcd(a, b); return g ? Math.abs(Math.trunc(a) * Math.trunc(b)) / g : 0; },
+      log: (a) => Math.log10(a),
+      ln: (a) => Math.log(a),
+    };
+
+    function parseAddSub() {
+      let left = parseMulDiv();
+      while (peek() && peek().type === 'op' && (peek().val === '+' || peek().val === '-')) {
+        const op = eat().val;
+        const right = parseMulDiv();
+        left = op === '+' ? left + right : left - right;
+      }
+      return left;
+    }
+
+    function parseMulDiv() {
+      let left = parsePow();
+      while (peek() && peek().type === 'op' && (peek().val === '*' || peek().val === '/' || peek().val === '%')) {
+        const op = eat().val;
+        const right = parsePow();
+        if (op === '*') left *= right;
+        else if (op === '/') { if (right === 0) throw new Error('Chia cho 0'); left /= right; }
+        else { if (right === 0) throw new Error('Mod 0'); left = ((left % right) + right) % right; }
+      }
+      return left;
+    }
+
+    function parsePow() {
+      let base = parseUnary();
+      if (peek() && peek().type === 'op' && peek().val === '^') {
+        eat('^');
+        const exp = parsePow();
+        base = Math.pow(base, exp);
+      }
+      return base;
+    }
+
+    function parseUnary() {
+      if (peek() && peek().type === 'op' && (peek().val === '+' || peek().val === '-')) {
+        const op = eat().val;
+        const v = parseUnary();
+        return op === '-' ? -v : v;
+      }
+      return parsePrimary();
+    }
+
+    function parsePrimary() {
+      const t = peek();
+      if (!t) throw new Error('Thiếu toán hạng');
+      if (t.type === 'num') { eat(); return t.val; }
+      if (t.type === 'id') {
+        eat();
+        if (t.val === 'pi') return Math.PI;
+        if (t.val === 'e') return Math.E;
+        const fn = FUNCS[t.val];
+        if (!fn) throw new Error(`Hàm chưa hỗ trợ: ${t.val}`);
+        eat('(');
+        const args = [];
+        if (peek() && peek().val !== ')') {
+          args.push(parseAddSub());
+          while (peek() && peek().val === ',') {
+            eat(',');
+            args.push(parseAddSub());
+          }
+        }
+        eat(')');
+        return fn(...args);
+      }
+      if (t.type === 'op' && t.val === '(') {
+        eat('(');
+        const v = parseAddSub();
+        eat(')');
+        return v;
+      }
+      throw new Error('Biểu thức không hợp lệ');
+    }
+
+    const res = parseAddSub();
+    if (pos !== tokens.length || !Number.isFinite(res)) throw new Error('Không tính được biểu thức');
+    return Math.abs(res - Math.round(res)) < 1e-10 ? Math.round(res) : Number(res.toFixed(6));
+  }
+
+  function evaluateScratchpadMath() {
+    const inp = document.getElementById('exam-scratchpad-calc');
+    const out = document.getElementById('exam-scratchpad-calc-out');
+    if (!inp || !out) return;
+    try {
+      const val = _safeEvalMathExpr(inp.value);
+      out.textContent = `Kết quả: ${val}`;
+      out.style.color = '#10b981';
+    } catch (err) {
+      out.textContent = `Lỗi: ${err.message}`;
+      out.style.color = '#f43f5e';
+    }
+  }
+  window.evaluateScratchpadMath = evaluateScratchpadMath;
+
+  function _applyTrapHighlights() {
+    const el = document.getElementById('q-prompt-text');
+    if (!el || !_trapHighlightEnabled) return;
+    const trapRe = /\b(KHÔNG ĐÚNG|NGOẠI TRỪ|không đúng|ngoại trừ|KHÔNG PHẢI|không phải|CHỐNG CHỈ ĐỊNH|chống chỉ định|SAI|sai nhất|ưu tiên đầu tiên|tối đa|tối thiểu|nghiêm cấm|không được)\b/g;
+    const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT, null);
+    const textNodes = [];
+    let node;
+    while ((node = walker.nextNode())) {
+      if (node.parentElement && (node.parentElement.closest('.katex') || node.parentElement.tagName === 'MARK' || node.parentElement.tagName === 'CODE')) continue;
+      if (trapRe.test(node.nodeValue || '')) textNodes.push(node);
+      trapRe.lastIndex = 0;
+    }
+    textNodes.forEach((tn) => {
+      const span = document.createElement('span');
+      span.innerHTML = _esc(tn.nodeValue).replace(trapRe, '<mark class="um-trap-mark">$1</mark>');
+      tn.parentNode?.replaceChild(span, tn);
+    });
+  }
+
+  function toggleExamTrapHighlighter() {
+    _trapHighlightEnabled = !_trapHighlightEnabled;
+    const btn = document.getElementById('btn-trap-highlight-toggle');
+    if (btn) {
+      btn.textContent = _trapHighlightEnabled ? '🖍️ Đang tô từ khóa bẫy (BẬT)' : '🖍️ Tô từ khóa bẫy';
+      btn.classList.toggle('txt-brand', _trapHighlightEnabled);
+    }
+    if (_trapHighlightEnabled) _applyTrapHighlights();
+    else if (typeof renderCurrentQuestion === 'function' && STATE?.exam?.active) renderCurrentQuestion();
+  }
+  window.toggleExamTrapHighlighter = toggleExamTrapHighlighter;
+
+  if (typeof renderCurrentQuestion === 'function') {
+    const _origRenderQ = renderCurrentQuestion;
+    renderCurrentQuestion = function (...args) {
+      const r = _origRenderQ.apply(this, args);
+      if (_trapHighlightEnabled) setTimeout(_applyTrapHighlights, 0);
+      return r;
+    };
+    window.renderCurrentQuestion = renderCurrentQuestion;
+  }
+
+  // -----------------------------------------------------------------------
+  // 5. PRIVACY BLUR / QUICK SCREEN LOCK (Alt+L) + SHA-256 PIN PROTECTION
+  // -----------------------------------------------------------------------
+  let _lockClockTimer = null;
+
+  async function _sha256Hex(text) {
+    const raw = `um-pin-salt-v56:${String(text || '')}`;
+    if (window.crypto?.subtle) {
+      const buf = await window.crypto.subtle.digest('SHA-256', new TextEncoder().encode(raw));
+      return Array.from(new Uint8Array(buf)).map((b) => b.toString(16).padStart(2, '0')).join('');
+    }
+    // Lightweight fallback hash for non-HTTPS LAN origins where SubtleCrypto is unavailable
+    let h = 2166136261;
+    for (let i = 0; i < raw.length; i++) {
+      h ^= raw.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return 'fnv_' + (h >>> 0).toString(16);
+  }
+
+  function _hasPrivacyPin() {
+    try { return Boolean(localStorage.getItem(PRIVACY_PIN_KEY)); } catch (_) { return false; }
+  }
+
+  function _updatePrivacyPinBadge() {
+    const el = document.getElementById('sec-pin-status');
+    if (el) el.textContent = _hasPrivacyPin() ? '🔐 Đã bật mã PIN (SHA-256)' : 'Chưa đặt PIN (Mở 1 chạm)';
+  }
+
+  function activatePrivacyLock() {
+    const overlay = document.getElementById('privacy-lock-overlay');
+    if (!overlay) return;
+    overlay.classList.remove('hidden');
+    const pinWrap = document.getElementById('privacy-pin-input-wrap');
+    const pinInp = document.getElementById('privacy-pin-unlock-input');
+    const pinErr = document.getElementById('privacy-pin-error');
+    const hasPin = _hasPrivacyPin();
+    if (pinWrap) pinWrap.classList.toggle('hidden', !hasPin);
+    if (pinInp) { pinInp.value = ''; if (hasPin) setTimeout(() => pinInp.focus(), 50); }
+    if (pinErr) pinErr.textContent = '';
+
+    const tick = () => {
+      const clk = document.getElementById('privacy-lock-clock');
+      if (clk) {
+        const d = new Date();
+        clk.textContent = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+      }
+    };
+    tick();
+    if (_lockClockTimer) clearInterval(_lockClockTimer);
+    _lockClockTimer = setInterval(tick, 10000);
+  }
+  window.activatePrivacyLock = activatePrivacyLock;
+
+  async function unlockPrivacyScreen() {
+    const overlay = document.getElementById('privacy-lock-overlay');
+    if (!overlay) return;
+    const storedHash = localStorage.getItem(PRIVACY_PIN_KEY);
+    if (storedHash) {
+      const inp = document.getElementById('privacy-pin-unlock-input');
+      const err = document.getElementById('privacy-pin-error');
+      const entered = (inp?.value || '').trim();
+      const hashed = await _sha256Hex(entered);
+      if (hashed !== storedHash) {
+        if (err) err.textContent = 'Mã PIN không chính xác!';
+        if (inp) { inp.value = ''; inp.focus(); }
+        return;
+      }
+    }
+    overlay.classList.add('hidden');
+    if (_lockClockTimer) { clearInterval(_lockClockTimer); _lockClockTimer = null; }
+  }
+  window.unlockPrivacyScreen = unlockPrivacyScreen;
+
+  async function configurePrivacyPinPrompt() {
+    const currentHasPin = _hasPrivacyPin();
+    if (currentHasPin) {
+      const oldPin = prompt('Nhập mã PIN hiện tại để GỠ BỎ mã PIN (hoặc Hủy để giữ nguyên):');
+      if (oldPin === null) return;
+      const oldHash = await _sha256Hex(oldPin.trim());
+      if (oldHash !== localStorage.getItem(PRIVACY_PIN_KEY)) {
+        if (typeof showToast === 'function') showToast('Mã PIN cũ không đúng!', 'error');
+        return;
+      }
+      localStorage.removeItem(PRIVACY_PIN_KEY);
+      _updatePrivacyPinBadge();
+      if (typeof showToast === 'function') showToast('🔓 Đã gỡ mã PIN khóa màn hình!', 'success');
+      return;
+    }
+    const newPin = prompt('Nhập mã PIN mới (4 đến 6 chữ số) để bảo vệ khi khóa màn hình nhanh (Alt+L):');
+    if (newPin === null) return;
+    const clean = newPin.trim();
+    if (!/^\d{4,6}$/.test(clean)) {
+      if (typeof showToast === 'function') showToast('Mã PIN phải gồm 4 đến 6 chữ số!', 'warning');
+      return;
+    }
+    const hash = await _sha256Hex(clean);
+    localStorage.setItem(PRIVACY_PIN_KEY, hash);
+    _updatePrivacyPinBadge();
+    if (typeof showToast === 'function') showToast('🔐 Đã bật mã PIN khóa màn hình an toàn (lưu dạng băm SHA-256)!', 'success');
+  }
+  window.configurePrivacyPinPrompt = configurePrivacyPinPrompt;
+
+  // -----------------------------------------------------------------------
+  // 6. SECURITY FORTRESS & LIVE PERFORMANCE MONITOR (SETTINGS → SYNC TAB)
+  // -----------------------------------------------------------------------
+  async function refreshSecurityAndPerfPanels() {
+    _updatePrivacyPinBadge();
+    if (STATE?.isOfflineStandalone) return;
+    try {
+      const [sec, perf] = await Promise.all([
+        apiFetch('/api/security/status', { bypassCache: true }),
+        apiFetch('/api/system/metrics', { bypassCache: true }),
+      ]);
+
+      if (sec && sec.success) {
+        const badge = document.getElementById('sec-score-badge');
+        if (badge) badge.textContent = `${sec.grade} • ${sec.security_score}/100`;
+        const devEl = document.getElementById('sec-online-devices');
+        if (devEl) devEl.textContent = `${sec.online_devices || 1} thiết bị`;
+        const blkEl = document.getElementById('sec-blocks-count');
+        const totalBlocks = Object.values(sec.telemetry || {}).reduce((a, b) => a + Number(b || 0), 0);
+        if (blkEl) blkEl.textContent = String(totalBlocks);
+
+        const grid = document.getElementById('sec-checks-grid');
+        if (grid && Array.isArray(sec.checks)) {
+          grid.innerHTML = sec.checks.map((c) => `
+            <div class="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border" style="background: var(--bg-surface); border-color: var(--border);">
+              <span class="txt-sub truncate">${_esc(c.label)}</span>
+              <span class="font-bold shrink-0 ${c.active ? 'text-emerald-400' : 'text-amber-400'}">${c.active ? '✔ BẬT' : '○ Nội bộ'}</span>
+            </div>`).join('');
+        }
+
+        const evList = document.getElementById('sec-recent-events-list');
+        if (evList) {
+          const evs = sec.recent_events || [];
+          evList.innerHTML = evs.length
+            ? evs.map((e) => `
+                <div class="flex items-center justify-between gap-2 py-1 border-b" style="border-color: var(--border);">
+                  <span class="${e.success ? 'text-emerald-400' : 'text-rose-400'} font-bold">${_esc(e.event_type)}</span>
+                  <span class="txt-muted truncate">${_esc(e.ip_address)}</span>
+                  <span class="txt-muted shrink-0">${_esc(String(e.created_at || '').slice(0, 16))}</span>
+                </div>`).join('')
+            : '<div class="txt-muted py-1">Chưa có sự kiện đăng nhập nào được ghi nhận.</div>';
+        }
+      }
+
+      if (perf && perf.success) {
+        const latEl = document.getElementById('perf-api-latency');
+        const hitEl = document.getElementById('perf-cache-hitrate');
+        const qEl = document.getElementById('perf-db-questions');
+        const szEl = document.getElementById('perf-db-size');
+        if (latEl) latEl.textContent = `${perf.api?.avg_latency_ms ?? 0} ms`;
+        const cHits = (perf.cache?.hits || 0) + (window._UM_CLIENT_CACHE_STATS?.hits || 0);
+        const cTotal = cHits + (perf.cache?.misses || 0) + (window._UM_CLIENT_CACHE_STATS?.misses || 0);
+        const combinedHit = cTotal > 0 ? Math.round((cHits / cTotal) * 100) : 100;
+        if (hitEl) hitEl.textContent = `${combinedHit}%`;
+        if (qEl) qEl.textContent = `${Number(perf.db?.questions || 0).toLocaleString('vi-VN')} câu`;
+        if (szEl) szEl.textContent = `${perf.db?.db_size_mb ?? 0} MB (${perf.db?.indexes_count ?? 0} idx)`;
+      }
+    } catch (_) {}
+  }
+  window.refreshSecurityAndPerfPanels = refreshSecurityAndPerfPanels;
+
+  async function submitChangePasswordForm() {
+    const curEl = document.getElementById('sec-cur-pw');
+    const newEl = document.getElementById('sec-new-pw');
+    const fb = document.getElementById('sec-pw-feedback');
+    const curPw = curEl?.value || '';
+    const newPw = newEl?.value || '';
+    if (!curPw || newPw.length < 6) {
+      if (fb) { fb.textContent = 'Vui lòng nhập mật khẩu hiện tại và mật khẩu mới ít nhất 6 ký tự.'; fb.style.color = '#f43f5e'; }
+      return;
+    }
+    const res = await apiFetch('/api/auth/change-password', {
+      method: 'POST',
+      body: JSON.stringify({ current_password: curPw, new_password: newPw }),
+    });
+    if (res && res.success) {
+      if (curEl) curEl.value = '';
+      if (newEl) newEl.value = '';
+      if (fb) { fb.textContent = '✔ ' + (res.message || 'Đổi mật khẩu thành công!'); fb.style.color = '#10b981'; }
+      if (typeof showToast === 'function') showToast('🔑 Đã đổi mật khẩu & đăng xuất mọi thiết bị cũ!', 'success');
+      refreshSecurityAndPerfPanels();
+    } else {
+      if (fb) { fb.textContent = '✖ ' + (res?.error || 'Không thể đổi mật khẩu'); fb.style.color = '#f43f5e'; }
+    }
+  }
+  window.submitChangePasswordForm = submitChangePasswordForm;
+
+  async function revokeAllOtherSessions() {
+    const res = await apiFetch('/api/auth/revoke-sessions', { method: 'POST', body: '{}' });
+    if (res && res.success) {
+      if (typeof showToast === 'function') showToast(`🛡️ ${res.message || 'Đã thu hồi toàn bộ phiên cũ!'}`, 'success');
+      refreshSecurityAndPerfPanels();
+    } else {
+      if (typeof showToast === 'function') showToast(res?.error || 'Không thể thu hồi phiên đăng nhập', 'warning');
+    }
+  }
+  window.revokeAllOtherSessions = revokeAllOtherSessions;
+
+  async function clearAllSystemCaches() {
+    if (typeof invalidateClientQuestionCache === 'function') invalidateClientQuestionCache('');
+    const res = await apiFetch('/api/system/cache-clear', { method: 'POST', body: '{}' });
+    if (typeof showToast === 'function') {
+      showToast('⚡ ' + (res?.message || 'Đã dọn sạch bộ nhớ đệm & tối ưu tốc độ!'), 'success');
+    }
+    refreshSecurityAndPerfPanels();
+  }
+  window.clearAllSystemCaches = clearAllSystemCaches;
+
+  // -----------------------------------------------------------------------
+  // 7. COMPACT FLOATING POMODORO FOCUS TIMER (Alt+P)
+  // -----------------------------------------------------------------------
+  let _pomo = { visible: false, running: false, isBreak: false, seconds: 25 * 60, timerId: null };
+
+  function _playSoftChime() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(660, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.18);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.52);
+    } catch (_) {}
+  }
+
+  function _renderPomodoroUI() {
+    const disp = document.getElementById('pomo-timer-display');
+    const icon = document.getElementById('pomo-mode-icon');
+    const btn = document.getElementById('pomo-toggle-btn');
+    const mm = String(Math.floor(_pomo.seconds / 60)).padStart(2, '0');
+    const ss = String(_pomo.seconds % 60).padStart(2, '0');
+    if (disp) disp.textContent = `${mm}:${ss}`;
+    if (icon) icon.textContent = _pomo.isBreak ? '☕' : '🍅';
+    if (btn) btn.textContent = _pomo.running ? 'Tạm dừng' : 'Bắt đầu';
+  }
+
+  function togglePomodoroMiniPill(forceVisible) {
+    const el = document.getElementById('pomodoro-floating-pill');
+    if (!el) return;
+    _pomo.visible = typeof forceVisible === 'boolean' ? forceVisible : !_pomo.visible;
+    el.classList.toggle('hidden', !_pomo.visible);
+    if (!_pomo.visible && _pomo.timerId) {
+      clearInterval(_pomo.timerId);
+      _pomo.timerId = null;
+      _pomo.running = false;
+    }
+    _renderPomodoroUI();
+  }
+  window.togglePomodoroMiniPill = togglePomodoroMiniPill;
+
+  function togglePomodoroRun() {
+    _pomo.running = !_pomo.running;
+    if (_pomo.running) {
+      if (_pomo.timerId) clearInterval(_pomo.timerId);
+      _pomo.timerId = setInterval(() => {
+        if (!_pomo.running) return;
+        _pomo.seconds -= 1;
+        if (_pomo.seconds <= 0) {
+          _playSoftChime();
+          _pomo.isBreak = !_pomo.isBreak;
+          _pomo.seconds = (_pomo.isBreak ? 5 : 25) * 60;
+          _pomo.running = false;
+          clearInterval(_pomo.timerId);
+          _pomo.timerId = null;
+          if (typeof showToast === 'function') {
+            showToast(_pomo.isBreak ? '☕ Hết 25 phút tập trung! Nghỉ giải lao 5 phút nhé.' : '🍅 Hết giờ nghỉ! Bắt đầu phiên học 25 phút tiếp theo.', 'success');
+          }
+        }
+        _renderPomodoroUI();
+      }, 1000);
+    } else if (_pomo.timerId) {
+      clearInterval(_pomo.timerId);
+      _pomo.timerId = null;
+    }
+    _renderPomodoroUI();
+  }
+  window.togglePomodoroRun = togglePomodoroRun;
+
+  function switchPomodoroMode() {
+    if (_pomo.timerId) { clearInterval(_pomo.timerId); _pomo.timerId = null; }
+    _pomo.running = false;
+    _pomo.isBreak = !_pomo.isBreak;
+    _pomo.seconds = (_pomo.isBreak ? 5 : 25) * 60;
+    _renderPomodoroUI();
+  }
+  window.switchPomodoroMode = switchPomodoroMode;
+
+  // -----------------------------------------------------------------------
+  // 8. GLOBAL KEYBOARD SHORTCUTS (Alt+L, Alt+P, N Scratchpad, Blitz60 A-D/1-4)
+  // -----------------------------------------------------------------------
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target?.tagName || '').toUpperCase();
+    const isTyping = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || e.target?.isContentEditable;
+
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'l') {
+      e.preventDefault();
+      activatePrivacyLock();
+      return;
+    }
+    if (e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'p') {
+      e.preventDefault();
+      togglePomodoroMiniPill();
+      return;
+    }
+    if (_b60.active && !isTyping) {
+      const k = e.key.toUpperCase();
+      const map = { A: 'A', B: 'B', C: 'C', D: 'D', '1': 'A', '2': 'B', '3': 'C', '4': 'D' };
+      if (map[k]) {
+        e.preventDefault();
+        answerSpeedBlitz60(map[k]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeSpeedBlitz60Modal();
+        return;
+      }
+    }
+    if (!isTyping && !e.altKey && !e.ctrlKey && !e.metaKey && e.key.toLowerCase() === 'n') {
+      if (STATE?.exam?.active && !document.getElementById('exam-active-screen')?.classList.contains('hidden')) {
+        e.preventDefault();
+        toggleExamScratchpad();
+      }
+    }
+  });
+
+  // Initial hydration on load
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      updateDailyGoalWidget();
+      _updatePrivacyPinBadge();
+    });
+  } else {
+    updateDailyGoalWidget();
+    _updatePrivacyPinBadge();
+  }
+})();

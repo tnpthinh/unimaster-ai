@@ -5916,3 +5916,78 @@ a,
     padding-bottom: calc(4.5rem + env(safe-area-inset-bottom, 0px)) !important;
   }
 }
+
+/* =====================================================================
+   v56.0 CALM UTILITIES: TRAP HIGHLIGHTER, BLITZ 60S & MIXER CHIPS
+   ===================================================================== */
+mark.um-trap-mark {
+  background: rgba(245, 158, 11, 0.22);
+  color: #fbbf24;
+  border-bottom: 1.5px solid rgba(245, 158, 11, 0.7);
+  padding: 0 3px;
+  border-radius: 4px;
+  font-weight: 800;
+}
+
+html:not(.dark) mark.um-trap-mark {
+  background: rgba(245, 158, 11, 0.25);
+  color: #92400e;
+}
+
+.mixer-topic-chip {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 8px 10px;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+
+.mixer-topic-chip.selected {
+  border-color: var(--brand);
+  background: var(--brand-subtle);
+}
+
+.blitz60-opt-btn {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: border-color 0.12s ease, transform 0.1s ease, background-color 0.12s ease;
+}
+
+.blitz60-opt-btn:hover:not(:disabled) {
+  border-color: var(--brand);
+  background: var(--bg-surface);
+}
+
+.blitz60-opt-btn:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.blitz60-opt-btn.is-correct {
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.16) !important;
+  color: #6ee7b7 !important;
+}
+
+.blitz60-opt-btn.is-wrong {
+  border-color: #f43f5e !important;
+  background: rgba(244, 63, 94, 0.16) !important;
+  color: #fda4af !important;
+}
+
+html:not(.dark) .blitz60-opt-btn.is-correct {
+  color: #065f46 !important;
+}
+
+html:not(.dark) .blitz60-opt-btn.is-wrong {
+  color: #9f1239 !important;
+}

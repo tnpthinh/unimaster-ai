@@ -23,6 +23,7 @@ import asyncio
 import sqlite3
 import tempfile
 from datetime import datetime, timezone
+from urllib.parse import urlparse
 import aiohttp
 from aiohttp import web
 import database as db
@@ -41,9 +42,10 @@ db.load_env_file()
 # Cloud hosts (Render / Railway / Fly.io / Hugging Face) inject PORT; fallback 8080 for local PC
 PORT = int(os.environ.get("PORT", "8080"))
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
+_SERVER_START_TS = time.time()
 
 # ==========================================
-# Online Access Protection (bắt buộc khi đưa lên Internet)
+# Online Access Protection & Security Fortress (v56.0)
 # Đặt biến môi trường APP_PASSWORD để bật màn hình đăng nhập.
 # Không đặt -> chạy chế độ nội bộ (PC / Wi-Fi gia đình) như cũ.
 # ==========================================
@@ -52,46 +54,193 @@ REQUIRE_AUTH = os.environ.get("REQUIRE_AUTH", "").strip().lower() in ("1", "true
 AUTH_ENABLED = bool(APP_PASSWORD or REQUIRE_AUTH)
 SESSION_COOKIE = "um_session"
 SESSION_DAYS = 30
-_SESSION_KEY = hashlib.sha256(
-    (os.environ.get("SESSION_SECRET", "") + "|" + (APP_PASSWORD or os.environ.get("REQUIRE_AUTH", "")) + "|unimaster-v7").encode("utf-8")
-).digest()
+_SESSION_KEY_CACHE = None
 _LOGIN_FAILS = {}  # ip -> [fail_count, locked_until]
 _RATE_LIMIT_BUCKETS = {}  # (bucket, ip) -> [timestamps]
+_REVOKED_TOKENS = {}  # sha256(token) -> expires_ts
+_SESSION_VER_CACHE = {}  # user_id -> (session_version, fetched_ts)
+_SECURITY_TELEMETRY = {
+    "csrf_blocked": 0,
+    "rate_limited": 0,
+    "login_lockouts": 0,
+    "sql_blocked": 0,
+    "revoked_sessions": 0,
+    "upload_blocked": 0,
+}
+
+# Pre-serialized Hot-Path Cache + ETag telemetry (sub-millisecond reads for 7,600+ questions)
+_HOT_CACHE = {}  # key -> {"bytes": bytes, "etag": str, "ts": float, "subject_id": int|None}
+_PERF_STATS = {
+    "cache_hits": 0,
+    "cache_misses": 0,
+    "req_count": 0,
+    "latency_sum_ms": 0.0,
+}
+
 AUTH_EXEMPT_PATHS = {
     "/login", "/api/login", "/api/auth/login", "/api/auth/register",
     "/manifest.json", "/icon.svg", "/sw.js", "/healthz",
     "/ws/arena", "/api/export/anki", "/api/export/printable-exam"
 }
 
+ALLOWED_UPLOAD_EXTS = {
+    ".pdf", ".pptx", ".ppt", ".docx", ".doc", ".xlsx", ".xls", ".csv",
+    ".txt", ".md", ".json", ".py", ".cs", ".cpp", ".c", ".h", ".java",
+    ".js", ".ts", ".html", ".css", ".sql", ".png", ".jpg", ".jpeg", ".webp", ".gif", ".bmp"
+}
 
-def _make_session_token(user_id=1, role="admin"):
+
+def _get_session_key() -> bytes:
+    """Return 256-bit HMAC signing key backed by SESSION_SECRET env or persisted SQLite random secret."""
+    global _SESSION_KEY_CACHE
+    if _SESSION_KEY_CACHE is not None:
+        return _SESSION_KEY_CACHE
+    env_secret = os.environ.get("SESSION_SECRET", "").strip()
+    if env_secret:
+        seed_mat = f"{env_secret}|{APP_PASSWORD}|unimaster-v56"
+    else:
+        persisted = db.get_or_create_signing_secret()
+        seed_mat = f"{persisted}|{APP_PASSWORD}|unimaster-v56"
+    _SESSION_KEY_CACHE = hashlib.sha256(seed_mat.encode("utf-8")).digest()
+    return _SESSION_KEY_CACHE
+
+
+def _get_cached_session_version(user_id: int) -> int:
+    now = time.time()
+    cached = _SESSION_VER_CACHE.get(user_id)
+    if cached and (now - cached[1]) < 5.0:
+        return cached[0]
+    try:
+        ver = db.get_user_session_version(user_id)
+    except Exception:
+        ver = 1
+    _SESSION_VER_CACHE[user_id] = (ver, now)
+    return ver
+
+
+def _revoke_token(token: str):
+    if not token:
+        return
+    now = time.time()
+    digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    _REVOKED_TOKENS[digest] = now + SESSION_DAYS * 86400
+    if len(_REVOKED_TOKENS) > 5000:
+        stale = [k for k, exp in _REVOKED_TOKENS.items() if exp <= now]
+        for k in stale:
+            _REVOKED_TOKENS.pop(k, None)
+
+
+def _is_token_revoked(token: str) -> bool:
+    if not token or not _REVOKED_TOKENS:
+        return False
+    digest = hashlib.sha256(token.encode("utf-8")).hexdigest()
+    exp = _REVOKED_TOKENS.get(digest)
+    if not exp:
+        return False
+    if exp <= time.time():
+        _REVOKED_TOKENS.pop(digest, None)
+        return False
+    return True
+
+
+def _make_session_token(user_id=1, role="admin", session_version=1):
     expires = int(time.time()) + SESSION_DAYS * 86400
-    nonce = secrets.token_hex(8)
-    payload = f"{user_id}.{role}.{expires}.{nonce}"
-    sig = hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
+    nonce = secrets.token_hex(10)
+    payload = f"v2.{int(user_id)}.{role}.{int(session_version or 1)}.{expires}.{nonce}"
+    sig = hmac.new(_get_session_key(), payload.encode(), hashlib.sha256).hexdigest()
     return f"{payload}.{sig}"
 
 
 def _parse_session_token(token: str):
-    if not token:
+    if not token or _is_token_revoked(token):
         return None
     try:
+        key = _get_session_key()
         parts = token.split(".")
-        if len(parts) == 5:
+        if len(parts) == 7 and parts[0] == "v2":
+            _, uid, role, ver, expires, nonce, sig = parts
+            payload = f"v2.{uid}.{role}.{ver}.{expires}.{nonce}"
+            expected = hmac.new(key, payload.encode(), hashlib.sha256).hexdigest()
+            if hmac.compare_digest(sig, expected) and int(expires) > time.time():
+                uid_int = int(uid)
+                ver_int = int(ver)
+                if ver_int < _get_cached_session_version(uid_int):
+                    return None
+                return {"id": uid_int, "role": role, "session_version": ver_int}
+        elif len(parts) == 5:
             uid, role, expires, nonce, sig = parts
             payload = f"{uid}.{role}.{expires}.{nonce}"
-            expected = hmac.new(_SESSION_KEY, payload.encode(), hashlib.sha256).hexdigest()
+            expected = hmac.new(key, payload.encode(), hashlib.sha256).hexdigest()
             if hmac.compare_digest(sig, expected) and int(expires) > time.time():
-                return {"id": int(uid), "role": role}
+                uid_int = int(uid)
+                if _get_cached_session_version(uid_int) > 1:
+                    return None
+                return {"id": uid_int, "role": role, "session_version": 1}
         elif len(parts) == 3:
-            # Backwards compatibility for legacy session tokens
             expires, nonce, sig = parts
-            expected = hmac.new(_SESSION_KEY, f"{expires}.{nonce}".encode(), hashlib.sha256).hexdigest()
+            expected = hmac.new(key, f"{expires}.{nonce}".encode(), hashlib.sha256).hexdigest()
             if hmac.compare_digest(sig, expected) and int(expires) > time.time():
-                return {"id": 1, "role": "admin"}
+                if _get_cached_session_version(1) > 1:
+                    return None
+                return {"id": 1, "role": "admin", "session_version": 1}
     except Exception:
         pass
     return None
+
+
+def _hot_cache_get(request, cache_key: str, max_age: float = 300.0):
+    entry = _HOT_CACHE.get(cache_key)
+    if not entry:
+        _PERF_STATS["cache_misses"] += 1
+        return None
+    if (time.time() - entry["ts"]) > max_age:
+        _HOT_CACHE.pop(cache_key, None)
+        _PERF_STATS["cache_misses"] += 1
+        return None
+    _PERF_STATS["cache_hits"] += 1
+    inm = (request.headers.get("If-None-Match") or "").strip()
+    if inm and inm == entry["etag"]:
+        return web.Response(status=304, headers={"ETag": entry["etag"], "X-UniMaster-Cache": "HIT-304"})
+    return web.Response(
+        body=entry["bytes"],
+        content_type="application/json",
+        charset="utf-8",
+        headers={"ETag": entry["etag"], "X-UniMaster-Cache": "HIT"},
+    )
+
+
+def _hot_cache_set(cache_key: str, payload_obj, subject_id=None):
+    raw_bytes = _FAST_JSON_DUMPS(payload_obj).encode("utf-8")
+    etag = f'W/"{hashlib.sha1(raw_bytes).hexdigest()[:16]}"'
+    if len(_HOT_CACHE) > 256:
+        # Evict oldest 64 entries
+        oldest = sorted(_HOT_CACHE.items(), key=lambda kv: kv[1]["ts"])[:64]
+        for k, _ in oldest:
+            _HOT_CACHE.pop(k, None)
+    _HOT_CACHE[cache_key] = {"bytes": raw_bytes, "etag": etag, "ts": time.time(), "subject_id": subject_id}
+    return web.Response(
+        body=raw_bytes,
+        content_type="application/json",
+        charset="utf-8",
+        headers={"ETag": etag, "X-UniMaster-Cache": "MISS"},
+    )
+
+
+def _invalidate_hot_cache(subject_id=None):
+    if subject_id is None:
+        _HOT_CACHE.clear()
+        return
+    try:
+        sid = int(subject_id)
+    except (TypeError, ValueError):
+        _HOT_CACHE.clear()
+        return
+    drop_keys = [
+        k for k, v in _HOT_CACHE.items()
+        if v.get("subject_id") is None or v.get("subject_id") == sid
+    ]
+    for k in drop_keys:
+        _HOT_CACHE.pop(k, None)
 
 
 def _valid_session_token(token: str) -> bool:
@@ -176,6 +325,93 @@ def _require_admin_if_auth(request):
     if user_info.get("role") != "admin":
         return json_resp({"success": False, "error": "Chỉ Quản trị viên mới có quyền thao tác cấu hình API Key / 9Router trên server."}, 403)
     return None
+
+
+def _is_same_origin(request, origin_header: str) -> bool:
+    """Validate that an Origin header matches this server's Host/X-Forwarded-Host (CSRF defense)."""
+    if not origin_header or origin_header.lower() == "null":
+        return True
+    try:
+        parsed = urlparse(origin_header)
+        origin_host = (parsed.netloc or "").lower()
+        if not origin_host:
+            return False
+        req_host = (request.headers.get("X-Forwarded-Host") or request.host or "").split(",")[0].strip().lower()
+        if origin_host == req_host:
+            return True
+        # Match bare hostname when reverse proxies strip default ports (80/443)
+        o_name = (parsed.hostname or "").lower()
+        r_name = req_host.split(":")[0]
+        if o_name and o_name == r_name:
+            return True
+        # Allow local loopback equivalence (localhost <-> 127.0.0.1)
+        if o_name in ("localhost", "127.0.0.1") and r_name in ("localhost", "127.0.0.1"):
+            return True
+    except Exception:
+        return False
+    return False
+
+
+@web.middleware
+async def security_guard_middleware(request, handler):
+    """Defense-in-depth middleware: CSRF Origin/Fetch-Metadata guard, adaptive rate limits & latency metrics."""
+    t0 = time.perf_counter()
+    path = request.path or ""
+    method = (request.method or "GET").upper()
+
+    # 1. CSRF Cross-Origin Protection on state-changing /api/* routes
+    if method in ("POST", "PUT", "DELETE", "PATCH") and path.startswith("/api/"):
+        sec_fetch_site = (request.headers.get("Sec-Fetch-Site") or "").strip().lower()
+        origin = (request.headers.get("Origin") or "").strip()
+        if sec_fetch_site == "cross-site":
+            _SECURITY_TELEMETRY["csrf_blocked"] += 1
+            return json_resp({"success": False, "error": "Yêu cầu bị từ chối bởi lớp bảo vệ CSRF (cross-site)."}, 403)
+        if origin and not _is_same_origin(request, origin):
+            _SECURITY_TELEMETRY["csrf_blocked"] += 1
+            return json_resp({"success": False, "error": "Nguồn truy cập (Origin) không khớp với máy chủ."}, 403)
+
+    # 2. Adaptive Per-IP Rate Limiting on sensitive/expensive routes
+    if method in ("POST", "PUT", "DELETE") and path.startswith("/api/"):
+        rl_rule = None
+        if path == "/api/auth/register":
+            rl_rule = ("auth_register", 10, 600)
+        elif path in ("/api/auth/change-password", "/api/auth/revoke-sessions"):
+            rl_rule = ("auth_sec", 10, 600)
+        elif path in ("/api/code/run", "/api/code/test"):
+            rl_rule = ("code_exec", 25, 60)
+        elif path == "/api/sql/sandbox-execute":
+            rl_rule = ("sql_sandbox", 35, 60)
+        elif path == "/api/upload-document":
+            rl_rule = ("doc_upload", 20, 300)
+        elif path == "/api/admin/backup/upload":
+            rl_rule = ("db_restore", 5, 600)
+        elif path.startswith("/api/ai/") and not path.startswith("/api/ai/history"):
+            rl_rule = ("ai_api", 50, 60)
+
+        if rl_rule:
+            bucket, limit, win = rl_rule
+            ok, retry_after = _check_rate_limit(request, bucket=bucket, limit=limit, window_sec=win)
+            if not ok:
+                _SECURITY_TELEMETRY["rate_limited"] += 1
+                resp = json_resp({
+                    "success": False,
+                    "error": f"Bạn thao tác quá nhanh. Vui lòng thử lại sau {retry_after} giây.",
+                    "retry_after": retry_after,
+                }, 429)
+                resp.headers["Retry-After"] = str(retry_after)
+                return resp
+
+    try:
+        resp = await handler(request)
+        return resp
+    finally:
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        if path.startswith("/api/"):
+            _PERF_STATS["req_count"] += 1
+            _PERF_STATS["latency_sum_ms"] += elapsed_ms
+            if _PERF_STATS["req_count"] > 50000:
+                _PERF_STATS["req_count"] = 1000
+                _PERF_STATS["latency_sum_ms"] = elapsed_ms * 1000.0
 
 
 @web.middleware
@@ -485,7 +721,7 @@ async def auth_login_api(request):
             db.touch_user_seen(user["id"], 0)
         except Exception:
             pass
-        token = _make_session_token(user["id"], user["role"])
+        token = _make_session_token(user["id"], user["role"], user.get("session_version", 1))
         resp = json_resp({"success": True, "user": user, "token": token})
         resp.set_cookie(
             SESSION_COOKIE, token, max_age=SESSION_DAYS * 86400,
@@ -495,6 +731,8 @@ async def auth_login_api(request):
 
     fails += 1
     lock = now + min(300, 15 * (2 ** (fails - 5))) if fails >= 5 else 0
+    if lock > now:
+        _SECURITY_TELEMETRY["login_lockouts"] += 1
     _LOGIN_FAILS[ip] = [fails, lock]
     # Ghi cả lần đăng nhập SAI (không lưu mật khẩu) để admin phát hiện người lạ dò mật khẩu
     try:
@@ -518,7 +756,7 @@ async def auth_register_api(request):
             db.touch_user_seen(user["id"], 0)
         except Exception:
             pass
-        token = _make_session_token(user["id"], user["role"])
+        token = _make_session_token(user["id"], user["role"], user.get("session_version", 1))
         resp = json_resp({"success": True, "user": user, "token": token})
         resp.set_cookie(
             SESSION_COOKIE, token, max_age=SESSION_DAYS * 86400,
@@ -528,10 +766,16 @@ async def auth_register_api(request):
     except ValueError as e:
         return json_resp({"success": False, "error": str(e)}, 400)
     except Exception as e:
-        return json_resp({"success": False, "error": f"Lỗi tạo tài khoản: {e}"}, 500)
+        print(f"⚠️ auth_register_api error: {e}")
+        return json_resp({"success": False, "error": "Không thể khởi tạo tài khoản lúc này. Vui lòng thử lại."}, 500)
 
 
 async def auth_logout_api(request):
+    token = request.cookies.get(SESSION_COOKIE, "")
+    if not token and request.headers.get("Authorization", "").startswith("Bearer "):
+        token = request.headers.get("Authorization", "").split(" ", 1)[1].strip()
+    if token:
+        _revoke_token(token)
     user_info = request.get("user") or {}
     if user_info.get("id") and user_info.get("role") != "guest":
         try:
@@ -541,6 +785,169 @@ async def auth_logout_api(request):
     resp = json_resp({"success": True})
     resp.del_cookie(SESSION_COOKIE, path="/")
     return resp
+
+
+async def auth_change_password_api(request):
+    """Đổi mật khẩu an toàn: PBKDF2-SHA256 260k + tăng session_version để đá mọi thiết bị khác."""
+    user_info = request.get("user") or {}
+    uid = int(user_info.get("id") or 0)
+    if not uid or user_info.get("role") == "guest":
+        return json_resp({"success": False, "error": "Vui lòng đăng nhập để đổi mật khẩu."}, 401)
+    data = await safe_get_json(request)
+    cur_pw = str(data.get("current_password") or "")
+    new_pw = str(data.get("new_password") or "")
+    try:
+        updated = await asyncio.to_thread(db.change_user_password, uid, cur_pw, new_pw)
+        _SESSION_VER_CACHE[uid] = (updated["session_version"], time.time())
+        _SECURITY_TELEMETRY["revoked_sessions"] += 1
+        db.record_login_event(uid, _client_ip(request), request.headers.get("User-Agent", ""), "password_changed", username=updated.get("username", ""))
+        token = _make_session_token(uid, updated["role"], updated["session_version"])
+        resp = json_resp({
+            "success": True,
+            "message": "Đã đổi mật khẩu thành công (PBKDF2 260.000 vòng) và thu hồi toàn bộ phiên cũ trên thiết bị khác!",
+            "session_version": updated["session_version"],
+        })
+        resp.set_cookie(
+            SESSION_COOKIE, token, max_age=SESSION_DAYS * 86400,
+            httponly=True, samesite="Lax", secure=_is_https(request), path="/"
+        )
+        return resp
+    except ValueError as e:
+        return json_resp({"success": False, "error": str(e)}, 400)
+    except Exception as e:
+        print(f"⚠️ auth_change_password_api error: {e}")
+        return json_resp({"success": False, "error": "Không thể đổi mật khẩu lúc này."}, 500)
+
+
+async def auth_revoke_sessions_api(request):
+    """Thu hồi mọi phiên đăng nhập cũ trên tất cả thiết bị khác (1-click Panic Logout)."""
+    user_info = request.get("user") or {}
+    uid = int(user_info.get("id") or 0)
+    if not uid or user_info.get("role") == "guest":
+        return json_resp({"success": False, "error": "Chưa đăng nhập."}, 401)
+    try:
+        new_ver = await asyncio.to_thread(db.bump_user_session_version, uid)
+        _SESSION_VER_CACHE[uid] = (new_ver, time.time())
+        _SECURITY_TELEMETRY["revoked_sessions"] += 1
+        db.record_login_event(uid, _client_ip(request), request.headers.get("User-Agent", ""), "sessions_revoked")
+        # Đóng các kết nối WebSocket đồng bộ khác đang mở của tài khoản này
+        closed_ws = 0
+        for peer in list(_SYNC_WS_CLIENTS.get(uid) or ()):
+            try:
+                await peer.close(code=4001, message=b"Session revoked")
+                closed_ws += 1
+            except Exception:
+                pass
+        role = user_info.get("role") or "student"
+        token = _make_session_token(uid, role, new_ver)
+        resp = json_resp({
+            "success": True,
+            "session_version": new_ver,
+            "disconnected_devices": closed_ws,
+            "message": f"Đã thu hồi toàn bộ phiên đăng nhập cũ (phiên bản #{new_ver})!",
+        })
+        resp.set_cookie(
+            SESSION_COOKIE, token, max_age=SESSION_DAYS * 86400,
+            httponly=True, samesite="Lax", secure=_is_https(request), path="/"
+        )
+        return resp
+    except Exception as e:
+        print(f"⚠️ auth_revoke_sessions_api error: {e}")
+        return json_resp({"success": False, "error": "Không thể thu hồi phiên đăng nhập."}, 500)
+
+
+async def api_security_status(request):
+    """Trạng thái lá chắn bảo mật & thiết bị đang hoạt động cho Security Center UI."""
+    user_info = request.get("user") or {}
+    uid = int(user_info.get("id") or 1)
+    is_https = _is_https(request)
+    ws_count = len(_SYNC_WS_CLIENTS.get(uid) or ())
+    total_ws = sum(len(s) for s in _SYNC_WS_CLIENTS.values())
+    recent_events = []
+    try:
+        recent_events = await asyncio.to_thread(db.get_login_events, uid, 12)
+    except Exception:
+        pass
+    checks = [
+        {"id": "csp", "label": "Content-Security-Policy (Chống XSS/Inject)", "active": True},
+        {"id": "csrf", "label": "CSRF Origin & Sec-Fetch-Site Shield", "active": True},
+        {"id": "rate_limit", "label": "Adaptive Multi-Bucket Rate Limiter", "active": True},
+        {"id": "pbkdf2", "label": "PBKDF2-HMAC-SHA256 (260.000 vòng)", "active": True},
+        {"id": "cookie", "label": "HttpOnly + SameSite=Lax + Token Revocation", "active": True},
+        {"id": "sql_sandbox", "label": "SQLite Read-Only Authorizer + DoS Guard", "active": True},
+        {"id": "https", "label": "Kết nối mã hóa HTTPS / TLS + HSTS", "active": is_https},
+        {"id": "auth", "label": "Khóa đăng nhập đa tài khoản (AUTH_ENABLED)", "active": AUTH_ENABLED},
+    ]
+    active_core = sum(1 for c in checks[:6] if c["active"])
+    score = int(round((active_core / 6) * 85 + (10 if is_https else 5) + (5 if AUTH_ENABLED else 3)))
+    grade = "A+" if score >= 95 else ("A" if score >= 88 else "B+")
+    return json_resp({
+        "success": True,
+        "security_score": min(100, score),
+        "grade": grade,
+        "auth_enabled": AUTH_ENABLED,
+        "https_active": is_https,
+        "ephemeral_storage": _storage_is_ephemeral(),
+        "online_devices": ws_count,
+        "total_ws_connections": total_ws,
+        "revoked_tokens_tracked": len(_REVOKED_TOKENS),
+        "telemetry": dict(_SECURITY_TELEMETRY),
+        "checks": checks,
+        "recent_events": recent_events,
+    })
+
+
+async def api_system_metrics(request):
+    """Bảng đo hiệu năng hệ thống thời gian thực (SQLite WAL/Indexes, Hot-Cache, Latency)."""
+    db_metrics = await asyncio.to_thread(db.get_db_health_metrics)
+    hits = _PERF_STATS["cache_hits"]
+    misses = _PERF_STATS["cache_misses"]
+    total_lookups = hits + misses
+    hit_rate = round((hits / total_lookups) * 100.0, 1) if total_lookups > 0 else 100.0
+    reqs = _PERF_STATS["req_count"]
+    avg_ms = round(_PERF_STATS["latency_sum_ms"] / reqs, 2) if reqs > 0 else 0.0
+    uptime_s = max(1, int(time.time() - _SERVER_START_TS))
+    total_ws = sum(len(s) for s in _SYNC_WS_CLIENTS.values())
+    return json_resp({
+        "success": True,
+        "version": "56.0",
+        "uptime_seconds": uptime_s,
+        "db": db_metrics,
+        "cache": {
+            "entries": len(_HOT_CACHE),
+            "hits": hits,
+            "misses": misses,
+            "hit_rate_pct": hit_rate,
+        },
+        "api": {
+            "requests_counted": reqs,
+            "avg_latency_ms": avg_ms,
+            "ws_clients": total_ws,
+        },
+        "security_blocks": sum(_SECURITY_TELEMETRY.values()),
+    })
+
+
+async def api_system_cache_clear(request):
+    """Dọn bộ nhớ đệm máy chủ & chạy PRAGMA optimize để duy trì tốc độ tối đa."""
+    cleared = len(_HOT_CACHE)
+    _invalidate_hot_cache(None)
+    _SESSION_VER_CACHE.clear()
+    try:
+        def _opt():
+            conn = db.get_connection()
+            try:
+                conn.execute("PRAGMA optimize")
+            finally:
+                conn.close()
+        await asyncio.to_thread(_opt)
+    except Exception:
+        pass
+    return json_resp({
+        "success": True,
+        "cleared_entries": cleared,
+        "message": f"Đã làm sạch {cleared} mục cache máy chủ và tối ưu chỉ mục SQLite!",
+    })
 
 
 async def auth_me_api(request):
@@ -627,6 +1034,30 @@ async def no_cache_static_middleware(request, handler):
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
     resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+    resp.headers.setdefault("Permissions-Policy", "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()")
+    resp.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+    resp.headers.setdefault("X-Permitted-Cross-Domain-Policies", "none")
+    if _is_https(request):
+        resp.headers.setdefault("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+    if (
+        not request.path.startswith("/api/")
+        and not request.path.startswith("/ws/")
+        and not isinstance(resp, web.WebSocketResponse)
+    ):
+        resp.headers.setdefault(
+            "Content-Security-Policy",
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tailwindcss.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://unpkg.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "font-src 'self' data: https://fonts.gstatic.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; "
+            "img-src 'self' data: blob: https:; "
+            "connect-src 'self' ws: wss: https:; "
+            "media-src 'self' data: blob:; "
+            "worker-src 'self' blob:; "
+            "object-src 'none'; "
+            "base-uri 'self'; "
+            "frame-ancestors 'self'"
+        )
 
     if (
         isinstance(resp, web.StreamResponse)
@@ -682,11 +1113,15 @@ async def safe_get_json(request):
 
 
 # ==========================================
-# Handlers: Môn học
+# Handlers: Môn học (v56.0 Hot-Cache + ETag 304)
 # ==========================================
 async def get_subjects(request):
+    cache_key = "subjects:all"
+    cached = _hot_cache_get(request, cache_key, max_age=300.0)
+    if cached is not None:
+        return cached
     subjects = await asyncio.to_thread(db.get_all_subjects)
-    return json_resp({"success": True, "subjects": subjects})
+    return _hot_cache_set(cache_key, {"success": True, "subjects": subjects}, subject_id=None)
 
 
 async def create_subject(request):
@@ -702,18 +1137,22 @@ async def create_subject(request):
             return json_resp({"success": False, "error": "Mã môn và tên môn không được để trống"}, 400)
 
         sid = await asyncio.to_thread(db.add_subject, code, name, icon, category, description)
+        _invalidate_hot_cache(None)
         return json_resp({"success": True, "id": sid, "subject_id": sid, "message": "Thêm môn học thành công!"})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ create_subject error: {e}")
+        return json_resp({"success": False, "error": "Không thể tạo môn học (mã môn có thể đã tồn tại)."}, 400)
 
 
 async def delete_subject(request):
     try:
         sid = int(request.match_info["id"])
         await asyncio.to_thread(db.delete_subject, sid)
+        _invalidate_hot_cache(None)
         return json_resp({"success": True, "message": "Đã xóa môn học"})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ delete_subject error: {e}")
+        return json_resp({"success": False, "error": "Không thể xóa môn học này."}, 500)
 
 
 # ==========================================
@@ -728,6 +1167,13 @@ async def get_questions(request):
         difficulty = request.query.get("difficulty", "all")
         topic_tag = request.query.get("topic_tag") or request.query.get("chapter")
 
+        cache_key = None
+        if not random_order:
+            cache_key = f"q:{sid}:{q_type}:{difficulty}:{limit or ''}:{topic_tag or ''}"
+            cached = _hot_cache_get(request, cache_key, max_age=300.0)
+            if cached is not None:
+                return cached
+
         def _fetch():
             qs = db.get_questions_by_subject(
                 sid, q_type=q_type, limit=limit, random_order=random_order, topic_tag=topic_tag
@@ -737,9 +1183,13 @@ async def get_questions(request):
             return qs
 
         questions = await asyncio.to_thread(_fetch)
-        return json_resp({"success": True, "questions": questions})
+        payload = {"success": True, "questions": questions}
+        if cache_key:
+            return _hot_cache_set(cache_key, payload, subject_id=sid)
+        return json_resp(payload)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ get_questions error: {e}")
+        return json_resp({"success": False, "error": "Không thể tải danh sách câu hỏi."}, 500)
 
 
 async def create_question(request):
@@ -761,9 +1211,11 @@ async def create_question(request):
             image_url=data.get("image_url", ""),
             topic_tag=data.get("topic_tag", "")
         )
+        _invalidate_hot_cache(sid)
         return json_resp({"success": True, "id": qid})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ create_question error: {e}")
+        return json_resp({"success": False, "error": "Không thể lưu câu hỏi mới."}, 500)
 
 
 def answers_match_short(user_ans: str, expected_ans: str) -> bool:
@@ -1947,6 +2399,19 @@ async def review_flashcard(request):
 # ==========================================
 # Handlers: Universal Document Upload (.pdf, .pptx, .docx, .xlsx, images)
 # ==========================================
+def _sanitize_upload_filename(raw_name: str) -> str:
+    base = os.path.basename(str(raw_name or "document.txt").replace("\\", "/"))
+    base = re.sub(r"[\x00-\x1f\x7f]+", "", base).strip()
+    if not base or base in (".", ".."):
+        base = "document.txt"
+    return base[:160]
+
+
+def _validate_upload_ext(filename: str) -> bool:
+    ext = os.path.splitext(filename.lower())[1]
+    return bool(ext and ext in ALLOWED_UPLOAD_EXTS)
+
+
 async def upload_document_handler(request):
     """
     Nhận 1 hoặc nhiều file tài liệu (.pdf, .pptx, .ppt, .docx, .doc, .xlsx, .csv, ảnh đề cương...)
@@ -1957,6 +2422,7 @@ async def upload_document_handler(request):
         combined_blocks = []
         all_extracted_images = []
         all_direct_questions = []
+        max_files = 15
 
         if request.content_type and request.content_type.startswith("multipart/"):
             reader = await request.multipart()
@@ -1964,9 +2430,15 @@ async def upload_document_handler(request):
                 part = await reader.next()
                 if part is None:
                     break
-                filename = part.filename
-                if not filename:
+                if len(parsed_files) >= max_files:
+                    break
+                raw_filename = part.filename
+                if not raw_filename:
                     continue
+                filename = _sanitize_upload_filename(raw_filename)
+                if not _validate_upload_ext(filename):
+                    _SECURITY_TELEMETRY["upload_blocked"] += 1
+                    return json_resp({"success": False, "error": f"Định dạng tệp '{filename}' không nằm trong danh sách an toàn."}, 400)
                 raw_bytes = await part.read(decode=False)
                 if not raw_bytes:
                     continue
@@ -1985,8 +2457,11 @@ async def upload_document_handler(request):
                     combined_blocks.append(f"=== Tài liệu: {info['filename']} ({info['summary_badge']}) ===\n{info['content']}")
         else:
             data = await safe_get_json(request)
-            for fitem in data.get("files", []):
-                fname = fitem.get("filename", "document.txt")
+            for fitem in (data.get("files") or [])[:max_files]:
+                fname = _sanitize_upload_filename(fitem.get("filename", "document.txt"))
+                if not _validate_upload_ext(fname):
+                    _SECURITY_TELEMETRY["upload_blocked"] += 1
+                    return json_resp({"success": False, "error": f"Định dạng tệp '{fname}' không nằm trong danh sách an toàn."}, 400)
                 b64_str = fitem.get("base64", "")
                 if not b64_str:
                     continue
@@ -2019,7 +2494,8 @@ async def upload_document_handler(request):
             "direct_question_count": len(all_direct_questions)
         })
     except Exception as e:
-        return json_resp({"success": False, "error": f"Không thể đọc tệp tin: {str(e)}"}, 500)
+        print(f"⚠️ upload_document_handler error: {e}")
+        return json_resp({"success": False, "error": "Không thể đọc tệp tin tải lên. Hãy kiểm tra lại định dạng file."}, 500)
 
 
 async def import_direct_questions_handler(request):
@@ -2049,6 +2525,7 @@ async def import_direct_questions_handler(request):
                 topic_tag=q.get("topic_tag", "")
             )
             saved_count += 1
+        _invalidate_hot_cache(subject_id)
         return json_resp({
             "success": True,
             "saved_count": saved_count,
@@ -2979,6 +3456,7 @@ async def ai_expand_bank_handler(request):
                 "difficulty": diff
             })
 
+        _invalidate_hot_cache(subject_id)
         return json_resp({
             "success": True,
             "generated_count": len(saved_questions),
@@ -3040,6 +3518,7 @@ async def ai_generate_quiz(request):
                 "difficulty": diff
             })
 
+        _invalidate_hot_cache(subject_id)
         return json_resp({
             "success": True,
             "generated_count": len(saved_questions),
@@ -4064,13 +4543,15 @@ async def import_backup(request):
             return imported_q
 
         imported_q = await asyncio.to_thread(_do_import)
+        _invalidate_hot_cache(None)
         return json_resp({"success": True, "imported_questions": imported_q, "message": "Đã khôi phục dữ liệu thành công!"})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ import_backup error: {e}")
+        return json_resp({"success": False, "error": "Không thể khôi phục dữ liệu từ tệp sao lưu."}, 500)
 
 
 async def admin_upload_backup(request):
-    """Nhận file .db từ Admin để khôi phục dữ liệu an toàn."""
+    """Nhận file .db từ Admin để khôi phục dữ liệu an toàn (kiểm tra SQLite magic header + giới hạn 50MB)."""
     user_info = request.get("user", {})
     if user_info.get("role") != "admin":
         return json_resp({"success": False, "error": "Chỉ Quản trị viên mới có quyền tải lên cơ sở dữ liệu."}, 403)
@@ -4083,13 +4564,26 @@ async def admin_upload_backup(request):
     tmp = tempfile.NamedTemporaryFile(suffix=".db", delete=False)
     tmp_path = tmp.name
     tmp.close()
+    max_db_bytes = 50 * 1024 * 1024
     try:
+        total_written = 0
+        header_buf = b""
         with open(tmp_path, 'wb') as f:
             while True:
                 chunk = await field.read_chunk()
                 if not chunk:
                     break
+                if len(header_buf) < 16:
+                    header_buf += chunk[: 16 - len(header_buf)]
+                total_written += len(chunk)
+                if total_written > max_db_bytes:
+                    _SECURITY_TELEMETRY["upload_blocked"] += 1
+                    return json_resp({"success": False, "error": "File cơ sở dữ liệu vượt quá giới hạn an toàn 50MB."}, 413)
                 f.write(chunk)
+
+        if not header_buf.startswith(b"SQLite format 3\x00"):
+            _SECURITY_TELEMETRY["upload_blocked"] += 1
+            return json_resp({"success": False, "error": "Tệp tải lên không phải cơ sở dữ liệu SQLite hợp lệ."}, 400)
 
         def _verify_and_restore():
             conn = sqlite3.connect(tmp_path)
@@ -4110,9 +4604,12 @@ async def admin_upload_backup(request):
         ok, err_msg = await asyncio.to_thread(_verify_and_restore)
         if not ok:
             return json_resp({"success": False, "error": err_msg}, 400)
+        _invalidate_hot_cache(None)
+        _SESSION_VER_CACHE.clear()
         return json_resp({"success": True, "message": "Đã khôi phục cơ sở dữ liệu thành công!"})
     except Exception as e:
-        return json_resp({"success": False, "error": f"Lỗi khi khôi phục: {str(e)}"}, 500)
+        print(f"⚠️ admin_upload_backup error: {e}")
+        return json_resp({"success": False, "error": "Lỗi khi khôi phục cơ sở dữ liệu."}, 500)
     finally:
         try:
             if os.path.exists(tmp_path):
@@ -4233,11 +4730,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v54-1';
+    const CACHE_NAME = 'unimaster-pwa-v56-0';
     const CORE_ASSETS = [
-      '/static/style.css?v=54.1',
+      '/static/style.css?v=56.0',
       '/static/minimal.css?v=54.1',
-      '/static/app.js?v=54.1',
+      '/static/app.js?v=56.0',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -6084,55 +6581,87 @@ async def api_sql_sandbox_execute_handler(request):
             "ORDER BY d.diem_tk DESC;"
         )
 
-    # Security guard: allow only read-only queries in sandbox
-    forbidden = re.search(r"\b(ATTACH|DETACH|PRAGMA|DROP|ALTER|VACUUM)\b", sql, re.IGNORECASE)
+    if len(sql) > 8000:
+        _SECURITY_TELEMETRY["sql_blocked"] += 1
+        return web.json_response({"ok": False, "error": "Truy vấn SQL quá dài (tối đa 8.000 ký tự)."}, status=400)
+
+    # Security guard: allow only read-only queries in sandbox (Layer 1 regex + Layer 2 SQLite Authorizer + Layer 3 DoS timer)
+    forbidden = re.search(r"\b(ATTACH|DETACH|PRAGMA|DROP|ALTER|VACUUM|LOAD_EXTENSION|INSERT|UPDATE|DELETE|REPLACE|CREATE)\b", sql, re.IGNORECASE)
     if forbidden:
+        _SECURITY_TELEMETRY["sql_blocked"] += 1
         return web.json_response({
             "ok": False,
-            "error": f"Lệnh '{forbidden.group(1)}' bị khóa trong môi trường Sandbox để đảm bảo an toàn cấu trúc bảng."
+            "error": f"Lệnh '{forbidden.group(1)}' bị khóa trong môi trường Sandbox để đảm bảo an toàn."
         }, status=400)
 
-    conn = sqlite3.connect(":memory:")
-    try:
-        _seed_in_memory_sql_sandbox(conn)
-        cur = conn.cursor()
-        t0 = time.perf_counter()
-        cur.execute(sql)
-        rows_raw = cur.fetchall()
-        elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
-        columns = [desc[0] for desc in (cur.description or [])]
-        rows = [list(r) for r in rows_raw[:100]]
-
-        # Explain query plan
-        plan_lines = []
+    def _run_safe_sql():
+        conn = sqlite3.connect(":memory:")
         try:
-            cur.execute(f"EXPLAIN QUERY PLAN {sql}")
-            for pr in cur.fetchall():
-                plan_lines.append(str(pr[-1]))
-        except Exception:
-            plan_lines = ["SCAN TABLE (Sequential Table Scan in Memory)"]
+            _seed_in_memory_sql_sandbox(conn)
+            allowed_actions = {
+                sqlite3.SQLITE_SELECT,
+                sqlite3.SQLITE_READ,
+                sqlite3.SQLITE_FUNCTION,
+                getattr(sqlite3, "SQLITE_RECURSIVE", 33),
+            }
+            def _authorizer(action, arg1, arg2, dbname, source):
+                if action in allowed_actions:
+                    return sqlite3.SQLITE_OK
+                return sqlite3.SQLITE_DENY
 
-        join_type, exec_steps, linq_code = _analyze_sql_execution_and_linq(sql)
+            conn.set_authorizer(_authorizer)
+            start_ts = time.perf_counter()
+            op_budget = [0]
+            def _progress():
+                op_budget[0] += 1
+                if op_budget[0] > 300 or (time.perf_counter() - start_ts) > 0.6:
+                    return 1
+                return 0
+            conn.set_progress_handler(_progress, 500)
 
-        return web.json_response({
-            "ok": True,
-            "sql": sql,
-            "columns": columns,
-            "rows": rows,
-            "row_count": len(rows),
-            "elapsed_ms": elapsed_ms,
-            "join_type": join_type,
-            "execution_steps": exec_steps,
-            "query_plan": plan_lines,
-            "linq_equivalent": linq_code
-        })
+            cur = conn.cursor()
+            t0 = time.perf_counter()
+            cur.execute(sql)
+            rows_raw = cur.fetchall()
+            elapsed_ms = round((time.perf_counter() - t0) * 1000, 2)
+            columns = [desc[0] for desc in (cur.description or [])]
+            rows = [list(r) for r in rows_raw[:100]]
+
+            plan_lines = []
+            try:
+                cur.execute(f"EXPLAIN QUERY PLAN {sql}")
+                for pr in cur.fetchall():
+                    plan_lines.append(str(pr[-1]))
+            except Exception:
+                plan_lines = ["SCAN TABLE (Sequential Table Scan in Memory)"]
+
+            join_type, exec_steps, linq_code = _analyze_sql_execution_and_linq(sql)
+            return {
+                "ok": True,
+                "sql": sql,
+                "columns": columns,
+                "rows": rows,
+                "row_count": len(rows),
+                "elapsed_ms": elapsed_ms,
+                "join_type": join_type,
+                "execution_steps": exec_steps,
+                "query_plan": plan_lines,
+                "linq_equivalent": linq_code,
+            }
+        finally:
+            conn.close()
+
+    try:
+        result = await asyncio.to_thread(_run_safe_sql)
+        return web.json_response(result)
+    except sqlite3.OperationalError as e:
+        err_s = str(e)
+        if "interrupted" in err_s.lower():
+            _SECURITY_TELEMETRY["sql_blocked"] += 1
+            return web.json_response({"ok": False, "error": "Truy vấn bị ngắt do vượt quá giới hạn thời gian/CPU Sandbox (chống vòng lặp vô hạn)."}, status=400)
+        return web.json_response({"ok": False, "error": f"Lỗi cú pháp hoặc quyền truy vấn SQL: {err_s}"})
     except Exception as e:
-        return web.json_response({
-            "ok": False,
-            "error": f"Lỗi cú pháp SQL: {str(e)}"
-        })
-    finally:
-        conn.close()
+        return web.json_response({"ok": False, "error": f"Lỗi thực thi SQL Sandbox: {str(e)}"})
 
 
 async def api_algo_step_visualizer_handler(request):
@@ -7389,7 +7918,7 @@ def create_app():
     seed_dieuduong_coban.ensure_dieuduong_coban_seeded()
     # Raise client_max_size to 30 MB for PDF / PowerPoint / Word / Image uploads
     app = web.Application(
-        middlewares=[auth_middleware, no_cache_static_middleware],
+        middlewares=[security_guard_middleware, auth_middleware, no_cache_static_middleware],
         client_max_size=30 * 1024 * 1024
     )
 
@@ -7399,8 +7928,13 @@ def create_app():
     app.router.add_post("/api/auth/login", auth_login_api)
     app.router.add_post("/api/auth/register", auth_register_api)
     app.router.add_post("/api/auth/logout", auth_logout_api)
+    app.router.add_post("/api/auth/change-password", auth_change_password_api)
+    app.router.add_post("/api/auth/revoke-sessions", auth_revoke_sessions_api)
     app.router.add_get("/api/auth/me", auth_me_api)
     app.router.add_get("/api/auth/login-history", auth_login_history_api)
+    app.router.add_get("/api/security/status", api_security_status)
+    app.router.add_get("/api/system/metrics", api_system_metrics)
+    app.router.add_post("/api/system/cache-clear", api_system_cache_clear)
     app.router.add_get("/api/admin/users", admin_get_users_api)
     app.router.add_get("/api/admin/login-events", admin_login_events_api)
     app.router.add_delete("/api/admin/users/{id}", admin_delete_user_api)

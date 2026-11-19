@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=55.2" />
+  <link rel="stylesheet" href="/static/style.css?v=56.0" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -183,6 +183,11 @@
           <span id="header-user-role" class="sr-only">Admin</span>
         </button>
 
+        <button id="header-privacy-lock-btn" onclick="activatePrivacyLock()" title="Khóa màn hình nhanh / Bảo vệ riêng tư (Alt+L)"
+          class="hidden md:flex btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs items-center justify-center p-0 rounded-xl shrink-0">
+          <i data-lucide="shield-check" class="w-4 h-4"></i>
+        </button>
+
         <button id="header-settings-btn" onclick="openSettingsModal('appearance')" title="Cài đặt hệ thống &amp; Giao diện"
           class="btn-soft w-8 h-8 sm:w-9 sm:h-9 text-xs flex items-center justify-center p-0 rounded-xl shrink-0">
           <i data-lucide="settings" class="w-4 h-4"></i>
@@ -254,6 +259,11 @@
                 title="Ôn cấp tốc các câu từng làm sai">
                 <i data-lucide="target" class="w-3.5 h-3.5 text-rose-400"></i> Luyện điểm yếu
               </button>
+              <button onclick="openSpeedBlitz60Modal()"
+                class="btn-soft px-3.5 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
+                title="Thử thách phản xạ nhanh 60 giây tích điểm Combo">
+                <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Tia chớp 60s
+              </button>
               <button onclick="openExamForSubjectCode('DIEUDUONG_CB', 105)"
                 class="btn-soft px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-emerald-500/40"
                 title="Luyện 10 bài Điều Dưỡng Cơ Bản (60 câu/bài • 600 câu bám sát giáo trình)">
@@ -277,14 +287,34 @@
             </div>
           </div>
 
-          <!-- Single Calm Next-Exam Pill (Hidden Clock Preserved for JS) -->
-          <div class="shrink-0 flex items-center gap-3 px-3.5 py-2.5 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
-            <span id="live-clock-time" class="sr-only">--:--:--</span>
-            <span id="live-clock-date" class="sr-only">--</span>
-            <div class="min-w-0">
-              <div class="text-[10px] font-semibold txt-muted uppercase tracking-wider">Mốc thi gần nhất</div>
-              <div id="live-exam-name" class="text-xs font-extrabold txt-main truncate max-w-[180px]">Đang tải...</div>
-              <div id="live-exam-countdown" class="font-mono font-bold text-xs txt-brand tabular-nums mt-0.5">-- ngày</div>
+          <!-- Calm Daily Goal Ring + Next-Exam Pill (Hidden Clock Preserved for JS) -->
+          <div class="shrink-0 flex items-center gap-2.5 flex-wrap sm:flex-nowrap">
+            <button type="button" id="daily-goal-widget-btn" onclick="cycleDailyGoalTarget()"
+              title="Mục tiêu ôn tập hôm nay — Bấm để đổi mức mục tiêu (20 / 40 / 60 / 100 câu)"
+              class="flex items-center gap-2.5 px-3 py-2 rounded-xl border transition-colors hover:border-indigo-500/60 text-left"
+              style="background-color: var(--bg-subtle); border-color: var(--border);">
+              <div class="relative w-9 h-9 shrink-0 flex items-center justify-center">
+                <svg class="w-9 h-9 -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="15" fill="none" stroke="rgba(148,163,184,0.18)" stroke-width="3.2"></circle>
+                  <circle id="daily-goal-ring-arc" cx="18" cy="18" r="15" fill="none" stroke="#6366f1" stroke-width="3.2" stroke-linecap="round" stroke-dasharray="94.25" stroke-dashoffset="94.25" style="transition: stroke-dashoffset 0.35s ease;"></circle>
+                </svg>
+                <span id="daily-goal-pct-text" class="absolute text-[9px] font-mono font-extrabold txt-main">0%</span>
+              </div>
+              <div class="min-w-0">
+                <div class="text-[10px] font-semibold txt-muted uppercase tracking-wider">Mục tiêu hôm nay</div>
+                <div id="daily-goal-count-text" class="text-xs font-extrabold txt-main font-mono tabular-nums">0 / 40 câu</div>
+                <div id="daily-goal-acc-text" class="text-[10px] font-semibold txt-brand">Chuỗi 1 ngày • Sẵn sàng</div>
+              </div>
+            </button>
+
+            <div class="flex items-center gap-3 px-3.5 py-2.5 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
+              <span id="live-clock-time" class="sr-only">--:--:--</span>
+              <span id="live-clock-date" class="sr-only">--</span>
+              <div class="min-w-0">
+                <div class="text-[10px] font-semibold txt-muted uppercase tracking-wider">Mốc thi gần nhất</div>
+                <div id="live-exam-name" class="text-xs font-extrabold txt-main truncate max-w-[165px]">Đang tải...</div>
+                <div id="live-exam-countdown" class="font-mono font-bold text-xs txt-brand tabular-nums mt-0.5">-- ngày</div>
+              </div>
             </div>
           </div>
         </div>
@@ -786,6 +816,12 @@
             <button type="button" onclick="startWeakSpotBlitzExam()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5" title="Tự động lọc và luyện lại các câu từng làm sai">
               <i data-lucide="target" class="w-3.5 h-3.5 text-rose-400"></i> Luyện điểm yếu
             </button>
+            <button type="button" onclick="openMultiTopicMixerModal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5" title="Tự chọn nhiều bài/chương cùng lúc, lọc câu chưa làm &amp; trộn đề chuẩn">
+              <i data-lucide="sliders" class="w-3.5 h-3.5 txt-brand"></i> Trộn đa chương
+            </button>
+            <button type="button" onclick="openSpeedBlitz60Modal()" class="btn-soft px-3 py-1.5 text-xs font-bold flex items-center gap-1.5" title="Phản xạ siêu tốc 60 giây tích Combo điểm">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Tia chớp 60s
+            </button>
             <button type="button" onclick="openPrintableExamModal('config')" class="btn-soft px-3 py-1.5 text-xs font-semibold flex items-center gap-1.5">
               <i data-lucide="printer" class="w-3.5 h-3.5"></i> In PDF
             </button>
@@ -1079,6 +1115,10 @@
                 <span id="answered-q-count" class="font-bold">0</span>
               </button>
 
+              <button id="btn-exam-scratchpad" onclick="toggleExamScratchpad()" title="Bảng nháp &amp; Máy tính nhanh (N)" class="btn-soft p-2 text-xs flex items-center justify-center">
+                <i data-lucide="pencil-line" class="w-4 h-4"></i>
+              </button>
+
               <button onclick="openCheatSheetModal()" title="Sổ tay tóm tắt trọng tâm &amp; công thức" class="btn-soft p-2 text-xs flex items-center justify-center">
                 <i data-lucide="book-open" class="w-4 h-4"></i>
               </button>
@@ -1201,6 +1241,44 @@
                 onkeydown="if(event.key==='Enter') saveCurrentNote()"
                 class="uni-input flex-1 px-3 py-1.5 !text-xs" style="background-color: var(--bg-surface);" />
               <button onclick="saveCurrentNote()" class="btn-primary px-3.5 py-1.5 text-xs">Lưu</button>
+            </div>
+          </div>
+
+          <!-- Quick In-Exam Scratchpad, Safe Math Evaluator & Trap Highlighter (v56.0) -->
+          <div id="exam-scratchpad-drawer" class="hidden p-3.5 rounded-2xl border space-y-2.5 animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
+                <span>📝</span> <span>Bảng Nháp &amp; Máy Tính Nhanh</span>
+                <span class="text-[10px] txt-muted font-normal hidden sm:inline">(Tự lưu trong phiên thi • Hỗ trợ +, -, *, /, ^, %, gcd, lcm, sqrt)</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button type="button" id="btn-trap-highlight-toggle" onclick="toggleExamTrapHighlighter()" class="btn-soft px-2.5 py-1 text-[11px] font-bold">
+                  🖍️ Tô từ khóa bẫy
+                </button>
+                <button type="button" onclick="clearExamScratchpad()" class="btn-soft px-2 py-1 text-[11px] font-semibold txt-muted">
+                  Xóa nháp
+                </button>
+                <button type="button" onclick="toggleExamScratchpad()" class="btn-soft p-1 text-xs">
+                  <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                </button>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-2.5">
+              <textarea id="exam-scratchpad-notes" rows="2" oninput="saveExamScratchpadNotes()"
+                placeholder="Ghi nháp nhanh bước giải Euclid, công thức giọt/phút, loại trừ đáp án..."
+                class="uni-input md:col-span-7 px-3 py-2 !text-xs font-mono leading-relaxed" style="background-color: var(--bg-surface);"></textarea>
+              <div class="md:col-span-5 flex flex-col justify-between gap-1.5">
+                <div class="flex gap-1.5">
+                  <input id="exam-scratchpad-calc" type="text"
+                    placeholder="VD: gcd(321,843) hoặc (7*19+3)%26"
+                    onkeydown="if(event.key==='Enter'){event.preventDefault();evaluateScratchpadMath();}"
+                    class="uni-input flex-1 px-2.5 py-1.5 !text-xs font-mono" style="background-color: var(--bg-surface);" />
+                  <button type="button" onclick="evaluateScratchpadMath()" class="btn-primary px-3 py-1.5 text-xs font-bold shrink-0">=</button>
+                </div>
+                <div id="exam-scratchpad-calc-out" class="text-xs font-mono font-bold txt-brand px-2.5 py-1 rounded-lg truncate" style="background-color: var(--bg-surface); border: 1px solid var(--border);">
+                  Kết quả: —
+                </div>
+              </div>
             </div>
           </div>
 
@@ -4435,6 +4513,107 @@
              TAB 5: CHỐNG GIAN LẬN & ĐỒNG BỘ
              ========================================== -->
         <div id="stab-panel-sync" class="hidden space-y-5">
+          <!-- v56.0 Security Fortress Center -->
+          <div id="v56-security-center-card" class="p-4 rounded-2xl space-y-3.5" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
+                  <span>🛡️</span> <span>Trung Tâm Bảo Mật &amp; Quyền Riêng Tư (v56.0)</span>
+                </div>
+                <div class="text-[11px] txt-muted">CSP, CSRF Origin Guard, PBKDF2-260k, Thu hồi phiên &amp; Khóa màn hình PIN</div>
+              </div>
+              <div class="flex items-center gap-2">
+                <span id="sec-score-badge" class="badge-emerald text-xs px-2.5 py-0.5 rounded-full font-mono font-extrabold">A+ • --/100</span>
+                <button type="button" onclick="refreshSecurityAndPerfPanels()" class="btn-soft px-2.5 py-1 text-[11px] font-bold">↻ Quét lại</button>
+              </div>
+            </div>
+
+            <div id="sec-checks-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]"></div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-xs">
+              <div class="p-2.5 rounded-xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <div class="text-[10px] txt-muted font-semibold">Thiết bị đồng bộ online</div>
+                <div id="sec-online-devices" class="text-sm font-mono font-extrabold txt-main mt-0.5">--</div>
+              </div>
+              <div class="p-2.5 rounded-xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <div class="text-[10px] txt-muted font-semibold">Mối đe dọa / Spam đã chặn</div>
+                <div id="sec-blocks-count" class="text-sm font-mono font-extrabold txt-emerald mt-0.5">0</div>
+              </div>
+              <div class="p-2.5 rounded-xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <div class="text-[10px] txt-muted font-semibold">Khóa màn hình PIN</div>
+                <div id="sec-pin-status" class="text-xs font-extrabold txt-brand mt-1">Chưa đặt PIN</div>
+              </div>
+            </div>
+
+            <!-- Quick Security Actions -->
+            <div class="flex flex-wrap items-center gap-2 pt-1">
+              <button type="button" onclick="activatePrivacyLock()" class="btn-primary px-3 py-1.5 text-xs font-bold flex items-center gap-1.5">
+                <span>🔒</span> <span>Khóa màn hình ngay (Alt+L)</span>
+              </button>
+              <button type="button" onclick="configurePrivacyPinPrompt()" class="btn-soft px-3 py-1.5 text-xs font-bold">
+                <span>🔢</span> <span>Đặt / Gỡ mã PIN 4 số</span>
+              </button>
+              <button type="button" onclick="revokeAllOtherSessions()" class="btn-soft px-3 py-1.5 text-xs font-bold text-rose-400">
+                <span>🚪</span> <span>Đăng xuất mọi thiết bị khác</span>
+              </button>
+            </div>
+
+            <!-- Change Password Form (Collapsible) -->
+            <details class="p-3 rounded-xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+              <summary class="text-xs font-bold txt-main cursor-pointer select-none">🔑 Đổi mật khẩu tài khoản an toàn (PBKDF2-SHA256 260.000 vòng)</summary>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-3">
+                <input id="sec-cur-pw" type="password" autocomplete="current-password" placeholder="Mật khẩu hiện tại" class="uni-input px-3 py-1.5 !text-xs" />
+                <input id="sec-new-pw" type="password" autocomplete="new-password" placeholder="Mật khẩu mới (≥6 ký tự)" class="uni-input px-3 py-1.5 !text-xs" />
+                <button type="button" onclick="submitChangePasswordForm()" class="btn-primary px-3 py-1.5 text-xs font-bold">Cập nhật mật khẩu</button>
+              </div>
+              <div id="sec-pw-feedback" class="text-[11px] txt-muted pt-1.5"></div>
+            </details>
+
+            <!-- Recent Login Events -->
+            <details class="p-3 rounded-xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+              <summary class="text-xs font-bold txt-main cursor-pointer select-none">📜 Nhật ký đăng nhập &amp; hoạt động gần đây</summary>
+              <div id="sec-recent-events-list" class="space-y-1 pt-2 max-h-36 overflow-y-auto text-[11px] font-mono"></div>
+            </details>
+          </div>
+
+          <!-- v56.0 Real-Time Performance & Optimization Monitor -->
+          <div id="v56-perf-monitor-card" class="p-4 rounded-2xl space-y-3" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
+                  <span>⚡</span> <span>Tối Ưu Hệ Thống &amp; Hiệu Năng Thực Tế</span>
+                </div>
+                <div class="text-[11px] txt-muted">SQLite WAL + Hot-Cache ETag 304 + Bộ nhớ đệm câu hỏi tức thì</div>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="togglePomodoroMiniPill()" class="btn-soft px-3 py-1.5 text-xs font-bold">
+                  🍅 Pomodoro 25p
+                </button>
+                <button type="button" onclick="clearAllSystemCaches()" class="btn-primary px-3 py-1.5 text-xs font-bold">
+                  ⚡ Dọn Cache &amp; Tối ưu
+                </button>
+              </div>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+              <div class="p-2.5 rounded-xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <div class="text-[10px] txt-muted">Độ trễ API TB</div>
+                <div id="perf-api-latency" class="text-sm font-mono font-extrabold txt-brand mt-0.5">-- ms</div>
+              </div>
+              <div class="p-2.5 rounded-xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <div class="text-[10px] txt-muted">Tỉ lệ trúng Cache</div>
+                <div id="perf-cache-hitrate" class="text-sm font-mono font-extrabold txt-emerald mt-0.5">--%</div>
+              </div>
+              <div class="p-2.5 rounded-xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <div class="text-[10px] txt-muted">Ngân hàng câu hỏi</div>
+                <div id="perf-db-questions" class="text-sm font-mono font-extrabold txt-main mt-0.5">--</div>
+              </div>
+              <div class="p-2.5 rounded-xl border" style="background-color: var(--bg-surface); border-color: var(--border);">
+                <div class="text-[10px] txt-muted">CSDL / Chỉ mục</div>
+                <div id="perf-db-size" class="text-sm font-mono font-extrabold txt-main mt-0.5">-- MB</div>
+              </div>
+            </div>
+          </div>
+
           <!-- Anti-Cheat Security Level -->
           <div class="p-4 rounded-2xl space-y-3" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
             <div class="flex items-center justify-between">
@@ -7826,6 +8005,188 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=55.4"></script>
+  <!-- =====================================================================
+       v56.0 MODAL 1: SMART MULTI-TOPIC CUSTOM EXAM MIXER (TRỘN ĐỀ ĐA CHƯƠNG)
+       ===================================================================== -->
+  <div id="modal-multi-topic-mixer" class="hidden fixed inset-0 z-[85] modal-overlay flex items-center justify-center p-2 sm:p-4">
+    <div class="uni-card w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden animate-fade-in shadow-2xl">
+      <div class="px-5 py-3.5 shrink-0 flex items-center justify-between border-b" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div>
+          <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+            <span>🎛️</span> <span>Trộn Đề Đa Chương Thông Minh</span>
+          </h3>
+          <div id="mixer-subject-subtitle" class="text-[11px] txt-muted">Chọn nhiều bài / chuyên đề để ghép thành 1 đề ôn tập chuẩn</div>
+        </div>
+        <button type="button" onclick="closeModal('modal-multi-topic-mixer')" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div class="text-xs font-bold txt-sub">Chọn các bài / chương muốn trộn:</div>
+          <div class="flex items-center gap-1.5">
+            <button type="button" onclick="mixerSelectAllTopics(true)" class="btn-soft px-2.5 py-1 text-[11px] font-bold">Chọn tất cả</button>
+            <button type="button" onclick="mixerSelectAllTopics(false)" class="btn-soft px-2.5 py-1 text-[11px] font-semibold txt-muted">Bỏ chọn</button>
+          </div>
+        </div>
+
+        <div id="mixer-topics-grid" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1"></div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 p-3.5 rounded-2xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <div class="space-y-1">
+            <label class="text-[11px] font-bold txt-muted">Số câu hỏi</label>
+            <select id="mixer-count-select" onchange="updateMixerPreviewCount()" class="uni-input w-full px-2.5 py-1.5 text-xs font-bold" style="background-color: var(--bg-surface);">
+              <option value="15">15 câu</option>
+              <option value="20">20 câu</option>
+              <option value="30">30 câu</option>
+              <option value="40" selected>40 câu</option>
+              <option value="60">60 câu</option>
+              <option value="9999">Toàn bộ đã chọn</option>
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[11px] font-bold txt-muted">Thời gian</label>
+            <select id="mixer-time-select" class="uni-input w-full px-2.5 py-1.5 text-xs font-bold" style="background-color: var(--bg-surface);">
+              <option value="0">∞ Tự do</option>
+              <option value="15">15 phút</option>
+              <option value="30">30 phút</option>
+              <option value="45">45 phút</option>
+              <option value="60">60 phút</option>
+            </select>
+          </div>
+          <div class="space-y-1">
+            <label class="text-[11px] font-bold txt-muted">Độ khó</label>
+            <select id="mixer-diff-select" onchange="updateMixerPreviewCount()" class="uni-input w-full px-2.5 py-1.5 text-xs font-bold" style="background-color: var(--bg-surface);">
+              <option value="all">Mọi độ khó</option>
+              <option value="easy">Dễ (Nhận biết)</option>
+              <option value="medium">Trung bình</option>
+              <option value="hard">Khó (Vận dụng)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-4 text-xs font-semibold txt-sub">
+          <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input id="mixer-priority-weak" type="checkbox" checked onchange="updateMixerPreviewCount()" class="w-4 h-4 accent-indigo-500 rounded" />
+            <span>Ưu tiên câu hay sai &amp; câu chưa thuộc</span>
+          </label>
+          <label class="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input id="mixer-shuffle-opts" type="checkbox" checked class="w-4 h-4 accent-indigo-500 rounded" />
+            <span>Đảo thứ tự A-B-C-D</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="px-5 py-3.5 shrink-0 border-t flex flex-wrap items-center justify-between gap-2" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div id="mixer-preview-summary" class="text-xs font-mono font-bold txt-brand">Đang tính...</div>
+        <button type="button" onclick="launchMixedMultiTopicExam()" class="btn-primary px-5 py-2 text-xs font-extrabold flex items-center gap-1.5">
+          <span>🚀</span> <span>Bắt Đầu Đề Trộn</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       v56.0 MODAL 2: 60-SECOND RAPID-FIRE RECALL ARENA (TIA CHỚP 60 GIÂY)
+       ===================================================================== -->
+  <div id="modal-speed-blitz60" class="hidden fixed inset-0 z-[88] modal-overlay flex items-center justify-center p-2 sm:p-4">
+    <div class="uni-card w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden animate-fade-in shadow-2xl">
+      <div class="px-5 py-3 shrink-0 flex items-center justify-between border-b" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="text-lg">⚡</span>
+          <div class="min-w-0">
+            <h3 class="text-sm sm:text-base font-extrabold txt-main truncate">Tia Chớp 60 Giây</h3>
+            <div id="blitz60-subject-label" class="text-[11px] txt-muted truncate">Phản xạ nhanh trắc nghiệm • Phím tắt A/B/C/D hoặc 1/2/3/4</div>
+          </div>
+        </div>
+        <button type="button" onclick="closeSpeedBlitz60Modal()" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="w-full h-1.5" style="background-color: var(--bg-subtle);">
+        <div id="blitz60-time-bar" class="h-full transition-all duration-200" style="width: 100%; background: #6366f1;"></div>
+      </div>
+
+      <div class="p-4 sm:p-6 overflow-y-auto space-y-4 flex-1">
+        <!-- Live Scoreboard Strip -->
+        <div class="grid grid-cols-4 gap-2 text-center">
+          <div class="p-2 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-[10px] txt-muted font-semibold">Thời gian</div>
+            <div id="blitz60-timer-val" class="text-base font-mono font-black txt-main tabular-nums">60s</div>
+          </div>
+          <div class="p-2 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-[10px] txt-muted font-semibold">Điểm</div>
+            <div id="blitz60-score-val" class="text-base font-mono font-black txt-brand tabular-nums">0</div>
+          </div>
+          <div class="p-2 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-[10px] txt-muted font-semibold">Combo</div>
+            <div id="blitz60-combo-val" class="text-base font-mono font-black text-amber-400 tabular-nums">x1</div>
+          </div>
+          <div class="p-2 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-[10px] txt-muted font-semibold">Kỷ lục</div>
+            <div id="blitz60-best-val" class="text-base font-mono font-black txt-emerald tabular-nums">0</div>
+          </div>
+        </div>
+
+        <!-- Stage 1: Ready / Playing -->
+        <div id="blitz60-play-stage" class="space-y-3.5">
+          <div id="blitz60-q-tag" class="text-[11px] font-bold txt-brand"></div>
+          <div id="blitz60-q-text" class="text-sm sm:text-base font-bold txt-main leading-relaxed"></div>
+          <div id="blitz60-options-wrap" class="grid grid-cols-1 gap-2"></div>
+          <div id="blitz60-feedback-line" class="text-xs font-bold min-h-[1.25rem]"></div>
+        </div>
+
+        <!-- Stage 2: Summary -->
+        <div id="blitz60-summary-stage" class="hidden text-center space-y-4 py-3">
+          <div class="text-3xl">🏆</div>
+          <div class="space-y-1">
+            <h4 class="text-lg font-black txt-main">Hết Giờ — Kết Quả Tia Chớp 60s</h4>
+            <p id="blitz60-summary-desc" class="text-xs txt-muted"></p>
+          </div>
+          <div class="flex flex-wrap items-center justify-center gap-2 pt-2">
+            <button type="button" onclick="startSpeedBlitz60Round()" class="btn-primary px-5 py-2.5 text-xs font-extrabold">⚡ Chơi Lại 60 Giây</button>
+            <button type="button" id="blitz60-review-wrong-btn" onclick="reviewBlitz60MissedQuestions()" class="hidden btn-soft px-4 py-2.5 text-xs font-bold text-rose-400">🎯 Luyện lại câu sai</button>
+            <button type="button" onclick="closeSpeedBlitz60Modal()" class="btn-soft px-4 py-2.5 text-xs font-semibold">Đóng</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       v56.0 OVERLAY 3: PRIVACY BLUR / QUICK SCREEN LOCK (Alt+L)
+       ===================================================================== -->
+  <div id="privacy-lock-overlay" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4"
+    style="background: rgba(9, 11, 16, 0.94); backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);">
+    <div class="uni-card w-full max-w-sm p-6 text-center space-y-4 shadow-2xl">
+      <div class="w-12 h-12 rounded-2xl mx-auto flex items-center justify-center text-white text-xl font-black" style="background: #6366f1;">🔒</div>
+      <div class="space-y-1">
+        <h3 class="text-base font-extrabold txt-main">Màn Hình Đã Khóa An Toàn</h3>
+        <div id="privacy-lock-clock" class="text-2xl font-mono font-black txt-brand tabular-nums">--:--</div>
+        <p class="text-xs txt-muted">Nội dung ôn thi đã được che mờ để bảo vệ quyền riêng tư.</p>
+      </div>
+      <div id="privacy-pin-input-wrap" class="hidden space-y-2">
+        <input id="privacy-pin-unlock-input" type="password" inputmode="numeric" maxlength="6" placeholder="Nhập mã PIN để mở khóa"
+          onkeydown="if(event.key==='Enter') unlockPrivacyScreen()"
+          class="uni-input w-full px-4 py-2.5 text-center font-mono text-base tracking-[0.4em]" />
+        <div id="privacy-pin-error" class="text-xs font-bold text-rose-400 min-h-[1rem]"></div>
+      </div>
+      <button type="button" onclick="unlockPrivacyScreen()" class="btn-primary w-full py-2.5 text-xs font-extrabold">
+        🔓 Mở Khóa Màn Hình
+      </button>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       v56.0 FLOATING PILL: COMPACT POMODORO FOCUS TIMER (Alt+P)
+       ===================================================================== -->
+  <div id="pomodoro-floating-pill" class="hidden fixed bottom-20 lg:bottom-5 left-4 z-50 uni-card px-3.5 py-2 flex items-center gap-2.5 shadow-xl"
+    style="border-color: var(--brand-border);">
+    <span id="pomo-mode-icon" class="text-sm">🍅</span>
+    <span id="pomo-timer-display" class="font-mono text-sm font-black txt-main tabular-nums">25:00</span>
+    <button type="button" id="pomo-toggle-btn" onclick="togglePomodoroRun()" class="btn-primary px-2.5 py-1 text-[11px] font-bold rounded-lg">Bắt đầu</button>
+    <button type="button" onclick="switchPomodoroMode()" title="Đổi Học 25p / Nghỉ 5p" class="btn-soft px-2 py-1 text-[11px] font-bold rounded-lg">5p/25p</button>
+    <button type="button" onclick="togglePomodoroMiniPill(false)" title="Ẩn Pomodoro" class="btn-soft p-1 rounded-lg txt-muted">✕</button>
+  </div>
+
+  <script src="/static/app.js?v=56.0"></script>
 </body>
 </html>

@@ -284,6 +284,8 @@ def init_db():
         ("login_events", "success", "INTEGER DEFAULT 1"),
         # Lần cuối thấy người dùng hoạt động (cookie phiên sống 30 ngày nên không phải lúc nào cũng đăng nhập lại)
         ("users", "last_seen", "TIMESTAMP"),
+        # Phiên bản phiên đăng nhập — tăng khi đổi mật khẩu hoặc thu hồi tất cả thiết bị khác
+        ("users", "session_version", "INTEGER DEFAULT 1"),
     ):
         columns = {row[1] for row in cursor.execute(f'PRAGMA table_info({table})')}
         if column not in columns:
@@ -311,13 +313,15 @@ def init_db():
     """)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_study_progress_acc_updated ON study_progress(account_id, updated_at DESC)")
 
-    # Core query performance indices (6,800+ questions, flashcards, exams, discussions)
+    # Core query performance indices (7,600+ questions, flashcards, exams, discussions)
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_questions_subject_type ON questions(subject_id, q_type)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_questions_subject_topic ON questions(subject_id, topic_tag)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_questions_subject_diff ON questions(subject_id, difficulty)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_flashcards_subject ON flashcards(subject_id, interval_days)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_exercises_subject ON exercises(subject_id)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_exam_results_subject_time ON exam_results(subject_id, created_at DESC)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_exam_results_user ON exam_results(user_id, created_at DESC)")
+    cursor.execute("CREATE INDEX IF NOT EXISTS idx_exam_results_sub_user_time ON exam_results(subject_id, user_id, created_at DESC)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_discussions_question ON question_discussions(question_id, is_verified DESC, upvotes DESC)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_archived_history_type_time ON archived_history(history_type, archived_at DESC)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_ai_analysis_q_time ON ai_analysis_history(question_id, created_at DESC)")
@@ -386,6 +390,10 @@ def init_db():
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tutor_chats_session ON tutor_chats(session_id, id ASC)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_tutor_chats_account ON tutor_chats(account_id, id DESC)")
 
+    try:
+        cursor.execute("PRAGMA optimize")
+    except Exception:
+        pass
     conn.commit()
 
     # ---------------------------------------------------------------------
@@ -965,32 +973,63 @@ def get_stats():
 
 
 # ==========================================
-# USER AUTHENTICATION & MULTI-ACCOUNT SYSTEM
+# USER AUTHENTICATION & MULTI-ACCOUNT SYSTEM (PBKDF2-SHA256 260k + Session Versioning)
 # ==========================================
-def hash_password(password: str, salt: str = None):
+PBKDF2_ITERATIONS = 260000
+
+
+def hash_password(password: str, salt: str = None, iterations: int = PBKDF2_ITERATIONS):
     import hashlib
     import secrets
     if not salt:
         salt = secrets.token_hex(16)
-    hashed = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000).hex()
-    return hashed, salt
+    iters = max(100000, int(iterations or PBKDF2_ITERATIONS))
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), iters).hex()
+    return f"pbkdf2_sha256${iters}${digest}", salt
+
+
+def _verify_password_hash(password: str, salt: str, stored_hash: str) -> tuple[bool, bool]:
+    """Returns (is_valid, needs_rehash_upgrade). Supports legacy 100k hex & modern pbkdf2_sha256$iters$hex."""
+    import hashlib
+    import hmac
+    if not stored_hash or not salt or not password:
+        return False, False
+    if stored_hash.startswith("pbkdf2_sha256$"):
+        parts = stored_hash.split("$", 2)
+        if len(parts) != 3:
+            return False, False
+        try:
+            iters = int(parts[1])
+        except ValueError:
+            return False, False
+        expected = parts[2]
+        digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), iters).hex()
+        ok = hmac.compare_digest(digest, expected)
+        return ok, (ok and iters < PBKDF2_ITERATIONS)
+    # Legacy 100,000-iteration plain hex hash
+    legacy_digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 100000).hex()
+    ok = hmac.compare_digest(legacy_digest, stored_hash)
+    return ok, ok
+
 
 def create_user(username: str, password: str, full_name: str, role: str = "student"):
     username = username.strip().lower()
-    full_name = full_name.strip()
+    full_name = full_name.strip()[:80]
     if not username or not password:
         raise ValueError("Tên đăng nhập và mật khẩu không được để trống")
-    if len(username) < 3:
-        raise ValueError("Tên đăng nhập phải có ít nhất 3 ký tự")
-    if len(password) < 4:
-        raise ValueError("Mật khẩu phải có ít nhất 4 ký tự")
+    if len(username) < 3 or len(username) > 40:
+        raise ValueError("Tên đăng nhập phải từ 3 đến 40 ký tự")
+    if not re.match(r"^[a-z0-9_.-]+$", username):
+        raise ValueError("Tên đăng nhập chỉ được chứa chữ thường, số và dấu . _ -")
+    if len(password) < 4 or len(password) > 128:
+        raise ValueError("Mật khẩu phải từ 4 đến 128 ký tự")
 
     pwd_hash, salt = hash_password(password)
     conn = get_connection()
     c = conn.cursor()
     try:
         c.execute(
-            "INSERT INTO users (username, password_hash, salt, full_name, role) VALUES (?, ?, ?, ?, ?)",
+            "INSERT INTO users (username, password_hash, salt, full_name, role, session_version) VALUES (?, ?, ?, ?, ?, 1)",
             (username, pwd_hash, salt, full_name or username, role)
         )
         conn.commit()
@@ -1000,10 +1039,13 @@ def create_user(username: str, password: str, full_name: str, role: str = "stude
         raise ValueError(f"Tên đăng nhập '{username}' đã được sử dụng")
     
     conn.close()
-    return {"id": uid, "username": username, "full_name": full_name or username, "role": role}
+    return {"id": uid, "username": username, "full_name": full_name or username, "role": role, "session_version": 1}
+
 
 def verify_user(username: str, password: str):
     username = username.strip().lower()
+    if not password or len(password) > 128:
+        return None
     conn = get_connection()
     c = conn.cursor()
     c.execute("SELECT * FROM users WHERE username = ?", (username,))
@@ -1012,24 +1054,132 @@ def verify_user(username: str, password: str):
         conn.close()
         return None
     
-    pwd_hash, _ = hash_password(password, row["salt"])
-    import hmac
-    if not hmac.compare_digest(pwd_hash, row["password_hash"]):
+    ok, needs_upgrade = _verify_password_hash(password, row["salt"], row["password_hash"])
+    if not ok:
         conn.close()
         return None
-    
-    c.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", (row["id"],))
+
+    if needs_upgrade:
+        new_hash, new_salt = hash_password(password)
+        c.execute(
+            "UPDATE users SET password_hash = ?, salt = ?, last_login = CURRENT_TIMESTAMP WHERE id = ?",
+            (new_hash, new_salt, row["id"])
+        )
+    else:
+        c.execute("UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = ?", (row["id"],))
     conn.commit()
+    sess_ver = int(row["session_version"] or 1) if "session_version" in row.keys() else 1
     user_info = {
         "id": row["id"],
         "username": row["username"],
         "full_name": row["full_name"],
         "role": row["role"],
+        "session_version": sess_ver,
         "created_at": row["created_at"],
         "last_login": row["last_login"]
     }
     conn.close()
     return user_info
+
+
+def get_user_session_version(user_id: int) -> int:
+    if not user_id:
+        return 1
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT COALESCE(session_version, 1) FROM users WHERE id = ?", (int(user_id),)).fetchone()
+        return int(row[0]) if row else 1
+    finally:
+        conn.close()
+
+
+def bump_user_session_version(user_id: int) -> int:
+    conn = get_connection()
+    try:
+        conn.execute("UPDATE users SET session_version = COALESCE(session_version, 1) + 1 WHERE id = ?", (int(user_id),))
+        conn.commit()
+        row = conn.execute("SELECT COALESCE(session_version, 1) FROM users WHERE id = ?", (int(user_id),)).fetchone()
+        return int(row[0]) if row else 1
+    finally:
+        conn.close()
+
+
+def change_user_password(user_id: int, current_password: str, new_password: str) -> dict:
+    if not current_password or not new_password:
+        raise ValueError("Vui lòng nhập đầy đủ mật khẩu hiện tại và mật khẩu mới")
+    if len(new_password) < 6 or len(new_password) > 128:
+        raise ValueError("Mật khẩu mới phải từ 6 đến 128 ký tự để đảm bảo an toàn")
+    if current_password == new_password:
+        raise ValueError("Mật khẩu mới không được trùng với mật khẩu hiện tại")
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM users WHERE id = ?", (int(user_id),)).fetchone()
+        if not row:
+            raise ValueError("Không tìm thấy tài khoản")
+        ok, _ = _verify_password_hash(current_password, row["salt"], row["password_hash"])
+        if not ok:
+            raise ValueError("Mật khẩu hiện tại không chính xác")
+        new_hash, new_salt = hash_password(new_password)
+        new_ver = (int(row["session_version"] or 1) if "session_version" in row.keys() else 1) + 1
+        conn.execute(
+            "UPDATE users SET password_hash = ?, salt = ?, session_version = ? WHERE id = ?",
+            (new_hash, new_salt, new_ver, int(user_id))
+        )
+        conn.commit()
+        return {
+            "id": row["id"],
+            "username": row["username"],
+            "full_name": row["full_name"],
+            "role": row["role"],
+            "session_version": new_ver,
+        }
+    finally:
+        conn.close()
+
+
+def get_or_create_signing_secret() -> str:
+    """Persist a 256-bit cryptographically random HMAC signing secret in SQLite settings."""
+    import secrets
+    val = get_setting("session_signing_secret", "")
+    if val and len(val) >= 32:
+        return val
+    new_secret = secrets.token_hex(32)
+    try:
+        set_setting("session_signing_secret", new_secret)
+    except Exception:
+        pass
+    return new_secret
+
+
+def get_db_health_metrics() -> dict:
+    """Return real-time SQLite performance & storage telemetry for the System Monitor."""
+    db_bytes = os.path.getsize(DB_PATH) if os.path.exists(DB_PATH) else 0
+    wal_path = DB_PATH + "-wal"
+    wal_bytes = os.path.getsize(wal_path) if os.path.exists(wal_path) else 0
+    conn = get_connection()
+    try:
+        journal = conn.execute("PRAGMA journal_mode").fetchone()[0]
+        subj_cnt = conn.execute("SELECT COUNT(*) FROM subjects").fetchone()[0]
+        q_cnt = conn.execute("SELECT COUNT(*) FROM questions").fetchone()[0]
+        fc_cnt = conn.execute("SELECT COUNT(*) FROM flashcards").fetchone()[0]
+        ex_cnt = conn.execute("SELECT COUNT(*) FROM exercises").fetchone()[0]
+        exam_cnt = conn.execute("SELECT COUNT(*) FROM exam_results").fetchone()[0]
+        user_cnt = conn.execute("SELECT COUNT(*) FROM users").fetchone()[0]
+        idx_cnt = conn.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='index'").fetchone()[0]
+        return {
+            "db_size_mb": round(db_bytes / (1024 * 1024), 2),
+            "wal_size_mb": round(wal_bytes / (1024 * 1024), 2),
+            "journal_mode": str(journal).upper(),
+            "indexes_count": idx_cnt,
+            "subjects": subj_cnt,
+            "questions": q_cnt,
+            "flashcards": fc_cnt,
+            "exercises": ex_cnt,
+            "exam_results": exam_cnt,
+            "users": user_cnt,
+        }
+    finally:
+        conn.close()
 
 def record_login_event(user_id: int, ip_address: str, user_agent: str = '', event_type: str = 'login',
                        username: str = '', success: bool = True):
@@ -1132,7 +1282,7 @@ def get_login_summary():
 def get_user_by_id(user_id: int):
     conn = get_connection()
     c = conn.cursor()
-    c.execute("SELECT id, username, full_name, role, created_at, last_login FROM users WHERE id = ?", (user_id,))
+    c.execute("SELECT id, username, full_name, role, COALESCE(session_version, 1) AS session_version, created_at, last_login FROM users WHERE id = ?", (user_id,))
     row = c.fetchone()
     conn.close()
     return dict(row) if row else None
