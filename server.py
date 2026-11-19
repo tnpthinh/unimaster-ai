@@ -31,6 +31,7 @@ import document_parser as doc_parser
 import catalog_seed
 import stem_seed
 import seed_hoasinh_ctump
+import seed_dieuduong_coban
 import extensions
 import code_engine
 
@@ -7381,6 +7382,7 @@ def create_app():
     db.ensure_admin_user(APP_PASSWORD or "uni-5292")
     stem_seed.ensure_stem_and_math_upgraded()
     seed_hoasinh_ctump.ensure_hoasinh_ctump_seeded()
+    seed_dieuduong_coban.ensure_dieuduong_coban_seeded()
     # Raise client_max_size to 30 MB for PDF / PowerPoint / Word / Image uploads
     app = web.Application(
         middlewares=[auth_middleware, no_cache_static_middleware],

@@ -4911,6 +4911,8 @@ async function onExamSubjectChange() {
         `;
       });
     } else {
+      const isCtumpSub = sub && String(sub.code || '').toUpperCase() === 'HOASINH_CTUMP';
+      const isDDCB = sub && (String(sub.code || '').toUpperCase() === 'DIEUDUONG_CB' || (sub.name || '').includes('Điều Dưỡng'));
       const lessons = [
         { prefix: 'Bài 2', icon: '🧬', label: 'Bài 2: Protid & Thận' },
         { prefix: 'Bài 3', icon: '🍬', label: 'Bài 3: Glucid & ĐTĐ' },
@@ -4919,10 +4921,12 @@ async function onExamSubjectChange() {
         { prefix: 'Bài 6', icon: '🧪', label: 'Bài 6: Định lượng enzym' }
       ];
 
-      const matchedLessons = lessons.filter((l) => allQs.some((q) => String(q.topic_tag || '').startsWith(l.prefix)));
+      const matchedLessons = isCtumpSub
+        ? lessons.filter((l) => allQs.some((q) => new RegExp(`^${l.prefix}(?:\\b|[:\\s-])`).test(String(q.topic_tag || ''))))
+        : [];
       if (matchedLessons.length > 0) {
         matchedLessons.forEach((l) => {
-          const lQs = allQs.filter((q) => String(q.topic_tag || '').startsWith(l.prefix));
+          const lQs = allQs.filter((q) => new RegExp(`^${l.prefix}(?:\\b|[:\\s-])`).test(String(q.topic_tag || '')));
           const key = l.prefix.replace(' ', '_');
           html += `
             <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
@@ -4944,7 +4948,40 @@ async function onExamSubjectChange() {
         });
       } else if (topicKeys.length > 0) {
         const isKST = sub && (sub.code === 'kysinh_trung' || (sub.name || '').includes('Ký Sinh Trùng'));
-        if (isKST) {
+        if (isDDCB) {
+          topicKeys.sort((a, b) => {
+            const numA = parseInt(a.match(/Bài\s+(\d+)/i)?.[1] || '0', 10);
+            const numB = parseInt(b.match(/Bài\s+(\d+)/i)?.[1] || '0', 10);
+            return numA - numB;
+          });
+          const exceptCount = allQs.filter((q) => q.question_text && (q.question_text.includes('KHÔNG') || q.question_text.includes('NGOẠI TRỪ') || q.question_text.includes('SAI'))).length;
+          html += `
+            <div class="col-span-full p-3 rounded-2xl border border-indigo-500/35 bg-gradient-to-r from-indigo-900/40 via-slate-900/50 to-emerald-900/30 space-y-2.5">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <span class="font-extrabold text-xs text-indigo-200 flex items-center gap-1.5">
+                  <span>🩺</span> <span>Điều Dưỡng Cơ Bản: ${topicKeys.length} Bài Chuẩn Giáo Trình • 60 Câu / Bài</span>
+                </span>
+                <span class="badge-brand px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold">${allQs.length} CÂU HỎI</span>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button type="button" onclick="startSpecialDrill('except_yds', ${sid})" class="p-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all">
+                  <div class="text-[11px] font-black text-amber-300 flex items-center justify-between">
+                    <span>⚡ Luyện Câu Bẫy &amp; Ngoại Trừ</span>
+                    <span class="badge-amber px-1.5 py-0.2 rounded text-[10px]">${exceptCount}</span>
+                  </div>
+                  <div class="text-[10px] txt-muted truncate">Dạng câu hỏi NGOẠI TRỪ / KHÔNG ĐÚNG bám sát bài học</div>
+                </button>
+                <button type="button" onclick="startSpecialDrill('all_ddcb', ${sid})" class="p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all">
+                  <div class="text-[11px] font-black text-emerald-300 flex items-center justify-between">
+                    <span>🏆 Đề Tổng Hợp 60 Câu (Trộn Đều 10 Bài)</span>
+                    <span class="badge-emerald px-1.5 py-0.2 rounded text-[10px]">60c</span>
+                  </div>
+                  <div class="text-[10px] txt-muted truncate">Mỗi bài rút ngẫu nhiên 6 câu — kiểm tra toàn diện 10 bài</div>
+                </button>
+              </div>
+            </div>
+          `;
+        } else if (isKST) {
           const exceptCount = allQs.filter((q) => q.question_text && (q.question_text.includes('KHÔNG ĐÚNG') || q.question_text.includes('NGOẠI TRỪ') || q.question_text.includes('SAI'))).length;
           html += `
             <div class="col-span-full p-3 rounded-2xl border border-teal-500/30 bg-gradient-to-r from-teal-900/40 via-emerald-900/30 to-slate-900/60 space-y-2.5">
@@ -4978,9 +5015,9 @@ async function onExamSubjectChange() {
           const lQs = topicMap[topicName] || [];
           if (!lQs.length) return;
           const key = 'topic_' + idx;
-          const icon = isKST ? '🪱' : '📖';
+          const icon = isDDCB ? '🩺' : (isKST ? '🪱' : '📖');
           html += `
-            <div class="col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 hover:border-teal-500/40 transition-all">
+            <div class="chapter-card-item col-span-full p-2.5 rounded-xl border border-white/10 bg-white/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 hover:border-indigo-500/40 transition-all" data-chapter-tag="${escapeHtml(topicName)}" data-subject-id="${sid}" data-range-key="${key}">
               <div class="font-bold text-xs txt-main flex items-center gap-1.5 shrink-0 max-w-full sm:max-w-md truncate">
                 <span>${icon}</span>
                 <span class="truncate">${escapeHtml(topicName)}</span>
@@ -4990,7 +5027,7 @@ async function onExamSubjectChange() {
                 <input id="range_from_${key}" type="number" min="1" max="${lQs.length}" value="1" placeholder="Từ" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
                 <span class="text-xs txt-muted">–</span>
                 <input id="range_to_${key}" type="number" min="1" max="${lQs.length}" value="${lQs.length}" placeholder="Đến" class="uni-input w-16 px-1.5 py-1 text-xs text-center font-bold" />
-                <button type="button" onclick="startCustomLessonRange(${escapeJsString(topicName)}, ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
+                <button type="button" data-orig-chap-btn="1" onclick="startCustomLessonRange(${escapeJsString(topicName)}, ${sid}, '${key}')" class="btn-primary px-3 py-1 text-xs font-bold shrink-0">
                   Luyện tập →
                 </button>
               </div>
@@ -5024,9 +5061,15 @@ async function onExamSubjectChange() {
   }
 }
 
+function filterQuestionsByLessonPrefix(pool, prefix) {
+  const exact = pool.filter((q) => String(q.topic_tag || '').trim() === String(prefix || '').trim());
+  if (exact.length) return exact;
+  return pool.filter((q) => String(q.topic_tag || '').startsWith(prefix));
+}
+
 function launchLessonRange(prefix, fromNum, toNum, sid) {
   const pool = STATE.examConfig.subjectAllQuestions || [];
-  const lessonQuestions = pool.filter((q) => String(q.topic_tag || '').startsWith(prefix));
+  const lessonQuestions = filterQuestionsByLessonPrefix(pool, prefix);
   if (!lessonQuestions.length) return;
   const start = Math.max(0, fromNum - 1);
   const end = Math.min(lessonQuestions.length, toNum);
@@ -5044,7 +5087,7 @@ function startCustomLessonRange(prefix, sid, explicitKey = null) {
   const fromEl = document.getElementById(`range_from_${key}`);
   const toEl = document.getElementById(`range_to_${key}`);
   const pool = STATE.examConfig.subjectAllQuestions || [];
-  const lessonQuestions = pool.filter((q) => String(q.topic_tag || '').startsWith(prefix));
+  const lessonQuestions = filterQuestionsByLessonPrefix(pool, prefix);
   const fromVal = Math.max(1, parseInt(fromEl?.value || '1', 10));
   const toVal = Math.max(fromVal, Math.min(lessonQuestions.length, parseInt(toEl?.value || String(lessonQuestions.length), 10)));
   launchLessonRange(prefix, fromVal, toVal, sid);
@@ -5088,7 +5131,22 @@ async function startSpecialDrill(kind, specificSid = null) {
   } else if (kind === 'protid_bai2') {
     filtered = pool.filter((q) => (q.topic_tag && q.topic_tag.includes('Protid')) || (q.question_text && q.question_text.includes('Biuret')) || (q.question_text && q.question_text.includes('Acid uric')) || (q.question_text && q.question_text.includes('Urê')) || (q.question_text && q.question_text.includes('Creatinin')));
   } else if (kind === 'except_yds') {
-    filtered = pool.filter((q) => q.question_text && (q.question_text.includes('KHÔNG ĐÚNG') || q.question_text.includes('NGOẠI TRỪ') || q.question_text.includes('SAI')));
+    filtered = pool.filter((q) => q.question_text && (q.question_text.includes('KHÔNG') || q.question_text.includes('NGOẠI TRỪ') || q.question_text.includes('SAI')));
+  } else if (kind === 'all_ddcb') {
+    const byTopic = {};
+    pool.forEach((q) => {
+      const k = String(q.topic_tag || 'Khác').trim();
+      if (!byTopic[k]) byTopic[k] = [];
+      byTopic[k].push(q);
+    });
+    const keys = Object.keys(byTopic);
+    const perLesson = Math.max(1, Math.floor(60 / Math.max(1, keys.length)));
+    const picked = [];
+    keys.forEach((k) => {
+      const arr = [...byTopic[k]].sort(() => Math.random() - 0.5);
+      picked.push(...arr.slice(0, perLesson));
+    });
+    filtered = picked.sort(() => Math.random() - 0.5).slice(0, 60);
   } else if (kind === 'all_yds') {
     const copy = [...pool];
     copy.sort(() => Math.random() - 0.5);
@@ -5113,6 +5171,7 @@ async function startSpecialDrill(kind, specificSid = null) {
   switchTab('exam');
   const titleMap = {
     except_yds: `Luyện Câu Ngoại Trừ / Không Đúng (${filtered.length} câu)`,
+    all_ddcb: `🩺 Điều Dưỡng Cơ Bản — Tổng Hợp 10 Bài (${filtered.length} câu)`,
     all_yds: `Đề Tổng Hợp 18 Chương YDS 2024 (${filtered.length} câu)`,
     images: `Soi Tiêu Bản & Hình Ảnh (${filtered.length} câu)`,
     bookmarks: `Câu Đã Lưu (${filtered.length})`,

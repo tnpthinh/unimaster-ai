@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=55.1" />
+  <link rel="stylesheet" href="/static/style.css?v=55.2" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -253,6 +253,11 @@
                 class="btn-soft px-3.5 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
                 title="Ôn cấp tốc các câu từng làm sai">
                 <i data-lucide="target" class="w-3.5 h-3.5 text-rose-400"></i> Luyện điểm yếu
+              </button>
+              <button onclick="openExamForSubjectCode('DIEUDUONG_CB', 105)"
+                class="btn-soft px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-emerald-500/40"
+                title="Luyện 10 bài Điều Dưỡng Cơ Bản (60 câu/bài • 600 câu bám sát giáo trình)">
+                <span>🩺</span> Điều Dưỡng Cơ Bản (600c)
               </button>
               <button onclick="startTrrPdfPracticeExam('all')"
                 class="btn-soft px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-indigo-500/40"
@@ -7821,6 +7826,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=55.1"></script>
+  <script src="/static/app.js?v=55.2"></script>
 </body>
 </html>
