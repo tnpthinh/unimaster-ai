@@ -1400,22 +1400,41 @@ def get_user_sync_state(user_id: int) -> dict:
     return {}
 
 def save_user_sync_state(user_id: int, incoming_state: dict):
-    conn = get_connection()
-    c = conn.cursor()
-    c.execute("SELECT state_json FROM user_states WHERE user_id = ?", (user_id,))
-    row = c.fetchone()
-    current = {}
-    if row and row["state_json"]:
+    import time as _t
+    if not isinstance(incoming_state, dict):
+        incoming_state = {}
+    last_err = None
+    for attempt in range(4):
+        conn = get_connection()
         try:
-            current = json.loads(row["state_json"])
-        except Exception:
+            c = conn.cursor()
+            c.execute("SELECT state_json FROM user_states WHERE user_id = ?", (int(user_id),))
+            row = c.fetchone()
             current = {}
-    current.update(incoming_state)
-    state_str = json.dumps(current, ensure_ascii=False)
-    c.execute("INSERT OR REPLACE INTO user_states (user_id, state_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)", (user_id, state_str))
-    conn.commit()
-    conn.close()
-    return current
+            if row and row["state_json"]:
+                try:
+                    parsed = json.loads(row["state_json"])
+                    if isinstance(parsed, dict):
+                        current = parsed
+                except Exception:
+                    current = {}
+            current.update(incoming_state)
+            state_str = json.dumps(current, ensure_ascii=False, default=str)
+            c.execute(
+                "INSERT OR REPLACE INTO user_states (user_id, state_json, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)",
+                (int(user_id), state_str),
+            )
+            conn.commit()
+            return current
+        except sqlite3.OperationalError as exc:
+            last_err = exc
+            if "locked" in str(exc).lower() or "busy" in str(exc).lower():
+                _t.sleep(0.08 * (attempt + 1))
+                continue
+            raise
+        finally:
+            conn.close()
+    raise last_err
 
 
 def save_archived_item(history_type: str, item_id: str, payload_json: str):

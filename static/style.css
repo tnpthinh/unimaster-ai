@@ -6037,3 +6037,10 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
 .option-row:active:not(.disabled):not(.is-eliminated) {
   transform: scale(0.992) !important;
 }
+
+/* v56.4: Crisp single-line mobile bottom nav labels & zero floating occlusion */
+.mobile-nav-item span:last-child {
+  white-space: nowrap !important;
+  font-size: 0.65rem !important;
+  line-height: 1.15 !important;
+}

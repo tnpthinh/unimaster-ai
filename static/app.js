@@ -4869,6 +4869,10 @@ async function onExamSubjectChange() {
   if (!sel || !sel.value) return;
   const sid = Number(sel.value);
   STATE.examConfig.subjectId = sid;
+  if (STATE.activeSubjectId !== sid) {
+    STATE.activeSubjectId = sid;
+    if (typeof updateActiveSubjectHeader === 'function') updateActiveSubjectHeader();
+  }
 
   const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
   const allQs = res.questions || [];
@@ -6980,6 +6984,8 @@ function resetToExamConfig() {
   document.getElementById('exam-config-screen')?.classList.remove('hidden');
   document.getElementById('floating-next-q-btn')?.classList.add('hidden');
   document.getElementById('floating-prev-q-btn')?.classList.add('hidden');
+  const ftLabel = document.getElementById('floating-tutor-btn-label');
+  if (ftLabel) ftLabel.textContent = 'AI';
   onExamSubjectChange();
 }
 
@@ -29853,9 +29859,9 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
   }
 
   function _renderPomodoroUI() {
-    const disp = document.getElementById('pomo-timer-display');
-    const icon = document.getElementById('pomo-mode-icon');
-    const btn = document.getElementById('pomo-toggle-btn');
+    const disp = document.getElementById('v56-pomo-timer-display');
+    const icon = document.getElementById('v56-pomo-mode-icon');
+    const btn = document.getElementById('v56-pomo-toggle-btn');
     const mm = String(Math.floor(_pomo.seconds / 60)).padStart(2, '0');
     const ss = String(_pomo.seconds % 60).padStart(2, '0');
     if (disp) disp.textContent = `${mm}:${ss}`;

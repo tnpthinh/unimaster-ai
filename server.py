@@ -1011,7 +1011,8 @@ async def admin_delete_user_api(request):
     except ValueError as e:
         return json_resp({"success": False, "error": str(e)}, 400)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def logout_api(request):
@@ -1549,7 +1550,8 @@ async def submit_exam(request):
         result_payload = await asyncio.to_thread(_score_and_persist)
         return json_resp(result_payload)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 # ==========================================
@@ -1583,7 +1585,8 @@ async def list_progress_handler(request):
         drafts = await asyncio.to_thread(_fetch_progress)
         return json_resp({"success": True, "account_id": acc, "drafts": drafts})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def get_progress_item_handler(request):
@@ -1607,7 +1610,8 @@ async def get_progress_item_handler(request):
             return json_resp({"success": False, "error": "Draft not found"}, 404)
         return json_resp({"success": True, "draft": draft})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def save_progress_handler(request):
@@ -1642,7 +1646,8 @@ async def save_progress_handler(request):
     except json.JSONDecodeError:
         return json_resp({"success": False, "error": "Invalid JSON body"}, 400)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def delete_progress_handler(request):
@@ -1670,7 +1675,8 @@ async def delete_progress_handler(request):
         _notify_realtime_sync_clients(uid, {"type": "draft_deleted", "draft_key": draft_key, "sender_cid": sender_cid})
         return json_resp({"success": True, "deleted": deleted, "account_id": acc, "draft_key": draft_key})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 # ==========================================
@@ -1792,7 +1798,8 @@ async def get_exercises(request):
         exercises = _inject_playground_exercise(exercises, sid)
         return json_resp({"success": True, "exercises": exercises})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def get_exercises_by_query(request):
@@ -1803,7 +1810,8 @@ async def get_exercises_by_query(request):
         exercises = _inject_playground_exercise(exercises, sid)
         return json_resp({"success": True, "exercises": exercises})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def get_exercise_detail(request):
@@ -1821,7 +1829,8 @@ async def get_exercise_detail(request):
             return json_resp({"success": True, "exercise": ex})
         return json_resp({"success": False, "error": f"Không tìm thấy bài tập #{ex_id}"}, 404)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def get_flashcards(request):
@@ -1830,7 +1839,8 @@ async def get_flashcards(request):
         cards = db.get_flashcards_by_subject(sid)
         return json_resp({"success": True, "flashcards": cards})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def get_flashcards_by_query(request):
@@ -1840,7 +1850,8 @@ async def get_flashcards_by_query(request):
         cards = db.get_flashcards_by_subject(sid)
         return json_resp({"success": True, "flashcards": cards})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def _build_keys_status_payload() -> dict:
@@ -2174,7 +2185,8 @@ async def api_omnisearch_handler(request):
             "exercises": exercises,
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 def _quine_mccluskey_minimize(num_vars: int, minterms: list, vars_names: list):
@@ -2585,7 +2597,8 @@ async def create_flashcard(request):
         )
         return json_resp({"success": True, "id": cid})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def review_flashcard(request):
@@ -2596,7 +2609,8 @@ async def review_flashcard(request):
         res = db.update_flashcard_review(cid, rating)
         return json_resp({"success": True, "result": res})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 # ==========================================
@@ -2735,7 +2749,8 @@ async def import_direct_questions_handler(request):
             "message": f"Đã nhập nguyên bản {saved_count} câu hỏi vào Ngân hàng đề!"
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_generate_image_question_handler(request):
@@ -2794,7 +2809,8 @@ async def ai_generate_image_question_handler(request):
             }
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_grade_handwritten_handler(request):
@@ -2827,7 +2843,8 @@ async def ai_grade_handwritten_handler(request):
         )
         return json_resp({"success": True, "grading": grading})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def get_question_discussions_handler(request):
@@ -2836,7 +2853,8 @@ async def get_question_discussions_handler(request):
         comments = db.get_discussions_by_question(qid)
         return json_resp({"success": True, "comments": comments, "discussions": comments})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def add_question_discussion_handler(request):
@@ -2853,7 +2871,8 @@ async def add_question_discussion_handler(request):
         comments = db.get_discussions_by_question(qid)
         return json_resp({"success": True, "id": cid, "comments": comments})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def upvote_discussion_handler(request):
@@ -2862,7 +2881,8 @@ async def upvote_discussion_handler(request):
         upvotes = db.upvote_discussion_comment(cid)
         return json_resp({"success": True, "upvotes": upvotes})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 # ==========================================
@@ -3153,7 +3173,8 @@ async def ai_deep_analysis_handler(request):
             "history_id": history_id
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_deep_analysis_followup_handler(request):
@@ -3178,7 +3199,8 @@ async def ai_deep_analysis_followup_handler(request):
         )
         return json_resp({"success": True, "reply": reply, "answer": reply})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_deep_analysis_mindmap_handler(request):
@@ -3193,7 +3215,8 @@ async def ai_deep_analysis_mindmap_handler(request):
         result = await ai.ai_generate_mindmap(q_text, analysis_ctx)
         return json_resp({"success": True, **result})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_deep_analysis_history_list_handler(request):
@@ -3210,7 +3233,8 @@ async def ai_deep_analysis_history_list_handler(request):
         total = db.count_ai_analysis_history(subject_id=sub_id, search=search, analysis_mode=mode)
         return json_resp({"success": True, "items": items, "total": total, "limit": limit, "offset": offset})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_deep_analysis_history_save_handler(request):
@@ -3241,7 +3265,8 @@ async def ai_deep_analysis_history_save_handler(request):
         )
         return json_resp({"success": True, "history_id": hid})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_deep_analysis_history_delete_handler(request):
@@ -3251,7 +3276,8 @@ async def ai_deep_analysis_history_delete_handler(request):
         success = db.delete_ai_analysis_item(item_id)
         return json_resp({"success": True, "deleted": success})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_deep_analysis_history_clear_handler(request):
@@ -3263,7 +3289,8 @@ async def ai_deep_analysis_history_clear_handler(request):
         count = db.clear_all_ai_analysis_history(subject_id=sub_id)
         return json_resp({"success": True, "cleared_count": count})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_similar_handler(request):
@@ -3274,7 +3301,8 @@ async def ai_similar_handler(request):
         similar = await ai.ai_generate_similar(q_text, code)
         return json_resp({"success": True, "similar": similar})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_custom_qa_handler(request):
@@ -3287,7 +3315,8 @@ async def ai_custom_qa_handler(request):
         answer = await ai.ai_custom_qa(q_text, correct_text, query, code)
         return json_resp({"success": True, "answer": answer})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_grade_essay_handler(request):
@@ -3299,7 +3328,8 @@ async def ai_grade_essay_handler(request):
         grading = await ai.ai_grade_essay(q_text, expected, student_ans)
         return json_resp({"success": True, "grading": grading})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_roadmap_handler(request):
@@ -3322,7 +3352,8 @@ async def ai_roadmap_handler(request):
         roadmap = await ai.ai_personalized_roadmap(subject_name, stats_summary, mistake_questions)
         return json_resp({"success": True, "roadmap": roadmap})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_evaluate_exam_handler(request):
@@ -3336,7 +3367,8 @@ async def ai_evaluate_exam_handler(request):
         eval_md = await ai.ai_evaluate_exam(subject_name, total, correct, wrong_qs, topic_tags)
         return json_resp({"success": True, "evaluation": eval_md})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_explain_exercise_handler(request):
@@ -3348,7 +3380,8 @@ async def ai_explain_exercise_handler(request):
         md = await ai.ai_explain_exercise(title, problem, sample_code)
         return json_resp({"success": True, "explanation": md})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_chat(request):
@@ -3519,7 +3552,8 @@ async def ai_concept_recall_handler(request):
         concept = await ai.ai_concept_recall(subject_name, q_text, code)
         return json_resp({"success": True, "concept": concept})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_explain_mistake_handler(request):
@@ -3534,7 +3568,8 @@ async def ai_explain_mistake_handler(request):
         diagnosis = await ai.ai_explain_mistake(subject_name, q_text, wrong_ans, correct_ans, expl, code)
         return json_resp({"success": True, "diagnosis": diagnosis})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_mnemonic_handler(request):
@@ -3547,7 +3582,8 @@ async def ai_mnemonic_handler(request):
         mnemonic = await ai.ai_mnemonic_trick(subject_name, q_text, correct_ans, expl)
         return json_resp({"success": True, "mnemonic": mnemonic})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_make_flashcard_handler(request):
@@ -3571,7 +3607,8 @@ async def ai_make_flashcard_handler(request):
         )
         return json_resp({"success": True, "id": cid, "flashcard": card})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_explain_flashcard_handler(request):
@@ -3583,7 +3620,8 @@ async def ai_explain_flashcard_handler(request):
         explanation = await ai.ai_explain_flashcard(subject_name, front, back)
         return json_resp({"success": True, "explanation": explanation})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_expand_bank_handler(request):
@@ -3666,7 +3704,8 @@ async def ai_expand_bank_handler(request):
             "saved_questions": saved_questions
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_generate_quiz(request):
@@ -3730,7 +3769,8 @@ async def ai_generate_quiz(request):
             "data": {"questions": generated, "saved_count": len(saved_questions)}
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_generate_cards(request):
@@ -3759,7 +3799,8 @@ async def ai_generate_cards(request):
             "data": generated
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def ai_cheat_sheet(request):
@@ -3774,7 +3815,8 @@ async def ai_cheat_sheet(request):
             "data": {"markdown": sheet}
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 # ==========================================
@@ -4075,13 +4117,22 @@ async def save_user_state(request):
         return json_resp({"success": False, "error": "Không thể lưu trạng thái đồng bộ lúc này."}, 500)
 
 
+def _safe_int(val, default=0) -> int:
+    try:
+        if val is None or val == "":
+            return default
+        return int(float(val))
+    except (TypeError, ValueError):
+        return default
+
+
 def _merge_user_states(cur: dict, inc: dict) -> dict:
     if not isinstance(cur, dict):
         cur = {}
     if not isinstance(inc, dict):
         return cur
-    cur_ts = int(cur.get("updated_at_ms") or 0)
-    inc_ts = int(inc.get("updated_at_ms") or int(time.time() * 1000))
+    cur_ts = _safe_int(cur.get("updated_at_ms"), 0)
+    inc_ts = _safe_int(inc.get("updated_at_ms"), int(time.time() * 1000))
     inc_is_newer = inc_ts >= cur_ts
 
     merged = dict(cur)
@@ -4182,9 +4233,9 @@ def _apply_incoming_vault_sync(uid: int, data: dict) -> dict:
             dkey = str(d["draft_key"]).strip()
             if not dkey or dkey in del_set:
                 continue
-            inc_ms = int(d.get("updated_at_ms") or 0)
+            inc_ms = _safe_int(d.get("updated_at_ms"), 0)
             ex = existing_drafts.get(dkey)
-            ex_ms = int(ex.get("updated_at_ms") or 0) if ex else 0
+            ex_ms = _safe_int(ex.get("updated_at_ms"), 0) if ex else 0
             if not ex or inc_ms >= ex_ms:
                 try:
                     db.upsert_study_progress(
@@ -4416,7 +4467,8 @@ async def get_sync_vault(request):
             **snap,
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def save_sync_vault(request):
@@ -4443,7 +4495,8 @@ async def save_sync_vault(request):
             **snap,
         })
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 def _read_local_tunnel_info_sync() -> dict:
@@ -4630,7 +4683,8 @@ async def sync_remote_bridge_handler(request):
     except ValueError as ve:
         return json_resp({"success": False, "error": str(ve)}, 400)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 def _image_url_to_base64(img_url: str, cache: dict) -> str:
@@ -4904,7 +4958,8 @@ async def export_standalone_html(request):
             headers={"Content-Disposition": 'attachment; filename="UniMaster_Chay_Moi_Noi_Khong_Can_PC.html"'},
         )
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def pwa_manifest(request):
@@ -4939,11 +4994,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v56-3';
+    const CACHE_NAME = 'unimaster-pwa-v56-4';
     const CORE_ASSETS = [
-      '/static/style.css?v=56.1',
+      '/static/style.css?v=56.4',
       '/static/minimal.css?v=54.1',
-      '/static/app.js?v=56.3',
+      '/static/app.js?v=56.4',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -5000,7 +5055,8 @@ async def api_code_run(request):
         res = await code_engine.execute_code(lang, code, str(inp or ""))
         return json_resp(res)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 async def api_code_test(request):
     try:
@@ -5016,7 +5072,8 @@ async def api_code_test(request):
         res = await code_engine.test_code_against_cases(ex_id, lang, code, subject_id=sid)
         return json_resp(res)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 async def api_code_ai_review(request):
     try:
@@ -5028,7 +5085,8 @@ async def api_code_ai_review(request):
         res = await code_engine.ai_review_code_advanced(title, problem, code, lang)
         return json_resp({"success": True, "review": res})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 async def api_code_fix_and_upgrade(request):
     try:
@@ -5043,7 +5101,8 @@ async def api_code_fix_and_upgrade(request):
         res = await code_engine.fix_and_upgrade_code(code, lang, problem_title=title, current_error=error)
         return json_resp(res)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def api_code_suggest(request):
@@ -5112,7 +5171,8 @@ async def api_get_essay_prompts(request):
         prompts = db.get_essay_prompts(subject_id)
         return json_resp({"success": True, "prompts": prompts})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 async def api_grade_essay_advanced(request):
     try:
@@ -5124,7 +5184,8 @@ async def api_grade_essay_advanced(request):
         res = await code_engine.grade_essay_advanced(prompt_id, student_answer, question_text, json.dumps(rubric) if isinstance(rubric, dict) else str(rubric))
         return json_resp({"success": True, "result": res})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 async def api_timed_exam_start(request):
     try:
@@ -5134,7 +5195,8 @@ async def api_timed_exam_start(request):
         res = await asyncio.to_thread(code_engine.start_timed_exam, sid, count=count, duration_minutes=duration)
         return json_resp(res)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def api_timed_exam_submit(request):
@@ -5157,7 +5219,8 @@ async def api_timed_exam_submit(request):
         res = await asyncio.to_thread(_submit)
         return json_resp(res)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 # =========================================================================
@@ -5171,7 +5234,8 @@ async def api_validate_oop_structure(request):
         res = await asyncio.to_thread(code_engine.validate_csharp_oop_structure, code, req)
         return json_resp(res)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def api_exam_shuffle(request):
@@ -5187,7 +5251,8 @@ async def api_exam_shuffle(request):
         shuffled = await asyncio.to_thread(_shuffle)
         return json_resp({"success": True, "questions": shuffled})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def api_sm2_review(request):
@@ -5198,7 +5263,8 @@ async def api_sm2_review(request):
         res = await asyncio.to_thread(code_engine.calculate_sm2, card_id, rating)
         return json_resp(res)
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 
 async def api_sm2_due_today(request):
@@ -5234,7 +5300,8 @@ async def api_sm2_due_today(request):
         rows = await asyncio.to_thread(_due)
         return json_resp({"success": True, "count": len(rows), "cards": rows})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 async def api_validate_essay_steps(request):
     try:
@@ -5245,7 +5312,8 @@ async def api_validate_essay_steps(request):
         res = await code_engine.validate_essay_step_by_step(q_text, proof, topic)
         return json_resp({"success": True, "validation": res})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 async def api_rubber_duck(request):
     try:
@@ -5256,7 +5324,8 @@ async def api_rubber_duck(request):
         reply = await code_engine.rubber_duck_critique(code, lang, err)
         return json_resp({"success": True, "reply": reply})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ API error: {e}")
+        return json_resp({"success": False, "error": "Máy chủ đang bận, vui lòng thử lại sau giây lát."}, 500)
 
 async def _telegram_backup_once():
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
