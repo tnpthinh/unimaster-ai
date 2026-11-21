@@ -29683,6 +29683,237 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
     }
   });
 
+  // -----------------------------------------------------------------------
+  // 9. IN-PLACE QUESTION / ANSWER EDITOR & 1-CLICK GITHUB PUBLISH (v56.2)
+  // -----------------------------------------------------------------------
+  let _editCorrectLetter = 'A';
+
+  function selectEditCorrectLetter(letter) {
+    const L = String(letter || 'A').trim().toUpperCase().charAt(0);
+    _editCorrectLetter = ['A', 'B', 'C', 'D'].includes(L) ? L : 'A';
+    document.querySelectorAll('#modal-edit-question button[data-edit-corr]').forEach((btn) => {
+      const isAct = btn.getAttribute('data-edit-corr') === _editCorrectLetter;
+      btn.style.background = isAct ? '#10b981' : 'var(--bg-subtle)';
+      btn.style.borderColor = isAct ? '#10b981' : 'var(--border)';
+      btn.style.color = isAct ? '#ffffff' : 'var(--text-main)';
+    });
+  }
+  window.selectEditCorrectLetter = selectEditCorrectLetter;
+
+  async function openEditQuestionModal(customQid = null) {
+    const activeQ = STATE?.exam?.active ? STATE.exam.questions?.[STATE.exam.currentIndex] : null;
+    const qid = Number(customQid || activeQ?.id || 0);
+    if (!qid) {
+      if (typeof showToast === 'function') showToast('Không xác định được ID câu hỏi để sửa!', 'warning');
+      return;
+    }
+
+    let qData = activeQ && Number(activeQ.id) === qid ? { ...activeQ } : null;
+    if (!STATE?.isOfflineStandalone) {
+      try {
+        const res = await apiFetch(`/api/questions/${qid}`, { bypassCache: true });
+        if (res && res.success && res.question) qData = res.question;
+      } catch (_) {}
+    }
+    if (!qData) {
+      if (typeof showToast === 'function') showToast('Không thể tải dữ liệu câu hỏi từ máy chủ.', 'error');
+      return;
+    }
+
+    const qType = String(qData.q_type || 'mcq').toLowerCase();
+    const isMcq = qType === 'mcq' || qType === 'true_false' || !qType;
+    document.getElementById('edit-q-id-hidden').value = String(qData.id);
+    document.getElementById('edit-q-type-hidden').value = qType;
+    const badge = document.getElementById('edit-q-id-badge');
+    if (badge) badge.textContent = `#${qData.id}`;
+
+    document.getElementById('edit-q-text').value = qData.question_text || '';
+    document.getElementById('edit-q-opt-a').value = qData.option_a || '';
+    document.getElementById('edit-q-opt-b').value = qData.option_b || '';
+    document.getElementById('edit-q-opt-c').value = qData.option_c || '';
+    document.getElementById('edit-q-opt-d').value = qData.option_d || '';
+    document.getElementById('edit-q-expl').value = qData.explanation || '';
+    document.getElementById('edit-q-topic').value = qData.topic_tag || '';
+    document.getElementById('edit-q-diff').value = qData.difficulty || 'medium';
+    document.getElementById('edit-q-corr-raw').value = qData.correct_option || '';
+
+    document.getElementById('edit-q-mcq-group')?.classList.toggle('hidden', !isMcq);
+    document.getElementById('edit-q-text-corr-group')?.classList.toggle('hidden', isMcq);
+
+    const statusLine = document.getElementById('edit-q-status-line');
+    if (statusLine) statusLine.textContent = '';
+
+    selectEditCorrectLetter(String(qData.correct_option || 'A').trim().toUpperCase().charAt(0));
+    openModal('modal-edit-question');
+    if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+  }
+  window.openEditQuestionModal = openEditQuestionModal;
+
+  function _patchQuestionInActiveExam(updated) {
+    if (!updated || !STATE?.exam?.active || !Array.isArray(STATE.exam.questions)) return;
+    const uid = Number(updated.id);
+    const idx = STATE.exam.questions.findIndex((item) => Number(item.id) === uid);
+    if (idx < 0) return;
+
+    const target = STATE.exam.questions[idx];
+    const perm = target._optionOrder || STATE.exam._optionOrders?.[uid] || STATE.exam._optionOrders?.[String(uid)];
+    target.question_text = updated.question_text;
+    target.explanation = updated.explanation || '';
+    target.topic_tag = updated.topic_tag || '';
+    target.difficulty = updated.difficulty || 'medium';
+    target.correct_option = updated.correct_option;
+
+    const origBase = String(updated.correct_option || 'A').trim().toUpperCase().charAt(0);
+    if (Array.isArray(perm) && perm.length >= 2) {
+      const origVals = { A: updated.option_a, B: updated.option_b, C: updated.option_c, D: updated.option_d };
+      target.option_a = origVals[perm[0]] ?? updated.option_a;
+      target.option_b = origVals[perm[1]] ?? updated.option_b;
+      target.option_c = origVals[perm[2]] ?? updated.option_c;
+      target.option_d = origVals[perm[3]] ?? updated.option_d;
+      const newIdx = perm.indexOf(origBase);
+      const eff = newIdx >= 0 && newIdx < 4 ? ['A', 'B', 'C', 'D'][newIdx] : origBase;
+      target._effectiveCorrect = eff;
+      if (STATE.exam.correctMap) STATE.exam.correctMap[uid] = eff;
+    } else {
+      target.option_a = updated.option_a;
+      target.option_b = updated.option_b;
+      target.option_c = updated.option_c;
+      target.option_d = updated.option_d;
+      target._effectiveCorrect = origBase;
+      if (STATE.exam.correctMap) STATE.exam.correctMap[uid] = origBase;
+    }
+
+    if (idx === STATE.exam.currentIndex && typeof renderCurrentExamQuestion === 'function') {
+      renderCurrentExamQuestion();
+    }
+  }
+
+  async function saveEditedQuestion(pushToGithub = false) {
+    const qid = Number(document.getElementById('edit-q-id-hidden')?.value || 0);
+    if (!qid) return;
+    const qType = document.getElementById('edit-q-type-hidden')?.value || 'mcq';
+    const isMcq = qType === 'mcq' || qType === 'true_false' || !qType;
+
+    const payload = {
+      question_text: document.getElementById('edit-q-text')?.value?.trim() || '',
+      option_a: document.getElementById('edit-q-opt-a')?.value || '',
+      option_b: document.getElementById('edit-q-opt-b')?.value || '',
+      option_c: document.getElementById('edit-q-opt-c')?.value || '',
+      option_d: document.getElementById('edit-q-opt-d')?.value || '',
+      correct_option: isMcq ? _editCorrectLetter : (document.getElementById('edit-q-corr-raw')?.value?.trim() || ''),
+      explanation: document.getElementById('edit-q-expl')?.value || '',
+      topic_tag: document.getElementById('edit-q-topic')?.value?.trim() || '',
+      difficulty: document.getElementById('edit-q-diff')?.value || 'medium',
+      q_type: qType,
+    };
+
+    const statusLine = document.getElementById('edit-q-status-line');
+    const btnSave = document.getElementById('btn-edit-q-save');
+    const btnPush = document.getElementById('btn-edit-q-save-push');
+    if (!payload.question_text) {
+      if (statusLine) { statusLine.textContent = '⚠️ Nội dung câu hỏi không được để trống!'; statusLine.style.color = '#f43f5e'; }
+      return;
+    }
+
+    if (btnSave) btnSave.disabled = true;
+    if (btnPush) btnPush.disabled = true;
+    if (statusLine) { statusLine.textContent = '⏳ Đang lưu sửa đổi vào cơ sở dữ liệu...'; statusLine.style.color = '#818cf8'; }
+
+    try {
+      const res = await apiFetch(`/api/questions/${qid}`, {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      });
+      if (!res || !res.success) {
+        if (statusLine) { statusLine.textContent = '✖ ' + (res?.error || 'Không thể lưu sửa đổi.'); statusLine.style.color = '#f43f5e'; }
+        return;
+      }
+
+      if (typeof invalidateClientQuestionCache === 'function') invalidateClientQuestionCache('');
+      _patchQuestionInActiveExam(res.question);
+
+      if (!pushToGithub) {
+        if (typeof showToast === 'function') showToast(`✅ Đã lưu sửa đổi câu #${qid} (đáp án đúng: ${res.question.correct_option})!`, 'success');
+        closeModal('modal-edit-question');
+        return;
+      }
+
+      if (statusLine) { statusLine.textContent = '🚀 Đã lưu máy! Đang đóng gói seed sạch & Push lên GitHub...'; statusLine.style.color = '#10b981'; }
+      const pubRes = await apiFetch('/api/admin/publish-github', {
+        method: 'POST',
+        body: JSON.stringify({ commit_message: `fix(questions): cập nhật câu #${qid} (${res.question.correct_option})` }),
+      });
+      if (pubRes && pubRes.success) {
+        if (typeof showToast === 'function') showToast(`🚀 ${pubRes.message || 'Đã Push lên GitHub thành công!'}`, 'success');
+        closeModal('modal-edit-question');
+      } else {
+        if (statusLine) { statusLine.textContent = '⚠️ Đã lưu vào máy, nhưng lỗi Push GitHub: ' + (pubRes?.error || 'Không rõ lỗi'); statusLine.style.color = '#f59e0b'; }
+      }
+    } finally {
+      if (btnSave) btnSave.disabled = false;
+      if (btnPush) btnPush.disabled = false;
+    }
+  }
+  window.saveEditedQuestion = saveEditedQuestion;
+
+  async function deleteEditedQuestion() {
+    const qid = Number(document.getElementById('edit-q-id-hidden')?.value || 0);
+    if (!qid) return;
+    let ok = true;
+    if (typeof askCustomConfirm === 'function') {
+      const choice = await askCustomConfirm({
+        icon: '🗑️',
+        iconTone: 'rose',
+        title: `Xóa vĩnh viễn câu hỏi #${qid}?`,
+        desc: 'Câu hỏi bị lỗi này sẽ được gỡ khỏi ngân hàng đề ngay lập tức.',
+        actions: [
+          { id: 'cancel', label: 'Hủy', cls: 'btn-soft px-4 py-2 text-xs' },
+          { id: 'confirm', label: '🗑️ Xóa câu này', cls: 'btn-danger px-4 py-2 text-xs' },
+        ],
+      });
+      ok = choice === 'confirm';
+    } else {
+      ok = confirm(`Xóa câu hỏi #${qid}?`);
+    }
+    if (!ok) return;
+
+    const res = await apiFetch(`/api/questions/${qid}`, { method: 'DELETE' });
+    if (res && res.success) {
+      if (typeof invalidateClientQuestionCache === 'function') invalidateClientQuestionCache('');
+      closeModal('modal-edit-question');
+      if (STATE?.exam?.active && Array.isArray(STATE.exam.questions)) {
+        const idx = STATE.exam.questions.findIndex((q) => Number(q.id) === qid);
+        if (idx >= 0) {
+          STATE.exam.questions.splice(idx, 1);
+          if (STATE.exam.questions.length > 0) {
+            STATE.exam.currentIndex = Math.min(STATE.exam.currentIndex, STATE.exam.questions.length - 1);
+            if (typeof renderCurrentExamQuestion === 'function') renderCurrentExamQuestion();
+          } else if (typeof resetToExamConfig === 'function') {
+            resetToExamConfig();
+          }
+        }
+      }
+      if (typeof showToast === 'function') showToast(`🗑️ Đã xóa câu hỏi #${qid}!`, 'success');
+    } else {
+      if (typeof showToast === 'function') showToast(res?.error || 'Không thể xóa câu hỏi.', 'error');
+    }
+  }
+  window.deleteEditedQuestion = deleteEditedQuestion;
+
+  async function publishQuestionBankToGithub(commitNote = '') {
+    if (typeof showToast === 'function') showToast('🚀 Đang tạo bản seed sạch & đẩy lên GitHub...', 'info');
+    const res = await apiFetch('/api/admin/publish-github', {
+      method: 'POST',
+      body: JSON.stringify({ commit_message: commitNote || 'fix(questions): đồng bộ chỉnh sửa câu hỏi lên GitHub' }),
+    });
+    if (res && res.success) {
+      if (typeof showToast === 'function') showToast(`🚀 ${res.message || 'Đã Push lên GitHub thành công!'}`, 'success');
+    } else {
+      if (typeof showToast === 'function') showToast('✖ ' + (res?.error || 'Không thể Push lên GitHub'), 'error');
+    }
+  }
+  window.publishQuestionBankToGithub = publishQuestionBankToGithub;
+
   // Delegated option-row click & Enter/Space reliability guard (guarantees 1st-tap response on iOS/Android/Desktop)
   function _bindOptionAreaDelegation() {
     const area = document.getElementById('q-answer-area');

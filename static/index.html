@@ -1178,6 +1178,9 @@
                 <button id="btn-bookmark" onclick="toggleBookmarkCurrent()" title="Lưu câu hỏi (S)" class="btn-soft px-2.5 py-1.5 text-xs font-bold">
                   <span id="bookmark-star-icon">☆</span>
                 </button>
+                <button id="btn-edit-current-q" type="button" onclick="openEditQuestionModal()" title="Sửa nội dung câu hỏi / Đáp án đúng nếu phát hiện lỗi" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1">
+                  <span>✏️</span> <span class="hidden sm:inline">Sửa câu</span>
+                </button>
                 <button type="button" onclick="toggleExamExtraToolsBar()" id="btn-exam-more-tools" title="Thêm công cụ" class="btn-soft px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1">
                   <i data-lucide="more-horizontal" class="w-4 h-4"></i>
                 </button>
@@ -1319,6 +1322,9 @@
               </button>
               <button onclick="triggerAiMnemonic()" class="ai-chip-btn">
                 <span>⚡</span> Mẹo nhớ 5s
+              </button>
+              <button type="button" onclick="openEditQuestionModal()" class="ai-chip-btn" title="Đáp án sai hoặc câu lỗi? Bấm để sửa ngay &amp; đẩy lên GitHub">
+                <span>✏️</span> Sửa đáp án / câu lỗi
               </button>
               <button type="button" id="btn-feedback-more-ai" onclick="toggleFeedbackExtraAiTools()" class="btn-soft px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 ml-auto">
                 <span>✨</span> <span>Mở rộng AI</span> <span id="feedback-more-ai-chevron">▾</span>
@@ -4585,7 +4591,10 @@
                 </div>
                 <div class="text-[11px] txt-muted">SQLite WAL + Hot-Cache ETag 304 + Bộ nhớ đệm câu hỏi tức thì</div>
               </div>
-              <div class="flex items-center gap-1.5">
+              <div class="flex flex-wrap items-center gap-1.5">
+                <button type="button" onclick="publishQuestionBankToGithub()" class="btn-soft px-3 py-1.5 text-xs font-bold txt-brand">
+                  🚀 Push GitHub
+                </button>
                 <button type="button" onclick="togglePomodoroMiniPill()" class="btn-soft px-3 py-1.5 text-xs font-bold">
                   🍅 Pomodoro 25p
                 </button>
@@ -8187,6 +8196,101 @@ public class Student {
     <button type="button" onclick="togglePomodoroMiniPill(false)" title="Ẩn Pomodoro" class="btn-soft p-1 rounded-lg txt-muted">✕</button>
   </div>
 
-  <script src="/static/app.js?v=56.1"></script>
+  <!-- =====================================================================
+       v56.2 MODAL: SỬA CÂU HỎI & ĐÁP ÁN TRỰC TIẾP + PUSH LÊN GITHUB
+       ===================================================================== -->
+  <div id="modal-edit-question" class="hidden fixed inset-0 z-[92] modal-overlay flex items-center justify-center p-2 sm:p-4">
+    <div class="uni-card w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden animate-fade-in shadow-2xl">
+      <div class="px-5 py-3.5 shrink-0 flex items-center justify-between border-b" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="flex items-center gap-2 min-w-0">
+          <span>✏️</span>
+          <h3 class="text-sm sm:text-base font-extrabold txt-main truncate">Sửa Câu Hỏi &amp; Đáp Án Đúng</h3>
+          <span id="edit-q-id-badge" class="badge-brand px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold shrink-0">#--</span>
+        </div>
+        <button type="button" onclick="closeModal('modal-edit-question')" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
+      </div>
+
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-3.5 flex-1">
+        <input id="edit-q-id-hidden" type="hidden" value="" />
+        <input id="edit-q-type-hidden" type="hidden" value="mcq" />
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold txt-muted uppercase tracking-wider">Nội dung câu hỏi</label>
+          <textarea id="edit-q-text" rows="3" class="uni-input w-full px-3 py-2 text-xs sm:text-sm leading-relaxed" placeholder="Nhập nội dung câu hỏi..."></textarea>
+        </div>
+
+        <!-- 4 MCQ Options + 1-Tap Correct Answer Selector -->
+        <div id="edit-q-mcq-group" class="space-y-2">
+          <div class="flex items-center justify-between">
+            <label class="text-[11px] font-bold txt-muted uppercase tracking-wider">4 Phương án &amp; Chọn Đáp Án Đúng</label>
+            <span class="text-[11px] font-bold text-emerald-400">Bấm nút A / B / C / D để đổi đáp án đúng</span>
+          </div>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2">
+              <button type="button" data-edit-corr="A" onclick="selectEditCorrectLetter('A')" class="edit-corr-pill w-9 h-9 rounded-xl font-mono text-xs font-black shrink-0 border transition-colors" style="background: var(--bg-subtle); border-color: var(--border);">A</button>
+              <input id="edit-q-opt-a" type="text" class="uni-input flex-1 px-3 py-2 text-xs" placeholder="Phương án A..." />
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" data-edit-corr="B" onclick="selectEditCorrectLetter('B')" class="edit-corr-pill w-9 h-9 rounded-xl font-mono text-xs font-black shrink-0 border transition-colors" style="background: var(--bg-subtle); border-color: var(--border);">B</button>
+              <input id="edit-q-opt-b" type="text" class="uni-input flex-1 px-3 py-2 text-xs" placeholder="Phương án B..." />
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" data-edit-corr="C" onclick="selectEditCorrectLetter('C')" class="edit-corr-pill w-9 h-9 rounded-xl font-mono text-xs font-black shrink-0 border transition-colors" style="background: var(--bg-subtle); border-color: var(--border);">C</button>
+              <input id="edit-q-opt-c" type="text" class="uni-input flex-1 px-3 py-2 text-xs" placeholder="Phương án C..." />
+            </div>
+            <div class="flex items-center gap-2">
+              <button type="button" data-edit-corr="D" onclick="selectEditCorrectLetter('D')" class="edit-corr-pill w-9 h-9 rounded-xl font-mono text-xs font-black shrink-0 border transition-colors" style="background: var(--bg-subtle); border-color: var(--border);">D</button>
+              <input id="edit-q-opt-d" type="text" class="uni-input flex-1 px-3 py-2 text-xs" placeholder="Phương án D..." />
+            </div>
+          </div>
+        </div>
+
+        <!-- Short Answer / Essay correct text fallback -->
+        <div id="edit-q-text-corr-group" class="hidden space-y-1">
+          <label class="text-[11px] font-bold txt-muted uppercase tracking-wider">Đáp án đúng</label>
+          <input id="edit-q-corr-raw" type="text" class="uni-input w-full px-3 py-2 text-xs font-mono font-bold" />
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-[11px] font-bold txt-muted uppercase tracking-wider">Lời giải / Giải thích chuẩn</label>
+          <textarea id="edit-q-expl" rows="3" class="uni-input w-full px-3 py-2 text-xs leading-relaxed" placeholder="Giải thích ngắn gọn vì sao đáp án đó đúng..."></textarea>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          <div class="space-y-1">
+            <label class="text-[11px] font-bold txt-muted uppercase tracking-wider">Bài / Chuyên đề</label>
+            <input id="edit-q-topic" type="text" class="uni-input w-full px-3 py-1.5 text-xs" placeholder="VD: Bài 7: Kiểm soát nhiễm khuẩn" />
+          </div>
+          <div class="space-y-1">
+            <label class="text-[11px] font-bold txt-muted uppercase tracking-wider">Độ khó</label>
+            <select id="edit-q-diff" class="uni-input w-full px-3 py-1.5 text-xs font-bold" style="background-color: var(--bg-surface);">
+              <option value="easy">Dễ (Nhận biết)</option>
+              <option value="medium">Trung bình (Thông hiểu)</option>
+              <option value="hard">Khó (Vận dụng)</option>
+              <option value="very_hard">Rất khó (Vận dụng cao)</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="edit-q-status-line" class="text-xs font-bold min-h-[1.1rem]"></div>
+      </div>
+
+      <div class="px-5 py-3.5 shrink-0 border-t flex flex-wrap items-center justify-between gap-2" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <button type="button" onclick="deleteEditedQuestion()" class="btn-soft px-3 py-2 text-xs font-bold text-rose-400">
+          🗑️ Xóa câu
+        </button>
+        <div class="flex flex-wrap items-center gap-2">
+          <button type="button" id="btn-edit-q-save" onclick="saveEditedQuestion(false)" class="btn-soft px-4 py-2 text-xs font-extrabold">
+            💾 Lưu ngay
+          </button>
+          <button type="button" id="btn-edit-q-save-push" onclick="saveEditedQuestion(true)" class="btn-primary px-4 py-2 text-xs font-extrabold flex items-center gap-1.5">
+            <span>🚀</span> <span>Lưu &amp; Push GitHub</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/app.js?v=56.2"></script>
 </body>
 </html>

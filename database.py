@@ -751,6 +751,57 @@ def add_question(subject_id, question_text, option_a='', option_b='', option_c='
     conn.close()
     return q_id
 
+
+def get_question_by_id(question_id: int):
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT * FROM questions WHERE id = ?", (int(question_id),)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def update_question(question_id: int, fields: dict):
+    allowed = (
+        "question_text", "code_snippet", "option_a", "option_b", "option_c", "option_d",
+        "correct_option", "explanation", "difficulty", "q_type", "image_url", "topic_tag"
+    )
+    sets = []
+    params = []
+    for k in allowed:
+        if k in fields and fields[k] is not None:
+            val = str(fields[k]).strip() if k in ("correct_option", "difficulty", "q_type", "topic_tag") else str(fields[k])
+            if k == "correct_option" and str(fields.get("q_type", "mcq")).lower() in ("mcq", "true_false", ""):
+                val = val.upper()[:1] or "A"
+            sets.append(f"{k} = ?")
+            params.append(val)
+    if not sets:
+        return get_question_by_id(question_id)
+    params.append(int(question_id))
+    conn = get_connection()
+    try:
+        cur = conn.execute(f"UPDATE questions SET {', '.join(sets)} WHERE id = ?", tuple(params))
+        conn.commit()
+        if cur.rowcount == 0:
+            return None
+        row = conn.execute("SELECT * FROM questions WHERE id = ?", (int(question_id),)).fetchone()
+        return dict(row) if row else None
+    finally:
+        conn.close()
+
+
+def delete_question(question_id: int):
+    conn = get_connection()
+    try:
+        row = conn.execute("SELECT id, subject_id, topic_tag FROM questions WHERE id = ?", (int(question_id),)).fetchone()
+        if not row:
+            return None
+        conn.execute("DELETE FROM questions WHERE id = ?", (int(question_id),))
+        conn.commit()
+        return dict(row)
+    finally:
+        conn.close()
+
 # Bài tập lớn / Tự luận thực hành
 def get_exercises_by_subject(subject_id):
     conn = get_connection()

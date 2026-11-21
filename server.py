@@ -385,6 +385,8 @@ async def security_guard_middleware(request, handler):
             rl_rule = ("doc_upload", 20, 300)
         elif path == "/api/admin/backup/upload":
             rl_rule = ("db_restore", 5, 600)
+        elif path == "/api/admin/publish-github":
+            rl_rule = ("git_publish", 8, 300)
         elif path.startswith("/api/ai/") and not path.startswith("/api/ai/history"):
             rl_rule = ("ai_api", 50, 60)
 
@@ -1216,6 +1218,207 @@ async def create_question(request):
     except Exception as e:
         print(f"⚠️ create_question error: {e}")
         return json_resp({"success": False, "error": "Không thể lưu câu hỏi mới."}, 500)
+
+
+_GITHUB_PUBLISH_LOCK = asyncio.Lock()
+
+
+def _sync_ddcb_json_if_needed(old_q: dict, updated_q: dict):
+    """If a Điều Dưỡng Cơ Bản question is edited, keep seed/dieuduong_coban_600.json in sync too."""
+    try:
+        sub_id = int(updated_q.get("subject_id") or 0)
+        subs = db.get_all_subjects()
+        sub = next((s for s in subs if int(s["id"]) == sub_id), None)
+        if not sub or str(sub.get("code") or "").upper() != "DIEUDUONG_CB":
+            return False
+        json_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "seed", "dieuduong_coban_600.json")
+        if not os.path.isfile(json_path):
+            return False
+        with open(json_path, "r", encoding="utf-8") as f:
+            items = json.load(f)
+        if not isinstance(items, list):
+            return False
+        old_txt = (old_q.get("question_text") or "").strip()
+        changed = False
+        for item in items:
+            if (item.get("question_text") or "").strip() == old_txt:
+                item["question_text"] = updated_q.get("question_text", item["question_text"])
+                item["option_a"] = updated_q.get("option_a", item.get("option_a", ""))
+                item["option_b"] = updated_q.get("option_b", item.get("option_b", ""))
+                item["option_c"] = updated_q.get("option_c", item.get("option_c", ""))
+                item["option_d"] = updated_q.get("option_d", item.get("option_d", ""))
+                item["correct_option"] = updated_q.get("correct_option", item.get("correct_option", "A"))
+                item["explanation"] = updated_q.get("explanation", item.get("explanation", ""))
+                item["difficulty"] = updated_q.get("difficulty", item.get("difficulty", "medium"))
+                item["topic_tag"] = updated_q.get("topic_tag", item.get("topic_tag", ""))
+                changed = True
+                break
+        if changed:
+            tmp = json_path + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(items, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, json_path)
+        return changed
+    except Exception as exc:
+        print(f"⚠️ _sync_ddcb_json_if_needed error: {exc}")
+        return False
+
+
+async def get_question_detail_api(request):
+    try:
+        qid = int(request.match_info["id"])
+        row = await asyncio.to_thread(db.get_question_by_id, qid)
+        if not row:
+            return json_resp({"success": False, "error": "Không tìm thấy câu hỏi."}, 404)
+        return json_resp({"success": True, "question": row})
+    except Exception as e:
+        print(f"⚠️ get_question_detail_api error: {e}")
+        return json_resp({"success": False, "error": "Không thể tải câu hỏi."}, 500)
+
+
+async def update_question_api(request):
+    """Cho phép sửa trực tiếp nội dung câu hỏi, đáp án A/B/C/D, đáp án đúng & lời giải."""
+    try:
+        qid = int(request.match_info["id"])
+        data = await safe_get_json(request)
+        old_q = await asyncio.to_thread(db.get_question_by_id, qid)
+        if not old_q:
+            return json_resp({"success": False, "error": "Không tìm thấy câu hỏi cần sửa."}, 404)
+
+        q_text = str(data.get("question_text", old_q.get("question_text", ""))).strip()
+        if not q_text:
+            return json_resp({"success": False, "error": "Nội dung câu hỏi không được để trống."}, 400)
+
+        q_type = str(data.get("q_type") or old_q.get("q_type") or "mcq").strip()
+        corr = str(data.get("correct_option", old_q.get("correct_option", "A"))).strip()
+        if q_type == "mcq":
+            corr = corr.upper()[:1]
+            if corr not in ("A", "B", "C", "D"):
+                return json_resp({"success": False, "error": "Đáp án đúng trắc nghiệm phải là A, B, C hoặc D."}, 400)
+
+        fields = {
+            "question_text": q_text,
+            "option_a": data.get("option_a", old_q.get("option_a", "")),
+            "option_b": data.get("option_b", old_q.get("option_b", "")),
+            "option_c": data.get("option_c", old_q.get("option_c", "")),
+            "option_d": data.get("option_d", old_q.get("option_d", "")),
+            "correct_option": corr,
+            "explanation": data.get("explanation", old_q.get("explanation", "")),
+            "difficulty": data.get("difficulty", old_q.get("difficulty", "medium")),
+            "topic_tag": data.get("topic_tag", old_q.get("topic_tag", "")),
+            "code_snippet": data.get("code_snippet", old_q.get("code_snippet", "")),
+            "q_type": q_type,
+        }
+        updated = await asyncio.to_thread(db.update_question, qid, fields)
+        if not updated:
+            return json_resp({"success": False, "error": "Không thể cập nhật câu hỏi."}, 500)
+
+        _invalidate_hot_cache(updated.get("subject_id"))
+        await asyncio.to_thread(_sync_ddcb_json_if_needed, old_q, updated)
+        return json_resp({"success": True, "question": updated, "message": f"Đã lưu sửa đổi cho câu hỏi #{qid}!"})
+    except Exception as e:
+        print(f"⚠️ update_question_api error: {e}")
+        return json_resp({"success": False, "error": "Lỗi khi cập nhật câu hỏi."}, 500)
+
+
+async def delete_question_api(request):
+    try:
+        qid = int(request.match_info["id"])
+        deleted = await asyncio.to_thread(db.delete_question, qid)
+        if not deleted:
+            return json_resp({"success": False, "error": "Không tìm thấy câu hỏi cần xóa."}, 404)
+        _invalidate_hot_cache(deleted.get("subject_id"))
+        return json_resp({"success": True, "deleted": deleted, "message": f"Đã xóa câu hỏi #{qid}."})
+    except Exception as e:
+        print(f"⚠️ delete_question_api error: {e}")
+        return json_resp({"success": False, "error": "Không thể xóa câu hỏi."}, 500)
+
+
+async def admin_publish_github_api(request):
+    """Tạo bản seed sạch (xóa toàn bộ API key & dữ liệu cá nhân) rồi commit & push lên GitHub."""
+    auth_err = _require_admin_if_auth(request)
+    if auth_err:
+        return auth_err
+
+    data = await safe_get_json(request)
+    raw_note = re.sub(r"[\r\n\t\"`$|;&<>]+", " ", str(data.get("commit_message") or "")).strip()[:100]
+    commit_msg = raw_note or "fix(questions): cập nhật câu hỏi & đáp án từ UniMaster AI"
+
+    def _run_git_publish():
+        import subprocess
+        import make_cloud_seed
+
+        root_dir = os.path.dirname(os.path.abspath(__file__))
+        seed_info = make_cloud_seed.build_clean_seed()
+
+        if not os.path.isdir(os.path.join(root_dir, ".git")):
+            return {
+                "success": True,
+                "pushed": False,
+                "cloud_only": True,
+                "seed_questions": seed_info.get("questions", 0),
+                "message": "Đã lưu thay đổi vào CSDL máy chủ Cloud! (Đẩy lên GitHub chỉ chạy được từ máy PC có kho Git cục bộ).",
+            }
+
+        files_to_stage = ["seed/unimaster_seed.db"]
+        ddcb_rel = "seed/dieuduong_coban_600.json"
+        if os.path.isfile(os.path.join(root_dir, ddcb_rel)):
+            files_to_stage.append(ddcb_rel)
+
+        add_res = subprocess.run(
+            ["git", "add", *files_to_stage],
+            cwd=root_dir, capture_output=True, text=True, timeout=15
+        )
+        if add_res.returncode != 0:
+            return {"success": False, "error": f"Lỗi git add: {(add_res.stderr or add_res.stdout).strip()[:200]}"}
+
+        diff_check = subprocess.run(
+            ["git", "diff", "--cached", "--quiet"],
+            cwd=root_dir, capture_output=True, text=True, timeout=10
+        )
+        if diff_check.returncode == 0:
+            return {
+                "success": True,
+                "pushed": False,
+                "no_changes": True,
+                "seed_questions": seed_info.get("questions", 0),
+                "message": "Bản seed trên GitHub đã khớp mới nhất — không có thay đổi mới cần đẩy.",
+            }
+
+        commit_res = subprocess.run(
+            ["git", "commit", "-m", commit_msg],
+            cwd=root_dir, capture_output=True, text=True, timeout=20
+        )
+        if commit_res.returncode != 0:
+            return {"success": False, "error": f"Lỗi git commit: {(commit_res.stderr or commit_res.stdout).strip()[:200]}"}
+
+        push_res = subprocess.run(
+            ["git", "push", "origin", "main"],
+            cwd=root_dir, capture_output=True, text=True, timeout=30
+        )
+        if push_res.returncode != 0:
+            return {"success": False, "error": f"Đã commit nhưng lỗi git push: {(push_res.stderr or push_res.stdout).strip()[:240]}"}
+
+        sha_res = subprocess.run(
+            ["git", "rev-parse", "--short", "HEAD"],
+            cwd=root_dir, capture_output=True, text=True, timeout=10
+        )
+        commit_sha = (sha_res.stdout or "").strip()
+        return {
+            "success": True,
+            "pushed": True,
+            "commit": commit_sha,
+            "seed_questions": seed_info.get("questions", 0),
+            "message": f"Đã tạo seed sạch & đẩy lên GitHub thành công (commit {commit_sha})! Render Cloud sẽ tự cập nhật sau ~1-2 phút.",
+        }
+
+    try:
+        async with _GITHUB_PUBLISH_LOCK:
+            result = await asyncio.to_thread(_run_git_publish)
+        return json_resp(result, 200 if result.get("success") else 500)
+    except Exception as e:
+        print(f"⚠️ admin_publish_github_api error: {e}")
+        return json_resp({"success": False, "error": "Không thể đẩy lên GitHub lúc này. Hãy kiểm tra kết nối mạng / Git."}, 500)
 
 
 def answers_match_short(user_ans: str, expected_ans: str) -> bool:
@@ -4736,11 +4939,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v56-1';
+    const CACHE_NAME = 'unimaster-pwa-v56-2';
     const CORE_ASSETS = [
       '/static/style.css?v=56.1',
       '/static/minimal.css?v=54.1',
-      '/static/app.js?v=56.1',
+      '/static/app.js?v=56.2',
       '/manifest.json',
       '/icon.svg'
     ];
@@ -7952,6 +8155,11 @@ def create_app():
 
     app.router.add_get("/api/subjects/{id}/questions", get_questions)
     app.router.add_post("/api/subjects/{id}/questions", create_question)
+    app.router.add_get("/api/questions/{id}", get_question_detail_api)
+    app.router.add_put("/api/questions/{id}", update_question_api)
+    app.router.add_post("/api/questions/{id}/update", update_question_api)
+    app.router.add_delete("/api/questions/{id}", delete_question_api)
+    app.router.add_post("/api/admin/publish-github", admin_publish_github_api)
     app.router.add_get("/api/subjects/{id}/exercises", get_exercises)
     app.router.add_post("/api/exam/submit", submit_exam)
     app.router.add_post("/api/exams/submit", submit_exam)
