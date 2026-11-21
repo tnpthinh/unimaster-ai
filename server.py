@@ -3855,16 +3855,21 @@ async def get_user_state(request):
     return json_resp({"success": True, "state": state})
 
 
+_VAULT_SYNC_LOCK = asyncio.Lock()
+
+
 async def save_user_state(request):
     try:
         uid = request.get("user", {}).get("id", 1)
         incoming = await safe_get_json(request)
-        saved = await asyncio.to_thread(db.save_user_sync_state, uid, incoming)
+        async with _VAULT_SYNC_LOCK:
+            saved = await asyncio.to_thread(db.save_user_sync_state, uid, incoming)
         sender_cid = (request.headers.get("X-Sync-Client-Id") or (incoming.get("sender_cid") if isinstance(incoming, dict) else "") or "").strip()
         _notify_realtime_sync_clients(uid, {"type": "state_updated", "user_state": saved, "sender_cid": sender_cid})
         return json_resp({"success": True, "state": saved})
     except Exception as e:
-        return json_resp({"success": False, "error": str(e)}, 500)
+        print(f"⚠️ save_user_state error: {e}")
+        return json_resp({"success": False, "error": "Không thể lưu trạng thái đồng bộ lúc này."}, 500)
 
 
 def _merge_user_states(cur: dict, inc: dict) -> dict:
@@ -4217,7 +4222,8 @@ async def save_sync_vault(request):
         data = await safe_get_json(request)
         if not isinstance(data, dict):
             return json_resp({"success": False, "error": "JSON object expected"}, 400)
-        snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, data)
+        async with _VAULT_SYNC_LOCK:
+            snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, data)
         sender_cid = (request.headers.get("X-Sync-Client-Id") or data.get("sender_cid") or "").strip()
         _notify_realtime_sync_clients(uid, {"type": "vault_updated", "sender_cid": sender_cid, **snap})
 
@@ -4730,11 +4736,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v56-0';
+    const CACHE_NAME = 'unimaster-pwa-v56-1';
     const CORE_ASSETS = [
-      '/static/style.css?v=56.0',
+      '/static/style.css?v=56.1',
       '/static/minimal.css?v=54.1',
-      '/static/app.js?v=56.0',
+      '/static/app.js?v=56.1',
       '/manifest.json',
       '/icon.svg'
     ];

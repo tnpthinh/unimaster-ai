@@ -3072,11 +3072,17 @@ function updateXpUI() {
 }
 
 let syncTimeout = null;
+let _localSyncTimer = null;
 function syncUserStateToServer() {
-  localStorage.setItem('unimaster_bookmarks', JSON.stringify(STATE.bookmarks));
-  localStorage.setItem('unimaster_mistakes', JSON.stringify(STATE.mistakes));
-  localStorage.setItem('unimaster_notes', JSON.stringify(STATE.notes));
-  localStorage.setItem('unimaster_blitz_best', String(STATE.blitzBest));
+  clearTimeout(_localSyncTimer);
+  _localSyncTimer = setTimeout(() => {
+    try {
+      localStorage.setItem('unimaster_bookmarks', JSON.stringify(STATE.bookmarks));
+      localStorage.setItem('unimaster_mistakes', JSON.stringify(STATE.mistakes));
+      localStorage.setItem('unimaster_notes', JSON.stringify(STATE.notes));
+      localStorage.setItem('unimaster_blitz_best', String(STATE.blitzBest));
+    } catch (_) {}
+  }, 300);
 
   if (STATE.isOfflineStandalone) return;
   clearTimeout(syncTimeout);
@@ -3094,7 +3100,7 @@ function syncUserStateToServer() {
         ui: STATE.ui
       })
     }).catch(() => {});
-  }, 350);
+  }, 600);
 }
 
 
@@ -5399,6 +5405,11 @@ function normalizeCorrectLetter(q) {
   return raw;
 }
 
+function _hasPositionalOptionRef(q) {
+  const all = [q.option_a, q.option_b, q.option_c, q.option_d].map((s) => String(s || '')).join(' | ');
+  return /\b(cả\s*[a-d]|a\s*và\s*[b-d]|b\s*và\s*[c-d]|c\s*và\s*d|a,\s*b|tất\s*cả|cả\s*[234]\s*(ý|câu|đáp\s*án|phương\s*án)?\s*(trên|đều|đúng|sai)|đáp\s*án\s*[a-d]|các\s*(ý|câu|đáp\s*án)\s*trên)\b/i.test(all);
+}
+
 function launchExamWithQuestions(rawQuestions, title, forceNoShuffle = false) {
   clearInterval(STATE.exam.timerId);
 
@@ -5406,22 +5417,30 @@ function launchExamWithQuestions(rawQuestions, title, forceNoShuffle = false) {
   const durationMin = Math.max(0, parseInt(document.getElementById('exam-custom-time')?.value ?? '0', 10) || 0);
 
   const correctMap = {};
+  const optionOrders = {};
   const prepared = rawQuestions.map((orig) => {
     const q = { ...orig };
     const baseCorr = normalizeCorrectLetter(q);
-    if (shuffleOpts && q.q_type === 'mcq') {
+    if (shuffleOpts && (q.q_type === 'mcq' || !q.q_type) && !_hasPositionalOptionRef(q)) {
       const items = [
         { k: 'A', t: q.option_a },
         { k: 'B', t: q.option_b },
         { k: 'C', t: q.option_c },
         { k: 'D', t: q.option_d }
-      ].sort(() => Math.random() - 0.5);
+      ];
+      // Fisher-Yates unbiased shuffle
+      for (let i = items.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const tmp = items[i]; items[i] = items[j]; items[j] = tmp;
+      }
       let newCorr = 'A';
       ['A', 'B', 'C', 'D'].forEach((L, idx) => {
         q[`option_${L.toLowerCase()}`] = items[idx].t;
         if (items[idx].k === baseCorr) newCorr = L;
       });
       q._effectiveCorrect = newCorr;
+      q._optionOrder = items.map((it) => it.k);
+      optionOrders[q.id] = q._optionOrder;
       correctMap[q.id] = newCorr;
     } else {
       q._effectiveCorrect = baseCorr;
@@ -5441,6 +5460,7 @@ function launchExamWithQuestions(rawQuestions, title, forceNoShuffle = false) {
     answers: {},
     graded: {},
     correctMap,
+    _optionOrders: optionOrders,
     eliminated: {},
     userEliminated: {},
     hints: {},
@@ -6012,7 +6032,7 @@ function renderQuestionAnswerArea(q) {
             : '';
 
         return `
-          <div id="opt-row-${opt.letter}" onclick="if (!event.target.closest('.opt-elim-btn, .opt-why-wrong-btn')) selectExamOption('${opt.letter}')" oncontextmenu="toggleUserEliminateOption(event, '${opt.letter}'); return false;" class="${cls}">
+          <div id="opt-row-${opt.letter}" data-opt-letter="${opt.letter}" role="button" tabindex="0" onclick="if (!event.target.closest('.opt-elim-btn, .opt-why-wrong-btn')) selectExamOption('${opt.letter}')" oncontextmenu="toggleUserEliminateOption(event, '${opt.letter}'); return false;" class="${cls}">
             <div class="opt-badge">
               ${opt.letter}
               <span class="opt-key-micro">${opt.keyNum}</span>
@@ -6087,6 +6107,69 @@ function toggleUserEliminateOption(ev, letter) {
   playSound('click');
 }
 
+function updateExamAfterAnswer(q) {
+  if (!q || !STATE?.exam?.active) return;
+  const total = STATE.exam.questions.length;
+  renderQuestionAnswerArea(q);
+  renderQuestionFeedbackArea(q);
+
+  // Fast counter & accuracy pill update without rebuilding prompt/image/code/1800 palette nodes
+  let answeredCnt = 0;
+  let rightNow = 0;
+  let wrongNow = 0;
+  for (let i = 0; i < total; i++) {
+    const qItem = STATE.exam.questions[i];
+    const u = String(STATE.exam.answers[qItem.id] ?? '').trim();
+    if (u !== '') answeredCnt++;
+    if (STATE.exam.graded[qItem.id] && u !== '') {
+      const c = getQuestionCorrectLetter(qItem);
+      if (qItem.q_type === 'short_answer' ? isShortAnswerMatch(u, c) : u.toUpperCase() === c) rightNow++;
+      else wrongNow++;
+    }
+  }
+  setText('answered-q-count', answeredCnt);
+  const accPill = document.getElementById('exam-live-accuracy-pill');
+  if (accPill) {
+    const gradedTotal = rightNow + wrongNow;
+    if (gradedTotal > 0) {
+      const pct = Math.round((rightNow / gradedTotal) * 100);
+      accPill.textContent = `✔ ${rightNow} • ✖ ${wrongNow} • ${pct}%`;
+      accPill.classList.remove('hidden');
+    }
+  }
+  const streakEl = document.getElementById('streak-badge');
+  if (streakEl) {
+    if (STATE.exam.streak >= 2) {
+      streakEl.textContent = `🔥 x${STATE.exam.streak}`;
+      streakEl.classList.remove('hidden');
+    } else {
+      streakEl.classList.add('hidden');
+    }
+  }
+  const livesEl = document.getElementById('blitz-lives-badge');
+  if (livesEl && STATE.exam.mode === 'blitz') {
+    livesEl.textContent = '❤️'.repeat(Math.max(0, STATE.exam.blitzLives));
+    livesEl.classList.remove('hidden');
+  }
+  const floatingNextBtn = document.getElementById('floating-next-q-btn');
+  if (floatingNextBtn) {
+    floatingNextBtn.classList.add('floating-next-ready');
+    const isLast = STATE.exam.currentIndex === total - 1;
+    if (!isLast) {
+      const nextNum = Number(STATE.exam.currentIndex || 0) + 2;
+      const lbl = document.getElementById('floating-next-q-text');
+      if (lbl) lbl.textContent = `Câu Tiếp (${nextNum}/${total}) ↵`;
+    }
+  }
+
+  // Only render palette if drawer is open; only run KaTeX on explanation/options if math ($) present
+  renderPaletteGrid();
+  const ansArea = document.getElementById('q-answer-area');
+  const explBox = document.getElementById('q-official-expl-box');
+  if (ansArea && ansArea.textContent.includes('$')) renderAllMathOnPage(ansArea);
+  if (explBox && explBox.textContent.includes('$')) renderAllMathOnPage(explBox);
+}
+
 function selectExamOption(letter, fromKeyboard = false) {
   if (!STATE.exam.active || STATE.exam.paused) return;
   const q = STATE.exam.questions[STATE.exam.currentIndex];
@@ -6097,12 +6180,6 @@ function selectExamOption(letter, fromKeyboard = false) {
 
   if (STATE.exam.userEliminated && Array.isArray(STATE.exam.userEliminated[q.id])) {
     STATE.exam.userEliminated[q.id] = STATE.exam.userEliminated[q.id].filter((x) => x !== letter);
-  }
-
-  const rowEl = document.getElementById(`opt-row-${letter}`);
-  if (rowEl && fromKeyboard) {
-    rowEl.classList.add('key-bounce');
-    setTimeout(() => rowEl.classList.remove('key-bounce'), 160);
   }
 
   const corrLetter = getQuestionCorrectLetter(q);
@@ -6131,7 +6208,7 @@ function selectExamOption(letter, fromKeyboard = false) {
     if (STATE.exam.mode === 'blitz') {
       STATE.exam.blitzLives--;
       if (STATE.exam.blitzLives <= 0) {
-        renderCurrentExamQuestion();
+        updateExamAfterAnswer(q);
         showToast(`💥 Hết 3 mạng! Tổng điểm Blitz: ${STATE.exam.blitzScore} đ`, 'warning');
         setTimeout(() => submitExamNow(true), 1100);
         return;
@@ -6139,7 +6216,8 @@ function selectExamOption(letter, fromKeyboard = false) {
     }
   }
 
-  renderCurrentExamQuestion();
+  // Ultra-fast surgical UI update (<2ms instead of full stage teardown + 1800 palette rebuild!)
+  updateExamAfterAnswer(q);
 
   if (!isCorrect && STATE.ui?.autoAiOnWrong) {
     setTimeout(() => askAiAboutCurrentExamQuestion(true), 220);
@@ -6798,14 +6876,17 @@ function nextQuestion() {
 }
 
 function togglePaletteDrawer() {
-  document.getElementById('question-palette-drawer')?.classList.toggle('hidden');
+  const drawer = document.getElementById('question-palette-drawer');
+  if (!drawer) return;
+  const nowHidden = drawer.classList.toggle('hidden');
+  if (!nowHidden) renderPaletteGrid(true);
   playSound('click');
 }
 
 function setPaletteFilter(f) {
   STATE.exam.paletteFilter = f;
   document.querySelectorAll('[data-pfilter]').forEach((b) => b.classList.toggle('active', b.getAttribute('data-pfilter') === f));
-  renderPaletteGrid();
+  renderPaletteGrid(true);
 }
 
 function jumpToInputQuestion() {
@@ -6818,7 +6899,9 @@ function jumpToInputQuestion() {
   }
 }
 
-function renderPaletteGrid() {
+function renderPaletteGrid(force = false) {
+  const drawer = document.getElementById('question-palette-drawer');
+  if (!force && drawer && drawer.classList.contains('hidden')) return;
   const grid = document.getElementById('palette-grid');
   if (!grid || !STATE.exam.active) return;
   const f = STATE.exam.paletteFilter;
@@ -18587,15 +18670,11 @@ document.addEventListener('keydown', (e) => {
   }
   window.saveActiveExamDraftNow = saveActiveExamDraftNow;
 
-  function scheduleExamDraftSync(delayMs = 250) {
-    const draft = buildCurrentExamDraftObject();
-    if (!draft || recentlyDiscardedKeys.has(draft.draft_key)) return;
-    // Always write localStorage immediately (0ms)
-    saveProgressDraft(draft, { syncServer: false });
+  function scheduleExamDraftSync(delayMs = 400) {
     clearTimeout(examSyncTimer);
     examSyncTimer = setTimeout(() => {
       saveActiveExamDraftNow({ syncServer: true });
-    }, delayMs);
+    }, Math.max(300, Number(delayMs) || 400));
   }
 
   // --- Secondary Auto-Save Helpers (Essay, Code, Flashcard, Tutor) ---
@@ -18867,11 +18946,15 @@ document.addEventListener('keydown', (e) => {
 
     const optOrders = p.option_orders || {};
     const prepared = [];
+    const rebuiltCorrectMap = {};
     for (const qid of qIds) {
       const origQ = poolMap.get(String(qid));
       if (!origQ) continue;
       const cloned = JSON.parse(JSON.stringify(origQ));
+      const origBaseCorr =
+        (typeof normalizeCorrectLetter === 'function' ? normalizeCorrectLetter(cloned) : cloned.correct_option) || 'A';
       const perm = optOrders[qid] || optOrders[String(qid)];
+      let effCorr = origBaseCorr;
       if (Array.isArray(perm) && perm.length >= 2) {
         const origVals = {
           A: cloned.option_a,
@@ -18883,14 +18966,15 @@ document.addEventListener('keydown', (e) => {
         if (perm[1]) cloned.option_b = origVals[perm[1]];
         if (perm[2] !== undefined) cloned.option_c = origVals[perm[2]];
         if (perm[3] !== undefined) cloned.option_d = origVals[perm[3]];
+        const newIdx = perm.indexOf(origBaseCorr);
+        if (newIdx >= 0 && newIdx < 4) {
+          effCorr = ['A', 'B', 'C', 'D'][newIdx];
+        }
+        cloned._optionOrder = perm;
       }
-      const mappedCorrect = p.correctMap?.[cloned.id] ?? p.correctMap?.[String(cloned.id)];
-      const effCorr =
-        mappedCorrect ??
-        cloned._effectiveCorrect ??
-        (typeof normalizeCorrectLetter === 'function' ? normalizeCorrectLetter(cloned) : cloned.correct_option) ??
-        'A';
+      // If perm is absent (e.g. legacy draft without option_orders), options stay unshuffled -> MUST use origBaseCorr!
       cloned._effectiveCorrect = effCorr;
+      rebuiltCorrectMap[cloned.id] = effCorr;
       prepared.push(cloned);
     }
 
@@ -18938,7 +19022,7 @@ document.addEventListener('keydown', (e) => {
       currentIndex: curIndex,
       answers: { ...(p.answers || {}) },
       graded: { ...(p.graded || {}) },
-      correctMap: { ...(p.correctMap || {}) },
+      correctMap: rebuiltCorrectMap,
       eliminated: { ...(p.eliminated || {}) },
       essayGrades: { ...(p.essayGrades || {}) },
       paletteFilter: 'all',
@@ -28244,23 +28328,12 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     window.switchTab = switchTab;
   }
 
-  // 3. Directional Liquid Glide When Navigating Between Exam Questions
+  // 3. Zero-Reflow Instant Exam Navigation (v56.1: removed synchronous offsetWidth thrash & staggered delays)
   if (typeof renderCurrentExamQuestion === 'function') {
     const _origRenderExamQV52 = renderCurrentExamQuestion;
     renderCurrentExamQuestion = function (...args) {
-      const curIdx = Number(STATE?.exam?.currentIndex ?? 0);
-      const res = _origRenderExamQV52.apply(this, args);
-      if (STATE?.exam?.active && curIdx !== prevExamQIdx && !document.documentElement.classList.contains('perf-mode')) {
-        const stage = document.getElementById('exam-question-stage');
-        if (stage) {
-          const dirCls = prevExamQIdx >= 0 && curIdx < prevExamQIdx ? 'q-glide-prev' : 'q-glide-next';
-          stage.classList.remove('q-glide-next', 'q-glide-prev');
-          void stage.offsetWidth;
-          stage.classList.add(dirCls);
-        }
-      }
-      prevExamQIdx = curIdx;
-      return res;
+      prevExamQIdx = Number(STATE?.exam?.currentIndex ?? 0);
+      return _origRenderExamQV52.apply(this, args);
     };
     window.renderCurrentExamQuestion = renderCurrentExamQuestion;
   }
@@ -28426,28 +28499,33 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
   }
   window.insertQuickCodeTemplate = insertQuickCodeTemplate;
 
-  // 3. Live Ongoing Exam Auto-Save & Crash Recovery
+  // 3. Live Ongoing Exam Auto-Save & Crash Recovery (v56.1: Debounced & Lightweight — zero tap freeze)
   const EXAM_LIVE_DRAFT_KEY = 'unimaster_exam_live_draft_v55';
+  let _liveDraftTimer = null;
 
   function saveActiveExamDraft() {
-    if (!STATE?.exam?.active || !Array.isArray(STATE.exam.questions) || !STATE.exam.questions.length) return;
-    const ansKeys = Object.keys(STATE.exam.answers || {});
-    if (!ansKeys.length && (STATE.exam.currentIndex || 0) === 0) return;
-    try {
-      const snap = {
-        subjectId: STATE.exam.subjectId,
-        subjectName: STATE.exam.subjectName,
-        mode: STATE.exam.mode,
-        currentIndex: STATE.exam.currentIndex,
-        answers: STATE.exam.answers,
-        graded: STATE.exam.graded,
-        correctMap: STATE.exam.correctMap,
-        elapsedSeconds: STATE.exam.elapsedSeconds || 0,
-        questions: STATE.exam.questions.slice(0, 60),
-        savedAt: Date.now()
-      };
-      localStorage.setItem(EXAM_LIVE_DRAFT_KEY, JSON.stringify(snap));
-    } catch (_) {}
+    clearTimeout(_liveDraftTimer);
+    _liveDraftTimer = setTimeout(() => {
+      if (!STATE?.exam?.active || !Array.isArray(STATE.exam.questions) || !STATE.exam.questions.length) return;
+      const ansKeys = Object.keys(STATE.exam.answers || {});
+      if (!ansKeys.length && (STATE.exam.currentIndex || 0) === 0) return;
+      try {
+        const snap = {
+          subjectId: STATE.exam.subjectId,
+          subjectName: STATE.exam.subjectName,
+          mode: STATE.exam.mode,
+          currentIndex: STATE.exam.currentIndex,
+          answers: STATE.exam.answers,
+          graded: STATE.exam.graded,
+          correctMap: STATE.exam.correctMap,
+          optionOrders: STATE.exam._optionOrders || {},
+          elapsedSeconds: STATE.exam.elapsedSeconds || 0,
+          questionIds: STATE.exam.questions.map((q) => q.id),
+          savedAt: Date.now()
+        };
+        localStorage.setItem(EXAM_LIVE_DRAFT_KEY, JSON.stringify(snap));
+      } catch (_) {}
+    }, 650);
   }
 
   function clearActiveExamDraft() {
@@ -29605,14 +29683,38 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
     }
   });
 
+  // Delegated option-row click & Enter/Space reliability guard (guarantees 1st-tap response on iOS/Android/Desktop)
+  function _bindOptionAreaDelegation() {
+    const area = document.getElementById('q-answer-area');
+    if (!area || area.dataset.umOptDelegated) return;
+    area.dataset.umOptDelegated = '1';
+    area.addEventListener('click', (e) => {
+      if (e.target.closest('.opt-elim-btn, .opt-why-wrong-btn, button, input, textarea, a')) return;
+      const row = e.target.closest('.option-row[data-opt-letter]');
+      if (!row || row.classList.contains('disabled') || row.classList.contains('is-eliminated')) return;
+      const letter = row.getAttribute('data-opt-letter');
+      if (letter && typeof selectExamOption === 'function') selectExamOption(letter);
+    });
+    area.addEventListener('keydown', (e) => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      const row = e.target.closest('.option-row[data-opt-letter]');
+      if (!row || row.classList.contains('disabled')) return;
+      e.preventDefault();
+      const letter = row.getAttribute('data-opt-letter');
+      if (letter && typeof selectExamOption === 'function') selectExamOption(letter, true);
+    });
+  }
+
   // Initial hydration on load
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', () => {
       updateDailyGoalWidget();
       _updatePrivacyPinBadge();
+      _bindOptionAreaDelegation();
     });
   } else {
     updateDailyGoalWidget();
     _updatePrivacyPinBadge();
+    _bindOptionAreaDelegation();
   }
 })();
