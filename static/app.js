@@ -8851,24 +8851,294 @@ function populateStemReferenceModal() {
 //     KNOWLEDGE HEATMAP, SCORE PREDICTOR, 3-STRIKE MISTAKE BANK & ARENA 1v1
 // =========================================================================
 
-// --- 15.1 HD Image Lightbox & Add-Question Image Upload ---
-function openImageLightbox(imageUrl, caption = '') {
-  if (!imageUrl) return;
+// --- 15.1 PRO HD Image Lightbox v56.3 (50%-800% Zoom, Drag-to-Pan, Pinch-to-Zoom, Rotate, Filters) ---
+const _LB = {
+  scale: 1,
+  panX: 0,
+  panY: 0,
+  rotate: 0,
+  flipX: 1,
+  brightness: 100,
+  contrast: 100,
+  invert: false,
+  expanded: false,
+  dragging: false,
+  startX: 0,
+  startY: 0,
+  originPanX: 0,
+  originPanY: 0,
+  pinchDist: 0,
+  pinchScale: 1,
+  lastTapTs: 0,
+  bound: false,
+};
+
+function _applyLightboxTransform(animate = false) {
   const img = document.getElementById('lightbox-img-el');
-  const cap = document.getElementById('lightbox-caption-text') || document.getElementById('lightbox-caption-el');
-  if (img) {
-    img.src = imageUrl;
-    img.style.transform = 'scale(1)';
+  const stage = document.getElementById('lightbox-stage');
+  if (!img) return;
+  img.style.transition = animate ? 'transform 0.16s cubic-bezier(0.22, 1, 0.36, 1)' : 'none';
+  img.style.transform = `translate3d(${_LB.panX}px, ${_LB.panY}px, 0) scale(${_LB.scale}) rotate(${_LB.rotate}deg) scaleX(${_LB.flipX})`;
+  img.style.filter = `brightness(${_LB.brightness}%) contrast(${_LB.contrast}%)${_LB.invert ? ' invert(1)' : ''}`;
+
+  const pct = Math.round(_LB.scale * 100);
+  const lbl = document.getElementById('lightbox-zoom-label');
+  if (lbl) lbl.textContent = `${pct}%`;
+  const slider = document.getElementById('lightbox-zoom-slider');
+  if (slider) slider.value = String(Math.min(800, Math.max(50, pct)));
+
+  document.querySelectorAll('#modal-image-lightbox button[data-lb-preset]').forEach((b) => {
+    const p = Number(b.getAttribute('data-lb-preset'));
+    const isAct = Math.abs(p - _LB.scale) < 0.08;
+    b.classList.toggle('btn-primary', isAct);
+    b.classList.toggle('btn-soft', !isAct);
+  });
+
+  if (stage) {
+    stage.style.cursor = _LB.dragging ? 'grabbing' : (_LB.scale > 1.01 ? 'grab' : 'zoom-in');
   }
-  if (cap) cap.textContent = caption || 'Quan sát chi tiết tiêu bản / hình ảnh đề thi (Bấm ra ngoài hoặc ESC để đóng)';
-  openModal('modal-image-lightbox');
+  const invBtn = document.getElementById('btn-lb-invert');
+  if (invBtn) {
+    invBtn.classList.toggle('btn-primary', _LB.invert);
+    invBtn.classList.toggle('btn-soft', !_LB.invert);
+  }
 }
 
-function setLightboxZoom(scale) {
+function _clampLightboxScale(val) {
+  return Math.min(8, Math.max(0.5, Number(val) || 1));
+}
+
+function _zoomLightboxAtPoint(newScale, clientX, clientY, animate = false) {
+  const stage = document.getElementById('lightbox-stage');
+  const clamped = _clampLightboxScale(newScale);
+  if (stage && clientX !== undefined && clientY !== undefined) {
+    const rect = stage.getBoundingClientRect();
+    const cx = clientX - (rect.left + rect.width / 2);
+    const cy = clientY - (rect.top + rect.height / 2);
+    const ratio = clamped / _LB.scale;
+    _LB.panX = cx - (cx - _LB.panX) * ratio;
+    _LB.panY = cy - (cy - _LB.panY) * ratio;
+  }
+  _LB.scale = clamped;
+  if (_LB.scale <= 1.01) {
+    _LB.panX = 0;
+    _LB.panY = 0;
+  }
+  _applyLightboxTransform(animate);
+}
+
+function _bindLightboxInteractions() {
+  if (_LB.bound) return;
+  const stage = document.getElementById('lightbox-stage');
+  if (!stage) return;
+  _LB.bound = true;
+
+  // Hide hint once user interacts
+  const hideHint = () => document.getElementById('lightbox-hint-pill')?.classList.add('hidden');
+
+  // 1. Mouse Wheel Zoom toward cursor (50% -> 800%)
+  stage.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    hideHint();
+    const factor = e.deltaY < 0 ? 1.18 : 1 / 1.18;
+    _zoomLightboxAtPoint(_LB.scale * factor, e.clientX, e.clientY, false);
+  }, { passive: false });
+
+  // 2. Mouse Drag-to-Pan
+  stage.addEventListener('mousedown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    hideHint();
+    _LB.dragging = true;
+    _LB.startX = e.clientX;
+    _LB.startY = e.clientY;
+    _LB.originPanX = _LB.panX;
+    _LB.originPanY = _LB.panY;
+    stage.style.cursor = 'grabbing';
+  });
+
+  window.addEventListener('mousemove', (e) => {
+    if (!_LB.dragging) return;
+    _LB.panX = _LB.originPanX + (e.clientX - _LB.startX);
+    _LB.panY = _LB.originPanY + (e.clientY - _LB.startY);
+    _applyLightboxTransform(false);
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (!_LB.dragging) return;
+    _LB.dragging = false;
+    _applyLightboxTransform(false);
+  });
+
+  // 3. Double-Click to toggle 100% <-> 300% centered on clicked spot
+  stage.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+    hideHint();
+    if (_LB.scale > 1.25) {
+      _LB.scale = 1;
+      _LB.panX = 0;
+      _LB.panY = 0;
+      _applyLightboxTransform(true);
+    } else {
+      _zoomLightboxAtPoint(3, e.clientX, e.clientY, true);
+    }
+  });
+
+  // 4. Touch 1-Finger Pan & 2-Finger Pinch-to-Zoom (iPhone / iPad / Android)
+  const _dist = (t1, t2) => Math.hypot(t2.clientX - t1.clientX, t2.clientY - t1.clientY);
+
+  stage.addEventListener('touchstart', (e) => {
+    hideHint();
+    if (e.touches.length === 1) {
+      const now = Date.now();
+      const t = e.touches[0];
+      if (now - _LB.lastTapTs < 280) {
+        // Double-tap zoom toggle
+        _LB.lastTapTs = 0;
+        if (_LB.scale > 1.25) {
+          _LB.scale = 1; _LB.panX = 0; _LB.panY = 0;
+          _applyLightboxTransform(true);
+        } else {
+          _zoomLightboxAtPoint(3, t.clientX, t.clientY, true);
+        }
+        return;
+      }
+      _LB.lastTapTs = now;
+      _LB.dragging = true;
+      _LB.startX = t.clientX;
+      _LB.startY = t.clientY;
+      _LB.originPanX = _LB.panX;
+      _LB.originPanY = _LB.panY;
+    } else if (e.touches.length === 2) {
+      _LB.dragging = false;
+      _LB.pinchDist = _dist(e.touches[0], e.touches[1]) || 1;
+      _LB.pinchScale = _LB.scale;
+    }
+  }, { passive: true });
+
+  stage.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 1 && _LB.dragging) {
+      e.preventDefault();
+      const t = e.touches[0];
+      _LB.panX = _LB.originPanX + (t.clientX - _LB.startX);
+      _LB.panY = _LB.originPanY + (t.clientY - _LB.startY);
+      _applyLightboxTransform(false);
+    } else if (e.touches.length === 2) {
+      e.preventDefault();
+      const curD = _dist(e.touches[0], e.touches[1]);
+      const midX = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+      const midY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+      _zoomLightboxAtPoint(_LB.pinchScale * (curD / _LB.pinchDist), midX, midY, false);
+    }
+  }, { passive: false });
+
+  stage.addEventListener('touchend', (e) => {
+    if (e.touches.length === 0) _LB.dragging = false;
+  }, { passive: true });
+
+  // 5. Keyboard navigation when Lightbox is open (Arrows pan, +/- zoom, R rotate, 0 reset, ESC close)
+  document.addEventListener('keydown', (e) => {
+    const modal = document.getElementById('modal-image-lightbox');
+    if (!modal || modal.classList.contains('hidden')) return;
+    if (e.key === 'Escape') { closeModal('modal-image-lightbox'); return; }
+    if (e.key === '+' || e.key === '=') { e.preventDefault(); stepLightboxZoom(0.4); return; }
+    if (e.key === '-' || e.key === '_') { e.preventDefault(); stepLightboxZoom(-0.4); return; }
+    if (e.key === '0') { e.preventDefault(); resetLightboxView(); return; }
+    if (e.key.toLowerCase() === 'r') { e.preventDefault(); rotateLightbox(90); return; }
+    const step = 65;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); _LB.panX += step; _applyLightboxTransform(false); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); _LB.panX -= step; _applyLightboxTransform(false); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); _LB.panY += step; _applyLightboxTransform(false); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); _LB.panY -= step; _applyLightboxTransform(false); }
+  });
+}
+
+function resetLightboxView() {
+  _LB.scale = 1;
+  _LB.panX = 0;
+  _LB.panY = 0;
+  _LB.rotate = 0;
+  _LB.flipX = 1;
+  _LB.brightness = 100;
+  _LB.contrast = 100;
+  _LB.invert = false;
+  const br = document.getElementById('lightbox-bright-slider');
+  const co = document.getElementById('lightbox-contrast-slider');
+  if (br) br.value = '100';
+  if (co) co.value = '100';
+  _applyLightboxTransform(true);
+}
+window.resetLightboxView = resetLightboxView;
+
+function openImageLightbox(imageUrl, caption = '') {
+  if (!imageUrl) return;
+  _bindLightboxInteractions();
   const img = document.getElementById('lightbox-img-el');
-  if (img) img.style.transform = `scale(${scale || 1})`;
+  const cap = document.getElementById('lightbox-caption-text') || document.getElementById('lightbox-caption-el');
+  if (img) img.src = imageUrl;
+  if (cap) cap.textContent = caption || 'Quan sát chi tiết tiêu bản / hình ảnh đề thi';
+  document.getElementById('lightbox-hint-pill')?.classList.remove('hidden');
+  resetLightboxView();
+  openModal('modal-image-lightbox');
+  if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+}
+window.openImageLightbox = openImageLightbox;
+
+function setLightboxZoom(scale, opts = {}) {
+  const target = _clampLightboxScale(scale);
+  _LB.scale = target;
+  if (!opts.keepPan || target <= 1.01) {
+    _LB.panX = 0;
+    _LB.panY = 0;
+  }
+  _applyLightboxTransform(!opts.silent);
+  if (!opts.silent) playSound('click');
+}
+window.setLightboxZoom = setLightboxZoom;
+
+function stepLightboxZoom(delta) {
+  setLightboxZoom(_LB.scale + delta, { keepPan: true });
+}
+window.stepLightboxZoom = stepLightboxZoom;
+
+function rotateLightbox(deg) {
+  _LB.rotate = (_LB.rotate + deg) % 360;
+  _applyLightboxTransform(true);
   playSound('click');
 }
+window.rotateLightbox = rotateLightbox;
+
+function flipLightboxHorizontal() {
+  _LB.flipX = _LB.flipX === 1 ? -1 : 1;
+  _applyLightboxTransform(true);
+  playSound('click');
+}
+window.flipLightboxHorizontal = flipLightboxHorizontal;
+
+function updateLightboxFilters() {
+  _LB.brightness = Number(document.getElementById('lightbox-bright-slider')?.value || 100);
+  _LB.contrast = Number(document.getElementById('lightbox-contrast-slider')?.value || 100);
+  _applyLightboxTransform(false);
+}
+window.updateLightboxFilters = updateLightboxFilters;
+
+function toggleLightboxInvert() {
+  _LB.invert = !_LB.invert;
+  _applyLightboxTransform(false);
+  playSound('click');
+}
+window.toggleLightboxInvert = toggleLightboxInvert;
+
+function toggleLightboxFullExpand() {
+  const box = document.getElementById('lightbox-dialog-box');
+  if (!box) return;
+  _LB.expanded = !_LB.expanded;
+  box.classList.toggle('max-w-5xl', !_LB.expanded);
+  box.classList.toggle('max-w-[98vw]', _LB.expanded);
+  box.classList.toggle('h-[92vh]', !_LB.expanded);
+  box.classList.toggle('h-[96vh]', _LB.expanded);
+}
+window.toggleLightboxFullExpand = toggleLightboxFullExpand;
 
 function openAddQuestionWithImage(imageUrl) {
   openAddQuestionModal();

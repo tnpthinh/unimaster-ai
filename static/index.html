@@ -4841,25 +4841,78 @@
   </div>
 
   <!-- =====================================================================
-       MODAL: HD IMAGE LIGHTBOX VIEWER (PHÓNG TO TIÊU BẢN KÍNH HIỂN VI / SƠ ĐỒ)
+       MODAL: PRO HD IMAGE LIGHTBOX VIEWER v56.3 (ZOOM 50%-800%, DRAG-TO-PAN,
+       PINCH-TO-ZOOM, ROTATE, BRIGHTNESS/CONTRAST & FULLSCREEN SPECIMEN MODE)
        ===================================================================== -->
   <div id="modal-image-lightbox" onclick="if(event.target===this) closeModal('modal-image-lightbox')"
-    class="hidden fixed inset-0 z-[80] modal-overlay flex items-center justify-center p-3 sm:p-6">
-    <div class="uni-card w-full max-w-4xl max-h-[92vh] flex flex-col overflow-hidden animate-fade-in">
-      <div class="px-5 py-3.5 flex flex-wrap items-center justify-between gap-2" style="border-bottom: 1px solid var(--border);">
-        <div class="text-xs sm:text-sm font-extrabold txt-main flex items-center gap-2 truncate">
-          <span>🔬</span> <span id="lightbox-caption-text">Quan sát chi tiết tiêu bản / hình ảnh đề thi</span>
+    class="hidden fixed inset-0 z-[95] modal-overlay flex items-center justify-center p-2 sm:p-4">
+    <div id="lightbox-dialog-box" class="uni-card w-full max-w-5xl h-[92vh] flex flex-col overflow-hidden animate-fade-in shadow-2xl">
+      <!-- Top Bar: Caption + Zoom Presets + Fullscreen + Close -->
+      <div class="px-3.5 sm:px-5 py-2.5 shrink-0 flex flex-wrap items-center justify-between gap-2 border-b" style="border-color: var(--border); background-color: var(--bg-surface);">
+        <div class="text-xs sm:text-sm font-extrabold txt-main flex items-center gap-2 min-w-0 flex-1">
+          <span class="shrink-0">🔬</span>
+          <span id="lightbox-caption-text" class="truncate">Quan sát chi tiết tiêu bản / hình ảnh đề thi</span>
         </div>
-        <div class="flex items-center gap-1.5">
-          <button type="button" onclick="setLightboxZoom(1)" class="btn-soft px-2.5 py-1 text-xs">100%</button>
-          <button type="button" onclick="setLightboxZoom(1.65)" class="btn-soft px-2.5 py-1 text-xs">165%</button>
-          <button type="button" onclick="setLightboxZoom(2.3)" class="btn-soft px-2.5 py-1 text-xs">230%</button>
-          <button type="button" onclick="closeModal('modal-image-lightbox')" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
+        <div class="flex flex-wrap items-center gap-1">
+          <button type="button" onclick="stepLightboxZoom(-0.35)" title="Thu nhỏ (-)" class="btn-soft w-7 h-7 p-0 text-sm font-black flex items-center justify-center">−</button>
+          <span id="lightbox-zoom-label" class="font-mono text-xs font-extrabold txt-brand px-2 min-w-[3.4rem] text-center tabular-nums">100%</span>
+          <button type="button" onclick="stepLightboxZoom(0.35)" title="Phóng to (+)" class="btn-soft w-7 h-7 p-0 text-sm font-black flex items-center justify-center">+</button>
+          <button type="button" onclick="setLightboxZoom(1)" data-lb-preset="1" class="btn-soft px-2 py-1 text-[11px] font-bold">100%</button>
+          <button type="button" onclick="setLightboxZoom(2)" data-lb-preset="2" class="btn-soft px-2 py-1 text-[11px] font-bold">200%</button>
+          <button type="button" onclick="setLightboxZoom(3.5)" data-lb-preset="3.5" class="btn-soft px-2 py-1 text-[11px] font-bold hidden sm:inline-flex">350%</button>
+          <button type="button" onclick="setLightboxZoom(5)" data-lb-preset="5" class="btn-soft px-2 py-1 text-[11px] font-bold">500%</button>
+          <button type="button" onclick="setLightboxZoom(8)" data-lb-preset="8" class="btn-soft px-2 py-1 text-[11px] font-bold hidden md:inline-flex">800%</button>
+          <button type="button" onclick="toggleLightboxFullExpand()" title="Mở rộng toàn màn hình" class="btn-soft px-2 py-1 text-xs font-bold">⛶</button>
+          <button type="button" onclick="closeModal('modal-image-lightbox')" title="Đóng (ESC)" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
         </div>
       </div>
-      <div class="p-4 overflow-auto flex-1 flex items-center justify-center" style="background-color: #050508;">
-        <img id="lightbox-img-el" src="" alt="Tiêu bản phóng to"
-          class="max-w-full max-h-[76vh] object-contain rounded-xl transition-transform duration-200 origin-center" />
+
+      <!-- Interactive Pan & Zoom Viewport Stage -->
+      <div id="lightbox-stage" class="relative flex-1 overflow-hidden flex items-center justify-center select-none"
+        style="background-color: #05060a; touch-action: none; cursor: grab;">
+        <img id="lightbox-img-el" src="" alt="Tiêu bản phóng to" draggable="false"
+          class="max-w-full max-h-full object-contain rounded-lg select-none"
+          style="transform-origin: center center; will-change: transform; pointer-events: none;" />
+        <!-- Subtle Floating Pan/Zoom Hint Pill -->
+        <div id="lightbox-hint-pill" class="absolute bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-[11px] font-semibold pointer-events-none"
+          style="background: rgba(9, 11, 16, 0.78); color: #cbd5e1; border: 1px solid rgba(255,255,255,0.12);">
+          Kéo ảnh để di chuyển • Lăn chuột / Chụm 2 ngón để phóng tới 800% • Nháy đúp để phóng nhanh
+        </div>
+      </div>
+
+      <!-- Bottom Customization Toolbar: Zoom Slider, Rotate, Flip, Brightness, Contrast, Invert, Reset -->
+      <div class="px-3.5 sm:px-5 py-2.5 shrink-0 border-t flex flex-wrap items-center justify-between gap-2.5 text-xs"
+        style="border-color: var(--border); background-color: var(--bg-surface);">
+        <!-- Zoom Slider 50% - 800% -->
+        <div class="flex items-center gap-2 flex-1 min-w-[170px] max-w-xs">
+          <span class="text-[11px] font-bold txt-muted shrink-0">🔍 Phóng:</span>
+          <input id="lightbox-zoom-slider" type="range" min="50" max="800" step="5" value="100"
+            oninput="setLightboxZoom(Number(this.value) / 100, { keepPan: true, silent: true })"
+            class="flex-1 accent-indigo-500 cursor-pointer" />
+        </div>
+
+        <!-- Brightness & Contrast Sliders -->
+        <div class="flex flex-wrap items-center gap-3">
+          <label class="flex items-center gap-1.5 text-[11px] font-semibold txt-sub">
+            <span>☀️</span>
+            <input id="lightbox-bright-slider" type="range" min="50" max="200" step="5" value="100"
+              oninput="updateLightboxFilters()" class="w-16 sm:w-20 accent-indigo-500 cursor-pointer" title="Độ sáng" />
+          </label>
+          <label class="flex items-center gap-1.5 text-[11px] font-semibold txt-sub">
+            <span>◐</span>
+            <input id="lightbox-contrast-slider" type="range" min="50" max="220" step="5" value="100"
+              oninput="updateLightboxFilters()" class="w-16 sm:w-20 accent-indigo-500 cursor-pointer" title="Độ tương phản" />
+          </label>
+        </div>
+
+        <!-- Transform & Reset Actions -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button type="button" onclick="rotateLightbox(-90)" title="Xoay trái 90°" class="btn-soft px-2 py-1 text-[11px] font-bold">↺ 90°</button>
+          <button type="button" onclick="rotateLightbox(90)" title="Xoay phải 90° (R)" class="btn-soft px-2 py-1 text-[11px] font-bold">↻ 90°</button>
+          <button type="button" onclick="flipLightboxHorizontal()" title="Lật ngang" class="btn-soft px-2 py-1 text-[11px] font-bold">↔️</button>
+          <button type="button" id="btn-lb-invert" onclick="toggleLightboxInvert()" title="Đảo màu (Hữu ích cho sơ đồ nền trắng)" class="btn-soft px-2 py-1 text-[11px] font-bold">🌙 Đảo màu</button>
+          <button type="button" onclick="resetLightboxView()" title="Đặt lại 100% &amp; căn giữa (0)" class="btn-primary px-2.5 py-1 text-[11px] font-bold">↺ Đặt lại</button>
+        </div>
       </div>
     </div>
   </div>
@@ -8291,6 +8344,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=56.2"></script>
+  <script src="/static/app.js?v=56.3"></script>
 </body>
 </html>
