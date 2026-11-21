@@ -5828,7 +5828,8 @@ function renderCurrentExamQuestion() {
   const ftContainer = document.getElementById('floating-tutor-container');
   if (ftContainer) ftContainer.classList.remove('hidden');
   if (floatingNextBtn) {
-    floatingNextBtn.classList.remove('hidden');
+    // Only show floating Next button after the current question is answered so it never covers options B/C/D!
+    floatingNextBtn.classList.toggle('hidden', !isCurGraded);
     floatingNextBtn.classList.toggle('floating-next-ready', isCurGraded);
   }
   if (typeof syncExamTutorSplitLayout === 'function') syncExamTutorSplitLayout();
@@ -6157,6 +6158,7 @@ function updateExamAfterAnswer(q) {
   }
   const floatingNextBtn = document.getElementById('floating-next-q-btn');
   if (floatingNextBtn) {
+    floatingNextBtn.classList.remove('hidden');
     floatingNextBtn.classList.add('floating-next-ready');
     const isLast = STATE.exam.currentIndex === total - 1;
     if (!isLast) {
@@ -15674,7 +15676,8 @@ window.resetCustomExamSchedule = resetCustomExamSchedule;
 // UNIMASTER v15.0: SM-2 SPACED REPETITION FLASHCARD RATING
 // =========================================================================
 async function rateFlashcardSM2(rating) {
-  const card = STATE.flashcards.cards[STATE.flashcards.currentIndex];
+  const fcIdx = Number(STATE.flashcards.index ?? STATE.flashcards.currentIndex ?? 0);
+  const card = STATE.flashcards.cards?.[fcIdx];
   if (!card) return;
 
   try {
@@ -15689,14 +15692,19 @@ async function rateFlashcardSM2(rating) {
       })
     });
 
-    card.ease_factor = res.ease_factor;
-    card.interval_days = res.interval_days;
-    card.repetitions = res.repetitions;
-    card.next_review = res.next_review;
+    const newEase = Number(res?.ease_factor ?? card.ease_factor ?? 2.5);
+    const newInterval = Number(res?.interval_days ?? (rating === 'again' ? 1 : 3));
+    const newReps = Number(res?.repetitions ?? (rating === 'again' ? 0 : (card.repetitions || 0) + 1));
+    const newNext = res?.next_review || '';
+
+    card.ease_factor = newEase;
+    card.interval_days = newInterval;
+    card.repetitions = newReps;
+    card.next_review = newNext;
 
     const statsEl = document.getElementById('fc-sm2-meta-stats');
     if (statsEl) {
-      statsEl.innerHTML = `Ease: <strong class="text-white">${res.ease_factor.toFixed(2)}</strong> • Khoảng cách: <strong class="text-white">${res.interval_days} ngày</strong> • Lặp lại: <strong class="text-white">${res.repetitions} lần</strong> • Kế tiếp: <span class="text-amber-400 font-bold">${res.next_review}</span>`;
+      statsEl.innerHTML = `Ease: <strong class="text-white">${newEase.toFixed(2)}</strong> • Khoảng cách: <strong class="text-white">${newInterval} ngày</strong> • Lặp lại: <strong class="text-white">${newReps} lần</strong>${newNext ? ` • Kế tiếp: <span class="text-amber-400 font-bold">${newNext}</span>` : ''}`;
     }
 
     if (rating === 'again') {
@@ -15704,17 +15712,17 @@ async function rateFlashcardSM2(rating) {
       showToast('Đã đánh dấu Quên: Sẽ lặp lại thẻ này ngay trong hôm nay!', 'warning');
     } else {
       playSound('success');
-      showToast(`Thuộc thẻ (${rating})! Ôn lại sau ${res.interval_days} ngày.`, 'success');
+      showToast(`Thuộc thẻ (${rating})! Ôn lại sau ${newInterval} ngày.`, 'success');
     }
 
     setTimeout(() => {
       nextFlashcard();
-      // Update meta for next card
-      const nextCard = STATE.flashcards.cards[STATE.flashcards.currentIndex];
+      const nextIdx = Number(STATE.flashcards.index ?? STATE.flashcards.currentIndex ?? 0);
+      const nextCard = STATE.flashcards.cards?.[nextIdx];
       if (nextCard && statsEl) {
         statsEl.innerHTML = `Ease: <strong class="text-white">${(nextCard.ease_factor || 2.5).toFixed(2)}</strong> • Khoảng cách: <strong class="text-white">${nextCard.interval_days || 1} ngày</strong> • Lặp lại: <strong class="text-white">${nextCard.repetitions || 0} lần</strong>`;
       }
-    }, 400);
+    }, 380);
   } catch (err) {
     showToast('Lỗi cập nhật SM-2: ' + err.message, 'error');
   }
@@ -23697,25 +23705,25 @@ function loadSqlSandboxPreset(presetName) {
   if (!editor) return;
 
   const presets = {
-    inner_join: `SELECT sv.ho_ten, mh.ten_mon, dt.diem_tong_ket
+    inner_join: `SELECT sv.ma_sv, sv.ho_ten, mh.ten_mh, dt.diem_tk
 FROM SinhVien sv
-INNER JOIN DiemThi dt ON sv.id = dt.sinh_vien_id
-INNER JOIN MonHoc mh ON dt.mon_hoc_id = mh.id
-WHERE dt.diem_tong_ket >= 8.0
-ORDER BY dt.diem_tong_ket DESC;`,
+INNER JOIN DiemThi dt ON sv.ma_sv = dt.ma_sv
+INNER JOIN MonHoc mh ON dt.ma_mh = mh.ma_mh
+WHERE dt.diem_tk >= 8.0
+ORDER BY dt.diem_tk DESC;`,
     group_by_having: `SELECT sv.khoa,
        COUNT(dt.id) AS so_luot_thi,
-       ROUND(AVG(dt.diem_tong_ket), 2) AS gpa_trung_binh
+       ROUND(AVG(dt.diem_tk), 2) AS diem_trung_binh
 FROM SinhVien sv
-INNER JOIN DiemThi dt ON sv.id = dt.sinh_vien_id
+INNER JOIN DiemThi dt ON sv.ma_sv = dt.ma_sv
 GROUP BY sv.khoa
 HAVING so_luot_thi >= 2
-ORDER BY gpa_trung_binh DESC;`,
-    left_join: `SELECT sv.ma_sv, sv.ho_ten, dt.diem_tong_ket
+ORDER BY diem_trung_binh DESC;`,
+    left_join: `SELECT sv.ma_sv, sv.ho_ten, dt.ma_mh, dt.diem_tk
 FROM SinhVien sv
-LEFT JOIN DiemThi dt ON sv.id = dt.sinh_vien_id
-WHERE dt.id IS NULL;`,
-    clinical_lab: `SELECT xn.benh_nhan, xn.glucose_mmol, xn.ast_ul, xn.alt_ul, xn.ket_luan
+LEFT JOIN DiemThi dt ON sv.ma_sv = dt.ma_sv
+ORDER BY sv.ma_sv ASC;`,
+    clinical_lab: `SELECT xn.ma_bn, xn.ten_bn, xn.glucose_mmol, xn.ast_ul, xn.alt_ul, xn.chan_doan
 FROM XetNghiemHoaSinh xn
 WHERE xn.glucose_mmol > 7.0 OR xn.ast_ul > 40
 ORDER BY xn.glucose_mmol DESC;`
@@ -27904,7 +27912,12 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     try {
       const resp = await fetch('/api/sync/vault', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Account-Id': acc },
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Account-Id': acc,
+          'X-Sync-Client-Id': CLIENT_CID
+        },
         credentials: 'same-origin',
         body: bodyStr
       });

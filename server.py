@@ -1105,14 +1105,21 @@ async def safe_get_json(request):
     try:
         return await request.json()
     except Exception:
-        raw = await request.read()
-        if not raw:
-            return {}
         try:
-            text = raw.decode("utf-8")
-        except UnicodeDecodeError:
-            text = raw.decode("latin-1", errors="replace")
-        return json.loads(text)
+            raw = await request.read()
+            if not raw:
+                return {}
+            try:
+                text = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                text = raw.decode("latin-1", errors="replace")
+            text = text.strip()
+            if not text:
+                return {}
+            parsed = json.loads(text)
+            return parsed if isinstance(parsed, dict) else {}
+        except Exception:
+            return {}
 
 
 # ==========================================
@@ -2488,7 +2495,19 @@ async def api_clinical_abg_handler(request):
             ph_state = "pH máu trong giới hạn tham chiếu (7.35 – 7.45)"
 
         comp_detail = ""
-        if (ph < 7.40 and hco3 < 22) or (hco3 < 20 and paco2 <= 45):
+        if (ph < 7.40 and paco2 > 45) or (ph <= 7.40 and paco2 > 45 and hco3 >= 22):
+            mode_lbl = "Mạn tính" if is_chronic else "Cấp tính"
+            primary = f"Toan hô hấp nguyên phát ({mode_lbl} — Respiratory Acidosis)"
+            delta_co2 = paco2 - 40.0
+            exp_hco3 = round(24.0 + (0.35 if is_chronic else 0.10) * delta_co2, 1)
+            tol = 3.0 if is_chronic else 2.0
+            if hco3 > exp_hco3 + tol:
+                comp_detail = f"Với ΔPaCO₂ = +{delta_co2:.1f} mmHg ({mode_lbl.lower()}), HCO₃⁻ bù thận dự kiến ≈ {exp_hco3} ± {tol:.0f} mmol/L, thực tế {hco3} mmol/L cao hơn → KÈM KIỀM CHUYỂN HÓA PHỐI HỢP."
+            elif hco3 < exp_hco3 - tol:
+                comp_detail = f"Với ΔPaCO₂ = +{delta_co2:.1f} mmHg ({mode_lbl.lower()}), HCO₃⁻ bù thận dự kiến ≈ {exp_hco3} ± {tol:.0f} mmol/L, thực tế {hco3} mmol/L thấp hơn → KÈM TOAN CHUYỂN HÓA PHỐI HỢP (hoặc đợt cấp trên nền mạn chưa bù đủ)."
+            else:
+                comp_detail = f"Bù chuyển hóa thận phù hợp: với ΔPaCO₂ = +{delta_co2:.1f} mmHg ({mode_lbl.lower()}), HCO₃⁻ dự kiến ≈ {exp_hco3} mmol/L (thực tế {hco3} mmol/L)."
+        elif (ph < 7.40 and hco3 < 22) or (hco3 < 20 and paco2 <= 45):
             primary = "Toan chuyển hóa nguyên phát (Metabolic Acidosis)"
             exp_paco2 = round(1.5 * hco3 + 8.0, 1)
             low_p, high_p = round(exp_paco2 - 2.0, 1), round(exp_paco2 + 2.0, 1)
@@ -2498,7 +2517,7 @@ async def api_clinical_abg_handler(request):
                 comp_detail = f"Công thức Winter dự đoán PaCO₂ = {low_p}–{high_p} mmHg, thực tế {paco2} mmHg thấp hơn → KÈM KIỀM HÔ HẤP PHỐI HỢP (VD: ngộ độc Salicylate, nhiễm trùng huyết)!"
             else:
                 comp_detail = f"Bù hô hấp phù hợp theo công thức Winter (PaCO₂ dự đoán {low_p}–{high_p} mmHg, thực tế {paco2} mmHg)."
-        elif (ph > 7.40 and hco3 > 26) or (hco3 > 28 and paco2 >= 35):
+        elif (ph > 7.40 and hco3 > 26) or (ph >= 7.40 and hco3 > 28 and paco2 >= 35):
             primary = "Kiềm chuyển hóa nguyên phát (Metabolic Alkalosis)"
             exp_paco2 = round(0.7 * (hco3 - 24.0) + 40.0, 1)
             low_p, high_p = round(exp_paco2 - 5.0, 1), round(exp_paco2 + 5.0, 1)
@@ -2508,12 +2527,6 @@ async def api_clinical_abg_handler(request):
                 comp_detail = f"PaCO₂ dự đoán bù = {low_p}–{high_p} mmHg, thực tế {paco2} mmHg → KÈM KIỀM HÔ HẤP PHỐI HỢP."
             else:
                 comp_detail = f"Bù giảm thông khí phế nang phù hợp (PaCO₂ dự đoán {low_p}–{high_p} mmHg)."
-        elif paco2 > 45:
-            mode_lbl = "Mạn tính" if is_chronic else "Cấp tính"
-            primary = f"Toan hô hấp nguyên phát ({mode_lbl} — Respiratory Acidosis)"
-            delta_co2 = paco2 - 40.0
-            exp_hco3 = round(24.0 + (0.35 if is_chronic else 0.10) * delta_co2, 1)
-            comp_detail = f"Với ΔPaCO₂ = +{delta_co2:.1f} mmHg ({mode_lbl.lower()}), HCO₃⁻ bù thận dự kiến ≈ {exp_hco3} mmol/L (thực tế {hco3} mmol/L)."
         elif paco2 < 35:
             mode_lbl = "Mạn tính" if is_chronic else "Cấp tính"
             primary = f"Kiềm hô hấp nguyên phát ({mode_lbl} — Respiratory Alkalosis)"
@@ -4994,11 +5007,11 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v56-4';
+    const CACHE_NAME = 'unimaster-pwa-v56-5';
     const CORE_ASSETS = [
       '/static/style.css?v=56.4',
       '/static/minimal.css?v=54.1',
-      '/static/app.js?v=56.4',
+      '/static/app.js?v=56.5',
       '/manifest.json',
       '/icon.svg'
     ];
