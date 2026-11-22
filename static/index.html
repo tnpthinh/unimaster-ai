@@ -590,7 +590,7 @@
             <span class="text-lg">📈</span>
             <div>
               <h3 class="text-sm font-extrabold txt-main">Bảng Tiến Độ Học Tập</h3>
-              <p class="text-[11px] txt-muted">Theo dõi kết quả theo từng môn và nội dung cần ôn tiếp</p>
+              <p class="text-[11px] txt-muted">Kết quả theo môn</p>
             </div>
           </div>
           <span id="learning-progress-status" class="badge-brand px-2.5 py-1 rounded-lg text-xs font-bold">Đang cập nhật</span>
@@ -621,7 +621,7 @@
             <h3 class="font-extrabold text-sm sm:text-base txt-main flex items-center gap-2">
               <i data-lucide="brain-circuit" class="w-5 h-5 txt-brand"></i> Năng Lực Bloom &amp; Dự Báo Điểm
             </h3>
-            <p class="text-xs txt-muted mt-0.5">Phân tích theo môn học đang chọn • Lấp lỗ hổng trước khi thi</p>
+            <p class="text-xs txt-muted mt-0.5">Năng lực & điểm dự báo</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
             <select id="roadmap-subject-select" onchange="renderBloomCompetencyChart()" class="uni-input px-3 py-1.5 text-xs font-bold"></select>
@@ -951,8 +951,8 @@
                 <div class="flex items-center gap-2">
                   <span class="text-xl">🎯</span>
                   <div>
-                    <h4 class="text-sm font-black txt-main">Tự Chọn Dải Câu Hỏi Ôn Thi (Từ câu ... đến câu ...)</h4>
-                    <p class="text-[11px] txt-muted">Khoanh vùng đoạn câu muốn cày sâu (VD: câu 1 đến 50, hoặc 100 đến 150)</p>
+                    <h4 class="text-sm font-black txt-main">Chọn dải câu hỏi</h4>
+                    <p class="text-[11px] txt-muted">Ví dụ: câu 1 – 50</p>
                   </div>
                 </div>
                 <span id="range-preview-badge" class="badge-brand px-2.5 py-1 rounded-lg text-xs font-mono font-bold">50 câu</span>
@@ -1186,7 +1186,7 @@
 
           <!-- Personal Synced Note Box -->
           <div id="q-note-box" class="hidden p-3.5 rounded-2xl space-y-2 animate-fade-in" style="background-color: var(--cyan-bg); border: 1px solid var(--cyan-border);">
-            <div class="text-xs font-extrabold txt-cyan">📌 Ghi chú cá nhân (Đồng bộ tự động sang ĐT / iPad):</div>
+            <div class="text-xs font-extrabold txt-cyan">📌 Ghi chú cá nhân:</div>
             <div class="flex gap-2">
               <input id="q-note-input" type="text" placeholder="Nhập mẹo nhớ riêng của bạn cho câu này..."
                 onkeydown="if(event.key==='Enter') saveCurrentNote()"
@@ -1200,7 +1200,7 @@
             <div class="flex flex-wrap items-center justify-between gap-2">
               <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
                 <span>📝</span> <span>Bảng Nháp &amp; Máy Tính Nhanh</span>
-                <span class="text-[10px] txt-muted font-normal hidden sm:inline">(Tự lưu trong phiên thi • Hỗ trợ +, -, *, /, ^, %, gcd, lcm, sqrt)</span>
+                <span class="text-[10px] txt-muted font-normal hidden sm:inline">(+, -, *, /, ^, %, gcd, sqrt)</span>
               </div>
               <div class="flex items-center gap-1.5">
                 <button type="button" id="btn-trap-highlight-toggle" onclick="toggleExamTrapHighlighter()" class="btn-soft px-2.5 py-1 text-[11px] font-bold">
@@ -1326,7 +1326,7 @@
                 <span class="text-base">💬</span>
                 <div>
                   <span class="text-xs font-black txt-main">Thảo Luận & Mẹo Nhớ Sinh Viên Cùng Câu Này</span>
-                  <p class="text-[10px] txt-muted">Chia sẻ bí kíp nhớ nhanh, tra cứu công thức hoặc hỏi trợ giảng</p>
+                  <p class="text-[10px] txt-muted">Thảo luận & mẹo nhớ</p>
                 </div>
               </div>
               <div class="flex items-center gap-2">
@@ -1415,7 +1415,7 @@
               <h3 class="text-base font-extrabold txt-main flex items-center gap-2">
                 <span>🧭</span> Phân Tích Tâm Lý Phòng Thi & Ma Trận Tự Tin (Metacognition Matrix)
               </h3>
-              <p class="text-xs txt-muted">Phát hiện câu ăn may nguy hiểm và lỗ hổng ảo tưởng kiến thức dựa trên độ tự tin & tốc độ phản xạ</p>
+              <p class="text-xs txt-muted">Phát hiện lỗ hổng kiến thức</p>
             </div>
             <span id="res-avg-time-badge" class="badge-brand px-3 py-1 rounded-full text-xs font-mono font-bold">TB: 0.0s / câu</span>
           </div>
@@ -1784,7 +1784,7 @@
             <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
               <span>⚡</span> Đấu Trường Ghép Cặp Thuật Ngữ Tốc Độ
             </h3>
-            <p class="text-xs txt-muted">Chọn 1 ô Thuật ngữ và 1 ô Bản chất tương ứng để triệt tiêu cả bàn trong thời gian ngắn nhất!</p>
+            <p class="text-xs txt-muted">Ghép đúng các cặp tương ứng</p>
           </div>
           <div class="flex items-center gap-2">
             <span id="fc-match-timer" class="badge-brand px-3 py-1.5 rounded-xl font-mono text-xs font-extrabold">⏱ 0.0s</span>
@@ -2031,7 +2031,7 @@
             <h2 class="text-lg font-extrabold txt-main flex items-center gap-2">
               <i data-lucide="sparkles" class="w-5 h-5 txt-brand"></i> Nhập Tài Liệu & Tạo Đề AI
             </h2>
-            <p class="text-xs txt-muted mt-0.5">Kéo thả slide, giáo trình PDF, Word, Excel hoặc ảnh đề cương</p>
+            <p class="text-xs txt-muted mt-0.5">Tải PDF, Word, Excel hoặc ảnh</p>
           </div>
           <button onclick="openSettingsModal('ai')" class="btn-soft px-3 py-1.5 text-xs flex items-center gap-1.5">
             <i data-lucide="key-round" class="w-3.5 h-3.5 txt-brand"></i> Dàn API Key
@@ -2168,7 +2168,7 @@
           <h2 class="text-lg sm:text-xl font-extrabold txt-main flex items-center gap-2">
             <span>🏆</span> Đấu Trường Tốc Độ • Phòng Học Ảo Pomodoro • Bảng Vinh Danh
           </h2>
-          <p class="text-xs txt-muted mt-0.5">Thách đấu 1v1 thời gian thực, phòng học Pomodoro 25/5 & bảng vinh danh</p>
+          <p class="text-xs txt-muted mt-0.5">Thi đấu 1v1 & Pomodoro</p>
         </div>
         <div class="flex flex-wrap gap-2">
           <button type="button" onclick="switchArenaSubTab('live')" id="arena-sub-live" class="preset-pill !px-3.5 !py-2 !text-xs bg-gradient-to-r from-amber-500/20 to-rose-500/20 border border-amber-500/40">🔥 Đấu Trường Trực Tiếp (Multiplayer WS)</button>
@@ -2630,7 +2630,7 @@
               </div>
 
               <div>
-                <label class="text-xs font-bold txt-sub">2. Nhận định kết quả xét nghiệm so với ngưỡng sinh lý:</label>
+                <label class="text-xs font-bold txt-sub">2. Nhận định kết quả:</label>
                 <select id="spectro-user-diagnosis" class="uni-input w-full px-3.5 py-2.5 text-xs font-bold mt-1">
                   <option value="normal">🟢 Trong giới hạn bình thường (Sinh lý)</option>
                   <option value="high">🔴 Tăng cao bệnh lý (Vượt ngưỡng tham chiếu trên)</option>
@@ -3044,7 +3044,7 @@
 
             <!-- Standard Normal Dose -->
             <div class="p-3.5 rounded-xl text-xs space-y-1" style="background: var(--bg-card-sub); border: 1px solid var(--border);">
-              <div class="font-bold txt-sub">📋 Liều chuẩn ở người có chức năng thận bình thường (CrCl ≥ 50 ml/p):</div>
+              <div class="font-bold txt-sub">📋 Liều chuẩn (CrCl ≥ 50):</div>
               <div id="dose-std-text" class="text-xs font-mono font-bold txt-main">15 – 20 mg/kg mỗi 8 – 12 giờ (truyền IV chậm)</div>
             </div>
 
@@ -3159,7 +3159,7 @@
             <!-- Vancouver Citation Quick Tool -->
             <div class="pt-2 border-t" style="border-color: var(--border);">
               <div class="text-xs font-bold txt-main mb-1.5 flex items-center justify-between">
-                <span>📚 Trích Dẫn Chuẩn Vancouver (Y Học Quốc Tế / CTUMP):</span>
+                <span>📚 Tài liệu tham khảo:</span>
                 <button type="button" onclick="copyVancouverCitation()" class="btn-soft px-2 py-0.5 text-[10px] font-bold">📋 Sao chép</button>
               </div>
               <div id="bio-vancouver-preview" class="p-2.5 rounded-lg text-[11px] font-mono txt-sub" style="background: var(--bg-card-sub);">
@@ -3369,7 +3369,7 @@
             <!-- Step-by-Step Trace Table -->
             <div class="space-y-1.5">
               <div class="text-xs font-extrabold txt-main flex items-center justify-between">
-                <span>📋 Bảng Trace Thuật Toán & Kết Quả Chuẩn Giáo Trình:</span>
+                <span>📋 Bảng Trace thuật toán:</span>
                 <button type="button" onclick="runGraphTheorySimulation()" class="text-[11px] text-cyan-400 font-bold hover:underline">▶ Chạy lại</button>
               </div>
               <div id="gt-trace-output" class="p-3 rounded-xl bg-slate-950 border border-slate-800 font-mono text-[11px] text-slate-200 space-y-1.5 max-h-[240px] overflow-y-auto"></div>
@@ -3380,14 +3380,14 @@
           <div class="lg:col-span-7 space-y-4">
             <div class="uni-card p-4 space-y-2">
               <div class="flex items-center justify-between">
-                <h4 class="text-xs sm:text-sm font-extrabold txt-main">🎯 Sơ Đồ Mạng Đồ Thị Trực Quan (Cạnh tô sáng = Đường đi / Cây khung tối ưu)</h4>
+                <h4 class="text-xs sm:text-sm font-extrabold txt-main">🎯 Sơ đồ đồ thị</h4>
                 <span id="gt-summary-badge" class="badge-emerald px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold">Tổng trọng số: 0</span>
               </div>
               <div id="gt-svg-canvas" class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-2 flex justify-center"></div>
             </div>
 
             <div class="uni-card p-4 space-y-2">
-              <h4 class="text-xs font-extrabold txt-main">🔢 Biểu Diễn Ma Trận Kề (Adjacency Matrix) &amp; Bậc Của Đỉnh deg(v)</h4>
+              <h4 class="text-xs font-extrabold txt-main">🔢 Ma trận kề & bậc đỉnh</h4>
               <div id="gt-matrix-box" class="overflow-x-auto text-[11px] font-mono"></div>
             </div>
           </div>
@@ -3413,7 +3413,7 @@
             <h3 class="text-base font-extrabold txt-main flex items-center gap-2">
               Trung Tâm Cài Đặt & Cá Nhân Hóa
             </h3>
-            <div class="text-[11px] txt-muted font-medium">Tự do điều chỉnh giao diện, phông chữ, âm thanh, AI và chống gian lận theo ý bạn</div>
+            <div class="text-[11px] txt-muted font-medium">Giao diện, phông chữ, AI & đồng bộ</div>
           </div>
         </div>
         <button onclick="closeModal('modal-settings')" class="btn-soft p-1.5" title="Đóng cài đặt"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -3550,7 +3550,7 @@
             <summary class="cursor-pointer list-none flex items-center justify-between text-xs font-extrabold txt-main select-none">
               <span class="flex items-center gap-2">
                 <span>🎛️</span>
-                <span>Tùy chỉnh nâng cao (Bo góc, Màu câu hỏi, Zoom, Thanh Menu)</span>
+                <span>Tùy chỉnh nâng cao</span>
               </span>
               <span class="text-[11px] txt-brand font-bold group-open:hidden">Mở rộng ▾</span>
               <span class="text-[11px] txt-muted font-bold hidden group-open:inline">Thu gọn ▴</span>
@@ -3593,7 +3593,7 @@
                 <span class="text-xl">🎨</span>
                 <div>
                   <h4 class="text-xs font-black txt-main">Studio Tinh Chỉnh Màu Sắc Từng Phần</h4>
-                  <p class="text-[10px] txt-muted">Màu nền câu hỏi, 4 phương án A-B-C-D và màu báo đúng/sai</p>
+                  <p class="text-[10px] txt-muted">Màu câu hỏi & đáp án</p>
                 </div>
               </div>
               <button type="button" onclick="resetDeepColorCustomization()" class="btn-soft px-2.5 py-1 text-[11px] font-bold text-rose-400 hover:text-rose-300">
@@ -3604,7 +3604,7 @@
             <!-- Custom Surface Background Tone -->
             <div class="space-y-2">
               <label class="text-[11px] font-extrabold uppercase tracking-wider txt-sub flex justify-between">
-                <span>Màu Nền Thẻ Câu Hỏi & Khung Bài Thi (Surface Tone)</span>
+                <span>Màu nền thẻ câu hỏi</span>
                 <span id="lbl-custom-bg" class="txt-brand font-mono font-bold">Mặc định</span>
               </label>
               <div class="flex flex-wrap items-center gap-2">
@@ -3704,7 +3704,7 @@
               <div class="flex items-center justify-between">
                 <div>
                   <div class="text-xs font-bold txt-main flex items-center gap-1.5"><span>🧭</span> Kích Thước Thanh Menu Điều Hướng</div>
-                  <div class="text-[10px] txt-muted">Chọn kiểu hiển thị thanh tab trên cùng để vừa mắt và không bị chèn ép chữ</div>
+                  <div class="text-[10px] txt-muted">Kiểu thanh menu trên</div>
                 </div>
               </div>
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -3735,7 +3735,7 @@
             <div class="p-3 rounded-xl flex items-center justify-between border" style="background-color: var(--bg-surface); border-color: var(--border);">
               <div>
                 <div class="text-xs font-bold txt-main flex items-center gap-1.5"><span>🖥️</span> Chế Độ Khung Rộng Toàn Cảnh (Wide Layout)</div>
-                <div class="text-[10px] txt-muted">Mở rộng chiều ngang toàn trang giúp thanh điều hướng và nội dung không bị giới hạn 1280px</div>
+                <div class="text-[10px] txt-muted">Mở rộng toàn chiều ngang</div>
               </div>
               <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="pref-toggle-wide-layout" onchange="toggleWideLayout(this.checked)" class="sr-only peer">
@@ -3758,7 +3758,7 @@
                 <h4 class="text-sm font-black txt-main flex items-center gap-2">
                   <span>📅</span> <span>Trình Quản Lý Lịch Thi &amp; Đếm Ngược Cá Nhân</span>
                 </h4>
-                <p class="text-[11px] txt-muted">Hiển thị nổi bật ngay đầu Trang chủ &amp; đồng bộ trực tiếp với đồng hồ đếm ngược trên Hero</p>
+                <p class="text-[11px] txt-muted">Đồng bộ với đồng hồ đếm ngược</p>
               </div>
               <button type="button" onclick="resetCustomExamSchedule()" class="btn-soft px-3 py-1.5 text-xs font-bold txt-rose">
                 🔄 Khôi phục 6 lịch mẫu
@@ -3768,7 +3768,7 @@
             <!-- Add / Edit Exam Form -->
             <div class="p-3.5 rounded-xl border space-y-3" style="background-color: var(--bg-surface); border-color: var(--border);">
               <div class="text-xs font-extrabold txt-brand flex items-center gap-1.5">
-                <span>➕</span> <span id="custom-exam-form-title">Thêm Mốc Thi Mới (hoặc bấm ✏️ ở danh sách dưới để sửa)</span>
+                <span>➕</span> <span id="custom-exam-form-title">Thêm hoặc sửa mốc thi</span>
               </div>
               <input type="hidden" id="custom-exam-edit-idx" value="-1" />
               <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
@@ -3798,7 +3798,7 @@
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end">
                 <div class="sm:col-span-8 space-y-1">
-                  <label class="text-[11px] font-bold txt-sub">Liên kết ngân hàng môn học (bấm thẻ lịch thi sẽ mở ngay đề môn này)</label>
+                  <label class="text-[11px] font-bold txt-sub">Môn học liên kết</label>
                   <select id="custom-exam-subj-select" class="uni-input w-full px-3 py-2 text-xs font-bold"></select>
                 </div>
                 <div class="sm:col-span-4 flex gap-2">
@@ -3823,7 +3823,7 @@
                 <h4 class="text-sm font-black txt-main flex items-center gap-2">
                   <span>🧩</span> <span>Tùy Chỉnh Các Khối Hiển Thị Trên Trang Chủ</span>
                 </h4>
-                <p class="text-[11px] txt-muted">Bật hoặc ẩn bất kỳ thành phần nào để Trang chủ gọn đúng gu học tập của bạn</p>
+                <p class="text-[11px] txt-muted">Bật / ẩn mục trên Trang chủ</p>
               </div>
             </div>
 
@@ -3857,7 +3857,7 @@
             <!-- Daily Quota Slider -->
             <div class="pt-3 border-t space-y-2" style="border-color: var(--border);">
               <div class="flex justify-between items-center text-xs font-bold">
-                <span class="txt-main">🎯 Mục tiêu số câu luyện tập mỗi ngày (Daily Quota)</span>
+                <span class="txt-main">🎯 Mục tiêu câu/ngày</span>
                 <span id="lbl-daily-quota" class="txt-brand font-mono font-extrabold">40 câu / ngày</span>
               </div>
               <input id="slider-daily-quota" type="range" min="10" max="200" step="10" value="40"
@@ -4086,7 +4086,7 @@
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <div class="text-xs font-black txt-main flex items-center gap-1.5">
                 <span>🛡️</span>
-                <span>Hướng Dẫn Gắn Key Gemini &amp; 9Router An Toàn (3 Bước)</span>
+                <span>Hướng dẫn gắn API Key</span>
               </div>
               <span class="badge-emerald text-[10px] px-2 py-0.5 rounded-full font-extrabold">Zero Plaintext Leak</span>
             </div>
@@ -4149,7 +4149,7 @@
             </div>
 
             <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
-              <div class="text-xs font-extrabold txt-sub">Danh sách Key đang gắn (dạng che dấu &amp; trạng thái live):</div>
+              <div class="text-xs font-extrabold txt-sub">API Key đang gắn:</div>
               <span class="text-[11px] txt-muted">Bật/tắt hoặc xóa từng key an toàn</span>
             </div>
 
@@ -4289,7 +4289,7 @@
             <div class="flex items-center justify-between gap-2 flex-wrap">
               <label class="inline-flex items-center gap-2 text-xs font-extrabold txt-main cursor-pointer select-none">
                 <input id="cfg-offline-sandbox-mode" type="checkbox" onchange="toggleOfflineSandboxMode(this.checked)" class="accent-amber-500 rounded" />
-                <span>📴 Chế độ Sandbox Offline trên trình duyệt (tùy chọn)</span>
+                <span>📴 Chế độ Offline</span>
               </label>
               <span class="badge-soft text-[10px] px-2 py-0.5 rounded font-bold">Mặc định TẮT khi có Server</span>
             </div>
@@ -4465,7 +4465,7 @@
                 <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
                   <span>🛡️</span> <span>Trung Tâm Bảo Mật &amp; Quyền Riêng Tư (v56.0)</span>
                 </div>
-                <div class="text-[11px] txt-muted">CSP, CSRF Origin Guard, PBKDF2-260k, Thu hồi phiên &amp; Khóa màn hình PIN</div>
+                <div class="text-[11px] txt-muted">Bảo mật phiên & khóa PIN</div>
               </div>
               <div class="flex items-center gap-2">
                 <span id="sec-score-badge" class="badge-emerald text-xs px-2.5 py-0.5 rounded-full font-mono font-extrabold">A+ • --/100</span>
@@ -4528,7 +4528,7 @@
                 <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
                   <span>⚡</span> <span>Tối Ưu Hệ Thống &amp; Hiệu Năng Thực Tế</span>
                 </div>
-                <div class="text-[11px] txt-muted">SQLite WAL + Hot-Cache ETag 304 + Bộ nhớ đệm câu hỏi tức thì</div>
+                <div class="text-[11px] txt-muted">Tăng tốc SQLite & Cache</div>
               </div>
               <div class="flex flex-wrap items-center gap-1.5">
                 <button type="button" onclick="publishQuestionBankToGithub()" class="btn-soft px-3 py-1.5 text-xs font-bold txt-brand">
@@ -4569,7 +4569,7 @@
                 <div class="text-xs font-extrabold txt-main flex items-center gap-1.5">
                   <span>🛡️</span> Cấp Độ Chống Gian Lận Phòng Thi (Anti-Cheat)
                 </div>
-                <div class="text-[11px] txt-muted">Phát hiện khi thí sinh chuyển tab hoặc mở ứng dụng khác trong lúc thi tính giờ</div>
+                <div class="text-[11px] txt-muted">Cảnh báo khi rời tab lúc thi</div>
               </div>
               <span class="badge-emerald text-xs px-2.5 py-0.5 rounded-full font-bold">Bảo vệ đề</span>
             </div>
@@ -4867,7 +4867,7 @@
           <h3 class="text-base font-extrabold txt-main flex items-center gap-2">
             <span>📒</span> Sổ Tay Câu Sai Thông Minh (Quy Tắc 3-Strike Mastery)
           </h3>
-          <p class="text-[11px] txt-muted">Quy tắc 3 lần đúng liên tiếp (3/3 ✨) để hoàn thành</p>
+          <p class="text-[11px] txt-muted">Đúng 3 lần liên tiếp để xong</p>
         </div>
         <div class="flex items-center gap-2">
           <button type="button" onclick="closeModal('modal-mistake-bank'); startSpecialDrill('mistakes')" class="btn-primary px-3.5 py-2 text-xs">
@@ -5014,7 +5014,7 @@
         <div class="flex items-center justify-between">
           <div>
             <h4 class="text-xs font-black uppercase tracking-wider txt-sub">Danh Sách Tài Khoản Trên Thiết Bị</h4>
-            <p class="text-[11px] txt-muted">Mỗi tài khoản có môn học riêng, tiến độ và màu sắc giao diện độc lập</p>
+            <p class="text-[11px] txt-muted">Mỗi hồ sơ lưu tiến độ riêng</p>
           </div>
           <button type="button" onclick="promptCreateNewAccount()" class="btn-primary !bg-indigo-600 hover:!bg-indigo-500 px-3 py-1.5 rounded-xl text-xs font-black flex items-center gap-1 shadow-sm">
             <span>➕</span> <span>Thêm Acc Mới</span>
@@ -5136,7 +5136,7 @@
               <span>Chọn Môn Học Cho:</span>
               <span id="acc-subj-modal-user-name" class="text-indigo-400 underline decoration-indigo-500 font-extrabold">Tài Khoản</span>
             </h3>
-            <p class="text-xs txt-muted">Đánh dấu những môn bạn muốn học. Hệ thống sẽ cá nhân hóa Dashboard và kho đề thi theo các môn này!</p>
+            <p class="text-xs txt-muted">Chọn các môn bạn đang học</p>
           </div>
         </div>
         <button onclick="closeModal('modal-account-subjects')" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -5592,7 +5592,7 @@ public class Student {
           </div>
           <div>
             <h3 class="text-base sm:text-lg font-black txt-main">Bài 3: 200 Câu Glucid & Biện Luận Đái Tháo Đường</h3>
-            <p class="text-xs txt-muted font-medium">Giáo trình Thực Hành Hóa Sinh CTUMP • Chuẩn hóa độ dài 4 đáp án (Anti-Length Bias)</p>
+            <p class="text-xs txt-muted font-medium">Thực hành Hóa Sinh CTUMP</p>
           </div>
         </div>
         <button onclick="closeModal('modal-bai3-parts')" class="btn-soft p-2 text-xs rounded-xl"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -5605,7 +5605,7 @@ public class Student {
             <span class="badge-brand text-[11px] font-bold px-2 py-0.5 rounded-full">Trọn Bộ 200 Câu</span>
             <span class="text-xs text-emerald-400 font-bold">✓ 50A : 50B : 50C : 50D cân bằng 25%</span>
           </div>
-          <p class="text-xs txt-sub font-semibold">Luyện toàn diện 6 chuyên đề hoặc thi thử mô phỏng 60 phút.</p>
+          <p class="text-xs txt-sub font-semibold">6 chuyên đề hoặc thi 60 phút</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <button onclick="closeModal('modal-bai3-parts'); quickStartBai3Glucid();" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-orange-500 px-4 py-2 text-xs font-bold shadow-lg hover:scale-105 transition-all">
@@ -5708,7 +5708,7 @@ public class Student {
 
       <!-- Footer Info -->
       <div class="pt-2 border-t flex items-center justify-between text-[11px] txt-muted" style="border-color: var(--border);">
-        <span>💡 Tỉ lệ đáp án dài nhất chỉ 19% — Cân bằng tuyệt đối 50A : 50B : 50C : 50D!</span>
+        <span>💡 Cân bằng A/B/C/D</span>
         <button onclick="closeModal('modal-bai3-parts')" class="btn-soft px-3 py-1 text-xs">Đóng</button>
       </div>
     </div>
@@ -5727,7 +5727,7 @@ public class Student {
           </div>
           <div>
             <h3 class="text-base sm:text-lg font-black txt-main">Bài 4: 200 Câu Chuyển Hóa Lipid & Nước Tiểu 10 Thông Số</h3>
-            <p class="text-xs txt-muted font-medium">Giáo trình Thực Hành Hóa Sinh CTUMP • Xóa bỏ thiên kiến độ dài (Anti-Length Bias 99%)</p>
+            <p class="text-xs txt-muted font-medium">Thực hành Hóa Sinh CTUMP</p>
           </div>
         </div>
         <button onclick="closeModal('modal-bai4-parts')" class="btn-soft p-2 text-xs rounded-xl"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -5740,7 +5740,7 @@ public class Student {
             <span class="badge-brand text-[11px] font-bold px-2 py-0.5 rounded-full">Trọn Bộ 200 Câu</span>
             <span class="text-xs text-emerald-400 font-bold">✓ 50A : 50B : 50C : 50D cân bằng 25%</span>
           </div>
-          <p class="text-xs txt-sub font-semibold">Luyện toàn diện 7 chuyên đề hoặc thi thử mô phỏng tính giờ 60 phút.</p>
+          <p class="text-xs txt-sub font-semibold">7 chuyên đề hoặc thi 60 phút</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
           <button onclick="closeModal('modal-bai4-parts'); quickStartBai4Lipid();" class="btn-primary !bg-gradient-to-r !from-rose-500 !to-pink-600 px-4 py-2 text-xs font-bold shadow-lg hover:scale-105 transition-all">
@@ -5857,7 +5857,7 @@ public class Student {
 
       <!-- Footer Info -->
       <div class="pt-2 border-t flex items-center justify-between text-[11px] txt-muted" style="border-color: var(--border);">
-        <span>💡 Tỉ lệ đáp án dài nhất chỉ 1.0% — Triệt tiêu hoàn toàn thói quen đoán độ dài!</span>
+        <span>💡 Cân bằng A/B/C/D</span>
         <button onclick="closeModal('modal-bai4-parts')" class="btn-soft px-3 py-1 text-xs">Đóng</button>
       </div>
     </div>
@@ -5896,7 +5896,7 @@ public class Student {
           </div>
           <div>
             <h3 class="text-base font-black txt-main">Trọn Bộ 322 Câu Hóa Sinh CTUMP Gốc</h3>
-            <p class="text-xs txt-muted">Phân chia rõ ràng theo 5 phần chuyên đề chuẩn tài liệu thực hành ĐHYD Cần Thơ</p>
+            <p class="text-xs txt-muted">5 chuyên đề chuẩn CTUMP</p>
           </div>
         </div>
         <button onclick="closeModal('modal-ctump-original-parts')" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -5910,7 +5910,7 @@ public class Student {
             <span class="text-2xl">⚡</span>
             <div>
               <div class="font-black text-sm text-indigo-400">Thi Toàn Bộ 322 Câu Gốc (Câu 1 – 312)</div>
-              <div class="text-xs txt-muted">Luyện tổng thể toàn bộ giáo trình thực hành hóa sinh y khoa</div>
+              <div class="text-xs txt-muted">Toàn bộ 322 câu gốc</div>
             </div>
           </div>
           <span class="btn-primary px-3.5 py-1.5 text-xs font-bold shrink-0">Bắt đầu thi →</span>
@@ -5999,7 +5999,7 @@ public class Student {
           <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-xl shadow-sm text-white" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">🔐</div>
           <div>
             <h3 class="text-base font-black txt-main">Lịch Sử Đăng Nhập & Thiết Bị</h3>
-            <p class="text-xs txt-muted">IP và trình duyệt do máy chủ ghi nhận. Trình duyệt web không thể đọc địa chỉ MAC.</p>
+            <p class="text-xs txt-muted">Lịch sử IP & thiết bị đăng nhập</p>
           </div>
         </div>
         <button onclick="closeModal('modal-login-history')" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -6023,7 +6023,7 @@ public class Student {
           </div>
           <div>
             <h3 class="text-base font-black txt-main">Lịch Sử Làm Bài & Ôn Thi Của Tôi</h3>
-            <p class="text-xs txt-muted">Lưu trực tiếp trên máy của bạn — Xem lại từng câu đúng/sai & Luyện lại tức thì</p>
+            <p class="text-xs txt-muted">Xem lại & làm lại câu sai</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -6058,7 +6058,7 @@ public class Student {
           <span>Điểm trung bình: <strong id="leh-stat-avg" class="txt-emerald font-mono">0.0</strong>/10</span>
           <span>Tổng câu đã làm: <strong id="leh-stat-total-q" class="txt-cyan font-mono">0</strong> câu</span>
         </div>
-        <div class="text-[11px] txt-muted">Dữ liệu được lưu an toàn trong trình duyệt của bạn</div>
+        <div class="text-[11px] txt-muted">Lưu trên trình duyệt</div>
       </div>
 
       <!-- History List Container -->
@@ -6081,7 +6081,7 @@ public class Student {
           </div>
           <div>
             <h3 class="text-base font-black txt-main">Kho Lưu Trữ Hội Thoại &amp; Lịch Sử Gia Sư AI</h3>
-            <p class="text-xs txt-muted">Mọi lần "Làm mới khung chat" đều tự động cất an toàn vào Kho — không bao giờ mất bài giảng</p>
+            <p class="text-xs txt-muted">Tự lưu các phiên chat cũ</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -6151,7 +6151,7 @@ public class Student {
             <h3 class="text-base sm:text-lg font-black txt-main flex items-center gap-2">
               Chán Làm Đề Quá? Đổi Gió Giải Trí Ngay!
             </h3>
-            <p class="text-xs txt-muted font-medium">Các mini-game và chế độ học tập vui vẻ giúp não bộ tỉnh táo & xả stress</p>
+            <p class="text-xs txt-muted font-medium">Mini-game ôn tập nhanh</p>
           </div>
         </div>
         <button onclick="closeModal('modal-study-break')" class="btn-soft p-1.5" title="Đóng"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -6167,7 +6167,7 @@ public class Student {
               <span class="badge-rose text-[10px] px-2 py-0.5 rounded-full font-black">CỰC CUỐN</span>
             </div>
             <div class="font-extrabold text-sm txt-main">Đấu Trường Blitz 60s</div>
-            <p class="text-xs txt-muted">3 trái tim sinh tồn, trả lời nhanh theo nhạc, bứt phá combo streak x2 x3 phá kỷ lục!</p>
+            <p class="text-xs txt-muted">3 tim • Phản xạ nhanh</p>
           </div>
 
           <!-- Game 2: Pomodoro Lofi Ambient Lounge -->
@@ -6177,7 +6177,7 @@ public class Student {
               <span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-black">CHILL &amp; RELAX</span>
             </div>
             <div class="font-extrabold text-sm txt-main">Lofi Ambient Lounge</div>
-            <p class="text-xs txt-muted">Bật âm thanh mưa rơi, sóng biển, cà phê du dương. Học 25 phút nghỉ 5 phút có thưởng!</p>
+            <p class="text-xs txt-muted">Âm thanh tập trung 25/5</p>
           </div>
 
           <!-- Game 3: Săn Lỗi Code 20s -->
@@ -6187,7 +6187,7 @@ public class Student {
               <span class="badge-cyan text-[10px] px-2 py-0.5 rounded-full font-black">THỬ THÁCH NHANH</span>
             </div>
             <div class="font-extrabold text-sm txt-main">Săn Lỗi Code 20 Giây</div>
-            <p class="text-xs txt-muted">Luyện mắt phát hiện nhanh 1 lỗi cú pháp hoặc logic trong 20s, cực kỳ giải trí và dễ nhớ!</p>
+            <p class="text-xs txt-muted">Tìm lỗi code trong 20s</p>
           </div>
 
           <!-- Game 4: Mô Phỏng Giải Thuật Trực Quan -->
@@ -6197,7 +6197,7 @@ public class Student {
               <span class="badge-emerald text-[10px] px-2 py-0.5 rounded-full font-black">TRỰC QUAN</span>
             </div>
             <div class="font-extrabold text-sm txt-main">Xem Thuật Toán Nhảy Múa</div>
-            <p class="text-xs txt-muted">Xem mô phỏng sinh động Quick Sort, Bubble Sort, Dijkstra với đồ họa thanh màu sắc sống động!</p>
+            <p class="text-xs txt-muted">Mô phỏng sắp xếp & đồ thị</p>
           </div>
         </div>
 
@@ -6207,7 +6207,7 @@ public class Student {
             <span class="text-3xl">🎰</span>
             <div>
               <div class="font-extrabold text-xs txt-main">Vòng Quay Câu Hỏi May Mắn</div>
-              <div class="text-[11px] txt-muted">Bốc ngẫu nhiên 1 câu đố thú vị từ bất kỳ môn nào để thử tài nhanh</div>
+              <div class="text-[11px] txt-muted">1 câu hỏi ngẫu nhiên</div>
             </div>
           </div>
           <button onclick="closeModal('modal-study-break'); triggerLuckyQuestionSpin();" class="btn-primary !bg-gradient-to-r !from-amber-500 !to-rose-500 px-4 py-2 text-xs font-black shadow-md shrink-0">
@@ -6251,7 +6251,7 @@ public class Student {
               Phòng Thi Vấn Đáp 1-1 & Bảo Vệ Đồ Án AI (Viva Voce Simulator)
               <span class="badge-rose text-[10px] px-2 py-0.5 rounded-full font-black">LIVE RUBRIC</span>
             </h3>
-            <p class="text-[11px] txt-muted">Trả lời bằng giọng nói (Mic) hoặc bàn phím • Chấm điểm 4 tiêu chí & Hỏi xoáy chuyên sâu</p>
+            <p class="text-[11px] txt-muted">Vấn đáp Mic / Bàn phím • Chấm 4 tiêu chí</p>
           </div>
         </div>
         <button onclick="closeModal('modal-viva-simulator')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -6300,7 +6300,7 @@ public class Student {
         <!-- Student Response Input + Voice Mic -->
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <label class="text-xs font-extrabold txt-main">🗣️ Câu trả lời của bạn (Nói qua Mic hoặc gõ trực tiếp):</label>
+            <label class="text-xs font-extrabold txt-main">🗣️ Câu trả lời:</label>
             <div class="flex items-center gap-2">
               <button type="button" id="btn-viva-mic" onclick="toggleVivaVoiceInput()" class="btn-soft px-3 py-1 text-xs font-extrabold flex items-center gap-1.5 border-rose-500/40 text-rose-400">
                 <span>🎤</span> <span id="viva-mic-label">Bấm để Nói (Voice STT)</span>
@@ -6332,7 +6332,7 @@ public class Student {
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white flex items-center justify-center text-lg shadow-md">🧠</div>
           <div>
             <h3 class="text-sm sm:text-base font-extrabold txt-main">Bản Đồ Tư Duy Đa Cấp & Phòng Luyện Phương Pháp Feynman</h3>
-            <p class="text-[11px] txt-muted">Trực quan hóa liên kết kiến thức bằng SVG & Học sâu nhớ lâu theo phương pháp giải thích của Richard Feynman</p>
+            <p class="text-[11px] txt-muted">Sơ đồ tư duy & giải thích Feynman</p>
           </div>
         </div>
         <div class="flex items-center gap-1.5">
@@ -6374,7 +6374,7 @@ public class Student {
 
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div class="sm:col-span-2">
-              <label class="text-xs font-extrabold txt-main">1. Chọn hoặc nhập khái niệm bạn muốn kiểm tra độ hiểu sâu:</label>
+              <label class="text-xs font-extrabold txt-main">1. Khái niệm cần kiểm tra:</label>
               <input id="feynman-concept-input" type="text" value="Đa hình động (Runtime Polymorphism - virtual/override) trong C#"
                 class="uni-input w-full px-3 py-2 text-xs font-bold mt-1" />
             </div>
@@ -6390,7 +6390,7 @@ public class Student {
           </div>
 
           <div class="space-y-2">
-            <label class="text-xs font-extrabold txt-main">2. Hãy giải thích lại theo ngôn ngữ bình dân + ví dụ ẩn dụ đời sống của riêng bạn:</label>
+            <label class="text-xs font-extrabold txt-main">2. Giải thích ngắn gọn bằng lời của bạn:</label>
             <textarea id="feynman-explanation-input" rows="4"
               placeholder="Ví dụ: Hãy tưởng tượng lớp cha HinhHoc giống như một nút bấm 'Vẽ hình' trên điều khiển vạn năng. Dù cùng bấm một nút đó, nhưng nếu cắm vào HinhTron thì nó vẽ vòng tròn, cắm vào HinhChuNhat thì nó vẽ hình chữ nhật..."
               class="uni-input w-full p-3 text-xs sm:text-sm leading-relaxed"></textarea>
@@ -6417,7 +6417,7 @@ public class Student {
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-cyan-600 text-white flex items-center justify-center text-lg shadow-md">🔬</div>
           <div>
             <h3 class="text-sm sm:text-base font-extrabold txt-main">Trình Phân Tích Sơ Đồ Lớp UML & Mô Phỏng Bộ Nhớ Stack / Managed Heap</h3>
-            <p class="text-[11px] txt-muted">Trực quan hóa quan hệ Kế thừa / Đa hình và con trỏ vùng nhớ từ mã nguồn đang viết trong Editor</p>
+            <p class="text-[11px] txt-muted">Sơ đồ UML & bộ nhớ từ Editor</p>
           </div>
         </div>
         <button onclick="closeModal('modal-uml-memory')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -6716,7 +6716,7 @@ public class Student {
         <!-- Brainwave Mode Selector -->
         <div class="space-y-2.5">
           <div class="flex items-center justify-between">
-            <label class="text-xs font-extrabold txt-main">🧠 Chọn Chế Độ Tổng Hợp Sóng Não (WebAudio Oscillator + Noise Filter):</label>
+            <label class="text-xs font-extrabold txt-main">🧠 Chọn sóng não:</label>
             <div class="flex items-center gap-2">
               <span class="text-[11px] txt-muted font-bold">Âm lượng:</span>
               <input id="zen-audio-volume" type="range" min="5" max="80" value="25" oninput="updateBinauralVolumes(this.value)" class="w-24 accent-cyan-400" />
@@ -6730,7 +6730,7 @@ public class Student {
                 <span class="font-extrabold text-cyan-300">🌊 Sóng Alpha 10 Hz (Siêu Ghi Nhớ)</span>
                 <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-200">L:200Hz • R:210Hz</span>
               </div>
-              <p class="text-[11px] txt-muted leading-relaxed">Đồng bộ bán cầu não ở tần số chênh lệch 10Hz, lý tưởng khi học thuộc lòng Hóa Sinh, Giải Phẫu và Flashcards.</p>
+              <p class="text-[11px] txt-muted leading-relaxed">10Hz — Học thuộc & Thẻ nhớ</p>
             </button>
 
             <button type="button" onclick="selectBinauralWave('beta')" id="binaural-btn-beta"
@@ -6739,7 +6739,7 @@ public class Student {
                 <span class="font-extrabold text-indigo-300">⚡ Sóng Beta 18 Hz (Giải Thuật & Code)</span>
                 <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-200">L:240Hz • R:258Hz</span>
               </div>
-              <p class="text-[11px] txt-muted leading-relaxed">Kích hoạt vùng vỏ não trước trán xử lý logic tốc độ cao, chống buồn ngủ khi code C# / Python và giải Toán Rời Rạc.</p>
+              <p class="text-[11px] txt-muted leading-relaxed">18Hz — Code & Giải toán</p>
             </button>
 
             <button type="button" onclick="selectBinauralWave('gamma')" id="binaural-btn-gamma"
@@ -6748,7 +6748,7 @@ public class Student {
                 <span class="font-extrabold text-purple-300">🔮 Sóng Gamma 40 Hz (Thi Thực Chiến)</span>
                 <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-200">L:220Hz • R:260Hz</span>
               </div>
-              <p class="text-[11px] txt-muted leading-relaxed">Tần số nhận thức đỉnh cao 40Hz (nghiên cứu MIT) tăng cường liên kết nơ-ron và tốc độ phản xạ trắc nghiệm.</p>
+              <p class="text-[11px] txt-muted leading-relaxed">40Hz — Tập trung cao độ</p>
             </button>
 
             <button type="button" onclick="selectBinauralWave('brown_noise')" id="binaural-btn-brown"
@@ -6757,7 +6757,7 @@ public class Student {
                 <span class="font-extrabold text-emerald-300">🌧️ Tiếng Mưa Đêm & Brown Noise</span>
                 <span class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-200">Low-pass 420Hz</span>
               </div>
-              <p class="text-[11px] txt-muted leading-relaxed">Nhiễu nâu lọc thông thấp ấm áp, triệt tiêu hoàn toàn tạp âm môi trường xung quanh mà không cần tai nghe.</p>
+              <p class="text-[11px] txt-muted leading-relaxed">Tiếng ồn nâu lọc tạp âm</p>
             </button>
           </div>
         </div>
@@ -6802,7 +6802,7 @@ public class Student {
               Phòng Lab SQL Trực Quan & Trình Đối Chiếu C# LINQ
               <span class="badge-amber text-[10px] px-2 py-0.5 rounded-full font-mono">SQLite In-Memory</span>
             </h3>
-            <p class="text-[11px] txt-muted">Viết truy vấn SQL thực tế, phân tích thứ tự thực thi (Execution Order), giải mã JOIN Venn và đối chiếu LINQ tương đương</p>
+            <p class="text-[11px] txt-muted">Thực hành SQL, JOIN & LINQ</p>
           </div>
         </div>
         <button onclick="closeModal('modal-sql-sandbox')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -6895,7 +6895,7 @@ public class Student {
               Mô Phỏng Giải Thuật &amp; Call Stack
               <span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">CTDL &amp; GT</span>
             </h3>
-            <p class="text-[11px] txt-muted">Chuyển mượt giữa Tua bước Time-Travel &amp; Đồ thị cột mảng trực quan</p>
+            <p class="text-[11px] txt-muted">Tua từng bước & đồ thị mảng</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -7012,7 +7012,7 @@ public class Student {
               Sổ Tay Ghi Chép Cornell Thông Minh & Chế Độ Tự Nhẩm (Active Recall)
               <span class="badge-emerald text-[10px] px-2 py-0.5 rounded-full font-mono">Cornell Notes</span>
             </h3>
-            <p class="text-[11px] txt-muted">Cột Trái (Gợi ý/Câu hỏi) + Cột Phải (Nội dung/Bẫy thi) + Phần Đáy (Tóm tắt bản chất) kèm nút che cột để tự kiểm tra</p>
+            <p class="text-[11px] txt-muted">Ghi chú 3 vùng chuẩn Cornell</p>
           </div>
         </div>
         <button onclick="closeModal('modal-cornell-studio')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7073,7 +7073,7 @@ public class Student {
               Bản Đồ Năng Lực 6 Chiều & Lộ Trình Vượt Vũ Môn Cấp Tốc (7-Day Cramming)
               <span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">Neuro-Roadmap</span>
             </h3>
-            <p class="text-[11px] txt-muted">Phân tích radar 6 trục năng lực cá nhân hóa và xếp lịch ôn tập 4 chặng trước kỳ thi</p>
+            <p class="text-[11px] txt-muted">Radar 6 trục & lộ trình 4 chặng</p>
           </div>
         </div>
         <button onclick="closeModal('modal-cram-roadmap')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7125,7 +7125,7 @@ public class Student {
               <span>Mô Phỏng Khám Bệnh & Biện Luận Lâm Sàng Thực Nghiệm</span>
               <span class="badge-brand text-[10px] font-mono px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300">v44.0 CLINICAL OS</span>
             </h3>
-            <p class="text-[11px] txt-muted">Hỏi bệnh, đo sinh hiệu, chỉ định xét nghiệm động & phòng ngừa bẫy thi tử vong</p>
+            <p class="text-[11px] txt-muted">Hỏi bệnh, xét nghiệm & chẩn đoán</p>
           </div>
         </div>
         <button onclick="closeModal('modal-clinical-sim')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7158,7 +7158,7 @@ public class Student {
               <span>🧪 Danh Mục Cận Lâm Sàng Khẩn:</span>
               <span id="clinical-labs-ordered-count" class="text-[10px] text-cyan-300 font-mono">0 Đã làm</span>
             </div>
-            <p class="text-[10px] txt-muted">Bấm vào từng xét nghiệm để bác sĩ gửi chỉ định xuống phòng Lab:</p>
+            <p class="text-[10px] txt-muted">Chọn xét nghiệm chỉ định:</p>
             <div id="clinical-lab-buttons" class="space-y-1.5">
               <!-- Dynamically populated buttons -->
             </div>
@@ -7167,7 +7167,7 @@ public class Student {
           <!-- Right: Revealed Lab Results & Pathophysiology Feed -->
           <div class="lg:col-span-8 p-3 rounded-xl border border-slate-800 bg-slate-950/70 space-y-2">
             <div class="text-xs font-black txt-main flex items-center justify-between">
-              <span>📋 Phiếu Trả Kết Quả & Cơ Chế Bệnh Sinh (Pathophysiology):</span>
+              <span>📋 Kết quả & cơ chế:</span>
               <span class="text-[10px] text-amber-300 font-mono">Real-time Lab Feed</span>
             </div>
             <div id="clinical-labs-feed" class="space-y-2 max-h-[300px] overflow-y-auto pr-1">
@@ -7209,7 +7209,7 @@ public class Student {
               <span>Trực Quan Hóa Regex & Máy Trạng Thái Hữu Hạn (DFA/NFA)</span>
               <span class="badge-brand text-[10px] font-mono px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300">v44.0 AUTOMATA</span>
             </h3>
-            <p class="text-[11px] txt-muted">Biên dịch Regular Expression thời gian thực, bóc tách Token & vẽ đồ thị trạng thái</p>
+            <p class="text-[11px] txt-muted">Test Regex & đồ thị DFA</p>
           </div>
         </div>
         <button onclick="closeModal('modal-regex-engine')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7256,7 +7256,7 @@ public class Student {
         <!-- DFA Graph Canvas -->
         <div class="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-2">
           <div class="flex items-center justify-between text-xs">
-            <span class="font-black text-violet-300">🗺️ Đồ Thị Trạng Thái Hữu Hạn Tuyến Tính (DFA State Machine):</span>
+            <span class="font-black text-violet-300">🗺️ Đồ thị DFA:</span>
             <span class="text-[10px] text-slate-400 font-mono">Lý thuyết Otomat & Ngôn ngữ hình thức</span>
           </div>
           <div id="regex-dfa-canvas" class="w-full flex justify-center py-2 overflow-x-auto">
@@ -7266,7 +7266,7 @@ public class Student {
 
         <!-- Token Breakdown Table -->
         <div class="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-2">
-          <span class="text-xs font-black txt-main">📖 Bóc Tách Cú Pháp & Giải Nghĩa Token Regex (Tiếng Việt):</span>
+          <span class="text-xs font-black txt-main">📖 Giải nghĩa Token:</span>
           <div id="regex-tokens-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
             <!-- Dynamic tokens -->
           </div>
@@ -7286,7 +7286,7 @@ public class Student {
               <span>Trực Quan Hóa Bộ Nhớ C# CLR & Thu Gom Rác (GC Generations)</span>
               <span class="badge-brand text-[10px] font-mono px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300">v44.0 CLR HEAP</span>
             </h3>
-            <p class="text-[11px] txt-muted">Phân biệt Stack vs Heap, Mark-Sweep-Compact thế hệ Gen 0, 1, 2 & bẫy rò rỉ bộ nhớ</p>
+            <p class="text-[11px] txt-muted">Stack/Heap & GC Gen 0/1/2</p>
           </div>
         </div>
         <button onclick="closeModal('modal-memory-gc')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7377,7 +7377,7 @@ public class Student {
               <span>Hóa Sinh Năng Lượng & Cân Bằng ATP Ty Thể (Bioenergetics)</span>
               <span class="badge-brand text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300">v44.0 BIOCHEM ATP</span>
             </h3>
-            <p class="text-[11px] txt-muted">Đường phân, Krebs, Chuỗi Hô Hấp Tế Bào, Hệ số P/O hiện đại & Chất độc ức chế</p>
+            <p class="text-[11px] txt-muted">Đường phân, Krebs & Chuỗi hô hấp</p>
           </div>
         </div>
         <button onclick="closeModal('modal-metabolic-atp')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7420,7 +7420,7 @@ public class Student {
         <!-- Stage Breakdown Table -->
         <div class="p-3.5 rounded-xl border border-slate-800 bg-slate-950 space-y-2">
           <div class="flex items-center justify-between text-xs">
-            <span class="font-black text-emerald-300">📊 Chi Tiết Năng Lượng Từng Giai Đoạn (P/O Hiện Đại: 1 NADH = 2.5 ATP, 1 FADH2 = 1.5 ATP):</span>
+            <span class="font-black text-emerald-300">📊 Chi tiết ATP (NADH=2.5, FADH2=1.5):</span>
             <span class="text-[10px] text-slate-400 font-mono">Biochemical Yield Matrix</span>
           </div>
           <div class="overflow-x-auto">
@@ -7469,7 +7469,7 @@ public class Student {
                 <i data-lucide="zap" class="w-3 h-3"></i> Tự động Cache
               </span>
             </div>
-            <p class="text-xs text-slate-400 mt-0.5">Lưu trữ bền vững các phân tích học thuật, giải thích chuyên sâu và bẫy đề thi từ AI</p>
+            <p class="text-xs text-slate-400 mt-0.5">Lịch sử phân tích AI</p>
           </div>
         </div>
         <div class="flex items-center gap-2">
@@ -7636,7 +7636,7 @@ public class Student {
               Phòng Lab Đại Số Boole, Bảng Chân Trị &amp; Bìa Karnaugh (2–4 Biến)
               <span class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-black">QUINE-McCLUSKEY</span>
             </h3>
-            <p class="text-[11px] txt-muted">Nhập công thức mệnh đề hoặc bấm trực tiếp lên các ô Bìa Karnaugh (0 ↔ 1) để tối thiểu hóa hàm Boole</p>
+            <p class="text-[11px] txt-muted">Bảng chân trị & bìa Karnaugh</p>
           </div>
         </div>
         <button type="button" onclick="closeModal('modal-logic-kmap')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7718,7 +7718,7 @@ public class Student {
               Phòng Mô Phỏng Cây Tự Cân Bằng AVL, BST &amp; Đống Nhị Phân (Heap)
               <span class="badge-emerald text-[10px] px-2 py-0.5 rounded-full font-black">LIVE SVG</span>
             </h3>
-            <p class="text-[11px] txt-muted">Quan sát hệ số cân bằng BF, phép quay đơn/kép LL • RR • LR • RL, vun đống Heapify &amp; 4 phép duyệt cây</p>
+            <p class="text-[11px] txt-muted">Mô phỏng AVL, BST & Heap</p>
           </div>
         </div>
         <button type="button" onclick="closeModal('modal-tree-heap-studio')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7778,7 +7778,7 @@ public class Student {
               Giải Mã Khí Máu Động Mạch (ABG), Công Thức Winter &amp; Tỷ Số Delta-Delta
               <span class="badge-rose text-[10px] px-2 py-0.5 rounded-full font-black">ICU / HÓA SINH</span>
             </h3>
-            <p class="text-[11px] txt-muted">Biện luận 5 bước chuẩn YDS / CTUMP • Tự động hiệu chỉnh Anion Gap theo Albumin &amp; vẽ giản đồ pH–HCO₃⁻</p>
+            <p class="text-[11px] txt-muted">Biện luận ABG 5 bước & Anion Gap</p>
           </div>
         </div>
         <button type="button" onclick="closeModal('modal-abg-analyzer')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7856,8 +7856,8 @@ public class Student {
         <div class="flex items-center gap-2.5">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center text-lg shadow-md">🖨️</div>
           <div>
-            <h3 class="text-sm sm:text-base font-extrabold txt-main">Xuất Đề Thi Chuẩn In Ấn, Phiếu Tô OMR &amp; Đáp Án Chi Tiết</h3>
-            <p class="text-[11px] txt-muted">Hỗ trợ lưu PDF trực tiếp (Ctrl+P) hoặc tải file đề HTML độc lập kèm công thức &amp; hình vẽ</p>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main">Xuất đề thi & phiếu OMR</h3>
+            <p class="text-[11px] txt-muted">Lưu PDF hoặc tải HTML</p>
           </div>
         </div>
         <button type="button" onclick="closeModal('modal-print-exam')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -7948,15 +7948,15 @@ public class Student {
           <div id="online-qr-panel" class="hidden pt-2 flex flex-col items-center gap-1.5 text-center animate-fade-in">
             <div id="online-qr-canvas" class="p-2.5 bg-white rounded-2xl shadow-md inline-block"></div>
             <div id="online-qr-caption" class="text-[11px] font-mono txt-sub break-all"></div>
-            <div class="text-[10px] txt-muted">Mở Camera iPhone / iPad / Android quét mã để vào học ngay</div>
+            <div class="text-[10px] txt-muted">Quét mã bằng Camera</div>
           </div>
         </div>
 
         <!-- 2. Real-Time Sync Summary + Sync Now -->
         <div class="p-3.5 rounded-2xl border flex flex-wrap items-center justify-between gap-3" style="background-color: var(--bg-subtle); border-color: var(--border);">
           <div class="space-y-0.5 min-w-0 flex-1">
-            <div class="font-extrabold txt-main" id="cloud-sync-summary-line">Sao lưu tức thì: Câu đang làm, Đề 60p, Chat AI, Ghi chú &amp; Lịch thi</div>
-            <div class="text-[11px] txt-muted" id="cloud-sync-last-time">Tự động đồng bộ trực tiếp giữa các thiết bị mở cùng link Online</div>
+            <div class="font-extrabold txt-main" id="cloud-sync-summary-line">Tự lưu tiến độ, chat AI & lịch thi</div>
+            <div class="text-[11px] txt-muted" id="cloud-sync-last-time">Tự đồng bộ giữa các thiết bị</div>
           </div>
           <button type="button" onclick="forceFullVaultSyncNow()" class="btn-primary px-3.5 py-2 text-xs font-extrabold rounded-xl shrink-0">
             🔄 Đồng bộ ngay
@@ -7984,7 +7984,7 @@ public class Student {
               <input id="cloud-bridge-pw-input" type="password" placeholder="Mật khẩu Cloud (VD: uni-5292)" class="uni-input sm:col-span-5 px-3 py-2 text-xs" />
             </div>
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <span id="cloud-bridge-feedback" class="text-[11px] font-bold txt-muted">Đồng bộ dữ liệu từ máy cục bộ lên thẳng Cloud Render.</span>
+              <span id="cloud-bridge-feedback" class="text-[11px] font-bold txt-muted">Đồng bộ lên Cloud Render.</span>
               <div class="flex items-center gap-1.5">
                 <button type="button" onclick="clearRemoteCloudBridge()" class="btn-soft px-2.5 py-1.5 text-[11px] font-bold">Ngắt</button>
                 <button type="button" onclick="saveAndSyncRemoteCloudBridge()" class="btn-primary px-3 py-1.5 text-[11px] font-extrabold">🔗 Đồng bộ lên Cloud</button>
@@ -8016,7 +8016,7 @@ public class Student {
           <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
             <span>🎛️</span> <span>Trộn Đề Đa Chương Thông Minh</span>
           </h3>
-          <div id="mixer-subject-subtitle" class="text-[11px] txt-muted">Chọn nhiều bài / chuyên đề để ghép thành 1 đề ôn tập chuẩn</div>
+          <div id="mixer-subject-subtitle" class="text-[11px] txt-muted">Ghép nhiều bài thành 1 đề</div>
         </div>
         <button type="button" onclick="closeModal('modal-multi-topic-mixer')" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
@@ -8096,7 +8096,7 @@ public class Student {
           <span class="text-lg">⚡</span>
           <div class="min-w-0">
             <h3 class="text-sm sm:text-base font-extrabold txt-main truncate">Tia Chớp 60 Giây</h3>
-            <div id="blitz60-subject-label" class="text-[11px] txt-muted truncate">Phản xạ nhanh trắc nghiệm • Phím tắt A/B/C/D hoặc 1/2/3/4</div>
+            <div id="blitz60-subject-label" class="text-[11px] txt-muted truncate">Phản xạ 60s • Phím A/B/C/D</div>
           </div>
         </div>
         <button type="button" onclick="closeSpeedBlitz60Modal()" class="btn-soft p-1.5"><i data-lucide="x" class="w-4 h-4"></i></button>
@@ -8162,7 +8162,7 @@ public class Student {
       <div class="space-y-1">
         <h3 class="text-base font-extrabold txt-main">Màn Hình Đã Khóa An Toàn</h3>
         <div id="privacy-lock-clock" class="text-2xl font-mono font-black txt-brand tabular-nums">--:--</div>
-        <p class="text-xs txt-muted">Nội dung ôn thi đã được che mờ để bảo vệ quyền riêng tư.</p>
+        <p class="text-xs txt-muted">Màn hình đang khóa.</p>
       </div>
       <div id="privacy-pin-input-wrap" class="hidden space-y-2">
         <input id="privacy-pin-unlock-input" type="password" inputmode="numeric" maxlength="6" placeholder="Nhập mã PIN để mở khóa"
@@ -8299,6 +8299,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=63.3"></script>
+  <script src="/static/app.js?v=64.0"></script>
 </body>
 </html>

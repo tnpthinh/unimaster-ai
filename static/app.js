@@ -1840,7 +1840,7 @@ document.addEventListener('keydown', (e) => {
 function toggleFloatingVoiceInput() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    showToast('Trình duyệt chưa hỗ trợ nhận diện giọng nói. Hãy dùng Google Chrome hoặc Edge!', 'warning');
+    showToast('Trình duyệt không hỗ trợ Mic.', 'warning');
     return;
   }
 
@@ -15729,8 +15729,8 @@ function renderSurvivalPredictor() {
   const titleEl = document.getElementById('survival-urgent-title');
   if (titleEl) {
     titleEl.textContent = nearestName
-      ? (nearestDays === 0 ? `Hôm nay thi: ${nearestName} — Bình tĩnh tự tin đạt điểm tối đa!` : `Mốc thi gần nhất: ${nearestName} (còn ${nearestDays} ngày) • Bấm thẻ môn bất kỳ để luyện ngay`)
-      : 'Lịch thi cá nhân • Bấm vào thẻ môn học để mở phòng luyện đề ngay';
+      ? (nearestDays === 0 ? `Hôm nay thi: ${nearestName} — Chúc bạn thi tốt!` : `Mốc thi gần nhất: ${nearestName} (còn ${nearestDays} ngày) • Bấm thẻ môn bất kỳ để luyện ngay`)
+      : 'Lịch thi cá nhân • Bấm thẻ môn để luyện ngay';
   }
 
   const quota = JSON.parse(localStorage.getItem('unimaster_daily_quota') || '{"done": 0, "target": 40}');
@@ -27948,14 +27948,14 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     }
     if (modalSt) {
       modalSt.textContent = mode === 'offline'
-        ? '🟡 Đang lưu trên trình duyệt (Sẽ tự đồng bộ khi có mạng)'
+        ? '🟡 Lưu cục bộ (chờ mạng)'
         : (syncWsConnected
-          ? '⚡ Đồng bộ thời gian thực WebSocket (< 50ms)'
-          : '🟢 Đang tự động sao lưu thời gian thực');
+          ? '⚡ Đồng bộ tức thì'
+          : '🟢 Đang tự động đồng bộ');
     }
     if (modalLast && mode === 'saved') {
       const tStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      modalLast.textContent = `Đã lưu lúc ${tStr} • Mọi thiết bị mở cùng link Online đều tự cập nhật tức thì`;
+      modalLast.textContent = `Đã lưu lúc ${tStr} • Tự đồng bộ mọi thiết bị`;
     }
   }
   window.setHeaderSyncStatus = setHeaderSyncStatus;
@@ -28805,7 +28805,7 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       if (tunnelLink) {
         tunnelLink.href = rUrl;
         tunnelLink.textContent = info.can_start_tunnel
-          ? 'Bấm "🚀 Bật Link Online" để mở địa chỉ HTTPS trực tiếp'
+          ? 'Bấm "Bật Link Online" để tạo link HTTPS'
           : (info.lan_url || 'Sử dụng link Cloud 24/7 bên trên');
         tunnelLink.className = 'font-mono font-semibold text-xs txt-muted break-words';
       }
