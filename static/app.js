@@ -31155,3 +31155,410 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
   }
   window.exportStudyCheatsheetNow = exportStudyCheatsheetNow;
 })();
+
+// =========================================================================
+// v66.0 PRO-STUDENT MASTERY SUITE:
+// 1. Đúng / Sai 30 Giây (True/False Rapid-Fire Sprint)
+// 2. Tính GPA 4.0 & Điểm Cuối Kỳ Cần Đạt
+// 3. Dán Văn Bản Thành Đề Thi Ngay (Paste-to-Quiz)
+// 4. Bấm Giờ & Nhật Ký Giờ Học 7 Ngày
+// =========================================================================
+(function initProStudentSuiteV66() {
+  // --- 1. True/False 30s Sprint ---
+  const TF_BEST_KEY = 'unimaster_tf_sprint_best_v66';
+  const tf = { active: false, pool: [], idx: 0, claimIsTrue: true, realAns: '', score: 0, streak: 0, right: 0, total: 0, secLeft: 30, timerId: null };
+
+  function openTrueFalseSprintModal() {
+    const sel = document.getElementById('tf-subject-select');
+    if (sel) {
+      const subjs = Array.isArray(STATE?.subjects) ? STATE.subjects : [];
+      const curSid = String(STATE?.activeSubjectId || '');
+      sel.innerHTML = subjs.map((s) =>
+        `<option value="${s.id}" ${String(s.id) === curSid ? 'selected' : ''}>${escapeHtml(s.icon || '📚')} ${escapeHtml(s.name)}</option>`
+      ).join('');
+    }
+    const best = Number(localStorage.getItem(TF_BEST_KEY) || 0);
+    const badge = document.getElementById('tf-best-badge');
+    if (badge) badge.textContent = `Kỷ lục: ${best} đ`;
+    document.getElementById('tf-setup-pane')?.classList.remove('hidden');
+    document.getElementById('tf-play-pane')?.classList.add('hidden');
+    document.getElementById('tf-over-pane')?.classList.add('hidden');
+    openModal('modal-true-false-sprint');
+  }
+  window.openTrueFalseSprintModal = openTrueFalseSprintModal;
+
+  function closeTrueFalseSprintModal() {
+    tf.active = false;
+    clearInterval(tf.timerId);
+    closeModal('modal-true-false-sprint');
+  }
+  window.closeTrueFalseSprintModal = closeTrueFalseSprintModal;
+
+  async function startTrueFalseSprint() {
+    clearInterval(tf.timerId);
+    const sid = Number(document.getElementById('tf-subject-select')?.value || STATE?.activeSubjectId || 10);
+    let list = [];
+    if (STATE?.isOfflineStandalone && Array.isArray(window.OFFLINE_QUESTIONS)) {
+      list = window.OFFLINE_QUESTIONS.filter((q) => Number(q.subject_id) === sid);
+    } else {
+      const res = await apiFetch(`/api/subjects/${sid}/questions?limit=120&shuffle=1`);
+      list = Array.isArray(res) ? res : (res?.questions || []);
+    }
+    if (!list.length) {
+      showToast('Chưa có câu hỏi trong môn này.', 'warning');
+      return;
+    }
+    tf.pool = list.sort(() => Math.random() - 0.5);
+    tf.idx = 0; tf.score = 0; tf.streak = 0; tf.right = 0; tf.total = 0; tf.secLeft = 30; tf.active = true;
+    document.getElementById('tf-setup-pane')?.classList.add('hidden');
+    document.getElementById('tf-over-pane')?.classList.add('hidden');
+    document.getElementById('tf-play-pane')?.classList.remove('hidden');
+    _renderNextTrueFalse();
+    tf.timerId = setInterval(() => {
+      if (!tf.active) return;
+      tf.secLeft -= 1;
+      const tEl = document.getElementById('tf-timer-text');
+      if (tEl) tEl.textContent = `${tf.secLeft}s`;
+      if (tf.secLeft <= 0) {
+        tf.active = false;
+        clearInterval(tf.timerId);
+        const prevBest = Number(localStorage.getItem(TF_BEST_KEY) || 0);
+        const newBest = Math.max(prevBest, tf.score);
+        try { localStorage.setItem(TF_BEST_KEY, String(newBest)); } catch (_) {}
+        const badge = document.getElementById('tf-best-badge');
+        if (badge) badge.textContent = `Kỷ lục: ${newBest} đ`;
+        document.getElementById('tf-play-pane')?.classList.add('hidden');
+        document.getElementById('tf-over-pane')?.classList.remove('hidden');
+        const acc = tf.total ? Math.round((tf.right / tf.total) * 100) : 0;
+        const sumEl = document.getElementById('tf-over-summary');
+        if (sumEl) sumEl.textContent = `Điểm: ${tf.score} đ • Đúng ${tf.right}/${tf.total} (${acc}%) • Kỷ lục: ${newBest} đ`;
+      }
+    }, 1000);
+  }
+  window.startTrueFalseSprint = startTrueFalseSprint;
+
+  function _renderNextTrueFalse() {
+    if (!tf.active || !tf.pool.length) return;
+    const q = tf.pool[tf.idx % tf.pool.length];
+    const correct = String(q.correct_option || 'A').trim().toUpperCase();
+    const map = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
+    const realText = String(map[correct] || map.A || '').trim();
+    const wrongs = Object.entries(map).filter(([k, v]) => k !== correct && v && String(v).trim()).map(([, v]) => String(v).trim());
+    tf.claimIsTrue = Math.random() < 0.5 || wrongs.length === 0;
+    tf.realAns = realText;
+    const shownClaim = tf.claimIsTrue ? realText : wrongs[Math.floor(Math.random() * wrongs.length)];
+
+    const qEl = document.getElementById('tf-q-text');
+    const cEl = document.getElementById('tf-claim-text');
+    const tEl = document.getElementById('tf-timer-text');
+    const stEl = document.getElementById('tf-streak-text');
+    const scEl = document.getElementById('tf-score-text');
+    if (qEl) qEl.textContent = q.question_text || q.question || '';
+    if (cEl) cEl.textContent = shownClaim;
+    if (tEl) tEl.textContent = `${tf.secLeft}s`;
+    if (stEl) stEl.textContent = `Chuỗi: ${tf.streak}`;
+    if (scEl) scEl.textContent = `${tf.score} đ`;
+  }
+
+  function answerTrueFalseSprint(userSaysTrue) {
+    if (!tf.active) return;
+    tf.total += 1;
+    const ok = Boolean(userSaysTrue) === tf.claimIsTrue;
+    const fb = document.getElementById('tf-feedback-line');
+    if (ok) {
+      tf.right += 1;
+      tf.streak += 1;
+      tf.score += 10 + Math.min(20, tf.streak * 2);
+      if (fb) { fb.className = 'text-center text-xs font-bold txt-emerald min-h-[1.25rem]'; fb.textContent = '✅ Chuẩn xác!'; }
+    } else {
+      tf.streak = 0;
+      if (fb) { fb.className = 'text-center text-xs font-bold text-rose-400 min-h-[1.25rem]'; fb.textContent = `❌ Sai! Đúng là: ${tf.realAns.slice(0, 75)}`; }
+    }
+    tf.idx += 1;
+    _renderNextTrueFalse();
+  }
+  window.answerTrueFalseSprint = answerTrueFalseSprint;
+
+  document.addEventListener('keydown', (e) => {
+    if (!tf.active) return;
+    const m = document.getElementById('modal-true-false-sprint');
+    if (!m || m.classList.contains('hidden')) return;
+    if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'd') { e.preventDefault(); answerTrueFalseSprint(true); }
+    if (e.key === 'ArrowRight' || e.key.toLowerCase() === 's') { e.preventDefault(); answerTrueFalseSprint(false); }
+  });
+
+  // --- 2. GPA 4.0 Calculator ---
+  const GPA_KEY = 'unimaster_gpa_courses_v66';
+  let gpaCourses = [];
+
+  function _score10To4(s) {
+    if (s >= 8.5) return { g4: 4.0, letter: 'A' };
+    if (s >= 8.0) return { g4: 3.5, letter: 'B+' };
+    if (s >= 7.0) return { g4: 3.0, letter: 'B' };
+    if (s >= 6.5) return { g4: 2.5, letter: 'C+' };
+    if (s >= 5.5) return { g4: 2.0, letter: 'C' };
+    if (s >= 5.0) return { g4: 1.5, letter: 'D+' };
+    if (s >= 4.0) return { g4: 1.0, letter: 'D' };
+    return { g4: 0.0, letter: 'F' };
+  }
+
+  function _saveAndRecalcGpa() {
+    try { localStorage.setItem(GPA_KEY, JSON.stringify(gpaCourses)); } catch (_) {}
+    let totalCr = 0, sum4 = 0, sum10 = 0;
+    gpaCourses.forEach((c) => {
+      const cr = Math.max(1, Number(c.credits || 1));
+      const sc = Math.max(0, Math.min(10, Number(c.score || 0)));
+      const { g4 } = _score10To4(sc);
+      totalCr += cr;
+      sum4 += g4 * cr;
+      sum10 += sc * cr;
+    });
+    const gpa4 = totalCr ? (sum4 / totalCr) : 0;
+    const gpa10 = totalCr ? (sum10 / totalCr) : 0;
+    const rank = gpa4 >= 3.6 ? 'Xuất sắc 🏆' : (gpa4 >= 3.2 ? 'Giỏi 🌟' : (gpa4 >= 2.5 ? 'Khá 👍' : (gpa4 >= 2.0 ? 'Trung bình' : 'Cần cố gắng')));
+    const e4 = document.getElementById('gpa-val-4');
+    const e10 = document.getElementById('gpa-val-10');
+    const er = document.getElementById('gpa-rank-text');
+    if (e4) e4.textContent = gpa4.toFixed(2);
+    if (e10) e10.textContent = gpa10.toFixed(2);
+    if (er) er.textContent = totalCr ? rank : '--';
+  }
+
+  function _renderGpaCourses() {
+    const wrap = document.getElementById('gpa-courses-list');
+    if (!wrap) return;
+    wrap.innerHTML = gpaCourses.map((c, i) => {
+      const { letter } = _score10To4(Number(c.score || 0));
+      return `
+        <div class="grid grid-cols-12 gap-1.5 items-center">
+          <input type="text" value="${escapeHtml(c.name)}" oninput="updateGpaCourse(${i}, 'name', this.value)" placeholder="Tên môn" class="col-span-6 uni-input px-2.5 py-1.5 text-xs font-semibold" />
+          <input type="number" min="1" max="10" value="${c.credits}" oninput="updateGpaCourse(${i}, 'credits', this.value)" title="Số tín chỉ" class="col-span-2 uni-input px-2 py-1.5 text-center font-mono font-bold text-xs" />
+          <input type="number" min="0" max="10" step="0.1" value="${c.score}" oninput="updateGpaCourse(${i}, 'score', this.value)" title="Điểm hệ 10" class="col-span-2 uni-input px-2 py-1.5 text-center font-mono font-bold text-xs" />
+          <span class="col-span-1 text-center font-mono font-extrabold txt-brand">${letter}</span>
+          <button type="button" onclick="removeGpaCourseRow(${i})" class="col-span-1 btn-soft py-1 text-rose-400 font-bold">✕</button>
+        </div>
+      `;
+    }).join('');
+    _saveAndRecalcGpa();
+  }
+
+  function openGpaCalculatorModal() {
+    try { gpaCourses = JSON.parse(localStorage.getItem(GPA_KEY) || '[]'); } catch (_) { gpaCourses = []; }
+    if (!Array.isArray(gpaCourses) || !gpaCourses.length) {
+      gpaCourses = [
+        { name: 'Toán Rời Rạc', credits: 3, score: 8.5 },
+        { name: 'Lập trình OOP C#', credits: 3, score: 8.2 },
+        { name: 'Thực hành Hóa Sinh', credits: 2, score: 8.8 }
+      ];
+    }
+    _renderGpaCourses();
+    calcNeededFinalScore();
+    openModal('modal-gpa-calculator');
+  }
+  window.openGpaCalculatorModal = openGpaCalculatorModal;
+
+  function addGpaCourseRow() {
+    gpaCourses.push({ name: `Học phần ${gpaCourses.length + 1}`, credits: 3, score: 8.0 });
+    _renderGpaCourses();
+  }
+  window.addGpaCourseRow = addGpaCourseRow;
+
+  function removeGpaCourseRow(idx) {
+    gpaCourses.splice(idx, 1);
+    _renderGpaCourses();
+  }
+  window.removeGpaCourseRow = removeGpaCourseRow;
+
+  function updateGpaCourse(idx, field, val) {
+    if (!gpaCourses[idx]) return;
+    gpaCourses[idx][field] = field === 'name' ? val : Number(val || 0);
+    _saveAndRecalcGpa();
+  }
+  window.updateGpaCourse = updateGpaCourse;
+
+  function calcNeededFinalScore() {
+    const qt = Number(document.getElementById('gpa-qt-score')?.value || 0);
+    const wFinal = Math.max(10, Math.min(90, Number(document.getElementById('gpa-final-weight')?.value || 60))) / 100;
+    const target = Number(document.getElementById('gpa-target-grade')?.value || 8.5);
+    const needed = (target - qt * (1 - wFinal)) / wFinal;
+    const out = document.getElementById('gpa-needed-result');
+    if (!out) return;
+    if (needed <= 0) out.textContent = `✅ Bạn đã chắc chắn đạt mục tiêu ${target} điểm!`;
+    else if (needed > 10) out.textContent = `⚠️ Cần ${needed.toFixed(2)}đ cuối kỳ (vượt 10đ — hãy thử hạ mục tiêu).`;
+    else out.textContent = `🎯 Cần tối thiểu ${needed.toFixed(2)} / 10 điểm thi cuối kỳ để đạt tổng ${target}.`;
+  }
+  window.calcNeededFinalScore = calcNeededFinalScore;
+
+  // --- 3. Smart Paste-to-Quiz Instant Exam ---
+  function _parsePastedMcqText(raw) {
+    const text = String(raw || '').replace(/\r\n/g, '\n').trim();
+    if (!text) return [];
+    const blocks = text.split(/(?=(?:^|\n)\s*(?:Câu\s*\d+|Question\s*\d+|\d+[\.\)])\s*[:.\-]?)/i).map((b) => b.trim()).filter(Boolean);
+    const parsed = [];
+    blocks.forEach((b, idx) => {
+      const lines = b.split('\n').map((l) => l.trim()).filter(Boolean);
+      if (lines.length < 3) return;
+      let qLines = [], opts = { A: '', B: '', C: '', D: '' }, ans = 'A';
+      lines.forEach((line) => {
+        const ansM = line.match(/^(?:Đáp\s*án|Answer|ĐA|Key)\s*[:.\-]?\s*([A-D])\b/i);
+        if (ansM) { ans = ansM[1].toUpperCase(); return; }
+        const optM = line.match(/^([A-D])[\.\)\:]\s*(.+)$/i);
+        if (optM) {
+          const k = optM[1].toUpperCase();
+          let val = optM[2].trim();
+          if (val.startsWith('*')) { ans = k; val = val.slice(1).trim(); }
+          opts[k] = val;
+        } else if (!opts.A) {
+          qLines.push(line.replace(/^(?:Câu\s*\d+|Question\s*\d+|\d+[\.\)])\s*[:.\-]?\s*/i, ''));
+        }
+      });
+      if (qLines.length && opts.A && opts.B) {
+        parsed.push({
+          id: 900000 + idx,
+          question_text: qLines.join(' '),
+          option_a: opts.A,
+          option_b: opts.B,
+          option_c: opts.C || 'Không có phương án C',
+          option_d: opts.D || 'Không có phương án D',
+          correct_option: ans,
+          explanation: 'Câu hỏi tạo nhanh từ văn bản dán.'
+        });
+      }
+    });
+    return parsed;
+  }
+
+  function openPasteToQuizModal() {
+    openModal('modal-paste-to-quiz');
+    previewPastedQuiz();
+  }
+  window.openPasteToQuizModal = openPasteToQuizModal;
+
+  function loadSamplePasteQuiz() {
+    const ta = document.getElementById('paste-quiz-input');
+    if (ta) {
+      ta.value = `Câu 1: Cấu trúc dữ liệu ngăn xếp (Stack) hoạt động theo nguyên tắc nào?\nA. FIFO\nB. LIFO\nC. LILO\nD. Random\nĐáp án: B\n\nCâu 2: Độ phức tạp trung bình của thuật toán Quick Sort là?\nA. O(n)\nB. O(n^2)\nC. O(n log n)\nD. O(log n)\nĐáp án: C`;
+      previewPastedQuiz();
+    }
+  }
+  window.loadSamplePasteQuiz = loadSamplePasteQuiz;
+
+  function previewPastedQuiz() {
+    const raw = document.getElementById('paste-quiz-input')?.value || '';
+    const list = _parsePastedMcqText(raw);
+    const cnt = document.getElementById('paste-quiz-count');
+    const prev = document.getElementById('paste-quiz-preview');
+    if (cnt) cnt.textContent = `Đã nhận diện: ${list.length} câu`;
+    if (prev) {
+      prev.innerHTML = list.slice(0, 8).map((q, i) =>
+        `<div class="p-2 rounded-lg border txt-main" style="background: var(--bg-subtle); border-color: var(--border);"><b>${i + 1}.</b> ${escapeHtml(q.question_text)} <span class="txt-emerald font-mono font-bold ml-1">[${q.correct_option}]</span></div>`
+      ).join('');
+    }
+  }
+  window.previewPastedQuiz = previewPastedQuiz;
+
+  function launchPastedQuizNow() {
+    const raw = document.getElementById('paste-quiz-input')?.value || '';
+    const list = _parsePastedMcqText(raw);
+    if (!list.length) {
+      showToast('Chưa nhận diện được câu hỏi hợp lệ. Hãy bấm "Điền mẫu" để xem định dạng.', 'warning');
+      return;
+    }
+    closeModal('modal-paste-to-quiz');
+    if (typeof switchTab === 'function') switchTab('exam');
+    if (typeof launchExamWithQuestions === 'function') {
+      launchExamWithQuestions(list, `Đề Dán Nhanh (${list.length} câu)`, true);
+    }
+    showToast(`🚀 Đã mở phòng thi với ${list.length} câu vừa dán!`, 'success');
+  }
+  window.launchPastedQuizNow = launchPastedQuizNow;
+
+  // --- 4. Focus Stopwatch & 7-Day Study Log ---
+  const SW_LOG_KEY = 'unimaster_study_minutes_log_v66';
+  const sw = { running: false, sec: 0, timerId: null };
+
+  function _fmtSw(totalSec) {
+    const h = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+    const m = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+    const s = String(totalSec % 60).padStart(2, '0');
+    return `${h}:${m}:${s}`;
+  }
+
+  function _renderSwChart() {
+    let log = {};
+    try { log = JSON.parse(localStorage.getItem(SW_LOG_KEY) || '{}'); } catch (_) {}
+    const days = [];
+    let total = 0;
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000);
+      const key = d.toISOString().slice(0, 10);
+      const mins = Number(log[key] || 0);
+      total += mins;
+      days.push({ label: `${d.getDate()}/${d.getMonth() + 1}`, mins });
+    }
+    const maxM = Math.max(30, ...days.map((d) => d.mins));
+    const totEl = document.getElementById('sw-week-total');
+    const barsEl = document.getElementById('sw-week-bars');
+    if (totEl) totEl.textContent = `${total} phút (${(total / 60).toFixed(1)}h)`;
+    if (barsEl) {
+      barsEl.innerHTML = days.map((d) => {
+        const pct = Math.max(8, Math.round((d.mins / maxM) * 100));
+        return `<div class="flex flex-col items-center gap-1 h-full justify-end">
+          <span class="text-[10px] font-mono txt-muted">${d.mins > 0 ? d.mins : ''}</span>
+          <div class="w-full rounded-t-md" style="height:${pct}%; background: linear-gradient(180deg, var(--brand), var(--brand-2)); opacity:${d.mins > 0 ? 1 : 0.2};"></div>
+          <span class="text-[10px] font-mono txt-muted">${d.label}</span>
+        </div>`;
+      }).join('');
+    }
+  }
+
+  function openStudyStopwatchModal() {
+    const disp = document.getElementById('sw-time-display');
+    if (disp) disp.textContent = _fmtSw(sw.sec);
+    _renderSwChart();
+    openModal('modal-study-stopwatch');
+  }
+  window.openStudyStopwatchModal = openStudyStopwatchModal;
+
+  function toggleStudyStopwatch() {
+    const btn = document.getElementById('sw-toggle-btn');
+    if (sw.running) {
+      sw.running = false;
+      clearInterval(sw.timerId);
+      if (btn) btn.textContent = '▶ Tiếp tục';
+    } else {
+      sw.running = true;
+      if (btn) btn.textContent = '⏸ Tạm dừng';
+      sw.timerId = setInterval(() => {
+        sw.sec += 1;
+        const disp = document.getElementById('sw-time-display');
+        if (disp) disp.textContent = _fmtSw(sw.sec);
+      }, 1000);
+    }
+  }
+  window.toggleStudyStopwatch = toggleStudyStopwatch;
+
+  function saveStudyStopwatchSession() {
+    const addMin = Math.max(1, Math.round(sw.sec / 60));
+    let log = {};
+    try { log = JSON.parse(localStorage.getItem(SW_LOG_KEY) || '{}'); } catch (_) {}
+    const today = new Date().toISOString().slice(0, 10);
+    log[today] = Number(log[today] || 0) + addMin;
+    try { localStorage.setItem(SW_LOG_KEY, JSON.stringify(log)); } catch (_) {}
+    resetStudyStopwatch();
+    _renderSwChart();
+    showToast(`💾 Đã lưu +${addMin} phút học hôm nay!`, 'success');
+  }
+  window.saveStudyStopwatchSession = saveStudyStopwatchSession;
+
+  function resetStudyStopwatch() {
+    sw.running = false;
+    clearInterval(sw.timerId);
+    sw.sec = 0;
+    const disp = document.getElementById('sw-time-display');
+    const btn = document.getElementById('sw-toggle-btn');
+    if (disp) disp.textContent = '00:00:00';
+    if (btn) btn.textContent = '▶ Bắt đầu';
+  }
+  window.resetStudyStopwatch = resetStudyStopwatch;
+})();
