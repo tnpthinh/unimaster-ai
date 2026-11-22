@@ -1776,6 +1776,7 @@ function transferChatToTutorTab() {
 window.transferChatToTutorTab = transferChatToTutorTab;
 
 let tutorViewExpanded = false;
+let _tutorCardPlaceholder = null;
 function toggleTutorViewSize(forceState) {
   const card = document.getElementById('tutor-main-card');
   if (!card) return;
@@ -1783,19 +1784,49 @@ function toggleTutorViewSize(forceState) {
   const iconEl = document.getElementById('tutor-expand-icon');
   const textEl = document.getElementById('tutor-expand-text');
   if (tutorViewExpanded) {
-    card.classList.add('fixed', 'inset-2', 'sm:inset-4', 'z-[9995]');
-    card.style.height = 'auto';
+    if (card.parentNode && card.parentNode !== document.body) {
+      _tutorCardPlaceholder = document.createElement('span');
+      _tutorCardPlaceholder.id = 'tutor-card-portal-anchor';
+      _tutorCardPlaceholder.className = 'hidden';
+      card.parentNode.insertBefore(_tutorCardPlaceholder, card);
+      document.body.appendChild(card);
+    }
+    document.body.classList.add('tutor-expanded-active');
+    card.classList.remove('relative', 'tutor-main-card-height');
+    card.classList.add('fixed', 'inset-0', 'sm:inset-3', 'z-[9995]');
+    card.style.position = 'fixed';
+    card.style.top = window.innerWidth < 640 ? '0px' : '12px';
+    card.style.left = window.innerWidth < 640 ? '0px' : '12px';
+    card.style.right = window.innerWidth < 640 ? '0px' : '12px';
+    card.style.bottom = window.innerWidth < 640 ? '0px' : '12px';
+    card.style.width = window.innerWidth < 640 ? '100vw' : 'calc(100vw - 24px)';
+    card.style.height = window.innerWidth < 640 ? '100dvh' : 'calc(100dvh - 24px)';
+    card.style.borderRadius = window.innerWidth < 640 ? '0' : '';
     card.style.boxShadow = '0 25px 60px -10px rgba(0,0,0,0.65)';
     document.body.style.overflow = 'hidden';
     if (iconEl) iconEl.textContent = '🗗';
-    if (textEl) textEl.textContent = 'Thu Nhỏ';
+    if (textEl) textEl.textContent = 'Thu nhỏ';
   } else {
-    card.classList.remove('fixed', 'inset-2', 'sm:inset-4', 'z-[9995]');
-    card.style.height = 'max(680px, calc(100vh - 150px))';
+    if (_tutorCardPlaceholder && _tutorCardPlaceholder.parentNode) {
+      _tutorCardPlaceholder.parentNode.insertBefore(card, _tutorCardPlaceholder);
+      _tutorCardPlaceholder.remove();
+      _tutorCardPlaceholder = null;
+    }
+    document.body.classList.remove('tutor-expanded-active');
+    card.classList.remove('fixed', 'inset-0', 'sm:inset-3', 'z-[9995]');
+    card.classList.add('relative', 'tutor-main-card-height');
+    card.style.position = '';
+    card.style.top = '';
+    card.style.left = '';
+    card.style.right = '';
+    card.style.bottom = '';
+    card.style.width = '';
+    card.style.height = '';
+    card.style.borderRadius = '';
     card.style.boxShadow = '';
     document.body.style.overflow = '';
-    if (iconEl) iconEl.textContent = '🛏️';
-    if (textEl) textEl.textContent = 'Mở Rộng Khung';
+    if (iconEl) iconEl.textContent = '🖥️';
+    if (textEl) textEl.textContent = 'Rộng hơn';
   }
   const box = document.getElementById('tutor-chat-box');
   if (box) setTimeout(() => { box.scrollTop = box.scrollHeight; }, 120);
@@ -18313,44 +18344,63 @@ function resetDeepColorCustomization() {
 // =========================================================================
 // FULLSCREEN DISTRACTION-FREE TOGGLE (TRÁNH VƯỚNG TAB TRÌNH DUYỆT)
 // =========================================================================
-function toggleAppFullscreen() {
-  const isFs = Boolean(
+let _nativeFsEntered = false;
+function toggleAppFullscreen(forceState) {
+  const nativeFs = Boolean(
     document.fullscreenElement ||
     document.webkitFullscreenElement ||
     document.mozFullScreenElement ||
-    document.msFullscreenElement ||
-    document.body.classList.contains('app-fullscreen-mode')
+    document.msFullscreenElement
   );
+  const isFs = nativeFs || document.body.classList.contains('app-fullscreen-mode');
+  const nextFs = typeof forceState === 'boolean' ? forceState : !isFs;
 
-  if (!isFs) {
-    const elem = document.documentElement;
-    if (elem.requestFullscreen) {
-      elem.requestFullscreen().catch(() => {});
-    } else if (elem.webkitRequestFullscreen) {
-      elem.webkitRequestFullscreen();
-    } else if (elem.mozRequestFullScreen) {
-      elem.mozRequestFullScreen();
-    } else if (elem.msRequestFullscreen) {
-      elem.msRequestFullscreen();
-    }
+  if (nextFs) {
+    // Always activate universal CSS immersive fullscreen first (works 100% on Cốc Cốc Mobile, iOS Safari, Android, Tablet & PC)
     document.body.classList.add('app-fullscreen-mode');
     updateFullscreenUI(true);
-    showToast('📺 Đã bật Toàn Màn Hình (Không vướng tab trình duyệt)!', 'success');
-  } else {
-    if (document.exitFullscreen) {
-      document.exitFullscreen().catch(() => {});
-    } else if (document.webkitExitFullscreen) {
-      document.webkitExitFullscreen();
-    } else if (document.mozCancelFullScreen) {
-      document.mozCancelFullScreen();
-    } else if (document.msExitFullscreen) {
-      document.msExitFullscreen();
+    try {
+      const elem = document.documentElement;
+      if (elem.requestFullscreen) {
+        const p = elem.requestFullscreen({ navigationUI: 'hide' });
+        if (p && typeof p.then === 'function') {
+          p.then(() => { _nativeFsEntered = true; }).catch(() => { _nativeFsEntered = false; });
+        }
+      } else if (elem.webkitRequestFullscreen) {
+        elem.webkitRequestFullscreen();
+        _nativeFsEntered = true;
+      } else if (elem.mozRequestFullScreen) {
+        elem.mozRequestFullScreen();
+        _nativeFsEntered = true;
+      } else if (elem.msRequestFullscreen) {
+        elem.msRequestFullscreen();
+        _nativeFsEntered = true;
+      }
+    } catch (_) {
+      _nativeFsEntered = false;
     }
+    showToast('📺 Đã mở rộng toàn màn hình!', 'success');
+  } else {
+    _nativeFsEntered = false;
     document.body.classList.remove('app-fullscreen-mode');
     updateFullscreenUI(false);
+    try {
+      if (nativeFs) {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.mozCancelFullScreen) {
+          document.mozCancelFullScreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      }
+    } catch (_) {}
     showToast('🗗 Đã thu nhỏ màn hình.', 'info');
   }
 }
+window.toggleAppFullscreen = toggleAppFullscreen;
 
 function updateFullscreenUI(isFs) {
   const lbl = document.getElementById('header-fs-label');
@@ -18358,11 +18408,13 @@ function updateFullscreenUI(isFs) {
   const heroIcon = document.getElementById('hero-fs-icon');
   const fsBtn = document.getElementById('header-fullscreen-btn');
   const fsLucide = document.getElementById('header-fs-lucide');
+  const exitPill = document.getElementById('exit-app-fullscreen-btn');
 
   if (lbl) lbl.textContent = isFs ? 'Thu nhỏ' : 'Toàn màn hình';
   if (heroLbl) heroLbl.textContent = isFs ? 'Thu nhỏ' : 'Toàn màn hình';
   if (heroIcon) heroIcon.textContent = isFs ? '🗗' : '⛶';
   if (fsBtn) fsBtn.classList.toggle('active', isFs);
+  if (exitPill) exitPill.classList.toggle('hidden', !isFs);
   if (fsLucide) {
     fsLucide.setAttribute('data-lucide', isFs ? 'minimize' : 'maximize');
     if (typeof refreshIcons === 'function') refreshIcons();
@@ -18370,9 +18422,16 @@ function updateFullscreenUI(isFs) {
 }
 
 document.addEventListener('fullscreenchange', () => {
-  const isFs = Boolean(document.fullscreenElement);
-  document.body.classList.toggle('app-fullscreen-mode', isFs);
-  updateFullscreenUI(isFs);
+  const isNative = Boolean(document.fullscreenElement);
+  if (isNative) {
+    _nativeFsEntered = true;
+    document.body.classList.add('app-fullscreen-mode');
+    updateFullscreenUI(true);
+  } else if (_nativeFsEntered) {
+    _nativeFsEntered = false;
+    document.body.classList.remove('app-fullscreen-mode');
+    updateFullscreenUI(false);
+  }
 });
 document.addEventListener('webkitfullscreenchange', () => {
   const isFs = Boolean(document.webkitFullscreenElement);
@@ -21890,19 +21949,46 @@ function toggleVscodeSidebar() {
 function toggleVscodeFullscreen() {
   const ide = document.getElementById('vscode-ide-root');
   if (!ide) return;
-  // requestFullscreen() tra ve Promise: neu bi trinh duyet tu choi (khong phai
-  // hanh dong nguoi dung, hoac iframe thieu allowfullscreen) se sinh
-  // "Uncaught (in promise) TypeError" lam nghen console. Phai bat loi.
-  if (!document.fullscreenElement) {
+  const isPseudo = ide.classList.contains('vscode-pseudo-fullscreen');
+  const isNative = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
+
+  if (isPseudo || isNative) {
+    ide.classList.remove('vscode-pseudo-fullscreen');
+    document.body.classList.remove('vscode-fs-active');
+    document.body.style.overflow = '';
+    try {
+      if (isNative) {
+        const exit = document.exitFullscreen ? document.exitFullscreen() : (document.webkitExitFullscreen ? document.webkitExitFullscreen() : null);
+        if (exit && typeof exit.catch === 'function') exit.catch(() => {});
+      }
+    } catch (_) {}
+    return;
+  }
+
+  // Try native fullscreen first; seamlessly fall back to universal CSS pseudo-fullscreen on Cốc Cốc Mobile / iOS Safari / Tablet
+  let fallbackTriggered = false;
+  const enablePseudo = () => {
+    if (fallbackTriggered) return;
+    fallbackTriggered = true;
+    document.body.classList.add('vscode-fs-active');
+    ide.classList.add('vscode-pseudo-fullscreen');
+    document.body.style.overflow = 'hidden';
+  };
+  try {
+    if (window.innerWidth < 1024) {
+      enablePseudo();
+      return;
+    }
     const req = ide.requestFullscreen
       ? ide.requestFullscreen()
       : (ide.webkitRequestFullscreen ? ide.webkitRequestFullscreen() : null);
     if (req && typeof req.catch === 'function') {
-      req.catch(() => showToast('Trình duyệt không cho phép toàn màn hình ở khung này.', 'warning'));
+      req.catch(() => enablePseudo());
+    } else if (!req) {
+      enablePseudo();
     }
-  } else {
-    const exit = document.exitFullscreen ? document.exitFullscreen() : null;
-    if (exit && typeof exit.catch === 'function') exit.catch(() => {});
+  } catch (_) {
+    enablePseudo();
   }
 }
 

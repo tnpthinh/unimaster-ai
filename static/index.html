@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=62.1" />
+  <link rel="stylesheet" href="/static/style.css?v=63.2" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -89,6 +89,13 @@
   <button id="exit-zen-btn" onclick="toggleZenMode()"
     class="hidden fixed top-4 right-4 z-50 btn-soft px-3.5 py-2 text-xs items-center gap-1.5 shadow-xl">
     <i data-lucide="minimize-2" class="w-4 h-4"></i> Thoát Zen (Z)
+  </button>
+
+  <!-- Exit App Fullscreen Pill (Works on Cốc Cốc Mobile, iOS Safari, Android & Tablet) -->
+  <button type="button" id="exit-app-fullscreen-btn" onclick="toggleAppFullscreen()"
+    class="hidden fixed top-2.5 right-2.5 z-[85] uni-card px-3 py-1.5 text-xs font-extrabold txt-main flex items-center gap-1.5 shadow-xl border"
+    style="border-color: var(--brand-border); backdrop-filter: blur(12px);">
+    <span>🗗</span> <span>Thu nhỏ</span>
   </button>
 
   <!-- Toast Stack (Bottom-Right so it NEVER overlaps Modal Close ✕ buttons) -->
@@ -8292,6 +8299,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=62.1"></script>
+  <script src="/static/app.js?v=63.3"></script>
 </body>
 </html>

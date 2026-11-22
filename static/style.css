@@ -6117,3 +6117,82 @@ html, body {
     max-width: min(1440px, 100%) !important;
   }
 }
+
+/* ==============================================================================
+   v63.0: Universal Mobile & Tablet Fullscreen (Cốc Cốc Mobile / iOS / Android / iPad)
+   ============================================================================== */
+@media (max-width: 1023px) {
+  body.app-fullscreen-mode .uni-top-header {
+    display: none !important;
+  }
+  body.app-fullscreen-mode main {
+    padding-top: 0.75rem !important;
+    padding-left: 0.65rem !important;
+    padding-right: 0.65rem !important;
+    padding-bottom: max(2rem, env(safe-area-inset-bottom, 1.5rem)) !important;
+    max-width: 100% !important;
+  }
+  body.app-fullscreen-mode .tutor-main-card-height {
+    height: calc(100dvh - 110px) !important;
+  }
+  body.app-fullscreen-mode #exam-active-screen > .uni-card.sticky {
+    top: 0.5rem !important;
+  }
+  body.app-fullscreen-mode #floating-realtime-clock,
+  body.app-fullscreen-mode #floating-realtime-clock-restore {
+    bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem)) !important;
+  }
+}
+
+.vscode-pseudo-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 95 !important;
+  width: 100vw !important;
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+
+body.tutor-expanded-active #view-tutor,
+body.tutor-expanded-active main,
+body.vscode-fs-active #view-exercises,
+body.vscode-fs-active main {
+  animation: none !important;
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+/* Tablet (768px..1023px) centered ergonomics & touch targets */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .mobile-bottom-nav > div {
+    max-width: 640px;
+    margin: 0 auto;
+  }
+  .tutor-main-card-height {
+    height: calc(100dvh - 375px);
+    min-height: 420px;
+  }
+  #custom-exam-countdown-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+/* Mobile & Tablet touch polish + prevent pull-to-refresh inside modals/drawers */
+@media (max-width: 1023px) {
+  .option-row,
+  .btn-primary,
+  .btn-soft,
+  .mobile-nav-item {
+    min-height: 40px;
+    touch-action: manipulation;
+  }
+  [id^="modal-"] .overflow-y-auto,
+  #tutor-chat-box,
+  #palette-grid {
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+}
