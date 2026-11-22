@@ -3935,18 +3935,36 @@ function toggleFloatingRealtimeClock(show) {
   const shouldShow = typeof show === 'boolean' ? show : Boolean(pill?.classList.contains('hidden'));
   pill?.classList.toggle('hidden', !shouldShow);
   restore?.classList.toggle('hidden', shouldShow);
-  try { localStorage.setItem('unimaster_float_clock_hidden', shouldShow ? '0' : '1'); } catch (_) {}
+  try {
+    if (window.innerWidth < 1024) {
+      localStorage.setItem('unimaster_float_clock_mobile_open', shouldShow ? '1' : '0');
+    } else {
+      localStorage.setItem('unimaster_float_clock_hidden', shouldShow ? '0' : '1');
+    }
+  } catch (_) {}
 }
 window.toggleFloatingRealtimeClock = toggleFloatingRealtimeClock;
 
+function syncFloatingClockViewportDefault() {
+  try {
+    const pill = document.getElementById('floating-realtime-clock');
+    const restore = document.getElementById('floating-realtime-clock-restore');
+    if (!pill || !restore) return;
+    if (window.innerWidth < 1024) {
+      const mobileOpen = localStorage.getItem('unimaster_float_clock_mobile_open') === '1';
+      pill.classList.toggle('hidden', !mobileOpen);
+      restore.classList.toggle('hidden', mobileOpen);
+    } else {
+      const desktopHidden = localStorage.getItem('unimaster_float_clock_hidden') === '1';
+      pill.classList.toggle('hidden', desktopHidden);
+      restore.classList.toggle('hidden', !desktopHidden);
+    }
+  } catch (_) {}
+}
+
 if (typeof document !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    try {
-      if (localStorage.getItem('unimaster_float_clock_hidden') === '1') {
-        toggleFloatingRealtimeClock(false);
-      }
-    } catch (_) {}
-  });
+  document.addEventListener('DOMContentLoaded', syncFloatingClockViewportDefault);
+  window.addEventListener('resize', syncFloatingClockViewportDefault);
 }
 
 updateLiveClock();
@@ -13363,7 +13381,7 @@ function renderExerciseDetail() {
               </button>
 
               <!-- AI Fix & Upgrade -->
-              <button type="button" onclick="fixAndUpgradeCurrentCode()" class="px-2.5 py-1 rounded text-xs font-bold bg-[#1e3a5f] hover:bg-[#254b7a] text-cyan-200 border border-cyan-500/30 flex items-center gap-1.5 transition-all" title="Tự động bắt lỗi, giải thích bài học chi tiết và nâng cấp code C# / Python lên chuẩn Senior">
+              <button type="button" onclick="fixAndUpgradeCurrentCode()" class="vscode-ai-fix-btn px-2.5 py-1 rounded text-xs font-bold flex items-center gap-1.5 transition-all" title="Tự động bắt lỗi, giải thích bài học chi tiết và nâng cấp code C# / Python lên chuẩn Senior">
                 <span>🛠️</span> Sửa & Nâng Cấp Code
               </button>
 
@@ -13412,14 +13430,14 @@ function renderExerciseDetail() {
               </div>
 
               <!-- Code Textarea -->
-              <textarea id="code-editor-textarea" spellcheck="false" wrap="off"
+              <textarea id="code-editor-textarea" spellcheck="false" wrap="soft"
                 onkeydown="handleVscodeEditorKeydown(event)"
                 oninput="handleVscodeCodeInput()"
                 onscroll="syncVscodeGutterScroll()"
                 onclick="handleVscodeEditorClick(event)"
                 onkeyup="handleVscodeEditorKeyup(event)"
                 class="w-full flex-1 font-mono text-[#9cdcfe] bg-[#1e1e1e] outline-none border-none resize-none custom-scrollbar"
-                style="tab-size: 4; padding: 8px 12px 8px 10px; font-size: 13px; line-height: 20px; font-family: Consolas, 'Cascadia Code', 'Courier New', monospace; white-space: pre; overflow-wrap: normal; overflow-x: auto; box-sizing: border-box;"
+                style="tab-size: 4; padding: 8px 12px 8px 10px; font-size: 13px; line-height: 20px; font-family: Consolas, 'Cascadia Code', 'Courier New', monospace; white-space: pre-wrap; overflow-wrap: break-word; overflow-x: hidden; box-sizing: border-box;"
                 placeholder="// Viết code giải thuật của bạn tại đây...&#10;// Mẹo: Gõ code hoặc nhấn Alt+\ để AI Copilot gợi ý dòng tiếp theo!">${escapeHtml(currentCode)}</textarea>
             </div>
 
@@ -28703,7 +28721,7 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
         tunnelLink.textContent = info.can_start_tunnel
           ? 'Bấm "🚀 Bật Link Online" để mở địa chỉ HTTPS trực tiếp'
           : (info.lan_url || 'Sử dụng link Cloud 24/7 bên trên');
-        tunnelLink.className = 'font-mono font-semibold text-xs txt-muted break-all';
+        tunnelLink.className = 'font-mono font-semibold text-xs txt-muted break-words';
       }
       btnCopyTunnel?.classList.add('hidden');
       btnQrTunnel?.classList.add('hidden');

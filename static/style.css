@@ -6054,3 +6054,66 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
   font-size: 0.65rem !important;
   line-height: 1.15 !important;
 }
+
+/* ==============================================================================
+   v62.0: Multi-Viewport UI Bug Fixes (1280px Active Exam, Mobile Tutor, Light IDE)
+   ============================================================================== */
+.tutor-main-card-height {
+  height: calc(100dvh - 320px);
+  min-height: 320px;
+}
+@media (min-width: 1024px) {
+  .tutor-main-card-height {
+    height: min(670px, calc(100vh - 215px));
+  }
+}
+
+#tutor-quick-prompts {
+  flex-wrap: nowrap !important;
+  -webkit-overflow-scrolling: touch;
+}
+#tutor-quick-prompts > * {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+.vscode-ai-fix-btn,
+html:not(.dark) .vscode-ai-fix-btn,
+html.sepia .vscode-ai-fix-btn {
+  background-color: #1e3a5f !important;
+  color: #cffafe !important;
+  border: 1px solid rgba(6, 182, 212, 0.45) !important;
+}
+.vscode-ai-fix-btn:hover,
+html:not(.dark) .vscode-ai-fix-btn:hover {
+  background-color: #254b7a !important;
+  color: #ffffff !important;
+}
+
+.vscode-editor,
+textarea.vscode-editor {
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Prevent 1280x800 Active Exam right-edge clipping (100vw scrollbar + premature split padding) */
+html, body {
+  max-width: 100% !important;
+}
+#exam-active-screen,
+#exam-question-stage {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+@media (min-width: 1280px) and (max-width: 1399px) {
+  body.exam-tutor-split-active main {
+    max-width: 100% !important;
+    padding-right: 1.5rem !important;
+  }
+}
+@media (min-width: 1400px) {
+  body.exam-tutor-split-active main {
+    max-width: min(1440px, 100%) !important;
+  }
+}

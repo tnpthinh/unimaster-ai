@@ -6134,6 +6134,69 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
   line-height: 1.15 !important;
 }
 
+/* ==============================================================================
+   v62.0: Multi-Viewport UI Bug Fixes (1280px Active Exam, Mobile Tutor, Light IDE)
+   ============================================================================== */
+.tutor-main-card-height {
+  height: calc(100dvh - 320px);
+  min-height: 320px;
+}
+@media (min-width: 1024px) {
+  .tutor-main-card-height {
+    height: min(670px, calc(100vh - 215px));
+  }
+}
+
+#tutor-quick-prompts {
+  flex-wrap: nowrap !important;
+  -webkit-overflow-scrolling: touch;
+}
+#tutor-quick-prompts > * {
+  flex-shrink: 0 !important;
+  white-space: nowrap !important;
+}
+
+.vscode-ai-fix-btn,
+html:not(.dark) .vscode-ai-fix-btn,
+html.sepia .vscode-ai-fix-btn {
+  background-color: #1e3a5f !important;
+  color: #cffafe !important;
+  border: 1px solid rgba(6, 182, 212, 0.45) !important;
+}
+.vscode-ai-fix-btn:hover,
+html:not(.dark) .vscode-ai-fix-btn:hover {
+  background-color: #254b7a !important;
+  color: #ffffff !important;
+}
+
+.vscode-editor,
+textarea.vscode-editor {
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+}
+
+/* Prevent 1280x800 Active Exam right-edge clipping (100vw scrollbar + premature split padding) */
+html, body {
+  max-width: 100% !important;
+}
+#exam-active-screen,
+#exam-question-stage {
+  min-width: 0 !important;
+  max-width: 100% !important;
+}
+@media (min-width: 1280px) and (max-width: 1399px) {
+  body.exam-tutor-split-active main {
+    max-width: 100% !important;
+    padding-right: 1.5rem !important;
+  }
+}
+@media (min-width: 1400px) {
+  body.exam-tutor-split-active main {
+    max-width: min(1440px, 100%) !important;
+  }
+}
+
 </style>
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
@@ -6149,8 +6212,8 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
     <i data-lucide="minimize-2" class="w-4 h-4"></i> Thoát Zen (Z)
   </button>
 
-  <!-- Toast Stack -->
-  <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-xs sm:max-w-sm pointer-events-none"></div>
+  <!-- Toast Stack (Bottom-Right so it NEVER overlaps Modal Close ✕ buttons) -->
+  <div id="toast-container" class="fixed bottom-20 lg:bottom-4 right-4 z-[70] flex flex-col gap-2 max-w-xs sm:max-w-sm pointer-events-none"></div>
 
     <!-- =====================================================================
        LUXURY MINIMALIST TOP HEADER & ACTIVE SUBJECT BAR
@@ -7066,7 +7129,7 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
       </div>
 
       <!-- 2B: ACTIVE EXAM SCREEN -->
-      <div id="exam-active-screen" class="hidden space-y-4 pb-32">
+      <div id="exam-active-screen" class="hidden space-y-4 pb-32 min-w-0 max-w-full overflow-x-clip">
         <!-- Sticky Top Control Bar -->
         <div class="uni-card sticky top-[4.15rem] z-30 overflow-hidden">
           <div class="w-full h-1.5" style="background-color: var(--bg-subtle);">
@@ -7710,7 +7773,7 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
             </div>
 
             <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t" style="border-color: var(--border);">
-              <span class="text-xs txt-muted font-semibold">💡 Dùng $...$ cho công thức toán, ```text``` cho mã giả.</span>
+              <span class="text-xs txt-muted font-semibold">💡 Dùng <code class="px-1 py-0.5 rounded bg-black/15 font-mono text-[11px]">$...$</code> cho công thức toán, <code class="px-1 py-0.5 rounded bg-black/15 font-mono text-[11px]">```text```</code> cho mã giả.</span>
               <div class="flex items-center gap-2">
                 <button type="button" onclick="askAiAboutCurrentEssay()" class="ai-chip-btn !py-2 !px-3.5 text-xs font-bold flex items-center gap-1.5">
                   <span>🤖</span> <span>Hỏi Gia Sư AI</span>
@@ -7933,7 +7996,7 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
         <div class="flex items-center gap-1.5 flex-wrap">
           <div class="flex items-center gap-1 px-2.5 py-1 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
             <span class="text-xs">📚</span>
-            <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="bg-transparent text-xs font-bold txt-main outline-none cursor-pointer pr-1 max-w-[260px] truncate"></select>
+            <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="bg-transparent text-xs font-bold txt-main outline-none cursor-pointer pr-1 max-w-[190px] sm:max-w-[320px] truncate"></select>
           </div>
           <button type="button" id="btn-tutor-length-toggle" onclick="toggleTutorResponseLength()" class="btn-soft px-2.5 py-1.5 text-xs font-extrabold flex items-center gap-1 border border-emerald-500/40" title="Đổi độ dài câu trả lời: Ngắn gọn súc tích vs Giải chi tiết">
             <span id="tutor-length-label">⚡ Ngắn gọn</span>
@@ -8013,7 +8076,7 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
         </aside>
 
         <!-- Main AI Tutor Chat Card -->
-        <div id="tutor-main-card" class="lg:col-span-12 uni-card p-4 sm:p-5 flex flex-col transition-all duration-300 relative" style="height: min(670px, calc(100vh - 215px));">
+        <div id="tutor-main-card" class="tutor-main-card-height lg:col-span-12 uni-card p-3.5 sm:p-5 flex flex-col transition-all duration-300 relative">
           <!-- Attached Context Bar -->
           <div id="tutor-context-bar" class="hidden mb-2.5 p-2.5 sm:p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2" style="background: color-mix(in srgb, var(--brand) 9%, var(--bg-subtle)); border-color: color-mix(in srgb, var(--brand) 35%, var(--border));">
             <div class="min-w-0 flex-1 space-y-0.5">
@@ -9470,25 +9533,25 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
         <button onclick="closeModal('modal-settings')" class="btn-soft p-1.5" title="Đóng cài đặt"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
 
-      <!-- Settings Sub-Tabs (Zero-Overlap Responsive Grid on Mobile, Spacious Segmented Bar on Desktop) -->
-      <div class="px-3.5 sm:px-5 py-2.5 shrink-0 grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap items-center gap-1.5 border-b" style="border-color: var(--border); background-color: var(--bg-subtle);">
-        <button type="button" onclick="switchSettingsTab('appearance')" data-stab="appearance" class="settings-tab-btn active shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🎨</span> <span>Giao diện &amp; Màu sắc</span>
+      <!-- Settings Sub-Tabs (Single-Row 6-Col on Desktop, Smooth Horizontal Scroll on Mobile) -->
+      <div class="px-3.5 sm:px-5 py-2.5 shrink-0 flex overflow-x-auto no-scrollbar lg:grid lg:grid-cols-6 items-center gap-1.5 border-b" style="border-color: var(--border); background-color: var(--bg-subtle);">
+        <button type="button" onclick="switchSettingsTab('appearance')" data-stab="appearance" class="settings-tab-btn active shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🎨</span> <span>Giao diện</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('dashboard')" data-stab="dashboard" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🏠</span> <span>Trang chủ &amp; Lịch thi</span>
+        <button type="button" onclick="switchSettingsTab('dashboard')" data-stab="dashboard" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🏠</span> <span>Trang chủ</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('typography')" data-stab="typography" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🔤</span> <span>Cỡ chữ &amp; Phông</span>
+        <button type="button" onclick="switchSettingsTab('typography')" data-stab="typography" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🔤</span> <span>Phông chữ</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('tools')" data-stab="tools" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>⚡</span> <span>Phòng thi &amp; Tiện ích</span>
+        <button type="button" onclick="switchSettingsTab('tools')" data-stab="tools" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>⚡</span> <span>Phòng thi</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('ai')" data-stab="ai" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🤖</span> <span>AI: Gemini &amp; Gateway</span>
+        <button type="button" onclick="switchSettingsTab('ai')" data-stab="ai" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🤖</span> <span>AI &amp; Key</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('sync')" data-stab="sync" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🛡️</span> <span>Bảo mật &amp; Đồng bộ</span>
+        <button type="button" onclick="switchSettingsTab('sync')" data-stab="sync" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🛡️</span> <span>Đồng bộ</span>
         </button>
       </div>
 
@@ -14230,7 +14293,7 @@ public class Student {
   <!-- =====================================================================
        v59.1 FLOATING REAL-TIME CLOCK & EXAM COUNTDOWN PILL
        ===================================================================== -->
-  <div id="floating-realtime-clock" class="fixed bottom-20 lg:bottom-2.5 left-3 z-40 uni-card px-2.5 py-1 flex items-center gap-2 shadow-lg transition-all"
+  <div id="floating-realtime-clock" class="fixed bottom-[5.35rem] lg:bottom-2.5 left-3 z-40 uni-card px-2.5 py-1 flex items-center gap-2 shadow-lg transition-all"
     style="border-color: var(--border);">
     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
     <span id="float-clock-time" class="font-mono text-xs sm:text-sm font-black txt-main tabular-nums">--:--:--</span>
@@ -14240,7 +14303,7 @@ public class Student {
     <button type="button" onclick="toggleFloatingRealtimeClock(false)" title="Thu gọn đồng hồ nổi" class="txt-muted hover:text-rose-400 text-[11px] font-bold px-0.5">✕</button>
   </div>
   <button type="button" id="floating-realtime-clock-restore" onclick="toggleFloatingRealtimeClock(true)" title="Hiện đồng hồ thời gian thực"
-    class="hidden fixed bottom-20 lg:bottom-5 left-3 lg:left-5 z-40 uni-card w-9 h-9 flex items-center justify-center text-sm shadow-lg"
+    class="hidden fixed bottom-[5.35rem] lg:bottom-2.5 left-2.5 lg:left-3 z-40 uni-card w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center text-xs lg:text-sm opacity-80 hover:opacity-100 shadow-lg"
     style="border-color: var(--border);">🕒</button>
 
   <!-- =====================================================================
@@ -18289,18 +18352,36 @@ function toggleFloatingRealtimeClock(show) {
   const shouldShow = typeof show === 'boolean' ? show : Boolean(pill?.classList.contains('hidden'));
   pill?.classList.toggle('hidden', !shouldShow);
   restore?.classList.toggle('hidden', shouldShow);
-  try { localStorage.setItem('unimaster_float_clock_hidden', shouldShow ? '0' : '1'); } catch (_) {}
+  try {
+    if (window.innerWidth < 1024) {
+      localStorage.setItem('unimaster_float_clock_mobile_open', shouldShow ? '1' : '0');
+    } else {
+      localStorage.setItem('unimaster_float_clock_hidden', shouldShow ? '0' : '1');
+    }
+  } catch (_) {}
 }
 window.toggleFloatingRealtimeClock = toggleFloatingRealtimeClock;
 
+function syncFloatingClockViewportDefault() {
+  try {
+    const pill = document.getElementById('floating-realtime-clock');
+    const restore = document.getElementById('floating-realtime-clock-restore');
+    if (!pill || !restore) return;
+    if (window.innerWidth < 1024) {
+      const mobileOpen = localStorage.getItem('unimaster_float_clock_mobile_open') === '1';
+      pill.classList.toggle('hidden', !mobileOpen);
+      restore.classList.toggle('hidden', mobileOpen);
+    } else {
+      const desktopHidden = localStorage.getItem('unimaster_float_clock_hidden') === '1';
+      pill.classList.toggle('hidden', desktopHidden);
+      restore.classList.toggle('hidden', !desktopHidden);
+    }
+  } catch (_) {}
+}
+
 if (typeof document !== 'undefined') {
-  document.addEventListener('DOMContentLoaded', () => {
-    try {
-      if (localStorage.getItem('unimaster_float_clock_hidden') === '1') {
-        toggleFloatingRealtimeClock(false);
-      }
-    } catch (_) {}
-  });
+  document.addEventListener('DOMContentLoaded', syncFloatingClockViewportDefault);
+  window.addEventListener('resize', syncFloatingClockViewportDefault);
 }
 
 updateLiveClock();
@@ -27717,7 +27798,7 @@ function renderExerciseDetail() {
               </button>
 
               <!-- AI Fix & Upgrade -->
-              <button type="button" onclick="fixAndUpgradeCurrentCode()" class="px-2.5 py-1 rounded text-xs font-bold bg-[#1e3a5f] hover:bg-[#254b7a] text-cyan-200 border border-cyan-500/30 flex items-center gap-1.5 transition-all" title="Tự động bắt lỗi, giải thích bài học chi tiết và nâng cấp code C# / Python lên chuẩn Senior">
+              <button type="button" onclick="fixAndUpgradeCurrentCode()" class="vscode-ai-fix-btn px-2.5 py-1 rounded text-xs font-bold flex items-center gap-1.5 transition-all" title="Tự động bắt lỗi, giải thích bài học chi tiết và nâng cấp code C# / Python lên chuẩn Senior">
                 <span>🛠️</span> Sửa & Nâng Cấp Code
               </button>
 
@@ -27766,14 +27847,14 @@ function renderExerciseDetail() {
               </div>
 
               <!-- Code Textarea -->
-              <textarea id="code-editor-textarea" spellcheck="false" wrap="off"
+              <textarea id="code-editor-textarea" spellcheck="false" wrap="soft"
                 onkeydown="handleVscodeEditorKeydown(event)"
                 oninput="handleVscodeCodeInput()"
                 onscroll="syncVscodeGutterScroll()"
                 onclick="handleVscodeEditorClick(event)"
                 onkeyup="handleVscodeEditorKeyup(event)"
                 class="w-full flex-1 font-mono text-[#9cdcfe] bg-[#1e1e1e] outline-none border-none resize-none custom-scrollbar"
-                style="tab-size: 4; padding: 8px 12px 8px 10px; font-size: 13px; line-height: 20px; font-family: Consolas, 'Cascadia Code', 'Courier New', monospace; white-space: pre; overflow-wrap: normal; overflow-x: auto; box-sizing: border-box;"
+                style="tab-size: 4; padding: 8px 12px 8px 10px; font-size: 13px; line-height: 20px; font-family: Consolas, 'Cascadia Code', 'Courier New', monospace; white-space: pre-wrap; overflow-wrap: break-word; overflow-x: hidden; box-sizing: border-box;"
                 placeholder="// Viết code giải thuật của bạn tại đây...&#10;// Mẹo: Gõ code hoặc nhấn Alt+\ để AI Copilot gợi ý dòng tiếp theo!">${escapeHtml(currentCode)}</textarea>
             </div>
 
@@ -43057,7 +43138,7 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
         tunnelLink.textContent = info.can_start_tunnel
           ? 'Bấm "🚀 Bật Link Online" để mở địa chỉ HTTPS trực tiếp'
           : (info.lan_url || 'Sử dụng link Cloud 24/7 bên trên');
-        tunnelLink.className = 'font-mono font-semibold text-xs txt-muted break-all';
+        tunnelLink.className = 'font-mono font-semibold text-xs txt-muted break-words';
       }
       btnCopyTunnel?.classList.add('hidden');
       btnQrTunnel?.classList.add('hidden');

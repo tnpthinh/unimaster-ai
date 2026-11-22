@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=59.1" />
+  <link rel="stylesheet" href="/static/style.css?v=62.1" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -91,8 +91,8 @@
     <i data-lucide="minimize-2" class="w-4 h-4"></i> Thoát Zen (Z)
   </button>
 
-  <!-- Toast Stack -->
-  <div id="toast-container" class="fixed top-20 right-4 z-50 flex flex-col gap-2 max-w-xs sm:max-w-sm pointer-events-none"></div>
+  <!-- Toast Stack (Bottom-Right so it NEVER overlaps Modal Close ✕ buttons) -->
+  <div id="toast-container" class="fixed bottom-20 lg:bottom-4 right-4 z-[70] flex flex-col gap-2 max-w-xs sm:max-w-sm pointer-events-none"></div>
 
     <!-- =====================================================================
        LUXURY MINIMALIST TOP HEADER & ACTIVE SUBJECT BAR
@@ -1008,7 +1008,7 @@
       </div>
 
       <!-- 2B: ACTIVE EXAM SCREEN -->
-      <div id="exam-active-screen" class="hidden space-y-4 pb-32">
+      <div id="exam-active-screen" class="hidden space-y-4 pb-32 min-w-0 max-w-full overflow-x-clip">
         <!-- Sticky Top Control Bar -->
         <div class="uni-card sticky top-[4.15rem] z-30 overflow-hidden">
           <div class="w-full h-1.5" style="background-color: var(--bg-subtle);">
@@ -1652,7 +1652,7 @@
             </div>
 
             <div class="flex items-center justify-between flex-wrap gap-2 pt-2 border-t" style="border-color: var(--border);">
-              <span class="text-xs txt-muted font-semibold">💡 Dùng $...$ cho công thức toán, ```text``` cho mã giả.</span>
+              <span class="text-xs txt-muted font-semibold">💡 Dùng <code class="px-1 py-0.5 rounded bg-black/15 font-mono text-[11px]">$...$</code> cho công thức toán, <code class="px-1 py-0.5 rounded bg-black/15 font-mono text-[11px]">```text```</code> cho mã giả.</span>
               <div class="flex items-center gap-2">
                 <button type="button" onclick="askAiAboutCurrentEssay()" class="ai-chip-btn !py-2 !px-3.5 text-xs font-bold flex items-center gap-1.5">
                   <span>🤖</span> <span>Hỏi Gia Sư AI</span>
@@ -1875,7 +1875,7 @@
         <div class="flex items-center gap-1.5 flex-wrap">
           <div class="flex items-center gap-1 px-2.5 py-1 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
             <span class="text-xs">📚</span>
-            <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="bg-transparent text-xs font-bold txt-main outline-none cursor-pointer pr-1 max-w-[260px] truncate"></select>
+            <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="bg-transparent text-xs font-bold txt-main outline-none cursor-pointer pr-1 max-w-[190px] sm:max-w-[320px] truncate"></select>
           </div>
           <button type="button" id="btn-tutor-length-toggle" onclick="toggleTutorResponseLength()" class="btn-soft px-2.5 py-1.5 text-xs font-extrabold flex items-center gap-1 border border-emerald-500/40" title="Đổi độ dài câu trả lời: Ngắn gọn súc tích vs Giải chi tiết">
             <span id="tutor-length-label">⚡ Ngắn gọn</span>
@@ -1955,7 +1955,7 @@
         </aside>
 
         <!-- Main AI Tutor Chat Card -->
-        <div id="tutor-main-card" class="lg:col-span-12 uni-card p-4 sm:p-5 flex flex-col transition-all duration-300 relative" style="height: min(670px, calc(100vh - 215px));">
+        <div id="tutor-main-card" class="tutor-main-card-height lg:col-span-12 uni-card p-3.5 sm:p-5 flex flex-col transition-all duration-300 relative">
           <!-- Attached Context Bar -->
           <div id="tutor-context-bar" class="hidden mb-2.5 p-2.5 sm:p-3 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2" style="background: color-mix(in srgb, var(--brand) 9%, var(--bg-subtle)); border-color: color-mix(in srgb, var(--brand) 35%, var(--border));">
             <div class="min-w-0 flex-1 space-y-0.5">
@@ -3412,25 +3412,25 @@
         <button onclick="closeModal('modal-settings')" class="btn-soft p-1.5" title="Đóng cài đặt"><i data-lucide="x" class="w-4 h-4"></i></button>
       </div>
 
-      <!-- Settings Sub-Tabs (Zero-Overlap Responsive Grid on Mobile, Spacious Segmented Bar on Desktop) -->
-      <div class="px-3.5 sm:px-5 py-2.5 shrink-0 grid grid-cols-2 sm:grid-cols-3 lg:flex lg:flex-wrap items-center gap-1.5 border-b" style="border-color: var(--border); background-color: var(--bg-subtle);">
-        <button type="button" onclick="switchSettingsTab('appearance')" data-stab="appearance" class="settings-tab-btn active shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🎨</span> <span>Giao diện &amp; Màu sắc</span>
+      <!-- Settings Sub-Tabs (Single-Row 6-Col on Desktop, Smooth Horizontal Scroll on Mobile) -->
+      <div class="px-3.5 sm:px-5 py-2.5 shrink-0 flex overflow-x-auto no-scrollbar lg:grid lg:grid-cols-6 items-center gap-1.5 border-b" style="border-color: var(--border); background-color: var(--bg-subtle);">
+        <button type="button" onclick="switchSettingsTab('appearance')" data-stab="appearance" class="settings-tab-btn active shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🎨</span> <span>Giao diện</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('dashboard')" data-stab="dashboard" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🏠</span> <span>Trang chủ &amp; Lịch thi</span>
+        <button type="button" onclick="switchSettingsTab('dashboard')" data-stab="dashboard" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🏠</span> <span>Trang chủ</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('typography')" data-stab="typography" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🔤</span> <span>Cỡ chữ &amp; Phông</span>
+        <button type="button" onclick="switchSettingsTab('typography')" data-stab="typography" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🔤</span> <span>Phông chữ</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('tools')" data-stab="tools" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>⚡</span> <span>Phòng thi &amp; Tiện ích</span>
+        <button type="button" onclick="switchSettingsTab('tools')" data-stab="tools" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>⚡</span> <span>Phòng thi</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('ai')" data-stab="ai" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🤖</span> <span>AI: Gemini &amp; Gateway</span>
+        <button type="button" onclick="switchSettingsTab('ai')" data-stab="ai" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🤖</span> <span>AI &amp; Key</span>
         </button>
-        <button type="button" onclick="switchSettingsTab('sync')" data-stab="sync" class="settings-tab-btn shrink-0 px-3 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center lg:justify-start gap-1.5">
-          <span>🛡️</span> <span>Bảo mật &amp; Đồng bộ</span>
+        <button type="button" onclick="switchSettingsTab('sync')" data-stab="sync" class="settings-tab-btn shrink-0 px-2.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap">
+          <span>🛡️</span> <span>Đồng bộ</span>
         </button>
       </div>
 
@@ -8172,7 +8172,7 @@ public class Student {
   <!-- =====================================================================
        v59.1 FLOATING REAL-TIME CLOCK & EXAM COUNTDOWN PILL
        ===================================================================== -->
-  <div id="floating-realtime-clock" class="fixed bottom-20 lg:bottom-2.5 left-3 z-40 uni-card px-2.5 py-1 flex items-center gap-2 shadow-lg transition-all"
+  <div id="floating-realtime-clock" class="fixed bottom-[5.35rem] lg:bottom-2.5 left-3 z-40 uni-card px-2.5 py-1 flex items-center gap-2 shadow-lg transition-all"
     style="border-color: var(--border);">
     <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
     <span id="float-clock-time" class="font-mono text-xs sm:text-sm font-black txt-main tabular-nums">--:--:--</span>
@@ -8182,7 +8182,7 @@ public class Student {
     <button type="button" onclick="toggleFloatingRealtimeClock(false)" title="Thu gọn đồng hồ nổi" class="txt-muted hover:text-rose-400 text-[11px] font-bold px-0.5">✕</button>
   </div>
   <button type="button" id="floating-realtime-clock-restore" onclick="toggleFloatingRealtimeClock(true)" title="Hiện đồng hồ thời gian thực"
-    class="hidden fixed bottom-20 lg:bottom-5 left-3 lg:left-5 z-40 uni-card w-9 h-9 flex items-center justify-center text-sm shadow-lg"
+    class="hidden fixed bottom-[5.35rem] lg:bottom-2.5 left-2.5 lg:left-3 z-40 uni-card w-8 h-8 lg:w-9 lg:h-9 flex items-center justify-center text-xs lg:text-sm opacity-80 hover:opacity-100 shadow-lg"
     style="border-color: var(--border);">🕒</button>
 
   <!-- =====================================================================
@@ -8292,6 +8292,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=61.0"></script>
+  <script src="/static/app.js?v=62.1"></script>
 </body>
 </html>
