@@ -518,7 +518,23 @@
         </div>
 
         <!-- Panel 3: Ghi Nhớ & Lộ Trình -->
-        <div id="studio-panel-study" class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 text-xs">
+        <div id="studio-panel-study" class="hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 text-xs">
+          <button onclick="openEndlessSurvivalModal()" class="bento-tool-tile px-3 py-2.5 rounded-xl border text-left transition-all flex items-center gap-2" style="background-color: var(--bg-subtle); border-color: var(--brand-border);">
+            <span class="text-base shrink-0">🔥</span>
+            <span class="font-bold text-xs txt-main truncate">Sinh Tồn Vô Tận</span>
+          </button>
+          <button onclick="openAudioPlaylistModal()" class="bento-tool-tile px-3 py-2.5 rounded-xl border text-left transition-all flex items-center gap-2" style="background-color: var(--bg-subtle); border-color: var(--brand-border);">
+            <span class="text-base shrink-0">🔊</span>
+            <span class="font-bold text-xs txt-main truncate">Nghe Ôn Rảnh Tay</span>
+          </button>
+          <button onclick="openWeakChapterRadarModal()" class="bento-tool-tile px-3 py-2.5 rounded-xl border text-left transition-all flex items-center gap-2" style="background-color: var(--bg-subtle); border-color: var(--brand-border);">
+            <span class="text-base shrink-0">🎯</span>
+            <span class="font-bold text-xs txt-main truncate">Radar Điểm Yếu</span>
+          </button>
+          <button onclick="exportStudyCheatsheetNow()" class="bento-tool-tile px-3 py-2.5 rounded-xl border text-left transition-all flex items-center gap-2" style="background-color: var(--bg-subtle); border-color: var(--brand-border);">
+            <span class="text-base shrink-0">📄</span>
+            <span class="font-bold text-xs txt-main truncate">Xuất Sổ Tay A4</span>
+          </button>
           <button onclick="openCornellStudioModal()" class="bento-tool-tile px-3 py-2.5 rounded-xl border text-left transition-all flex items-center gap-2" style="background-color: var(--bg-subtle); border-color: var(--border);">
             <span class="text-base shrink-0">📑</span>
             <span class="font-bold text-xs txt-main truncate">Sổ Tay Cornell</span>
@@ -716,9 +732,14 @@
               <div class="text-[11px] font-bold txt-cyan mt-0.5">📌 Ghi chú</div>
             </button>
           </div>
-          <button onclick="openMistakeBankModal()" class="btn-soft w-full py-2.5 text-xs flex items-center justify-center gap-1.5 txt-rose">
-            <span>📒</span> Sổ Tay Câu Sai (Mastery)
-          </button>
+          <div class="grid grid-cols-2 gap-2">
+            <button onclick="openMistakeBankModal()" class="btn-soft py-2 text-xs flex items-center justify-center gap-1.5 txt-rose font-bold">
+              <span>📒</span> Câu Sai
+            </button>
+            <button onclick="exportStudyCheatsheetNow()" class="btn-soft py-2 text-xs flex items-center justify-center gap-1.5 txt-brand font-bold">
+              <span>📄</span> Xuất A4
+            </button>
+          </div>
         </div>
 
         <div class="uni-card p-5 lg:col-span-2 space-y-3">
@@ -8153,6 +8174,121 @@ public class Student {
   </div>
 
   <!-- =====================================================================
+       v65.0 POWER-STUDY SUITE MODALS (Endless Survival, Audio Deck, Weak Radar)
+       ===================================================================== -->
+  <div id="modal-endless-survival" class="hidden fixed inset-0 z-[105] modal-backdrop flex items-center justify-center p-3 sm:p-4">
+    <div class="uni-card w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between gap-2" style="border-color: var(--border);">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🔥</span>
+          <h3 class="text-sm sm:text-base font-extrabold txt-main">Sinh Tồn Vô Tận</h3>
+          <span id="surv-best-badge" class="badge-amber text-[11px] px-2 py-0.5 rounded-full font-mono font-bold">Kỷ lục: 0</span>
+        </div>
+        <button type="button" onclick="closeEndlessSurvivalModal()" class="btn-soft px-2.5 py-1 text-xs font-bold">✕</button>
+      </div>
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4">
+        <div id="surv-setup-pane" class="space-y-3.5">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="space-y-1">
+              <label class="text-xs font-bold txt-muted">Môn học</label>
+              <select id="surv-subject-select" class="uni-input w-full px-3 py-2 text-xs font-bold"></select>
+            </div>
+            <div class="space-y-1">
+              <label class="text-xs font-bold txt-muted">Chế độ</label>
+              <select id="surv-lives-select" class="uni-input w-full px-3 py-2 text-xs font-bold">
+                <option value="3">❤️❤️❤️ Chuẩn (3 tim • 15s/câu)</option>
+                <option value="1">💀 Hardcore (1 tim • 12s/câu)</option>
+              </select>
+            </div>
+          </div>
+          <button type="button" onclick="startEndlessSurvivalRun()" class="btn-primary w-full py-2.5 text-xs font-extrabold">🚀 Bắt Đầu Sinh Tồn</button>
+        </div>
+
+        <div id="surv-play-pane" class="hidden space-y-3.5">
+          <div class="flex flex-wrap items-center justify-between gap-2 text-xs font-mono font-extrabold">
+            <span id="surv-lives-text" class="text-rose-400">❤️❤️❤️</span>
+            <span id="surv-streak-text" class="badge-brand px-2.5 py-0.5 rounded-full">Chuỗi: 0</span>
+            <span id="surv-score-text" class="badge-emerald px-2.5 py-0.5 rounded-full">0 đ</span>
+            <span id="surv-timer-text" class="badge-amber px-2.5 py-0.5 rounded-full">15s</span>
+          </div>
+          <div id="surv-q-text" class="p-3.5 rounded-xl border text-sm font-bold txt-main leading-relaxed" style="background: var(--bg-subtle); border-color: var(--border);"></div>
+          <div id="surv-options-wrap" class="grid grid-cols-1 gap-2"></div>
+          <div id="surv-feedback-box" class="hidden p-3 rounded-xl border text-xs leading-relaxed"></div>
+        </div>
+
+        <div id="surv-over-pane" class="hidden text-center space-y-3 py-3">
+          <div class="text-3xl">🏆</div>
+          <div id="surv-over-summary" class="text-sm font-extrabold txt-main"></div>
+          <div class="flex justify-center gap-2">
+            <button type="button" onclick="startEndlessSurvivalRun()" class="btn-primary px-5 py-2 text-xs font-extrabold">🔄 Chơi Lại</button>
+            <button type="button" onclick="closeEndlessSurvivalModal()" class="btn-soft px-4 py-2 text-xs font-bold">Đóng</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-audio-playlist" class="hidden fixed inset-0 z-[105] modal-backdrop flex items-center justify-center p-3 sm:p-4">
+    <div class="uni-card w-full max-w-xl max-h-[90vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between gap-2" style="border-color: var(--border);">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🔊</span>
+          <h3 class="text-sm sm:text-base font-extrabold txt-main">Nghe Ôn Rảnh Tay</h3>
+        </div>
+        <button type="button" onclick="closeAudioPlaylistModal()" class="btn-soft px-2.5 py-1 text-xs font-bold">✕</button>
+      </div>
+      <div class="p-4 sm:p-5 overflow-y-auto space-y-4">
+        <div class="grid grid-cols-3 gap-2 text-xs">
+          <select id="audio-source-select" onchange="loadAudioPlaylistQueue()" class="uni-input px-2.5 py-2 font-bold">
+            <option value="subject">Môn hiện tại</option>
+            <option value="mistakes">Câu sai</option>
+            <option value="bookmarks">Đã lưu</option>
+          </select>
+          <select id="audio-speed-select" class="uni-input px-2.5 py-2 font-bold">
+            <option value="0.9">0.9x Chậm</option>
+            <option value="1.05" selected>1.0x Chuẩn</option>
+            <option value="1.25">1.25x Nhanh</option>
+            <option value="1.45">1.45x Siêu tốc</option>
+          </select>
+          <select id="audio-delay-select" class="uni-input px-2.5 py-2 font-bold">
+            <option value="2">Nghỉ 2s</option>
+            <option value="4" selected>Nghỉ 4s</option>
+            <option value="6">Nghỉ 6s</option>
+          </select>
+        </div>
+
+        <div class="p-4 rounded-2xl border space-y-2.5" style="background: var(--bg-subtle); border-color: var(--border);">
+          <div class="flex items-center justify-between text-[11px] font-mono txt-muted">
+            <span id="audio-progress-label">0 / 0</span>
+            <span id="audio-phase-badge" class="badge-brand px-2 py-0.5 rounded-full font-bold">Sẵn sàng</span>
+          </div>
+          <div id="audio-q-preview" class="text-sm font-bold txt-main leading-relaxed min-h-[3.5rem]">Bấm Phát để bắt đầu nghe ôn.</div>
+          <div id="audio-a-preview" class="hidden p-2.5 rounded-xl text-xs font-bold txt-emerald border" style="background: rgba(16,185,129,0.08); border-color: rgba(16,185,129,0.3);"></div>
+        </div>
+
+        <div class="flex items-center justify-center gap-2.5">
+          <button type="button" onclick="stepAudioPlaylist(-1)" class="btn-soft px-3.5 py-2 text-xs font-bold">⏮ Trước</button>
+          <button type="button" id="btn-audio-play-toggle" onclick="toggleAudioPlaylistPlay()" class="btn-primary px-6 py-2.5 text-xs font-extrabold">▶ Phát</button>
+          <button type="button" onclick="stepAudioPlaylist(1)" class="btn-soft px-3.5 py-2 text-xs font-bold">Tiếp ⏭</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="modal-weak-radar" class="hidden fixed inset-0 z-[105] modal-backdrop flex items-center justify-center p-3 sm:p-4">
+    <div class="uni-card w-full max-w-xl max-h-[88vh] flex flex-col overflow-hidden shadow-2xl">
+      <div class="px-5 py-3.5 border-b flex items-center justify-between gap-2" style="border-color: var(--border);">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">🎯</span>
+          <h3 class="text-sm sm:text-base font-extrabold txt-main">Radar Điểm Yếu Theo Môn</h3>
+        </div>
+        <button type="button" onclick="closeModal('modal-weak-radar')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕</button>
+      </div>
+      <div id="weak-radar-list" class="p-4 sm:p-5 overflow-y-auto space-y-2.5 text-xs"></div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
        v56.0 OVERLAY 3: PRIVACY BLUR / QUICK SCREEN LOCK (Alt+L)
        ===================================================================== -->
   <div id="privacy-lock-overlay" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4"
@@ -8299,6 +8435,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=64.0"></script>
+  <script src="/static/app.js?v=65.2"></script>
 </body>
 </html>

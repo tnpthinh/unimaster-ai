@@ -30696,3 +30696,462 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
     _bindOptionAreaDelegation();
   }
 })();
+
+// =========================================================================
+// v65.0 POWER-STUDY SUITE:
+// 1. Sinh Tồn Vô Tận (Endless Survival)
+// 2. Nghe Ôn Rảnh Tay (Audio Study Deck TTS)
+// 3. Radar Điểm Yếu Theo Môn
+// 4. Xuất Sổ Tay Ôn Thi A4 / Markdown
+// =========================================================================
+(function initPowerStudySuiteV65() {
+  const SURV_BEST_KEY = 'unimaster_endless_survival_best_v65';
+  const surv = {
+    active: false,
+    pool: [],
+    idx: 0,
+    lives: 3,
+    maxLives: 3,
+    streak: 0,
+    score: 0,
+    secPerQ: 15,
+    secLeft: 15,
+    timerId: null,
+    locked: false
+  };
+
+  async function _fetchQuestionPool(subjectId, limit = 120) {
+    const sid = subjectId && subjectId !== 'all' ? Number(subjectId) : null;
+    if (STATE?.isOfflineStandalone && Array.isArray(window.OFFLINE_QUESTIONS)) {
+      let arr = sid ? window.OFFLINE_QUESTIONS.filter((q) => Number(q.subject_id) === sid) : [...window.OFFLINE_QUESTIONS];
+      return arr.sort(() => Math.random() - 0.5).slice(0, limit);
+    }
+    if (sid) {
+      const res = await apiFetch(`/api/subjects/${sid}/questions?limit=${limit}&shuffle=1`);
+      const list = Array.isArray(res) ? res : (res?.questions || []);
+      return list.sort(() => Math.random() - 0.5);
+    }
+    const subjs = (Array.isArray(STATE?.subjects) ? STATE.subjects : []).filter((s) => Number(s.question_count || 0) > 0);
+    const chosen = subjs.sort(() => Math.random() - 0.5).slice(0, 4);
+    const per = Math.max(20, Math.ceil(limit / Math.max(1, chosen.length)));
+    const chunks = await Promise.all(chosen.map((s) => apiFetch(`/api/subjects/${s.id}/questions?limit=${per}&shuffle=1`).catch(() => [])));
+    const merged = chunks.flatMap((res) => (Array.isArray(res) ? res : (res?.questions || [])));
+    return merged.sort(() => Math.random() - 0.5).slice(0, limit);
+  }
+
+  function openEndlessSurvivalModal() {
+    const sel = document.getElementById('surv-subject-select');
+    if (sel) {
+      const subjs = Array.isArray(STATE?.subjects) ? STATE.subjects : [];
+      const curSid = String(STATE?.activeSubjectId || '');
+      sel.innerHTML = `<option value="all">🌐 Tất cả môn học</option>` + subjs.map((s) =>
+        `<option value="${s.id}" ${String(s.id) === curSid ? 'selected' : ''}>${escapeHtml(s.icon || '📚')} ${escapeHtml(s.name)}</option>`
+      ).join('');
+    }
+    const best = Number(localStorage.getItem(SURV_BEST_KEY) || 0);
+    const bestEl = document.getElementById('surv-best-badge');
+    if (bestEl) bestEl.textContent = `Kỷ lục: ${best} đ`;
+    document.getElementById('surv-setup-pane')?.classList.remove('hidden');
+    document.getElementById('surv-play-pane')?.classList.add('hidden');
+    document.getElementById('surv-over-pane')?.classList.add('hidden');
+    openModal('modal-endless-survival');
+  }
+  window.openEndlessSurvivalModal = openEndlessSurvivalModal;
+
+  function closeEndlessSurvivalModal() {
+    surv.active = false;
+    clearInterval(surv.timerId);
+    closeModal('modal-endless-survival');
+  }
+  window.closeEndlessSurvivalModal = closeEndlessSurvivalModal;
+
+  async function startEndlessSurvivalRun() {
+    clearInterval(surv.timerId);
+    const sid = document.getElementById('surv-subject-select')?.value || 'all';
+    const maxLives = Number(document.getElementById('surv-lives-select')?.value || 3);
+    const pool = await _fetchQuestionPool(sid, 150);
+    if (!pool.length) {
+      showToast('Chưa có câu hỏi trong môn này.', 'warning');
+      return;
+    }
+    surv.pool = pool;
+    surv.idx = 0;
+    surv.lives = maxLives;
+    surv.maxLives = maxLives;
+    surv.streak = 0;
+    surv.score = 0;
+    surv.secPerQ = maxLives === 1 ? 12 : 15;
+    surv.active = true;
+    surv.locked = false;
+    document.getElementById('surv-setup-pane')?.classList.add('hidden');
+    document.getElementById('surv-over-pane')?.classList.add('hidden');
+    document.getElementById('surv-play-pane')?.classList.remove('hidden');
+    _renderSurvivalQuestion();
+  }
+  window.startEndlessSurvivalRun = startEndlessSurvivalRun;
+
+  function _updateSurvivalHud() {
+    const livesEl = document.getElementById('surv-lives-text');
+    const streakEl = document.getElementById('surv-streak-text');
+    const scoreEl = document.getElementById('surv-score-text');
+    const timerEl = document.getElementById('surv-timer-text');
+    const mult = surv.streak >= 10 ? 3 : (surv.streak >= 5 ? 2 : 1);
+    if (livesEl) livesEl.textContent = '❤️'.repeat(Math.max(0, surv.lives)) + '🖤'.repeat(Math.max(0, surv.maxLives - surv.lives));
+    if (streakEl) streakEl.textContent = `Chuỗi: ${surv.streak}${mult > 1 ? ` (x${mult})` : ''}`;
+    if (scoreEl) scoreEl.textContent = `${surv.score} đ`;
+    if (timerEl) timerEl.textContent = `${surv.secLeft}s`;
+  }
+
+  function _renderSurvivalQuestion() {
+    if (!surv.active) return;
+    if (surv.idx >= surv.pool.length) {
+      surv.pool = surv.pool.sort(() => Math.random() - 0.5);
+      surv.idx = 0;
+    }
+    const q = surv.pool[surv.idx];
+    surv.locked = false;
+    surv.secLeft = surv.secPerQ;
+    _updateSurvivalHud();
+
+    const qEl = document.getElementById('surv-q-text');
+    const optWrap = document.getElementById('surv-options-wrap');
+    const fbEl = document.getElementById('surv-feedback-box');
+    if (fbEl) fbEl.classList.add('hidden');
+    if (qEl) qEl.innerHTML = `<span class="txt-muted font-mono mr-1.5">#${surv.idx + 1}</span>${escapeHtml(q.question_text || q.question || '')}`;
+
+    const opts = [
+      ['A', q.option_a],
+      ['B', q.option_b],
+      ['C', q.option_c],
+      ['D', q.option_d]
+    ].filter(([, txt]) => txt !== undefined && txt !== null && String(txt).trim() !== '');
+
+    if (optWrap) {
+      optWrap.innerHTML = opts.map(([letter, text]) => `
+        <button type="button" data-surv-opt="${letter}" onclick="answerEndlessSurvival('${letter}')"
+          class="uni-card p-3 text-left text-xs font-semibold txt-main hover:border-indigo-500 transition-all flex items-start gap-2.5">
+          <span class="w-6 h-6 rounded-lg font-mono font-extrabold text-[11px] flex items-center justify-center shrink-0" style="background: var(--bg-subtle); border: 1px solid var(--border);">${letter}</span>
+          <span class="leading-relaxed">${escapeHtml(String(text))}</span>
+        </button>
+      `).join('');
+    }
+    if (typeof renderMathSafely === 'function' && qEl) {
+      renderMathSafely(qEl);
+      if (optWrap) renderMathSafely(optWrap);
+    }
+
+    clearInterval(surv.timerId);
+    surv.timerId = setInterval(() => {
+      if (!surv.active || surv.locked) return;
+      surv.secLeft -= 1;
+      _updateSurvivalHud();
+      if (surv.secLeft <= 0) {
+        answerEndlessSurvival('__TIMEOUT__');
+      }
+    }, 1000);
+  }
+
+  function answerEndlessSurvival(chosen) {
+    if (!surv.active || surv.locked) return;
+    surv.locked = true;
+    clearInterval(surv.timerId);
+
+    const q = surv.pool[surv.idx];
+    const correct = String(q.correct_option || 'A').trim().toUpperCase();
+    const isRight = chosen === correct;
+    const fbEl = document.getElementById('surv-feedback-box');
+
+    document.querySelectorAll('#surv-options-wrap [data-surv-opt]').forEach((btn) => {
+      const l = btn.getAttribute('data-surv-opt');
+      if (l === correct) btn.style.borderColor = '#10b981';
+      else if (l === chosen) btn.style.borderColor = '#f43f5e';
+    });
+
+    if (isRight) {
+      surv.streak += 1;
+      const mult = surv.streak >= 10 ? 3 : (surv.streak >= 5 ? 2 : 1);
+      surv.score += 10 * mult;
+      if (fbEl) {
+        fbEl.className = 'p-3 rounded-xl border text-xs font-bold txt-emerald';
+        fbEl.style.borderColor = 'rgba(16,185,129,0.4)';
+        fbEl.textContent = `✅ Chính xác! +${10 * mult} đ`;
+      }
+      _updateSurvivalHud();
+      setTimeout(() => {
+        if (!surv.active) return;
+        surv.idx += 1;
+        _renderSurvivalQuestion();
+      }, 650);
+    } else {
+      surv.lives -= 1;
+      surv.streak = 0;
+      _updateSurvivalHud();
+      if (fbEl) {
+        fbEl.className = 'p-3 rounded-xl border text-xs leading-relaxed txt-main';
+        fbEl.style.borderColor = 'rgba(244,63,94,0.4)';
+        fbEl.innerHTML = `<div class="font-bold text-rose-400 mb-1">${chosen === '__TIMEOUT__' ? '⏰ Hết giờ!' : '❌ Sai rồi!'} Đáp án đúng: ${correct}</div><div>${escapeHtml((q.explanation || '').slice(0, 260))}</div>`;
+      }
+      setTimeout(() => {
+        if (!surv.active) return;
+        if (surv.lives <= 0) {
+          surv.active = false;
+          const prevBest = Number(localStorage.getItem(SURV_BEST_KEY) || 0);
+          const newBest = Math.max(prevBest, surv.score);
+          try { localStorage.setItem(SURV_BEST_KEY, String(newBest)); } catch (_) {}
+          const bestEl = document.getElementById('surv-best-badge');
+          if (bestEl) bestEl.textContent = `Kỷ lục: ${newBest} đ`;
+          document.getElementById('surv-play-pane')?.classList.add('hidden');
+          document.getElementById('surv-over-pane')?.classList.remove('hidden');
+          const sumEl = document.getElementById('surv-over-summary');
+          if (sumEl) sumEl.textContent = `Tổng điểm: ${surv.score} đ • Kỷ lục: ${newBest} đ${surv.score > prevBest ? ' 🎉 Kỷ lục mới!' : ''}`;
+        } else {
+          surv.idx += 1;
+          _renderSurvivalQuestion();
+        }
+      }, 1500);
+    }
+  }
+  window.answerEndlessSurvival = answerEndlessSurvival;
+
+  document.addEventListener('keydown', (e) => {
+    if (!surv.active || surv.locked) return;
+    const modal = document.getElementById('modal-endless-survival');
+    if (!modal || modal.classList.contains('hidden')) return;
+    const map = { '1': 'A', '2': 'B', '3': 'C', '4': 'D', 'a': 'A', 'b': 'B', 'c': 'C', 'd': 'D' };
+    const letter = map[String(e.key || '').toLowerCase()];
+    if (letter) {
+      e.preventDefault();
+      answerEndlessSurvival(letter);
+    }
+  });
+
+  // --- 2. Nghe Ôn Rảnh Tay (Audio Study Deck TTS) ---
+  const audioDeck = {
+    queue: [],
+    idx: 0,
+    playing: false,
+    pauseTimer: null
+  };
+
+  function _stopSpeech() {
+    clearTimeout(audioDeck.pauseTimer);
+    try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch (_) {}
+  }
+
+  function _cleanSpeakText(str) {
+    return String(str || '').replace(/\$+/g, '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+  }
+
+  async function loadAudioPlaylistQueue() {
+    _stopSpeech();
+    audioDeck.playing = false;
+    const btn = document.getElementById('btn-audio-play-toggle');
+    if (btn) btn.textContent = '▶ Phát';
+
+    const src = document.getElementById('audio-source-select')?.value || 'subject';
+    const activeSid = STATE?.activeSubjectId || (STATE?.subjects?.[0]?.id) || 10;
+    let list = [];
+    if (src === 'mistakes' && Array.isArray(STATE?.mistakes) && STATE.mistakes.length) {
+      const idSet = new Set(STATE.mistakes.slice(0, 120).map((m) => String(typeof m === 'object' ? m.id : m)));
+      const all = await _fetchQuestionPool(activeSid, 200);
+      list = all.filter((q) => idSet.has(String(q.id)));
+      if (!list.length) list = all.slice(0, 40);
+    } else if (src === 'bookmarks' && Array.isArray(STATE?.bookmarks) && STATE.bookmarks.length) {
+      const idSet = new Set(STATE.bookmarks.map((b) => String(typeof b === 'object' ? b.id : b)));
+      const all = await _fetchQuestionPool(activeSid, 200);
+      list = all.filter((q) => idSet.has(String(q.id)));
+      if (!list.length) list = all.slice(0, 40);
+    } else {
+      list = await _fetchQuestionPool(activeSid, 50);
+    }
+
+    audioDeck.queue = list;
+    audioDeck.idx = 0;
+    _renderAudioDeckCard('Sẵn sàng', false);
+  }
+  window.loadAudioPlaylistQueue = loadAudioPlaylistQueue;
+
+  function _renderAudioDeckCard(phase, showAns) {
+    const prog = document.getElementById('audio-progress-label');
+    const phaseEl = document.getElementById('audio-phase-badge');
+    const qEl = document.getElementById('audio-q-preview');
+    const aEl = document.getElementById('audio-a-preview');
+    if (phaseEl) phaseEl.textContent = phase;
+    if (!audioDeck.queue.length) {
+      if (prog) prog.textContent = '0 / 0';
+      if (qEl) qEl.textContent = 'Không có câu hỏi nào trong danh sách này.';
+      if (aEl) aEl.classList.add('hidden');
+      return;
+    }
+    const q = audioDeck.queue[audioDeck.idx];
+    const qText = _cleanSpeakText(q.question_text || q.question || '');
+    if (prog) prog.textContent = `${audioDeck.idx + 1} / ${audioDeck.queue.length}`;
+    if (qEl) qEl.textContent = qText;
+    const letter = String(q.correct_option || 'A').trim().toUpperCase();
+    const ansMap = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
+    const ansText = _cleanSpeakText(ansMap[letter] || '');
+    if (aEl) {
+      aEl.classList.toggle('hidden', !showAns);
+      aEl.textContent = `✅ Đáp án ${letter}: ${ansText}`;
+    }
+  }
+
+  function _speakChunk(text, onDone) {
+    if (!audioDeck.playing) return;
+    if (!('speechSynthesis' in window)) {
+      audioDeck.pauseTimer = setTimeout(onDone, 2500);
+      return;
+    }
+    try {
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'vi-VN';
+      u.rate = Number(document.getElementById('audio-speed-select')?.value || 1.05);
+      u.onend = () => { if (audioDeck.playing) onDone(); };
+      u.onerror = () => { if (audioDeck.playing) onDone(); };
+      window.speechSynthesis.speak(u);
+    } catch (_) {
+      audioDeck.pauseTimer = setTimeout(onDone, 2500);
+    }
+  }
+
+  function _playCurrentAudioItem() {
+    if (!audioDeck.playing || !audioDeck.queue.length) return;
+    const q = audioDeck.queue[audioDeck.idx];
+    const delaySec = Number(document.getElementById('audio-delay-select')?.value || 4);
+    const letter = String(q.correct_option || 'A').trim().toUpperCase();
+    const ansMap = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
+    const ansText = _cleanSpeakText(ansMap[letter] || '');
+
+    _renderAudioDeckCard('🎙️ Đang đọc câu hỏi...', false);
+    _speakChunk(`Câu ${audioDeck.idx + 1}. ${_cleanSpeakText(q.question_text || q.question || '')}`, () => {
+      _renderAudioDeckCard(`⏳ Tự nhớ (${delaySec}s)...`, false);
+      audioDeck.pauseTimer = setTimeout(() => {
+        if (!audioDeck.playing) return;
+        _renderAudioDeckCard('✅ Đọc đáp án', true);
+        _speakChunk(`Đáp án đúng là ${letter}. ${ansText}`, () => {
+          audioDeck.pauseTimer = setTimeout(() => {
+            if (!audioDeck.playing) return;
+            audioDeck.idx = (audioDeck.idx + 1) % audioDeck.queue.length;
+            _playCurrentAudioItem();
+          }, 1100);
+        });
+      }, delaySec * 1000);
+    });
+  }
+
+  function openAudioPlaylistModal() {
+    openModal('modal-audio-playlist');
+    loadAudioPlaylistQueue();
+  }
+  window.openAudioPlaylistModal = openAudioPlaylistModal;
+
+  function closeAudioPlaylistModal() {
+    audioDeck.playing = false;
+    _stopSpeech();
+    closeModal('modal-audio-playlist');
+  }
+  window.closeAudioPlaylistModal = closeAudioPlaylistModal;
+
+  function toggleAudioPlaylistPlay() {
+    const btn = document.getElementById('btn-audio-play-toggle');
+    if (audioDeck.playing) {
+      audioDeck.playing = false;
+      _stopSpeech();
+      if (btn) btn.textContent = '▶ Phát';
+      _renderAudioDeckCard('⏸ Đã tạm dừng', false);
+    } else {
+      if (!audioDeck.queue.length) return;
+      audioDeck.playing = true;
+      if (btn) btn.textContent = '⏸ Tạm dừng';
+      _playCurrentAudioItem();
+    }
+  }
+  window.toggleAudioPlaylistPlay = toggleAudioPlaylistPlay;
+
+  function stepAudioPlaylist(delta) {
+    if (!audioDeck.queue.length) return;
+    _stopSpeech();
+    audioDeck.idx = (audioDeck.idx + delta + audioDeck.queue.length) % audioDeck.queue.length;
+    if (audioDeck.playing) _playCurrentAudioItem();
+    else _renderAudioDeckCard('Sẵn sàng', false);
+  }
+  window.stepAudioPlaylist = stepAudioPlaylist;
+
+  // --- 3. Radar Điểm Yếu Theo Môn ---
+  function openWeakChapterRadarModal() {
+    const listEl = document.getElementById('weak-radar-list');
+    const subjs = Array.isArray(STATE?.subjects) ? STATE.subjects : [];
+    const mistakes = Array.isArray(STATE?.mistakes) ? STATE.mistakes : [];
+    const countBySubj = {};
+    mistakes.forEach((m) => {
+      if (m && typeof m === 'object' && m.subject_id) {
+        const k = String(m.subject_id);
+        countBySubj[k] = (countBySubj[k] || 0) + 1;
+      }
+    });
+
+    const rows = subjs.map((s) => {
+      const mCount = countBySubj[String(s.id)] || 0;
+      const qTotal = Number(s.question_count || 1);
+      const mastery = Math.max(0, Math.min(100, Math.round(100 - (mCount / Math.max(10, qTotal)) * 100)));
+      return { id: s.id, code: s.code || '', name: s.name, icon: s.icon || '📚', mCount, qTotal, mastery };
+    }).sort((a, b) => b.mCount - a.mCount || a.mastery - b.mastery);
+
+    if (listEl) {
+      listEl.innerHTML = rows.slice(0, 12).map((r) => {
+        const barColor = r.mCount >= 20 ? '#f43f5e' : (r.mCount >= 5 ? '#f59e0b' : '#10b981');
+        return `
+          <div class="p-3 rounded-xl border flex items-center justify-between gap-3" style="background: var(--bg-subtle); border-color: var(--border);">
+            <div class="min-w-0 flex-1 space-y-1.5">
+              <div class="flex items-center justify-between gap-2">
+                <span class="font-bold txt-main truncate">${escapeHtml(r.icon)} ${escapeHtml(r.name)}</span>
+                <span class="font-mono font-extrabold text-[11px] shrink-0" style="color:${barColor};">${r.mCount} câu sai</span>
+              </div>
+              <div class="w-full h-1.5 rounded-full bg-black/20 overflow-hidden">
+                <div class="h-full rounded-full" style="width:${r.mastery}%; background:${barColor};"></div>
+              </div>
+            </div>
+            <button type="button" onclick="closeModal('modal-weak-radar'); openExamForSubjectCode('${escapeHtml(r.code)}', ${r.id})" class="btn-primary px-3 py-1.5 text-[11px] font-bold shrink-0">🔥 Luyện</button>
+          </div>
+        `;
+      }).join('') || '<div class="text-center txt-muted py-6">Chưa có dữ liệu điểm yếu.</div>';
+    }
+    openModal('modal-weak-radar');
+  }
+  window.openWeakChapterRadarModal = openWeakChapterRadarModal;
+
+  // --- 4. Xuất Sổ Tay Ôn Thi A4 (In / Lưu PDF) ---
+  async function exportStudyCheatsheetNow() {
+    const activeSubj = (STATE?.subjects || []).find((s) => String(s.id) === String(STATE?.activeSubjectId));
+    const title = activeSubj ? activeSubj.name : 'UniMaster AI';
+    const notesObj = STATE?.notes && typeof STATE.notes === 'object' ? STATE.notes : {};
+    const notesList = Object.entries(notesObj).filter(([, v]) => String(v || '').trim());
+    const pool = await _fetchQuestionPool(STATE?.activeSubjectId, 30);
+
+    const w = window.open('', '_blank', 'width=900,height=720');
+    if (!w) {
+      showToast('Trình duyệt chặn pop-up. Hãy cho phép mở tab mới để in A4.', 'warning');
+      return;
+    }
+    const qHtml = pool.slice(0, 25).map((q, i) => {
+      const letter = String(q.correct_option || 'A').trim().toUpperCase();
+      const ans = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d }[letter] || '';
+      return `<div class="q"><b>${i + 1}.</b> ${escapeHtml(q.question_text || q.question || '')}<div class="ans">✔ ${letter}: ${escapeHtml(ans)}</div></div>`;
+    }).join('');
+    const nHtml = notesList.length
+      ? `<h2>📌 Ghi Chú Cá Nhân (${notesList.length})</h2>` + notesList.map(([k, v]) => `<div class="q"><b>Câu #${escapeHtml(k)}:</b> ${escapeHtml(String(v))}</div>`).join('')
+      : '';
+
+    w.document.write(`<!DOCTYPE html><html lang="vi"><head><meta charset="utf-8"><title>Sổ Tay Ôn Thi A4 - ${escapeHtml(title)}</title>
+      <style>body{font-family:system-ui,-apple-system,sans-serif;max-width:820px;margin:20px auto;padding:0 16px;color:#111;line-height:1.45}
+      h1{font-size:18px;border-bottom:2px solid #4f46e5;padding-bottom:6px}h2{font-size:14px;margin-top:16px;color:#4f46e5}
+      .q{font-size:12px;padding:6px 0;border-bottom:1px dashed #ddd}.ans{color:#047857;font-weight:700;margin-top:2px}
+      @media print{.no-print{display:none}}</style></head><body>
+      <div class="no-print" style="margin-bottom:12px"><button onclick="window.print()" style="padding:8px 16px;background:#4f46e5;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer">🖨️ In / Lưu PDF A4</button></div>
+      <h1>📄 Sổ Tay Ôn Thi A4 — ${escapeHtml(title)}</h1>${nHtml}
+      <h2>🎯 25 Câu Trọng Tâm Kèm Đáp Án</h2>${qHtml}</body></html>`);
+    w.document.close();
+  }
+  window.exportStudyCheatsheetNow = exportStudyCheatsheetNow;
+})();
