@@ -4047,16 +4047,17 @@ main:has(#view-tutor:not(.hidden)) {
   font-variant-ligatures: none !important;
 }
 
-/* Single-row toolbar - condensed layout */
+/* Responsive toolbar - wrap cleanly without horizontal clipping */
 .vscode-run-toolbar {
-  flex-wrap: nowrap !important;
-  gap: 1rem !important;
-  padding: 1rem 1.5rem !important;
+  flex-wrap: wrap !important;
+  gap: 0.5rem !important;
+  padding: 0.5rem 0.85rem !important;
   font-size: 12px !important;
 }
 
 .vscode-run-toolbar > div {
-  flex-shrink: 0;
+  flex-shrink: 1;
+  flex-wrap: wrap;
 }
 
 /* Floating tutor suppression in exercises mode */
@@ -4373,16 +4374,17 @@ main:has(#view-tutor:not(.hidden)) {
   font-family: 'Cascadia Code', Consolas, 'Fira Code', 'Courier New', monospace !important;
 }
 
-/* Single-row toolbar - condensed layout */
+/* Responsive toolbar - wrap cleanly without horizontal clipping */
 .vscode-run-toolbar {
-  flex-wrap: nowrap !important;
-  gap: 1rem !important;
-  padding: 1rem 1.5rem !important;
+  flex-wrap: wrap !important;
+  gap: 0.5rem !important;
+  padding: 0.5rem 0.85rem !important;
   font-size: 12px !important;
 }
 
 .vscode-run-toolbar > div {
-  flex-shrink: 0;
+  flex-shrink: 1;
+  flex-wrap: wrap;
 }
 
 /* Floating tutor suppression in exercises mode */

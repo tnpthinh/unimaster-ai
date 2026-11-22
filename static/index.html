@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=56.4" />
+  <link rel="stylesheet" href="/static/style.css?v=57.0" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -150,22 +150,22 @@
       <!-- Right: Calm Control Bar (Online & Real-Time Sync, Search, FULLSCREEN, Theme, Profile, Settings) -->
       <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
         <button id="header-sync-btn" onclick="openCloudSyncModal()" title="Truy cập Online mọi thiết bị &amp; Sao lưu thời gian thực"
-          class="btn-soft px-2 sm:px-2.5 h-8 sm:h-9 text-xs font-semibold flex items-center gap-1.5 rounded-xl">
+          class="btn-soft px-2 h-8 sm:h-9 text-xs font-semibold flex items-center gap-1.5 rounded-xl">
           <span id="header-sync-dot" class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-          <span id="header-sync-label" class="hidden md:inline txt-sub text-[11px] whitespace-nowrap">Online</span>
-          <i data-lucide="globe" class="w-3.5 h-3.5 md:hidden txt-sub"></i>
+          <span id="header-sync-label" class="hidden 2xl:inline txt-sub text-[11px] whitespace-nowrap">Online</span>
+          <i data-lucide="globe" class="w-3.5 h-3.5 2xl:hidden txt-sub"></i>
         </button>
 
         <button id="header-cmdk-btn" onclick="openCommandPaletteModal()" title="Tìm kiếm &amp; Lệnh nhanh (Ctrl+K)"
-          class="btn-soft w-8 h-8 sm:w-auto sm:px-2 sm:h-9 text-xs font-semibold flex items-center justify-center gap-1.5 rounded-xl">
+          class="btn-soft w-8 h-8 sm:w-9 sm:h-9 2xl:w-auto 2xl:px-2 text-xs font-semibold flex items-center justify-center gap-1.5 rounded-xl">
           <i data-lucide="search" class="w-3.5 h-3.5 txt-sub"></i>
-          <kbd class="hidden xl:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted);">Ctrl+K</kbd>
+          <kbd class="hidden 2xl:inline-block px-1.5 py-0.5 text-[10px] font-mono rounded" style="background: var(--bg-surface); border: 1px solid var(--border); color: var(--text-muted);">Ctrl+K</kbd>
         </button>
 
         <button id="header-fullscreen-btn" onclick="toggleAppFullscreen()" title="Toàn màn hình không vướng thanh trình duyệt (F11)"
-          class="btn-soft w-8 h-8 sm:w-auto sm:px-2.5 sm:h-9 text-xs font-bold flex items-center justify-center gap-1.5 rounded-xl">
+          class="btn-soft w-8 h-8 sm:w-9 sm:h-9 2xl:w-auto 2xl:px-2.5 text-xs font-bold flex items-center justify-center gap-1.5 rounded-xl">
           <i id="header-fs-lucide" data-lucide="maximize" class="w-4 h-4"></i>
-          <span id="header-fs-label" class="hidden xl:inline text-[11px]">Toàn màn hình</span>
+          <span id="header-fs-label" class="hidden 2xl:inline text-[11px]">Toàn màn hình</span>
         </button>
 
         <button id="quick-theme-btn" onclick="quickCycleDarkLight()" title="Đổi giao diện Sáng / Tối"
@@ -244,46 +244,48 @@
               <span id="hero-active-title" class="truncate">Toán Rời Rạc</span>
             </h1>
             <p id="hero-subject-desc" class="hidden"></p>
-            <div class="flex flex-wrap items-center gap-2">
-              <button id="hero-btn-start-exam" onclick="startExamForActiveSubject()"
-                class="btn-primary px-4 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5">
-                <i data-lucide="play" class="w-3.5 h-3.5"></i> <span id="hero-start-exam-text">Làm bài ngay</span>
-              </button>
-              <button onclick="startAdaptiveSmartExam()"
-                class="btn-soft px-3.5 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
-                title="Chọn 20 câu trọng tâm theo lỗ hổng cá nhân">
-                <i data-lucide="sparkles" class="w-3.5 h-3.5 txt-brand"></i> Đề thông minh
-              </button>
-              <button onclick="startWeakSpotBlitzExam()"
-                class="btn-soft px-3.5 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
-                title="Ôn cấp tốc các câu từng làm sai">
-                <i data-lucide="target" class="w-3.5 h-3.5 text-rose-400"></i> Luyện điểm yếu
-              </button>
-              <button onclick="openSpeedBlitz60Modal()"
-                class="btn-soft px-3.5 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
-                title="Thử thách phản xạ nhanh 60 giây tích điểm Combo">
-                <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400"></i> Tia chớp 60s
-              </button>
-              <button onclick="openExamForSubjectCode('DIEUDUONG_CB', 105)"
-                class="btn-soft px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-emerald-500/40"
-                title="Luyện 10 bài Điều Dưỡng Cơ Bản (60 câu/bài • 600 câu bám sát giáo trình)">
-                <span>🩺</span> Điều Dưỡng Cơ Bản (600c)
-              </button>
-              <button onclick="startTrrPdfPracticeExam('all')"
-                class="btn-soft px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-indigo-500/40"
-                title="Làm trực tiếp Bộ 4 Đề Mẫu &amp; Tương Tự Toán Rời Rạc có hướng dẫn từng bước">
-                <span>📐</span> 4 Đề Mẫu Toán Rời Rạc
-              </button>
-              <a href="/static/luyen_de_toan_roi_rac.html" target="_blank"
-                class="btn-soft px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm flex items-center gap-1.5 border border-emerald-500/40"
-                title="Mở Phòng tự luyện Bảng Chân Trị, Bảng Karnaugh, Mạch Logic, Euclid, Đồng Dư &amp; Affine">
-                <span>✍️</span> Phòng Tự Luyện Bảng &amp; Mạch
-              </a>
-              <button onclick="toggleAppFullscreen()"
-                class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs sm:text-sm flex items-center gap-1.5"
-                title="Chế độ toàn màn hình tập trung">
-                <span id="hero-fs-icon">⛶</span> <span id="hero-fs-label">Toàn màn hình</span>
-              </button>
+            <div class="space-y-2">
+              <!-- Primary Study Actions (4 core buttons — single crisp row on desktop) -->
+              <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <button id="hero-btn-start-exam" onclick="startExamForActiveSubject()"
+                  class="btn-primary px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 whitespace-nowrap">
+                  <i data-lucide="play" class="w-3.5 h-3.5 shrink-0"></i> <span id="hero-start-exam-text" class="max-w-[170px] truncate">Làm bài ngay</span>
+                </button>
+                <button onclick="startAdaptiveSmartExam()"
+                  class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap"
+                  title="Chọn 20 câu trọng tâm theo lỗ hổng cá nhân">
+                  <i data-lucide="sparkles" class="w-3.5 h-3.5 txt-brand shrink-0"></i> Đề thông minh
+                </button>
+                <button onclick="startWeakSpotBlitzExam()"
+                  class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap"
+                  title="Ôn cấp tốc các câu từng làm sai">
+                  <i data-lucide="target" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i> Luyện điểm yếu
+                </button>
+                <button onclick="openSpeedBlitz60Modal()"
+                  class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap"
+                  title="Thử thách phản xạ nhanh 60 giây tích điểm Combo">
+                  <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i> Tia chớp 60s
+                </button>
+              </div>
+              <!-- Secondary Quick-Pack Strip -->
+              <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span class="text-[11px] font-bold txt-muted mr-0.5">Lối tắt:</span>
+                <button onclick="openExamForSubjectCode('DIEUDUONG_CB', 105)"
+                  class="btn-soft px-2.5 py-1 rounded-lg font-semibold text-[11px] sm:text-xs flex items-center gap-1 border border-emerald-500/30"
+                  title="Luyện 10 bài Điều Dưỡng Cơ Bản (60 câu/bài • 600 câu bám sát giáo trình)">
+                  <span>🩺</span> Điều Dưỡng 600c
+                </button>
+                <button onclick="startTrrPdfPracticeExam('all')"
+                  class="btn-soft px-2.5 py-1 rounded-lg font-semibold text-[11px] sm:text-xs flex items-center gap-1 border border-indigo-500/30"
+                  title="Làm trực tiếp Bộ 4 Đề Mẫu &amp; Tương Tự Toán Rời Rạc có hướng dẫn từng bước">
+                  <span>📐</span> 4 Đề Toán Rời Rạc
+                </button>
+                <a href="/static/luyen_de_toan_roi_rac.html" target="_blank"
+                  class="btn-soft px-2.5 py-1 rounded-lg font-semibold text-[11px] sm:text-xs flex items-center gap-1 border border-emerald-500/30"
+                  title="Mở Phòng tự luyện Bảng Chân Trị, Bảng Karnaugh, Mạch Logic, Euclid, Đồng Dư &amp; Affine">
+                  <span>✍️</span> Bảng &amp; Mạch
+                </a>
+              </div>
             </div>
           </div>
 
@@ -1067,7 +1069,7 @@
       </div>
 
       <!-- 2B: ACTIVE EXAM SCREEN -->
-      <div id="exam-active-screen" class="hidden space-y-4 pb-24">
+      <div id="exam-active-screen" class="hidden space-y-4 pb-32">
         <!-- Sticky Top Control Bar -->
         <div class="uni-card sticky top-[4.15rem] z-30 overflow-hidden">
           <div class="w-full h-1.5" style="background-color: var(--bg-subtle);">
@@ -1075,21 +1077,21 @@
               style="width: 0%; background: linear-gradient(90deg, var(--brand), var(--brand-2));"></div>
           </div>
 
-          <div class="p-3 sm:px-5 flex items-center justify-between gap-2 flex-wrap">
-            <div class="flex items-center gap-2.5">
-              <button onclick="confirmExitExam()" class="btn-soft p-2 text-xs"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
-              <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-extrabold text-sm txt-main">Câu <span id="current-q-num">1</span>/<span id="total-q-num">20</span></span>
-                  <span id="exam-live-accuracy-pill" class="hidden badge-emerald text-[11px] px-2 py-0.5 rounded-full font-mono font-extrabold">✔ 0 • ✖ 0</span>
+          <div class="p-2.5 sm:px-5 sm:py-3 flex items-center justify-between gap-2 flex-wrap">
+            <div class="flex items-center gap-2 min-w-0">
+              <button onclick="confirmExitExam()" class="btn-soft p-1.5 sm:p-2 text-xs shrink-0"><i data-lucide="arrow-left" class="w-4 h-4"></i></button>
+              <div class="min-w-0">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-extrabold text-xs sm:text-sm txt-main whitespace-nowrap">Câu <span id="current-q-num">1</span>/<span id="total-q-num">20</span></span>
+                  <span id="exam-live-accuracy-pill" class="hidden badge-emerald text-[10px] sm:text-[11px] px-1.5 sm:px-2 py-0.5 rounded-full font-mono font-extrabold whitespace-nowrap">✔ 0 • ✖ 0</span>
                   <span id="blitz-lives-badge" class="hidden badge-rose text-xs px-2 py-0.5 rounded-full font-extrabold">❤️❤️❤️</span>
                   <span id="streak-badge" class="hidden badge-amber text-xs px-2 py-0.5 rounded-full font-extrabold">🔥 x3</span>
                 </div>
-                <div id="active-exam-title" class="text-[11px] txt-muted truncate max-w-[180px] sm:max-w-xs"></div>
+                <div id="active-exam-title" class="text-[11px] txt-muted truncate max-w-[200px] sm:max-w-xs"></div>
               </div>
             </div>
 
-            <div class="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+            <div class="flex items-center gap-1 sm:gap-2 flex-nowrap overflow-x-auto max-w-full">
               <!-- Top Quick Question Navigation Cluster (Desktop/Tablet — Mobile uses floating thumb bar) -->
               <div class="hidden sm:flex items-center gap-1 bg-white/5 border border-white/10 p-0.5 rounded-xl shrink-0">
                 <button id="top-btn-prev-q" onclick="prevQuestion()" class="btn-soft px-2 py-1 text-xs font-bold flex items-center gap-1 rounded-lg whitespace-nowrap" title="Câu trước (←)">
@@ -2865,15 +2867,15 @@
             <div class="grid grid-cols-3 gap-2">
               <div>
                 <label class="text-[11px] font-bold txt-sub">OD<sub>thử</sub></label>
-                <input id="calc-bl-od-sam" type="number" step="0.001" value="0.540" oninput="runClinicalCalculators()" class="uni-input w-full px-2.5 py-2 text-xs font-mono font-bold mt-0.5" />
+                <input id="calc-bl-od-sam" type="number" step="0.001" value="0.540" oninput="runClinicalCalculators()" onchange="runClinicalCalculators()" class="uni-input w-full px-2.5 py-2 text-xs font-mono font-bold mt-0.5" />
               </div>
               <div>
                 <label class="text-[11px] font-bold txt-sub">OD<sub>chuẩn</sub></label>
-                <input id="calc-bl-od-std" type="number" step="0.001" value="0.360" oninput="runClinicalCalculators()" class="uni-input w-full px-2.5 py-2 text-xs font-mono font-bold mt-0.5" />
+                <input id="calc-bl-od-std" type="number" step="0.001" value="0.360" oninput="runClinicalCalculators()" onchange="runClinicalCalculators()" class="uni-input w-full px-2.5 py-2 text-xs font-mono font-bold mt-0.5" />
               </div>
               <div>
                 <label class="text-[11px] font-bold txt-sub">C<sub>chuẩn</sub></label>
-                <input id="calc-bl-c-std" type="number" step="0.1" value="5.5" oninput="runClinicalCalculators()" class="uni-input w-full px-2.5 py-2 text-xs font-mono font-bold mt-0.5" />
+                <input id="calc-bl-c-std" type="number" step="0.1" value="5.5" oninput="runClinicalCalculators()" onchange="runClinicalCalculators()" class="uni-input w-full px-2.5 py-2 text-xs font-mono font-bold mt-0.5" />
               </div>
             </div>
             <div id="calc-bl-output" class="p-3 rounded-xl text-xs font-bold badge-emerald"></div>
@@ -8344,6 +8346,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=56.5"></script>
+  <script src="/static/app.js?v=57.0"></script>
 </body>
 </html>

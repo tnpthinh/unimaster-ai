@@ -2173,8 +2173,8 @@ const DEFAULT_EXAM_SCHEDULE = [
   { id: 'countdown-16-11', badgeId: 'cd-badge-16-11', dateStr: '2026-11-16', name: 'Giải Thuật (CTDL & GT)', target: '9.0+', tone: 'cyan', subjectCode: 'CTDL_GT', subjectId: 82 },
   { id: 'countdown-26-11', badgeId: 'cd-badge-26-11', dateStr: '2026-11-26', name: 'OOP Trắc nghiệm & TH', target: '9.0+', tone: 'amber', subjectCode: 'OOP_CSHARP', subjectId: 5 },
   { id: 'countdown-27-11', badgeId: 'cd-badge-27-11', dateStr: '2026-11-27', name: 'Toán Rời Rạc', target: '9.0+', tone: 'indigo', subjectCode: 'TOAN_RR', subjectId: 21 },
-  { id: 'countdown-01-12', badgeId: 'cd-badge-01-12', dateStr: '2026-12-01', name: 'NNLT 1 (Python)', target: '9.0+', tone: 'cyan', subjectCode: 'NNLT1', subjectId: 83 },
-  { id: 'countdown-04-12', badgeId: 'cd-badge-04-12', dateStr: '2026-12-04', name: 'Anh Văn Cơ Bản 3', target: '8.5+', tone: 'emerald', subjectCode: 'AVCB3', subjectId: 84 }
+  { id: 'countdown-01-12', badgeId: 'cd-badge-01-12', dateStr: '2026-12-01', name: 'NNLT 1 (Python)', target: '9.0+', tone: 'cyan', subjectCode: 'NNLT1', subjectId: 22 },
+  { id: 'countdown-04-12', badgeId: 'cd-badge-04-12', dateStr: '2026-12-04', name: 'Anh Văn Cơ Bản 3', target: '8.5+', tone: 'emerald', subjectCode: 'AVCB3', subjectId: 23 }
 ];
 
 const DEFAULT_UI_PREFS = {
@@ -4886,6 +4886,13 @@ async function onExamSubjectChange() {
   if (ctumpCard) {
     const isCtump = subObj && String(subObj.code || '').toUpperCase() === 'HOASINH_CTUMP';
     ctumpCard.classList.toggle('hidden', !isCtump);
+  }
+  const trrSuiteBar = document.getElementById('trr-pdf-exam-suite-bar');
+  if (trrSuiteBar) {
+    const subCode = String(subObj?.code || '').toUpperCase();
+    const subName = String(subObj?.name || '').toLowerCase();
+    const isTrr = subCode === 'TOAN_RR' || subName.includes('toán rời rạc');
+    trrSuiteBar.classList.toggle('hidden', !isTrr);
   }
   const quickTo = document.getElementById('exam-quick-range-to');
   const quickFrom = document.getElementById('exam-quick-range-from');
@@ -11463,59 +11470,65 @@ function inspectGraphNode(nodeId) {
 // --- 17.6 Clinical Biochemistry & STEM Quick Calculators ---
 function runClinicalCalculators() {
   // 1. Beer-Lambert
-  const odSam = parseFloat(document.getElementById('calc-bl-od-sam')?.value || '0.54');
-  const odStd = parseFloat(document.getElementById('calc-bl-od-std')?.value || '0.36');
-  const cStd = parseFloat(document.getElementById('calc-bl-c-std')?.value || '5.5');
+  const odSam = parseFloat(document.getElementById('calc-bl-od-sam')?.value);
+  const odStd = parseFloat(document.getElementById('calc-bl-od-std')?.value);
+  const cStd = parseFloat(document.getElementById('calc-bl-c-std')?.value);
   const blOut = document.getElementById('calc-bl-output');
-  if (blOut && odStd > 0) {
-    const cSam = (odSam / odStd) * cStd;
-    blOut.innerHTML = renderInlineMathAndCode(
-      `Kết quả: $C_{\\text{thử}} = \\frac{${odSam}}{${odStd}} \\times ${cStd} = \\mathbf{${cSam.toFixed(2)}}$ (cùng đơn vị với $C_{\\text{chuẩn}}$)`
-    );
+  if (blOut) {
+    if (!Number.isFinite(odSam) || !Number.isFinite(odStd) || !Number.isFinite(cStd) || odStd <= 0) {
+      blOut.innerHTML = '⚠️ Nhập đầy đủ OD<sub>thử</sub>, OD<sub>chuẩn</sub> (&gt; 0) và C<sub>chuẩn</sub> để tính.';
+    } else {
+      const cSam = (odSam / odStd) * cStd;
+      blOut.innerHTML = `Kết quả: C<sub>thử</sub> = (${odSam} / ${odStd}) × ${cStd} = <strong class="font-mono text-sm">${cSam.toFixed(2)}</strong> <span class="opacity-80">(cùng đơn vị với C<sub>chuẩn</sub>)</span>`;
+    }
   }
 
   // 2. Creatinine Clearance C_Cr
-  const uCrMmol = parseFloat(document.getElementById('calc-ccr-u')?.value || '8.8');
-  const pCrUmol = parseFloat(document.getElementById('calc-ccr-p')?.value || '110');
-  const v24 = parseFloat(document.getElementById('calc-ccr-v24')?.value || '1440');
+  const uCrMmol = parseFloat(document.getElementById('calc-ccr-u')?.value);
+  const pCrUmol = parseFloat(document.getElementById('calc-ccr-p')?.value);
+  const v24 = parseFloat(document.getElementById('calc-ccr-v24')?.value);
   const ccrOut = document.getElementById('calc-ccr-output');
-  if (ccrOut && pCrUmol > 0) {
-    const vMin = v24 / 1440.0;
-    const uCrUmol = uCrMmol * 1000.0;
-    const ccr = (uCrUmol * vMin) / pCrUmol;
-    const verdict = ccr >= 90 ? 'Bình thường (G1)' : ccr >= 60 ? 'Giảm nhẹ (G2)' : ccr >= 30 ? 'Suy thận vừa (G3)' : 'Suy thận nặng (G4–G5)';
-    ccrOut.innerHTML = renderInlineMathAndCode(
-      `$V = ${vMin.toFixed(2)}\\text{ mL/phút}$ → $C_{\\text{Cr}} = \\mathbf{${ccr.toFixed(1)}\\text{ mL/phút}}$ (${verdict})`
-    );
+  if (ccrOut) {
+    if (!Number.isFinite(uCrMmol) || !Number.isFinite(pCrUmol) || !Number.isFinite(v24) || pCrUmol <= 0) {
+      ccrOut.innerHTML = '⚠️ Nhập đầy đủ U<sub>Cr</sub>, P<sub>Cr</sub> (&gt; 0) và V<sub>24h</sub>.';
+    } else {
+      const vMin = v24 / 1440.0;
+      const uCrUmol = uCrMmol * 1000.0;
+      const ccr = (uCrUmol * vMin) / pCrUmol;
+      const verdict = ccr >= 90 ? 'Bình thường (G1)' : ccr >= 60 ? 'Giảm nhẹ (G2)' : ccr >= 30 ? 'Suy thận vừa (G3)' : 'Suy thận nặng (G4–G5)';
+      ccrOut.innerHTML = `V = <span class="font-mono">${vMin.toFixed(2)} mL/phút</span> → C<sub>Cr</sub> = <strong class="font-mono text-sm">${ccr.toFixed(1)} mL/phút</strong> (${verdict})`;
+    }
   }
 
   // 3. Plasma Osmolality & Anion Gap
-  const na = parseFloat(document.getElementById('calc-osm-na')?.value || '140');
-  const cl = parseFloat(document.getElementById('calc-osm-cl')?.value || '102');
-  const hco3 = parseFloat(document.getElementById('calc-osm-hco3')?.value || '24');
-  const glu = parseFloat(document.getElementById('calc-osm-glu')?.value || '5.5');
+  const na = parseFloat(document.getElementById('calc-osm-na')?.value);
+  const cl = parseFloat(document.getElementById('calc-osm-cl')?.value);
+  const hco3 = parseFloat(document.getElementById('calc-osm-hco3')?.value);
+  const glu = parseFloat(document.getElementById('calc-osm-glu')?.value);
   const osmOut = document.getElementById('calc-osm-output');
   if (osmOut) {
-    const osm = 2 * na + glu + 5.0;
-    const ag = na - (cl + hco3);
-    osmOut.innerHTML = renderInlineMathAndCode(
-      `$\\text{ASTT} \\approx \\mathbf{${osm.toFixed(1)}\\text{ mOsm/kg}}$ | $\\text{Anion Gap} = \\mathbf{${ag.toFixed(1)}\\text{ mmol/L}}$ (${ag > 16 ? 'Toan chuyển hóa tăng AG' : 'Bình thường 8–16'})`
-    );
+    if (!Number.isFinite(na) || !Number.isFinite(cl) || !Number.isFinite(hco3) || !Number.isFinite(glu)) {
+      osmOut.innerHTML = '⚠️ Nhập đầy đủ Na⁺, Cl⁻, HCO₃⁻ và Glucose.';
+    } else {
+      const osm = 2 * na + glu + 5.0;
+      const ag = na - (cl + hco3);
+      osmOut.innerHTML = `ASTT ≈ <strong class="font-mono text-sm">${osm.toFixed(1)} mOsm/kg</strong> | Anion Gap = <strong class="font-mono text-sm">${ag.toFixed(1)} mmol/L</strong> (${ag > 16 ? 'Toan chuyển hóa tăng AG' : 'Bình thường 8–16'})`;
+    }
   }
 
   // 4. Friedewald LDL-C
-  const tc = parseFloat(document.getElementById('calc-ldl-tc')?.value || '5.8');
-  const hdl = parseFloat(document.getElementById('calc-ldl-hdl')?.value || '1.3');
-  const tg = parseFloat(document.getElementById('calc-ldl-tg')?.value || '2.2');
+  const tc = parseFloat(document.getElementById('calc-ldl-tc')?.value);
+  const hdl = parseFloat(document.getElementById('calc-ldl-hdl')?.value);
+  const tg = parseFloat(document.getElementById('calc-ldl-tg')?.value);
   const ldlOut = document.getElementById('calc-ldl-output');
   if (ldlOut) {
-    if (tg >= 4.5) {
+    if (!Number.isFinite(tc) || !Number.isFinite(hdl) || !Number.isFinite(tg)) {
+      ldlOut.innerHTML = '⚠️ Nhập đầy đủ Chol<sub>TP</sub>, HDL-C và Triglycerid.';
+    } else if (tg >= 4.5) {
       ldlOut.innerHTML = '⚠️ Triglycerid ≥ 4.5 mmol/L: Không áp dụng công thức Friedewald (cần định lượng LDL-C trực tiếp)!';
     } else {
       const ldl = tc - hdl - tg / 2.2;
-      ldlOut.innerHTML = renderInlineMathAndCode(
-        `Kết quả: $\\text{LDL-C} = ${tc} - ${hdl} - \\frac{${tg}}{2.2} = \\mathbf{${ldl.toFixed(2)}\\text{ mmol/L}}$ (${ldl > 3.4 ? 'Tăng LDL-C' : 'Bình thường < 3.4'})`
-      );
+      ldlOut.innerHTML = `Kết quả: LDL-C = ${tc} − ${hdl} − (${tg}/2.2) = <strong class="font-mono text-sm">${ldl.toFixed(2)} mmol/L</strong> (${ldl > 3.4 ? 'Tăng LDL-C' : 'Bình thường < 3.4'})`;
     }
   }
 }
