@@ -6059,8 +6059,8 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
    v62.0: Multi-Viewport UI Bug Fixes (1280px Active Exam, Mobile Tutor, Light IDE)
    ============================================================================== */
 .tutor-main-card-height {
-  height: calc(100dvh - 320px);
-  min-height: 320px;
+  height: calc(100dvh - 340px);
+  min-height: 310px;
 }
 @media (min-width: 1024px) {
   .tutor-main-card-height {
@@ -6195,4 +6195,61 @@ body.vscode-fs-active main {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
   }
+}
+
+/* ==============================================================================
+   v67.0: Next-Gen AI Studio Polish (Super-Action Chips, Glowing Capsule, Clean Tables)
+   ============================================================================== */
+.ai-super-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0.3rem 0.7rem;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.ai-super-chip:hover {
+  border-color: var(--brand);
+  color: var(--brand-text);
+  background: color-mix(in srgb, var(--brand) 10%, var(--bg-subtle));
+  transform: translateY(-1px);
+}
+
+.gemini-input-capsule {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.gemini-input-capsule:focus-within {
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--brand) 25%, transparent) !important;
+}
+
+#tutor-chat-box table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.65rem 0;
+  font-size: 0.82rem;
+  border-radius: 0.65rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+#tutor-chat-box th,
+#tutor-chat-box td {
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+#tutor-chat-box th {
+  background: color-mix(in srgb, var(--brand) 12%, var(--bg-subtle));
+  font-weight: 800;
+}
+#tutor-chat-box pre {
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
 }

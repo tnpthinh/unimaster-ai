@@ -6138,8 +6138,8 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
    v62.0: Multi-Viewport UI Bug Fixes (1280px Active Exam, Mobile Tutor, Light IDE)
    ============================================================================== */
 .tutor-main-card-height {
-  height: calc(100dvh - 320px);
-  min-height: 320px;
+  height: calc(100dvh - 340px);
+  min-height: 310px;
 }
 @media (min-width: 1024px) {
   .tutor-main-card-height {
@@ -6274,6 +6274,63 @@ body.vscode-fs-active main {
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
   }
+}
+
+/* ==============================================================================
+   v67.0: Next-Gen AI Studio Polish (Super-Action Chips, Glowing Capsule, Clean Tables)
+   ============================================================================== */
+.ai-super-chip {
+  flex-shrink: 0;
+  white-space: nowrap;
+  padding: 0.3rem 0.7rem;
+  border-radius: 9999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--bg-subtle);
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.ai-super-chip:hover {
+  border-color: var(--brand);
+  color: var(--brand-text);
+  background: color-mix(in srgb, var(--brand) 10%, var(--bg-subtle));
+  transform: translateY(-1px);
+}
+
+.gemini-input-capsule {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.gemini-input-capsule:focus-within {
+  border-color: var(--brand) !important;
+  box-shadow: 0 0 0 2.5px color-mix(in srgb, var(--brand) 25%, transparent) !important;
+}
+
+#tutor-chat-box table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.65rem 0;
+  font-size: 0.82rem;
+  border-radius: 0.65rem;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+#tutor-chat-box th,
+#tutor-chat-box td {
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+#tutor-chat-box th {
+  background: color-mix(in srgb, var(--brand) 12%, var(--bg-subtle));
+  font-weight: 800;
+}
+#tutor-chat-box pre {
+  border-radius: 0.75rem;
+  padding: 0.75rem 0.9rem;
+  overflow-x: auto;
+  border: 1px solid var(--border);
 }
 
 </style>
@@ -8131,6 +8188,9 @@ body.vscode-fs-active main {
             <span>🗂️</span>
             <span id="tutor-sessions-badge" class="badge-brand text-[10px] px-1.5 py-0.2 rounded-full font-mono">0</span>
           </button>
+          <button type="button" onclick="exportTutorChatMarkdown()" class="hidden sm:flex btn-soft px-2.5 py-1.5 text-xs font-bold items-center gap-1" title="Tải cuộc trò chuyện về máy (.md)">
+            <span>📥</span> <span class="hidden lg:inline">Lưu .md</span>
+          </button>
           <button type="button" onclick="clearTutorChat()" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1" title="Phiên chat mới">
             <span>✨</span> <span class="hidden sm:inline">Mới</span>
           </button>
@@ -8231,14 +8291,41 @@ body.vscode-fs-active main {
           </button>
 
           <!-- Gemini Multimodal Input Capsule (Supports Ctrl+V Screenshot Paste & Image Upload) -->
-          <div class="gemini-input-wrapper pt-2">
+          <div class="gemini-input-wrapper pt-2 relative">
+            <!-- v67.0 AI Super-Actions Strip (1-Tap Academic AI Tools) -->
+            <div id="ai-super-actions-bar" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2">
+              <button type="button" onclick="runAiSuperAction('summary')" class="ai-super-chip">🗺️ Tóm tắt</button>
+              <button type="button" onclick="runAiSuperAction('traps')" class="ai-super-chip">⚠️ 5 Bẫy thi</button>
+              <button type="button" onclick="runAiSuperAction('compare')" class="ai-super-chip">🔬 So sánh</button>
+              <button type="button" onclick="runAiSuperAction('quiz3')" class="ai-super-chip">🎯 Quiz 3 câu</button>
+              <button type="button" onclick="runAiSuperAction('flashcards')" class="ai-super-chip">🧠 5 Thẻ nhớ</button>
+              <button type="button" onclick="runAiSuperAction('mnemonic')" class="ai-super-chip">💡 Mẹo nhớ 5s</button>
+              <button type="button" onclick="runAiSuperAction('simpler')" class="ai-super-chip">🧒 Giải dễ hơn</button>
+            </div>
+
+            <!-- v67.0 Prompt Templates Popover -->
+            <div id="ai-prompt-templates-popover" class="hidden absolute bottom-full left-0 mb-2 w-full sm:w-80 uni-card p-2.5 shadow-2xl z-30 space-y-1 animate-fade-in" style="border-color: var(--brand-border);">
+              <div class="flex items-center justify-between px-1.5 pb-1 border-b text-[11px] font-extrabold txt-main" style="border-color: var(--border);">
+                <span>✨ Mẫu lệnh AI nhanh</span>
+                <button type="button" onclick="toggleAiTemplatesPopover(false)" class="txt-muted hover:txt-main">✕</button>
+              </div>
+              <button type="button" onclick="applyAiPromptTemplate('Biện luận chi tiết ca lâm sàng / kết quả xét nghiệm sau (chẩn đoán, cơ chế, bẫy thi): ', false)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">🩺 Biện luận ca lâm sàng</button>
+              <button type="button" onclick="applyAiPromptTemplate('Phân tích độ phức tạp, tìm bug và tối ưu đoạn code sau: ', false)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">💻 Debug &amp; tối ưu Code</button>
+              <button type="button" onclick="applyAiPromptTemplate('Giải chi tiết từng bước bài toán sau kèm công thức chuẩn: ', false)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">📐 Giải toán từng bước</button>
+              <button type="button" onclick="applyAiPromptTemplate('Lập bảng so sánh chi tiết điểm giống, khác và cách phân biệt khi thi giữa: ', false)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">🔬 Bảng so sánh 2 khái niệm</button>
+              <button type="button" onclick="applyAiPromptTemplate('Đóng vai giám khảo, hỏi xoáy tôi 3 câu vấn đáp liên tiếp về môn hiện tại (chờ tôi trả lời từng câu).', true)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">🎤 Vấn đáp 3 câu liên tiếp</button>
+            </div>
+
             <input type="file" id="tutor-img-file-input" accept="image/*" class="hidden" onchange="handleTutorImageSelected(this.files)" />
             <div id="tutor-img-preview-bar" class="hidden mb-2 px-3 py-1.5 rounded-xl border flex items-center justify-between gap-2 text-xs animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--brand-border);"></div>
             <div class="gemini-input-capsule">
-              <button type="button" onclick="document.getElementById('tutor-img-file-input')?.click()" title="Gửi ảnh chụp đề bài / bài giải viết tay (hoặc nhấn Ctrl+V để dán ảnh)" class="gemini-btn-circle" style="margin-bottom: 2px;">
+              <button type="button" onclick="toggleAiTemplatesPopover()" title="Mẫu lệnh AI nhanh" class="gemini-btn-circle" style="margin-bottom: 2px;">
+                <span class="text-base">✨</span>
+              </button>
+              <button type="button" onclick="document.getElementById('tutor-img-file-input')?.click()" title="Gửi ảnh chụp đề bài (hoặc Ctrl+V)" class="gemini-btn-circle" style="margin-bottom: 2px;">
                 <span class="text-base">📷</span>
               </button>
-              <button id="btn-tutor-mic" type="button" onclick="toggleVoiceInputForTutor()" title="Nói trực tiếp bằng Giọng nói (Web Speech API)" class="gemini-btn-circle" style="margin-bottom: 2px;">
+              <button id="btn-tutor-mic" type="button" onclick="toggleVoiceInputForTutor()" title="Nói bằng Giọng nói" class="gemini-btn-circle" style="margin-bottom: 2px;">
                 <span class="text-base">🎙️</span>
               </button>
               <textarea id="tutor-input" rows="1"
@@ -46372,6 +46459,102 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
     if (btn) btn.textContent = '▶ Bắt đầu';
   }
   window.resetStudyStopwatch = resetStudyStopwatch;
+})();
+
+// =========================================================================
+// v67.0 NEXT-GEN AI STUDIO SUPER-TOOLS (1-Tap Actions, Prompt Templates, .md Export)
+// =========================================================================
+(function initAiStudioV67() {
+  function _getActiveTutorSubjectName() {
+    const sel = document.getElementById('tutor-subject-select');
+    if (sel && sel.selectedOptions && sel.selectedOptions[0]) {
+      return sel.selectedOptions[0].textContent.replace(/\(\d+\)\s*$/, '').trim();
+    }
+    const sub = (STATE?.subjects || []).find((s) => String(s.id) === String(STATE?.activeSubjectId));
+    return sub ? sub.name : 'môn học hiện tại';
+  }
+
+  function _sendOrFillTutorPrompt(promptText, autoSend = true) {
+    const inp = document.getElementById('tutor-input');
+    if (!inp) return;
+    inp.value = promptText;
+    if (typeof autoGrowGeminiInput === 'function') autoGrowGeminiInput(inp);
+    inp.focus();
+    if (autoSend && typeof sendTutorMessage === 'function') {
+      sendTutorMessage();
+    }
+  }
+
+  function runAiSuperAction(kind) {
+    const subj = _getActiveTutorSubjectName();
+    const typed = (document.getElementById('tutor-input')?.value || '').trim();
+    const topic = typed ? `"${typed}" (môn ${subj})` : `môn ${subj}`;
+    const prompts = {
+      summary: `Hãy tóm tắt 1 trang cực kỳ cô đọng các kiến thức trọng tâm, công thức và mốc giá trị quan trọng nhất của ${topic} dưới dạng gạch đầu dòng dễ học.`,
+      traps: `Liệt kê 5 bẫy đề thi dễ nhầm nhất (đặc biệt câu phủ định NGOẠI TRỪ / KHÔNG ĐÚNG) trong ${topic}, kèm cách tránh bẫy nhanh trong 5 giây.`,
+      compare: `Lập bảng Markdown so sánh trực quan 2–3 khái niệm/cơ chế dễ nhầm lẫn nhất trong ${topic} (Tiêu chí | Bản chất | Điểm khác biệt khi thi).`,
+      quiz3: `Tạo ngay 3 câu trắc nghiệm mức độ thi thật về ${topic} (4 đáp án A/B/C/D). Ghi đáp án đúng và giải thích ngắn gọn ở cuối để tôi tự kiểm tra.`,
+      flashcards: `Tạo 5 thẻ nhớ Active Recall (Mặt trước: Câu hỏi ngắn | Mặt sau: Đáp án cốt lõi) cho các ý quan trọng nhất của ${topic}.`,
+      mnemonic: `Tạo mẹo nhớ siêu nhanh (câu thơ, từ viết tắt hoặc hình ảnh ẩn dụ tiếng Việt) giúp nhớ ngay kiến thức khó trong ${topic}.`,
+      simpler: `Hãy giải thích lại nội dung vừa rồi thật ngắn gọn, dễ hiểu như đang giảng cho người mới bắt đầu kèm 1 ví dụ thực tế.`
+    };
+    const prompt = prompts[kind] || prompts.summary;
+    toggleAiTemplatesPopover(false);
+    _sendOrFillTutorPrompt(prompt, true);
+  }
+  window.runAiSuperAction = runAiSuperAction;
+
+  function toggleAiTemplatesPopover(forceState) {
+    const pop = document.getElementById('ai-prompt-templates-popover');
+    if (!pop) return;
+    const show = typeof forceState === 'boolean' ? forceState : pop.classList.contains('hidden');
+    pop.classList.toggle('hidden', !show);
+  }
+  window.toggleAiTemplatesPopover = toggleAiTemplatesPopover;
+
+  function applyAiPromptTemplate(text, autoSend = false) {
+    toggleAiTemplatesPopover(false);
+    _sendOrFillTutorPrompt(text, Boolean(autoSend));
+  }
+  window.applyAiPromptTemplate = applyAiPromptTemplate;
+
+  function exportTutorChatMarkdown() {
+    const box = document.getElementById('tutor-chat-box');
+    const msgs = box ? Array.from(box.querySelectorAll('.tutor-msg-bubble, .ai-tutor-content, .markdown-body')) : [];
+    const subj = _getActiveTutorSubjectName();
+    let md = `# Gia Sư AI — ${subj}\n_Xuất lúc: ${new Date().toLocaleString('vi-VN')}_\n\n---\n\n`;
+    if (Array.isArray(window.tutorHistory) && window.tutorHistory.length) {
+      window.tutorHistory.forEach((m) => {
+        const who = m.role === 'user' ? '### 👤 Bạn' : '### 🤖 Gia Sư AI';
+        md += `${who}\n\n${m.content || ''}\n\n---\n\n`;
+      });
+    } else if (msgs.length) {
+      msgs.forEach((el, i) => {
+        md += `### Mục ${i + 1}\n\n${(el.innerText || '').trim()}\n\n---\n\n`;
+      });
+    } else {
+      showToast('Chưa có nội dung hội thoại để xuất.', 'warning');
+      return;
+    }
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `UniMaster_AI_${Date.now()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    showToast('📥 Đã tải cuộc trò chuyện (.md)!', 'success');
+  }
+  window.exportTutorChatMarkdown = exportTutorChatMarkdown;
+
+  document.addEventListener('click', (e) => {
+    const pop = document.getElementById('ai-prompt-templates-popover');
+    if (!pop || pop.classList.contains('hidden')) return;
+    if (!pop.contains(e.target) && !e.target.closest('[onclick*="toggleAiTemplatesPopover"]')) {
+      pop.classList.add('hidden');
+    }
+  });
 })();
 
 </script>

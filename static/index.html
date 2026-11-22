@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=63.2" />
+  <link rel="stylesheet" href="/static/style.css?v=67.1" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -1931,6 +1931,9 @@
             <span>🗂️</span>
             <span id="tutor-sessions-badge" class="badge-brand text-[10px] px-1.5 py-0.2 rounded-full font-mono">0</span>
           </button>
+          <button type="button" onclick="exportTutorChatMarkdown()" class="hidden sm:flex btn-soft px-2.5 py-1.5 text-xs font-bold items-center gap-1" title="Tải cuộc trò chuyện về máy (.md)">
+            <span>📥</span> <span class="hidden lg:inline">Lưu .md</span>
+          </button>
           <button type="button" onclick="clearTutorChat()" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1" title="Phiên chat mới">
             <span>✨</span> <span class="hidden sm:inline">Mới</span>
           </button>
@@ -2031,14 +2034,41 @@
           </button>
 
           <!-- Gemini Multimodal Input Capsule (Supports Ctrl+V Screenshot Paste & Image Upload) -->
-          <div class="gemini-input-wrapper pt-2">
+          <div class="gemini-input-wrapper pt-2 relative">
+            <!-- v67.0 AI Super-Actions Strip (1-Tap Academic AI Tools) -->
+            <div id="ai-super-actions-bar" class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-2">
+              <button type="button" onclick="runAiSuperAction('summary')" class="ai-super-chip">🗺️ Tóm tắt</button>
+              <button type="button" onclick="runAiSuperAction('traps')" class="ai-super-chip">⚠️ 5 Bẫy thi</button>
+              <button type="button" onclick="runAiSuperAction('compare')" class="ai-super-chip">🔬 So sánh</button>
+              <button type="button" onclick="runAiSuperAction('quiz3')" class="ai-super-chip">🎯 Quiz 3 câu</button>
+              <button type="button" onclick="runAiSuperAction('flashcards')" class="ai-super-chip">🧠 5 Thẻ nhớ</button>
+              <button type="button" onclick="runAiSuperAction('mnemonic')" class="ai-super-chip">💡 Mẹo nhớ 5s</button>
+              <button type="button" onclick="runAiSuperAction('simpler')" class="ai-super-chip">🧒 Giải dễ hơn</button>
+            </div>
+
+            <!-- v67.0 Prompt Templates Popover -->
+            <div id="ai-prompt-templates-popover" class="hidden absolute bottom-full left-0 mb-2 w-full sm:w-80 uni-card p-2.5 shadow-2xl z-30 space-y-1 animate-fade-in" style="border-color: var(--brand-border);">
+              <div class="flex items-center justify-between px-1.5 pb-1 border-b text-[11px] font-extrabold txt-main" style="border-color: var(--border);">
+                <span>✨ Mẫu lệnh AI nhanh</span>
+                <button type="button" onclick="toggleAiTemplatesPopover(false)" class="txt-muted hover:txt-main">✕</button>
+              </div>
+              <button type="button" onclick="applyAiPromptTemplate('Biện luận chi tiết ca lâm sàng / kết quả xét nghiệm sau (chẩn đoán, cơ chế, bẫy thi): ', false)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">🩺 Biện luận ca lâm sàng</button>
+              <button type="button" onclick="applyAiPromptTemplate('Phân tích độ phức tạp, tìm bug và tối ưu đoạn code sau: ', false)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">💻 Debug &amp; tối ưu Code</button>
+              <button type="button" onclick="applyAiPromptTemplate('Giải chi tiết từng bước bài toán sau kèm công thức chuẩn: ', false)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">📐 Giải toán từng bước</button>
+              <button type="button" onclick="applyAiPromptTemplate('Lập bảng so sánh chi tiết điểm giống, khác và cách phân biệt khi thi giữa: ', false)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">🔬 Bảng so sánh 2 khái niệm</button>
+              <button type="button" onclick="applyAiPromptTemplate('Đóng vai giám khảo, hỏi xoáy tôi 3 câu vấn đáp liên tiếp về môn hiện tại (chờ tôi trả lời từng câu).', true)" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold txt-main hover:bg-indigo-500/10">🎤 Vấn đáp 3 câu liên tiếp</button>
+            </div>
+
             <input type="file" id="tutor-img-file-input" accept="image/*" class="hidden" onchange="handleTutorImageSelected(this.files)" />
             <div id="tutor-img-preview-bar" class="hidden mb-2 px-3 py-1.5 rounded-xl border flex items-center justify-between gap-2 text-xs animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--brand-border);"></div>
             <div class="gemini-input-capsule">
-              <button type="button" onclick="document.getElementById('tutor-img-file-input')?.click()" title="Gửi ảnh chụp đề bài / bài giải viết tay (hoặc nhấn Ctrl+V để dán ảnh)" class="gemini-btn-circle" style="margin-bottom: 2px;">
+              <button type="button" onclick="toggleAiTemplatesPopover()" title="Mẫu lệnh AI nhanh" class="gemini-btn-circle" style="margin-bottom: 2px;">
+                <span class="text-base">✨</span>
+              </button>
+              <button type="button" onclick="document.getElementById('tutor-img-file-input')?.click()" title="Gửi ảnh chụp đề bài (hoặc Ctrl+V)" class="gemini-btn-circle" style="margin-bottom: 2px;">
                 <span class="text-base">📷</span>
               </button>
-              <button id="btn-tutor-mic" type="button" onclick="toggleVoiceInputForTutor()" title="Nói trực tiếp bằng Giọng nói (Web Speech API)" class="gemini-btn-circle" style="margin-bottom: 2px;">
+              <button id="btn-tutor-mic" type="button" onclick="toggleVoiceInputForTutor()" title="Nói bằng Giọng nói" class="gemini-btn-circle" style="margin-bottom: 2px;">
                 <span class="text-base">🎙️</span>
               </button>
               <textarea id="tutor-input" rows="1"
@@ -8607,6 +8637,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=66.1"></script>
+  <script src="/static/app.js?v=67.0"></script>
 </body>
 </html>

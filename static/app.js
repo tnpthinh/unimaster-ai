@@ -31562,3 +31562,99 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
   }
   window.resetStudyStopwatch = resetStudyStopwatch;
 })();
+
+// =========================================================================
+// v67.0 NEXT-GEN AI STUDIO SUPER-TOOLS (1-Tap Actions, Prompt Templates, .md Export)
+// =========================================================================
+(function initAiStudioV67() {
+  function _getActiveTutorSubjectName() {
+    const sel = document.getElementById('tutor-subject-select');
+    if (sel && sel.selectedOptions && sel.selectedOptions[0]) {
+      return sel.selectedOptions[0].textContent.replace(/\(\d+\)\s*$/, '').trim();
+    }
+    const sub = (STATE?.subjects || []).find((s) => String(s.id) === String(STATE?.activeSubjectId));
+    return sub ? sub.name : 'môn học hiện tại';
+  }
+
+  function _sendOrFillTutorPrompt(promptText, autoSend = true) {
+    const inp = document.getElementById('tutor-input');
+    if (!inp) return;
+    inp.value = promptText;
+    if (typeof autoGrowGeminiInput === 'function') autoGrowGeminiInput(inp);
+    inp.focus();
+    if (autoSend && typeof sendTutorMessage === 'function') {
+      sendTutorMessage();
+    }
+  }
+
+  function runAiSuperAction(kind) {
+    const subj = _getActiveTutorSubjectName();
+    const typed = (document.getElementById('tutor-input')?.value || '').trim();
+    const topic = typed ? `"${typed}" (môn ${subj})` : `môn ${subj}`;
+    const prompts = {
+      summary: `Hãy tóm tắt 1 trang cực kỳ cô đọng các kiến thức trọng tâm, công thức và mốc giá trị quan trọng nhất của ${topic} dưới dạng gạch đầu dòng dễ học.`,
+      traps: `Liệt kê 5 bẫy đề thi dễ nhầm nhất (đặc biệt câu phủ định NGOẠI TRỪ / KHÔNG ĐÚNG) trong ${topic}, kèm cách tránh bẫy nhanh trong 5 giây.`,
+      compare: `Lập bảng Markdown so sánh trực quan 2–3 khái niệm/cơ chế dễ nhầm lẫn nhất trong ${topic} (Tiêu chí | Bản chất | Điểm khác biệt khi thi).`,
+      quiz3: `Tạo ngay 3 câu trắc nghiệm mức độ thi thật về ${topic} (4 đáp án A/B/C/D). Ghi đáp án đúng và giải thích ngắn gọn ở cuối để tôi tự kiểm tra.`,
+      flashcards: `Tạo 5 thẻ nhớ Active Recall (Mặt trước: Câu hỏi ngắn | Mặt sau: Đáp án cốt lõi) cho các ý quan trọng nhất của ${topic}.`,
+      mnemonic: `Tạo mẹo nhớ siêu nhanh (câu thơ, từ viết tắt hoặc hình ảnh ẩn dụ tiếng Việt) giúp nhớ ngay kiến thức khó trong ${topic}.`,
+      simpler: `Hãy giải thích lại nội dung vừa rồi thật ngắn gọn, dễ hiểu như đang giảng cho người mới bắt đầu kèm 1 ví dụ thực tế.`
+    };
+    const prompt = prompts[kind] || prompts.summary;
+    toggleAiTemplatesPopover(false);
+    _sendOrFillTutorPrompt(prompt, true);
+  }
+  window.runAiSuperAction = runAiSuperAction;
+
+  function toggleAiTemplatesPopover(forceState) {
+    const pop = document.getElementById('ai-prompt-templates-popover');
+    if (!pop) return;
+    const show = typeof forceState === 'boolean' ? forceState : pop.classList.contains('hidden');
+    pop.classList.toggle('hidden', !show);
+  }
+  window.toggleAiTemplatesPopover = toggleAiTemplatesPopover;
+
+  function applyAiPromptTemplate(text, autoSend = false) {
+    toggleAiTemplatesPopover(false);
+    _sendOrFillTutorPrompt(text, Boolean(autoSend));
+  }
+  window.applyAiPromptTemplate = applyAiPromptTemplate;
+
+  function exportTutorChatMarkdown() {
+    const box = document.getElementById('tutor-chat-box');
+    const msgs = box ? Array.from(box.querySelectorAll('.tutor-msg-bubble, .ai-tutor-content, .markdown-body')) : [];
+    const subj = _getActiveTutorSubjectName();
+    let md = `# Gia Sư AI — ${subj}\n_Xuất lúc: ${new Date().toLocaleString('vi-VN')}_\n\n---\n\n`;
+    if (Array.isArray(window.tutorHistory) && window.tutorHistory.length) {
+      window.tutorHistory.forEach((m) => {
+        const who = m.role === 'user' ? '### 👤 Bạn' : '### 🤖 Gia Sư AI';
+        md += `${who}\n\n${m.content || ''}\n\n---\n\n`;
+      });
+    } else if (msgs.length) {
+      msgs.forEach((el, i) => {
+        md += `### Mục ${i + 1}\n\n${(el.innerText || '').trim()}\n\n---\n\n`;
+      });
+    } else {
+      showToast('Chưa có nội dung hội thoại để xuất.', 'warning');
+      return;
+    }
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `UniMaster_AI_${Date.now()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+    showToast('📥 Đã tải cuộc trò chuyện (.md)!', 'success');
+  }
+  window.exportTutorChatMarkdown = exportTutorChatMarkdown;
+
+  document.addEventListener('click', (e) => {
+    const pop = document.getElementById('ai-prompt-templates-popover');
+    if (!pop || pop.classList.contains('hidden')) return;
+    if (!pop.contains(e.target) && !e.target.closest('[onclick*="toggleAiTemplatesPopover"]')) {
+      pop.classList.add('hidden');
+    }
+  });
+})();
