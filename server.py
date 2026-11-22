@@ -1555,6 +1555,13 @@ async def submit_exam(request):
             }
 
         result_payload = await asyncio.to_thread(_score_and_persist)
+        _hot_cache_invalidate("stats:")
+        try:
+            snap = await asyncio.to_thread(_build_server_vault_snapshot, uid)
+            _notify_realtime_sync_clients(uid, {"type": "vault_updated", "sender_cid": "", **snap})
+            _schedule_auto_cloud_bridge_sync(uid)
+        except Exception:
+            pass
         return json_resp(result_payload)
     except Exception as e:
         print(f"⚠️ API error: {e}")
@@ -1647,6 +1654,7 @@ async def save_progress_handler(request):
         uid = (request.get("user") or {}).get("id", 1)
         sender_cid = (request.headers.get("X-Sync-Client-Id") or (data.get("sender_cid") if isinstance(data, dict) else "") or "").strip()
         _notify_realtime_sync_clients(uid, {"type": "draft_updated", "draft": draft, "sender_cid": sender_cid})
+        _schedule_auto_cloud_bridge_sync(uid)
         return json_resp({"success": True, "draft": draft})
     except ValueError as ve:
         return json_resp({"success": False, "error": str(ve)}, 400)
@@ -1680,6 +1688,7 @@ async def delete_progress_handler(request):
         uid = (request.get("user") or {}).get("id", 1)
         sender_cid = (request.headers.get("X-Sync-Client-Id") or (data.get("sender_cid") if isinstance(data, dict) else "") or "").strip()
         _notify_realtime_sync_clients(uid, {"type": "draft_deleted", "draft_key": draft_key, "sender_cid": sender_cid})
+        _schedule_auto_cloud_bridge_sync(uid)
         return json_resp({"success": True, "deleted": deleted, "account_id": acc, "draft_key": draft_key})
     except Exception as e:
         print(f"⚠️ API error: {e}")
@@ -4156,7 +4165,7 @@ def _merge_user_states(cur: dict, inc: dict) -> dict:
             if k not in merged or merged.get(k) in (None, "", [], {}):
                 merged[k] = v
 
-    # Smart union / max merge so neither device loses bookmarks, notes, XP, or code drafts
+    # Smart union / max merge so neither device loses bookmarks, notes, XP, daily goal, exam history, or code drafts
     for arr_key in ("bookmarks", "mistakes"):
         a = cur.get(arr_key) if isinstance(cur.get(arr_key), list) else []
         b = inc.get(arr_key) if isinstance(inc.get(arr_key), list) else []
@@ -4178,21 +4187,80 @@ def _merge_user_states(cur: dict, inc: dict) -> dict:
         if nums:
             merged[num_key] = max(nums)
 
+    # Merge Daily Goal Ring (v56+)
+    dg_a = cur.get("dailyGoalV56") if isinstance(cur.get("dailyGoalV56"), dict) else {}
+    dg_b = inc.get("dailyGoalV56") if isinstance(inc.get("dailyGoalV56"), dict) else {}
+    if dg_a or dg_b:
+        if dg_a.get("date") == dg_b.get("date") and dg_a.get("date"):
+            merged["dailyGoalV56"] = {
+                "date": dg_a.get("date"),
+                "target": _safe_int((dg_b if inc_is_newer else dg_a).get("target"), 40) or 40,
+                "answered": max(_safe_int(dg_a.get("answered"), 0), _safe_int(dg_b.get("answered"), 0)),
+                "correct": max(_safe_int(dg_a.get("correct"), 0), _safe_int(dg_b.get("correct"), 0)),
+                "streak": max(_safe_int(dg_a.get("streak"), 1), _safe_int(dg_b.get("streak"), 1)),
+            }
+        elif (dg_b.get("date") or "") >= (dg_a.get("date") or ""):
+            merged["dailyGoalV56"] = dg_b
+        else:
+            merged["dailyGoalV56"] = dg_a
+
+    # Merge Local Exam History across devices (deduplicated by id or signature)
+    hist_a = cur.get("localExamHistory") if isinstance(cur.get("localExamHistory"), list) else []
+    hist_b = inc.get("localExamHistory") if isinstance(inc.get("localExamHistory"), list) else []
+    if hist_a or hist_b:
+        seen_hist = {}
+        for item in (hist_b + hist_a if inc_is_newer else hist_a + hist_b):
+            if not isinstance(item, dict):
+                continue
+            hid = str(item.get("id") or f"{item.get('subjectId')}_{item.get('total')}_{item.get('correct')}_{str(item.get('timestamp') or '')[:8]}")
+            if hid not in seen_hist:
+                seen_hist[hid] = item
+        merged["localExamHistory"] = sorted(
+            seen_hist.values(),
+            key=lambda x: _safe_int(x.get("timestamp"), 0),
+            reverse=True,
+        )[:40]
+
     merged["updated_at_ms"] = max(cur_ts, inc_ts, int(time.time() * 1000))
     return merged
 
 
+def _is_running_on_cloud_instance() -> bool:
+    return bool(
+        os.environ.get("RENDER")
+        or os.environ.get("RENDER_SERVICE_ID")
+        or os.environ.get("DATA_DIR", "").startswith("/tmp")
+    )
+
+
+def _get_effective_remote_bridge_url() -> str:
+    explicit = str(db.get_setting("remote_cloud_bridge_url", "") or "").strip()
+    if explicit:
+        return explicit
+    if not _is_running_on_cloud_instance() and db.get_setting("remote_cloud_bridge_disabled", "") != "1":
+        return _DEFAULT_RENDER_ONLINE_URL
+    return ""
+
+
 def _build_server_vault_snapshot(uid: int = 1) -> dict:
-    state = db.get_user_sync_state(uid)
+    state_global = db.get_user_sync_state(1) or {}
+    state_user = db.get_user_sync_state(uid) or {} if uid != 1 else state_global
+    state = _merge_user_states(state_global, state_user) if (state_global and state_user and uid != 1) else (state_user or state_global or {})
     drafts = db.list_all_study_progress_global(limit=60)
     tutor_sessions = db.list_all_tutor_sessions_global(limit=25)
+    exam_results = db.list_recent_exam_results_for_sync(limit=40)
 
     # Auto-restore from rolling JSON backup if DB woke up empty (e.g., fresh DATA_DIR)
     if not state and not drafts and not tutor_sessions:
         disk_bak = db.read_rolling_vault_backup()
         if disk_bak:
             if isinstance(disk_bak.get("user_state"), dict) and disk_bak["user_state"]:
-                state = db.save_user_sync_state(uid, disk_bak["user_state"])
+                state = db.save_user_sync_state(1, disk_bak["user_state"])
+                if uid != 1:
+                    db.save_user_sync_state(uid, state)
+            if isinstance(disk_bak.get("exam_results"), list) and disk_bak["exam_results"]:
+                db.sync_exam_results_batch(disk_bak["exam_results"])
+                exam_results = db.list_recent_exam_results_for_sync(limit=40)
             for d in (disk_bak.get("drafts") or [])[:40]:
                 if isinstance(d, dict) and d.get("draft_key"):
                     try:
@@ -4212,7 +4280,8 @@ def _build_server_vault_snapshot(uid: int = 1) -> dict:
                         pass
             drafts = db.list_all_study_progress_global(limit=60)
 
-    remote_url = db.get_setting("remote_cloud_bridge_url", "")
+    remote_url = _get_effective_remote_bridge_url()
+    stats_summary = db.get_stats()
     return {
         "server_time_ms": int(time.time() * 1000),
         "ephemeral_storage": bool(os.environ.get("DATA_DIR", "").startswith("/tmp")),
@@ -4220,15 +4289,32 @@ def _build_server_vault_snapshot(uid: int = 1) -> dict:
         "user_state": state or {},
         "drafts": drafts,
         "tutor_sessions": tutor_sessions,
+        "exam_results": exam_results,
+        "stats_summary": stats_summary,
     }
 
 
 def _apply_incoming_vault_sync(uid: int, data: dict) -> dict:
-    cur_state = db.get_user_sync_state(uid)
+    cur_global = db.get_user_sync_state(1) or {}
+    cur_user = db.get_user_sync_state(uid) or {} if uid != 1 else cur_global
+    cur_state = _merge_user_states(cur_global, cur_user) if (cur_global and cur_user and uid != 1) else (cur_user or cur_global or {})
     inc_state = data.get("user_state") if isinstance(data.get("user_state"), dict) else {}
     if inc_state:
         merged_state = _merge_user_states(cur_state, inc_state)
-        db.save_user_sync_state(uid, merged_state)
+        db.save_user_sync_state(1, merged_state)
+        if uid != 1:
+            db.save_user_sync_state(uid, merged_state)
+
+    # Sync exam_results from peer server or browser localExamHistory
+    inc_exams = []
+    if isinstance(data.get("exam_results"), list):
+        inc_exams.extend(data["exam_results"])
+    if isinstance(inc_state.get("localExamHistory"), list):
+        inc_exams.extend(inc_state["localExamHistory"])
+    if inc_exams:
+        inserted_cnt = db.sync_exam_results_batch(inc_exams)
+        if inserted_cnt > 0:
+            _hot_cache_invalidate("stats:")
 
     deleted_keys = data.get("deleted_draft_keys")
     if isinstance(deleted_keys, list):
@@ -4326,19 +4412,59 @@ def _validate_public_bridge_url(raw_url: str) -> str:
     return f"{parsed.scheme}://{parsed.netloc}"
 
 
+_BRIDGE_TOKEN_CACHE: dict[str, tuple[str, float]] = {}
+_LAST_BRIDGE_PULL_TS: float = 0.0
+_AUTO_BRIDGE_TASK: asyncio.Task | None = None
+
+
 async def _push_or_pull_remote_bridge(bridge_url: str, local_vault: dict, bridge_password: str = "") -> dict:
     clean_url = _validate_public_bridge_url(bridge_url)
     if not clean_url:
         return {"synced": False}
+    pw_to_use = (
+        str(bridge_password or "").strip()
+        or str(os.environ.get("APP_PASSWORD") or "").strip()
+        or "uni-5292"
+    )
     timeout = aiohttp.ClientTimeout(total=8)
     async with aiohttp.ClientSession(timeout=timeout) as session:
-        if bridge_password:
+        cached_tok, exp_ts = _BRIDGE_TOKEN_CACHE.get(clean_url, ("", 0.0))
+        token = cached_tok if (cached_tok and exp_ts > time.time()) else ""
+
+        async def _login_for_token() -> str:
             try:
-                await session.post(f"{clean_url}/api/login", json={"password": bridge_password})
+                async with session.post(
+                    f"{clean_url}/api/auth/login",
+                    json={"username": "admin", "password": pw_to_use},
+                    headers={"Origin": clean_url},
+                ) as lresp:
+                    if lresp.status == 200:
+                        ldata = await lresp.json()
+                        tok = str(ldata.get("token") or "").strip()
+                        if tok:
+                            _BRIDGE_TOKEN_CACHE[clean_url] = (tok, time.time() + 600.0)
+                            return tok
             except Exception:
                 pass
-        async with session.post(f"{clean_url}/api/sync/vault", json=local_vault) as resp:
+            return ""
+
+        if not token:
+            token = await _login_for_token()
+
+        req_headers = {"Origin": clean_url}
+        if token:
+            req_headers["Authorization"] = f"Bearer {token}"
+
+        async with session.post(f"{clean_url}/api/sync/vault", json=local_vault, headers=req_headers) as resp:
             if resp.status == 401:
+                _BRIDGE_TOKEN_CACHE.pop(clean_url, None)
+                token = await _login_for_token()
+                if token:
+                    req_headers["Authorization"] = f"Bearer {token}"
+                    async with session.post(f"{clean_url}/api/sync/vault", json=local_vault, headers=req_headers) as resp2:
+                        if resp2.status == 200:
+                            remote_data = await resp2.json()
+                            return {"synced": True, "remote": remote_data}
                 return {"synced": False, "error": "Cloud yêu cầu mật khẩu đăng nhập (hãy nhập mật khẩu App Render ở mục Cầu nối)."}
             if resp.status != 200:
                 return {"synced": False, "error": f"Cloud trả về HTTP {resp.status}"}
@@ -4348,38 +4474,68 @@ async def _push_or_pull_remote_bridge(bridge_url: str, local_vault: dict, bridge
 
 _SYNC_WS_CLIENTS: dict[int, set] = {}
 _LAST_VAULT_MUTATION_MS: dict[int, int] = {}
+_GLOBAL_LAST_VAULT_MUTATION_MS: int = 0
 _DEFAULT_RENDER_ONLINE_URL = os.environ.get("PUBLIC_CLOUD_URL", "https://unimaster-ai.onrender.com").strip().rstrip("/")
 _CLOUDFLARED_PROC_LOCK = asyncio.Lock()
 
 
+def _total_online_sync_devices() -> int:
+    return sum(len(s) for s in _SYNC_WS_CLIENTS.values())
+
+
 def _notify_realtime_sync_clients(uid: int, message: dict, exclude_ws=None):
+    global _GLOBAL_LAST_VAULT_MUTATION_MS
     now_ms = int(time.time() * 1000)
-    _LAST_VAULT_MUTATION_MS[uid] = max(now_ms, int(message.get("server_time_ms") or 0))
-    peers = list(_SYNC_WS_CLIENTS.get(uid) or ())
-    if not peers:
+    mut_ms = max(now_ms, int(message.get("server_time_ms") or 0))
+    _LAST_VAULT_MUTATION_MS[uid] = mut_ms
+    _LAST_VAULT_MUTATION_MS[1] = mut_ms
+    _GLOBAL_LAST_VAULT_MUTATION_MS = mut_ms
+
+    all_peers = [ws for peer_set in _SYNC_WS_CLIENTS.values() for ws in list(peer_set)]
+    if not all_peers:
         return
-    payload = _FAST_JSON_DUMPS({**message, "server_time_ms": _LAST_VAULT_MUTATION_MS[uid]})
+    payload = _FAST_JSON_DUMPS({**message, "server_time_ms": mut_ms, "online_devices": len(all_peers)})
 
     async def _broadcast():
-        dead = []
-        for ws in peers:
+        for ws in all_peers:
             if ws is exclude_ws or ws.closed:
-                if ws.closed:
-                    dead.append(ws)
                 continue
             try:
                 await ws.send_str(payload)
             except Exception:
-                dead.append(ws)
-        if dead and uid in _SYNC_WS_CLIENTS:
-            for d in dead:
-                _SYNC_WS_CLIENTS[uid].discard(d)
+                pass
 
     try:
         loop = asyncio.get_running_loop()
         loop.create_task(_broadcast())
     except RuntimeError:
         pass
+
+
+def _schedule_auto_cloud_bridge_sync(uid: int = 1):
+    global _AUTO_BRIDGE_TASK
+    if _is_running_on_cloud_instance():
+        return
+    try:
+        loop = asyncio.get_running_loop()
+    except RuntimeError:
+        return
+    if _AUTO_BRIDGE_TASK and not _AUTO_BRIDGE_TASK.done():
+        return
+
+    async def _run():
+        await asyncio.sleep(0.6)
+        try:
+            remote_url = await asyncio.to_thread(_get_effective_remote_bridge_url)
+            if not remote_url:
+                return
+            bridge_pw = await asyncio.to_thread(db.get_setting, "remote_cloud_bridge_pw", "")
+            snap = await asyncio.to_thread(_build_server_vault_snapshot, uid)
+            await _safe_bg_bridge_push(remote_url, {**snap, "_from_bridge": True}, bridge_pw, uid)
+        except Exception:
+            pass
+
+    _AUTO_BRIDGE_TASK = loop.create_task(_run())
 
 
 async def websocket_sync_handler(request):
@@ -4457,26 +4613,34 @@ async def websocket_sync_handler(request):
 
 
 async def get_sync_vault(request):
+    global _LAST_BRIDGE_PULL_TS
     try:
         uid = (request.get("user") or {}).get("id", 1)
         try:
             since_ms = int(request.query.get("since") or 0)
         except (TypeError, ValueError):
             since_ms = 0
-        last_mut = _LAST_VAULT_MUTATION_MS.get(uid, 0)
+
+        # When running locally, periodically pull & merge from Render Cloud in background (every 6s)
+        now_s = time.time()
+        if not _is_running_on_cloud_instance() and (now_s - _LAST_BRIDGE_PULL_TS >= 6.0):
+            _LAST_BRIDGE_PULL_TS = now_s
+            _schedule_auto_cloud_bridge_sync(uid)
+
+        last_mut = max(_GLOBAL_LAST_VAULT_MUTATION_MS, _LAST_VAULT_MUTATION_MS.get(uid, 0))
         if since_ms > 0 and last_mut > 0 and since_ms >= last_mut:
             return json_resp({
                 "success": True,
                 "unchanged": True,
                 "server_time_ms": last_mut,
-                "online_devices": len(_SYNC_WS_CLIENTS.get(uid) or ()),
+                "online_devices": _total_online_sync_devices(),
             })
         snap = await asyncio.to_thread(_build_server_vault_snapshot, uid)
         if not _LAST_VAULT_MUTATION_MS.get(uid):
             _LAST_VAULT_MUTATION_MS[uid] = snap["server_time_ms"]
         return json_resp({
             "success": True,
-            "online_devices": len(_SYNC_WS_CLIENTS.get(uid) or ()),
+            "online_devices": _total_online_sync_devices(),
             **snap,
         })
     except Exception as e:
@@ -4495,7 +4659,7 @@ async def save_sync_vault(request):
         sender_cid = (request.headers.get("X-Sync-Client-Id") or data.get("sender_cid") or "").strip()
         _notify_realtime_sync_clients(uid, {"type": "vault_updated", "sender_cid": sender_cid, **snap})
 
-        # Optional background mirror to Remote Cloud Bridge (e.g. localhost -> Render)
+        # Automatic background mirror to Remote Cloud Bridge (e.g. localhost <-> Render)
         remote_url = snap.get("remote_bridge_url") or ""
         if remote_url and not data.get("_from_bridge"):
             bridge_pw = await asyncio.to_thread(db.get_setting, "remote_cloud_bridge_pw", "")
@@ -4504,7 +4668,7 @@ async def save_sync_vault(request):
 
         return json_resp({
             "success": True,
-            "online_devices": len(_SYNC_WS_CLIENTS.get(uid) or ()),
+            "online_devices": _total_online_sync_devices(),
             **snap,
         })
     except Exception as e:
@@ -4653,8 +4817,10 @@ async def _safe_bg_bridge_push(remote_url: str, payload: dict, bridge_pw: str, u
         res = await _push_or_pull_remote_bridge(remote_url, payload, bridge_pw)
         if res.get("synced") and isinstance(res.get("remote"), dict):
             rem = res["remote"]
-            if rem.get("drafts") or rem.get("user_state"):
-                await asyncio.to_thread(_apply_incoming_vault_sync, uid, {**rem, "_from_bridge": True})
+            if rem.get("drafts") or rem.get("user_state") or rem.get("exam_results"):
+                async with _VAULT_SYNC_LOCK:
+                    merged_snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, {**rem, "_from_bridge": True})
+                _notify_realtime_sync_clients(uid, {"type": "vault_updated", "sender_cid": "cloud_bridge", **merged_snap})
     except Exception:
         pass
 
@@ -4669,9 +4835,11 @@ async def sync_remote_bridge_handler(request):
         if data.get("clear"):
             await asyncio.to_thread(db.set_setting, "remote_cloud_bridge_url", "")
             await asyncio.to_thread(db.set_setting, "remote_cloud_bridge_pw", "")
+            await asyncio.to_thread(db.set_setting, "remote_cloud_bridge_disabled", "1")
             return json_resp({"success": True, "remote_bridge_url": "", "message": "Đã ngắt cầu nối Cloud."})
 
-        clean_url = _validate_public_bridge_url(raw_url) if raw_url else await asyncio.to_thread(db.get_setting, "remote_cloud_bridge_url", "")
+        await asyncio.to_thread(db.set_setting, "remote_cloud_bridge_disabled", "0")
+        clean_url = _validate_public_bridge_url(raw_url) if raw_url else await asyncio.to_thread(_get_effective_remote_bridge_url)
         if not clean_url:
             return json_resp({"success": False, "error": "Hãy nhập địa chỉ https:// của máy chủ Render."}, 400)
 
@@ -4686,7 +4854,9 @@ async def sync_remote_bridge_handler(request):
         if not res.get("synced"):
             return json_resp({"success": False, "error": res.get("error") or "Không thể đồng bộ tới Cloud."}, 400)
 
-        merged_snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, {**(res.get("remote") or {}), "_from_bridge": True})
+        async with _VAULT_SYNC_LOCK:
+            merged_snap = await asyncio.to_thread(_apply_incoming_vault_sync, uid, {**(res.get("remote") or {}), "_from_bridge": True})
+        _notify_realtime_sync_clients(uid, {"type": "vault_updated", "sender_cid": "cloud_bridge", **merged_snap})
         return json_resp({
             "success": True,
             "remote_bridge_url": clean_url,
@@ -5007,7 +5177,7 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v58-1';
+    const CACHE_NAME = 'unimaster-pwa-v59-0';
     const CORE_ASSETS = [
       '/static/style.css?v=56.4',
       '/static/minimal.css?v=54.1',

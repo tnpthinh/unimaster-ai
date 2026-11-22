@@ -995,6 +995,71 @@ def get_exam_result(exam_id: int):
     conn.close()
     return dict(row) if row else None
 
+
+def list_recent_exam_results_for_sync(limit: int = 40) -> list:
+    conn = get_connection()
+    try:
+        c = conn.cursor()
+        c.execute(
+            "SELECT id, subject_id, total_questions, correct_answers, score, time_spent_seconds, created_at, exam_type, user_id "
+            "FROM exam_results ORDER BY created_at DESC, id DESC LIMIT ?",
+            (max(1, min(100, int(limit or 40))),),
+        )
+        return [dict(r) for r in c.fetchall()]
+    finally:
+        conn.close()
+
+
+def sync_exam_results_batch(items: list) -> int:
+    if not isinstance(items, list) or not items:
+        return 0
+    conn = get_connection()
+    inserted = 0
+    try:
+        c = conn.cursor()
+        c.execute(
+            "SELECT subject_id, total_questions, correct_answers, score, time_spent_seconds, substr(COALESCE(created_at,''), 1, 16) as ts_min "
+            "FROM exam_results ORDER BY id DESC LIMIT 200"
+        )
+        existing = {
+            (r["subject_id"], r["total_questions"], r["correct_answers"], round(float(r["score"] or 0), 1), r["ts_min"])
+            for r in c.fetchall()
+        }
+        for it in items[:50]:
+            if not isinstance(it, dict):
+                continue
+            try:
+                sid = int(it.get("subject_id") or it.get("subjectId") or 1)
+                tot = int(it.get("total_questions") or it.get("total") or 0)
+                corr = int(it.get("correct_answers") or it.get("correct") or 0)
+                if tot <= 0:
+                    continue
+                sc = round(float(it.get("score") if it.get("score") is not None else (corr / tot * 10.0)), 1)
+                t_sec = int(it.get("time_spent_seconds") or it.get("timeSpent") or 0)
+                c_at = str(it.get("created_at") or "").strip()
+                if not c_at and it.get("timestamp"):
+                    import datetime
+                    c_at = datetime.datetime.utcfromtimestamp(float(it["timestamp"]) / 1000.0).strftime("%Y-%m-%d %H:%M:%S")
+                if not c_at:
+                    continue
+                sig = (sid, tot, corr, sc, c_at[:16])
+                if sig in existing:
+                    continue
+                existing.add(sig)
+                c.execute(
+                    "INSERT INTO exam_results (subject_id, total_questions, correct_answers, score, time_spent_seconds, detail_json, exam_type, user_id, created_at) "
+                    "VALUES (?, ?, ?, ?, ?, '[]', ?, 1, ?)",
+                    (sid, tot, corr, sc, t_sec, str(it.get("exam_type") or it.get("mode") or "mixed")[:32], c_at[:19]),
+                )
+                inserted += 1
+            except Exception:
+                continue
+        if inserted > 0:
+            conn.commit()
+        return inserted
+    finally:
+        conn.close()
+
 def get_stats():
     conn = get_connection()
     c = conn.cursor()

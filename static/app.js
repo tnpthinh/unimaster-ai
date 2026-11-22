@@ -4917,7 +4917,7 @@ async function onExamSubjectChange() {
   STATE.examConfig.subjectAllQuestions = allQs;
 
   const meta = document.getElementById('exam-subject-meta');
-  if (meta) meta.textContent = `Tổng ${allQs.length} câu hỏi sẵn sàng`;
+  if (meta) meta.textContent = `${allQs.length} câu`;
 
   const subObj = (Array.isArray(STATE.subjects) ? STATE.subjects : []).find((s) => Number(s.id) === sid);
   const ctumpCard = document.getElementById('exam-ctump-parts-card');
@@ -4978,25 +4978,22 @@ async function onExamSubjectChange() {
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
             <button type="button" onclick="startSpecialDrill('except_yds', ${sid})" class="p-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all">
-              <div class="text-[11px] font-black text-amber-300 flex items-center justify-between">
-                <span>⚡ Luyện Câu Ngoại Trừ</span>
+              <div class="text-xs font-black text-amber-300 flex items-center justify-between">
+                <span>⚡ Câu Ngoại Trừ</span>
                 <span class="badge-amber px-1.5 py-0.2 rounded text-[10px]">${exceptCount}</span>
               </div>
-              <div class="text-[10px] txt-muted truncate">Dạng câu hỏi bẫy & phân loại sinh viên</div>
             </button>
             <button type="button" onclick="startSpecialDrill('images', ${sid})" class="p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all">
-              <div class="text-[11px] font-black text-emerald-300 flex items-center justify-between">
-                <span>🖼️ Sơ Đồ & Cấu Trúc SVG</span>
+              <div class="text-xs font-black text-emerald-300 flex items-center justify-between">
+                <span>🖼️ Sơ Đồ &amp; Hình Ảnh</span>
                 <span class="badge-emerald px-1.5 py-0.2 rounded text-[10px]">${imgCount}</span>
               </div>
-              <div class="text-[10px] txt-muted truncate">Chu trình Krebs, Động học, Bilirubin, PCR...</div>
             </button>
             <button type="button" onclick="startSpecialDrill('all_yds', ${sid})" class="p-2.5 rounded-xl border border-indigo-500/40 bg-indigo-500/10 hover:bg-indigo-500/20 text-left transition-all">
-              <div class="text-[11px] font-black text-indigo-300 flex items-center justify-between">
-                <span>🏆 Đề Thi Tổng Hợp</span>
+              <div class="text-xs font-black text-indigo-300 flex items-center justify-between">
+                <span>🏆 Đề Tổng Hợp</span>
                 <span class="badge-brand px-1.5 py-0.2 rounded text-[10px]">100c</span>
               </div>
-              <div class="text-[10px] txt-muted truncate">Trộn ngẫu nhiên câu hỏi cả 18 chương</div>
             </button>
           </div>
         </div>
@@ -5086,18 +5083,16 @@ async function onExamSubjectChange() {
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button type="button" onclick="startSpecialDrill('except_yds', ${sid})" class="p-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all">
-                  <div class="text-[11px] font-black text-amber-300 flex items-center justify-between">
-                    <span>⚡ Luyện Câu Bẫy &amp; Ngoại Trừ</span>
+                  <div class="text-xs font-black text-amber-300 flex items-center justify-between">
+                    <span>⚡ Câu Bẫy &amp; Ngoại Trừ</span>
                     <span class="badge-amber px-1.5 py-0.2 rounded text-[10px]">${exceptCount}</span>
                   </div>
-                  <div class="text-[10px] txt-muted truncate">Dạng câu hỏi NGOẠI TRỪ / KHÔNG ĐÚNG bám sát bài học</div>
                 </button>
                 <button type="button" onclick="startSpecialDrill('all_ddcb', ${sid})" class="p-2.5 rounded-xl border border-emerald-500/40 bg-emerald-500/10 hover:bg-emerald-500/20 text-left transition-all">
-                  <div class="text-[11px] font-black text-emerald-300 flex items-center justify-between">
-                    <span>🏆 Đề Tổng Hợp 60 Câu (Trộn Đều 10 Bài)</span>
+                  <div class="text-xs font-black text-emerald-300 flex items-center justify-between">
+                    <span>🏆 Đề Tổng Hợp 10 Bài</span>
                     <span class="badge-emerald px-1.5 py-0.2 rounded text-[10px]">60c</span>
                   </div>
-                  <div class="text-[10px] txt-muted truncate">Mỗi bài rút ngẫu nhiên 6 câu — kiểm tra toàn diện 10 bài</div>
                 </button>
               </div>
             </div>
@@ -5108,24 +5103,22 @@ async function onExamSubjectChange() {
             <div class="col-span-full p-3 rounded-2xl border border-teal-500/30 bg-gradient-to-r from-teal-900/40 via-emerald-900/30 to-slate-900/60 space-y-2.5">
               <div class="flex items-center justify-between flex-wrap gap-2">
                 <span class="font-extrabold text-xs text-teal-300 flex items-center gap-1.5">
-                  <span>🪱</span> <span>Ký Sinh Trùng Y Học: 45 Chuyên Đề • 3.137 Câu Hỏi & Lời Giải Chuẩn</span>
+                  <span>🪱</span> <span>Ký Sinh Trùng Y Học: 45 Chuyên Đề</span>
                 </span>
-                <span class="badge-brand px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold">${allQs.length} CÂU HỎI</span>
+                <span class="badge-brand px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold">${allQs.length} CÂU</span>
               </div>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 <button type="button" onclick="startSpecialDrill('except_yds', ${sid})" class="p-2.5 rounded-xl border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 text-left transition-all">
-                  <div class="text-[11px] font-black text-amber-300 flex items-center justify-between">
-                    <span>⚡ Luyện Câu Bẫy & Ngoại Trừ</span>
+                  <div class="text-xs font-black text-amber-300 flex items-center justify-between">
+                    <span>⚡ Câu Bẫy &amp; Ngoại Trừ</span>
                     <span class="badge-amber px-1.5 py-0.2 rounded text-[10px]">${exceptCount}</span>
                   </div>
-                  <div class="text-[10px] txt-muted truncate">Dạng câu hỏi NGOẠI TRỪ / SAI / KHÔNG ĐÚNG phân loại thi</div>
                 </button>
                 <button type="button" onclick="startSpecialDrill('all_yds', ${sid})" class="p-2.5 rounded-xl border border-teal-500/40 bg-teal-500/10 hover:bg-teal-500/20 text-left transition-all">
-                  <div class="text-[11px] font-black text-teal-300 flex items-center justify-between">
-                    <span>🏆 Thi Thử Tổng Hợp 100 Câu</span>
+                  <div class="text-xs font-black text-teal-300 flex items-center justify-between">
+                    <span>🏆 Đề Tổng Hợp 45 Chuyên Đề</span>
                     <span class="badge-brand px-1.5 py-0.2 rounded text-[10px]">100c</span>
                   </div>
-                  <div class="text-[10px] txt-muted truncate">Trộn ngẫu nhiên câu hỏi từ cả 45 chuyên đề ký sinh trùng</div>
                 </button>
               </div>
             </div>
@@ -12826,8 +12819,8 @@ function selectActiveSubject(subjectId, notify = true) {
 
   if (heroIcon) heroIcon.textContent = sub.icon || '📚';
   if (heroTitle) heroTitle.textContent = sub.name;
-  if (heroDesc) heroDesc.textContent = `${sub.code} • ${sub.question_count || 0} câu hỏi trắc nghiệm`;
-  if (heroExamText) heroExamText.textContent = `Vào Thi: ${sub.name}`;
+  if (heroDesc) heroDesc.textContent = `${sub.code} • ${sub.question_count || 0} câu`;
+  if (heroExamText) heroExamText.textContent = 'Vào thi';
 
   // Update Floating Tutor Context
   const ftCtx = document.getElementById('floating-tutor-context');
@@ -18787,22 +18780,35 @@ document.addEventListener('keydown', (e) => {
   }
 
   function listAllDrafts(accId = getProgressAccountId(), progressType = null) {
-    const map = readLocalDraftMap(accId);
-    return Object.values(map)
-      .map(normalizeDraftRecord)
-      .filter((d) => d && (!progressType || d.progress_type === progressType))
-      .sort((a, b) => (b.updated_at_ms || 0) - (a.updated_at_ms || 0));
+    const byKey = {};
+    const tombs = readTombstones(accId);
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (!k || !k.startsWith(PROGRESS_PREFIX)) continue;
+        const map = readLocalDraftMap(k.slice(PROGRESS_PREFIX.length));
+        Object.values(map).forEach((raw) => {
+          const d = normalizeDraftRecord(raw);
+          if (!d || tombs[d.draft_key]) return;
+          if (progressType && d.progress_type !== progressType) return;
+          const prev = byKey[d.draft_key];
+          if (!prev || (d.updated_at_ms || 0) >= (prev.updated_at_ms || 0)) {
+            byKey[d.draft_key] = d;
+          }
+        });
+      }
+    } catch (_) {}
+    return Object.values(byKey).sort((a, b) => (b.updated_at_ms || 0) - (a.updated_at_ms || 0));
   }
   window.listAllProgressDrafts = listAllDrafts;
 
   function getChapterExamDraft(subjectId, chapterTag) {
-    const acc = getProgressAccountId();
-    const map = readLocalDraftMap(acc);
+    const allExamDrafts = listAllDrafts(getProgressAccountId(), 'exam');
     const key = makeChapterDraftKey(subjectId, chapterTag);
-    if (map[key]) return normalizeDraftRecord(map[key]);
-    // Fallback match by chapter_tag + subject_id
+    const byKeyMatch = allExamDrafts.find((d) => d.draft_key === key);
+    if (byKeyMatch) return byKeyMatch;
     const sidNum = Number(subjectId);
-    return listAllDrafts(acc, 'exam').find(
+    return allExamDrafts.find(
       (d) => Number(d.subject_id) === sidNum && d.chapter_tag === chapterTag
     ) || null;
   }
@@ -19131,7 +19137,11 @@ document.addEventListener('keydown', (e) => {
     const draft = buildCurrentExamDraftObject();
     if (!draft || recentlyDiscardedKeys.has(draft.draft_key)) return null;
     lastSavedExamIndex = draft.current_index;
-    return saveProgressDraft(draft, { syncServer, keepalive });
+    const res = saveProgressDraft(draft, { syncServer, keepalive });
+    if (syncServer && typeof window.scheduleUniversalVaultPush === 'function') {
+      window.scheduleUniversalVaultPush(350);
+    }
+    return res;
   }
   window.saveActiveExamDraftNow = saveActiveExamDraftNow;
 
@@ -27807,6 +27817,8 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       examDate: localStorage.getItem('unimaster_exam_date') || '',
       plannerDone: safeJsonParse(localStorage.getItem('unimaster_planner_done'), {}),
       dailyQuota: safeJsonParse(localStorage.getItem('unimaster_daily_quota'), null),
+      dailyGoalV56: safeJsonParse(localStorage.getItem('unimaster_daily_goal_v56'), null),
+      localExamHistory: safeJsonParse(localStorage.getItem('unimaster_local_exam_history_v1'), []).slice(0, 40),
       activeSubjectId: STATE?.activeSubjectId || localStorage.getItem('unimaster_active_subject_id') || '',
       activeAccountId: localStorage.getItem('unimaster_active_account_id_v2') || '',
       accountsList: safeJsonParse(localStorage.getItem('unimaster_accounts_v2'), null),
@@ -28195,14 +28207,65 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
         lastSyncedTimeMs = srvTs;
         try { localStorage.setItem(VAULT_TS_KEY, String(srvTs)); } catch (_) {}
       }
+      if (srvState.dailyGoalV56 && typeof srvState.dailyGoalV56 === 'object') {
+        const curDg = safeJsonParse(localStorage.getItem('unimaster_daily_goal_v56'), null);
+        const incDg = srvState.dailyGoalV56;
+        let mergedDg = incDg;
+        if (curDg && curDg.date === incDg.date) {
+          mergedDg = {
+            date: curDg.date,
+            target: Number((srvIsNewer ? incDg : curDg).target || 40),
+            answered: Math.max(Number(curDg.answered || 0), Number(incDg.answered || 0)),
+            correct: Math.max(Number(curDg.correct || 0), Number(incDg.correct || 0)),
+            streak: Math.max(Number(curDg.streak || 1), Number(incDg.streak || 1))
+          };
+        } else if (curDg && (curDg.date || '') > (incDg.date || '')) {
+          mergedDg = curDg;
+        }
+        try { localStorage.setItem('unimaster_daily_goal_v56', JSON.stringify(mergedDg)); } catch (_) {}
+        if (typeof window.renderDailyGoalWidget === 'function') window.renderDailyGoalWidget();
+      }
+      if (Array.isArray(srvState.localExamHistory) && srvState.localExamHistory.length) {
+        const curHist = safeJsonParse(localStorage.getItem('unimaster_local_exam_history_v1'), []);
+        const seenIds = new Set();
+        const combined = [];
+        [...srvState.localExamHistory, ...(Array.isArray(curHist) ? curHist : [])].forEach((item) => {
+          if (!item || typeof item !== 'object') return;
+          const hid = String(item.id || `${item.subjectId}_${item.total}_${item.correct}_${String(item.timestamp || '').slice(0, 8)}`);
+          if (!seenIds.has(hid)) {
+            seenIds.add(hid);
+            combined.push(item);
+          }
+        });
+        combined.sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+        try { localStorage.setItem('unimaster_local_exam_history_v1', JSON.stringify(combined.slice(0, 50))); } catch (_) {}
+      }
       if (typeof updateXpUI === 'function') updateXpUI();
     }
 
-    // 2. Merge ALL Cross-Device Study Progress Drafts (Regardless of Persona!)
+    // 1B. Sync Exam Results & Dashboard KPI Stats from Server Snapshot
+    if (snap.stats_summary && typeof snap.stats_summary === 'object') {
+      const prevExams = Number(STATE.stats?.total_exams || 0);
+      const nextExams = Number(snap.stats_summary.total_exams || 0);
+      const prevQ = Number(STATE.stats?.total_q_answered || 0);
+      const nextQ = Number(snap.stats_summary.total_q_answered || 0);
+      if (nextExams !== prevExams || nextQ !== prevQ || !STATE.stats) {
+        STATE.stats = snap.stats_summary;
+        if (STATE.currentTab === 'dashboard' && typeof renderDashboard === 'function') {
+          renderDashboard();
+        }
+      }
+    }
+
+    // 2. Merge ALL Cross-Device Study Progress Drafts (Across All Local Persona Keys!)
     const srvDrafts = Array.isArray(snap.drafts) ? snap.drafts : [];
     const tombKeys = new Set(collectDeletedTombstoneKeys());
-    const localKey = 'unimaster_study_progress_v1_' + acc;
-    const curMap = safeJsonParse(localStorage.getItem(localKey), {});
+    const targetKeys = Array.from(new Set([
+      'unimaster_study_progress_v1_' + acc,
+      'unimaster_study_progress_v1_acc_y_khoa',
+      'unimaster_study_progress_v1_acc_default'
+    ]));
+    const curMap = safeJsonParse(localStorage.getItem(targetKeys[0]), {});
     let draftsChanged = false;
 
     srvDrafts.forEach((sd) => {
@@ -28217,7 +28280,13 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     });
 
     if (draftsChanged) {
-      try { localStorage.setItem(localKey, JSON.stringify(curMap)); } catch (_) {}
+      targetKeys.forEach((tk) => {
+        try {
+          const m = safeJsonParse(localStorage.getItem(tk), {});
+          Object.assign(m, curMap);
+          localStorage.setItem(tk, JSON.stringify(m));
+        } catch (_) {}
+      });
       if (typeof window.renderResumePanels === 'function') window.renderResumePanels();
       if (typeof window.decorateChapterDraftCards === 'function') window.decorateChapterDraftCards();
     }
@@ -28467,18 +28536,20 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     }
   });
 
-  // Lightweight fallback check (only fires HTTP if WebSocket is disconnected; otherwise sends tiny WS ping)
+  // Periodic cross-device sync heartbeat (every 6s: pings WS & pulls latest vault from server/cloud bridge)
   setInterval(() => {
     if (document.visibilityState !== 'visible') return;
     if (syncWsConnected && syncWs?.readyState === WebSocket.OPEN) {
       try { syncWs.send('{"type":"ping"}'); } catch (_) {}
-      return;
+    } else {
+      connectRealtimeSyncWebSocket();
     }
-    connectRealtimeSyncWebSocket();
-    if (!STATE?.exam?.active && !window.TIMED_EXAM?.active) {
+    const activeTag = (document.activeElement?.tagName || '').toUpperCase();
+    const isTyping = activeTag === 'INPUT' || activeTag === 'TEXTAREA';
+    if (!isTyping) {
       pullUniversalVaultFromServer();
     }
-  }, 20000);
+  }, 6000);
 
   // --- Online Portal Info, Instant Cloudflare HTTPS Tunnel & Camera QR Code ---
   function renderOnlineInfoIntoModal(info) {
