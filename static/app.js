@@ -3890,10 +3890,14 @@ function pad2(n) { return String(n).padStart(2, '0'); }
 
 function updateLiveClock() {
   const now = new Date();
+  const hms = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
   const timeEl = document.getElementById('live-clock-time');
   const dateEl = document.getElementById('live-clock-date');
-  if (timeEl) timeEl.textContent = `${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
-  if (dateEl) dateEl.textContent = now.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
+  const floatTimeEl = document.getElementById('float-clock-time');
+  const floatCdEl = document.getElementById('float-clock-countdown');
+  if (timeEl) timeEl.textContent = hms;
+  if (floatTimeEl) floatTimeEl.textContent = hms;
+  if (dateEl) dateEl.textContent = now.toLocaleDateString('vi-VN', { weekday: 'short', day: '2-digit', month: '2-digit' });
 
   const cdEl = document.getElementById('live-exam-countdown');
   const nameEl = document.getElementById('live-exam-name');
@@ -3904,24 +3908,49 @@ function updateLiveClock() {
     const diff = ex.date.getTime() - now.getTime();
     if (diff > 0 && diff < nearestDiff) { nearestDiff = diff; nearest = ex; }
   });
-  if (cdEl && nameEl) {
-    if (nearest) {
-      const totalSec = Math.floor(nearestDiff / 1000);
-      const days = Math.floor(totalSec / 86400);
-      const hours = Math.floor((totalSec % 86400) / 3600);
-      const mins = Math.floor((totalSec % 3600) / 60);
-      const secs = totalSec % 60;
-      cdEl.textContent = days > 0 ? `${days} ngày ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}` : `${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
-      nameEl.textContent = `${nearest.name}${nearest.target ? ' • 🎯 ' + nearest.target : ''}`;
-    } else if (activeExams.length) {
-      cdEl.textContent = 'Sẵn sàng ôn tập';
-      nameEl.textContent = activeExams[0].name;
+  if (nearest) {
+    const totalSec = Math.floor(nearestDiff / 1000);
+    const days = Math.floor(totalSec / 86400);
+    const hours = Math.floor((totalSec % 86400) / 3600);
+    const mins = Math.floor((totalSec % 3600) / 60);
+    const secs = totalSec % 60;
+    const cdText = days > 0 ? `${days} ngày ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}` : `${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
+    const cdShort = days > 0 ? `⏳ ${days}n ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}` : `⏳ ${pad2(hours)}:${pad2(mins)}:${pad2(secs)}`;
+    if (cdEl) cdEl.textContent = cdText;
+    if (nameEl) nameEl.textContent = nearest.name;
+    if (floatCdEl) {
+      floatCdEl.textContent = cdShort;
+      floatCdEl.title = `Sắp thi: ${nearest.name}`;
     }
+  } else if (activeExams.length) {
+    if (cdEl) cdEl.textContent = 'Sẵn sàng';
+    if (nameEl) nameEl.textContent = activeExams[0].name;
+    if (floatCdEl) floatCdEl.textContent = 'Sẵn sàng';
   }
 }
 
+function toggleFloatingRealtimeClock(show) {
+  const pill = document.getElementById('floating-realtime-clock');
+  const restore = document.getElementById('floating-realtime-clock-restore');
+  const shouldShow = typeof show === 'boolean' ? show : Boolean(pill?.classList.contains('hidden'));
+  pill?.classList.toggle('hidden', !shouldShow);
+  restore?.classList.toggle('hidden', shouldShow);
+  try { localStorage.setItem('unimaster_float_clock_hidden', shouldShow ? '0' : '1'); } catch (_) {}
+}
+window.toggleFloatingRealtimeClock = toggleFloatingRealtimeClock;
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    try {
+      if (localStorage.getItem('unimaster_float_clock_hidden') === '1') {
+        toggleFloatingRealtimeClock(false);
+      }
+    } catch (_) {}
+  });
+}
+
 updateLiveClock();
-setInterval(updateLiveClock, 30000);
+setInterval(updateLiveClock, 1000);
 window.updateLiveClock = updateLiveClock;
 
 async function loadSubjectsAndStats() {
@@ -27803,9 +27832,15 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
 
   function buildUniversalUserStatePayload(explicitTs = null) {
     const ts = explicitTs || Number(localStorage.getItem(VAULT_TS_KEY) || Date.now());
+    const cleanBookmarks = dedupeVaultArray(Array.isArray(STATE?.bookmarks) ? STATE.bookmarks : safeJsonParse(localStorage.getItem('unimaster_bookmarks'), []));
+    const cleanMistakes = dedupeVaultArray(Array.isArray(STATE?.mistakes) ? STATE.mistakes : safeJsonParse(localStorage.getItem('unimaster_mistakes'), []));
+    if (STATE && Array.isArray(STATE.mistakes) && STATE.mistakes.length !== cleanMistakes.length) {
+      STATE.mistakes = cleanMistakes;
+      safeLocalStorageSet('unimaster_mistakes', JSON.stringify(cleanMistakes));
+    }
     return {
-      bookmarks: Array.isArray(STATE?.bookmarks) ? STATE.bookmarks : safeJsonParse(localStorage.getItem('unimaster_bookmarks'), []),
-      mistakes: Array.isArray(STATE?.mistakes) ? STATE.mistakes : safeJsonParse(localStorage.getItem('unimaster_mistakes'), []),
+      bookmarks: cleanBookmarks,
+      mistakes: cleanMistakes,
       notes: STATE?.notes && typeof STATE.notes === 'object' ? STATE.notes : safeJsonParse(localStorage.getItem('unimaster_notes'), {}),
       xp: Number(STATE?.xp || localStorage.getItem('unimaster_xp') || 0),
       streakDays: Number(STATE?.streakDays || localStorage.getItem('unimaster_streak_days') || 1),
@@ -28142,6 +28177,35 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
   }
   window.scheduleUniversalVaultPush = scheduleUniversalVaultPush;
 
+  function dedupeVaultArray(arr) {
+    if (!Array.isArray(arr)) return [];
+    const byKey = new Map();
+    for (const item of arr) {
+      if (item === null || item === undefined) continue;
+      if (typeof item === 'object') {
+        const key = item.id !== undefined ? `id:${item.id}` : `json:${JSON.stringify(item)}`;
+        const prev = byKey.get(key);
+        if (!prev) {
+          byKey.set(key, item);
+        } else {
+          byKey.set(key, {
+            ...prev,
+            ...item,
+            fail_count: Math.max(Number(prev.fail_count || 0), Number(item.fail_count || 0)),
+            streak: Math.max(Number(prev.streak || 0), Number(item.streak || 0))
+          });
+        }
+      } else {
+        byKey.set(`prim:${typeof item}:${String(item)}`, item);
+      }
+    }
+    return Array.from(byKey.values());
+  }
+
+  function safeLocalStorageSet(key, val) {
+    try { localStorage.setItem(key, val); } catch (_) {}
+  }
+
   function applyServerVaultSnapshot(snap, { skipAutoHeal = false } = {}) {
     if (!snap || typeof snap !== 'object') return;
     const acc = typeof getProgressAccountId === 'function' ? getProgressAccountId() : 'acc_default';
@@ -28153,16 +28217,19 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     // 1. Merge User State (Union + Timestamp Winner)
     if (Object.keys(srvState).length > 0) {
       if (Array.isArray(srvState.bookmarks)) {
-        STATE.bookmarks = Array.from(new Set([...(STATE.bookmarks || []), ...srvState.bookmarks]));
-        localStorage.setItem('unimaster_bookmarks', JSON.stringify(STATE.bookmarks));
+        STATE.bookmarks = dedupeVaultArray([...(STATE.bookmarks || []), ...srvState.bookmarks]);
+        safeLocalStorageSet('unimaster_bookmarks', JSON.stringify(STATE.bookmarks));
       }
       if (Array.isArray(srvState.mistakes)) {
-        STATE.mistakes = Array.from(new Set([...(STATE.mistakes || []), ...srvState.mistakes]));
-        localStorage.setItem('unimaster_mistakes', JSON.stringify(STATE.mistakes));
+        const ordered = srvIsNewer
+          ? [...(STATE.mistakes || []), ...srvState.mistakes]
+          : [...srvState.mistakes, ...(STATE.mistakes || [])];
+        STATE.mistakes = dedupeVaultArray(ordered);
+        safeLocalStorageSet('unimaster_mistakes', JSON.stringify(STATE.mistakes));
       }
       if (srvState.notes && typeof srvState.notes === 'object') {
         STATE.notes = srvIsNewer ? { ...(STATE.notes || {}), ...srvState.notes } : { ...srvState.notes, ...(STATE.notes || {}) };
-        localStorage.setItem('unimaster_notes', JSON.stringify(STATE.notes));
+        safeLocalStorageSet('unimaster_notes', JSON.stringify(STATE.notes));
       }
       if (typeof srvState.xp === 'number' && srvState.xp > Number(STATE.xp || 0)) {
         STATE.xp = srvState.xp;
@@ -30141,6 +30208,12 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
     el.classList.toggle('hidden', !_pomo.visible);
     if (_pomo.visible) {
       document.getElementById('floating-zen-dock')?.classList.add('hidden');
+      document.getElementById('floating-realtime-clock')?.classList.add('hidden');
+      document.getElementById('floating-realtime-clock-restore')?.classList.add('hidden');
+    } else {
+      const clockHidden = localStorage.getItem('unimaster_float_clock_hidden') === '1';
+      document.getElementById('floating-realtime-clock')?.classList.toggle('hidden', clockHidden);
+      document.getElementById('floating-realtime-clock-restore')?.classList.toggle('hidden', !clockHidden);
     }
     if (!_pomo.visible && _pomo.timerId) {
       clearInterval(_pomo.timerId);

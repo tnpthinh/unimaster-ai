@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=59.0" />
+  <link rel="stylesheet" href="/static/style.css?v=59.1" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -309,11 +309,16 @@
             </button>
 
             <div class="flex items-center gap-2.5 px-3 py-2 rounded-xl border" style="background-color: var(--bg-subtle); border-color: var(--border);">
-              <span id="live-clock-time" class="sr-only">--:--:--</span>
-              <span id="live-clock-date" class="sr-only">--</span>
               <div class="min-w-0">
-                <div id="live-exam-name" class="text-[11px] font-bold txt-sub truncate max-w-[140px]">Lịch thi</div>
-                <div id="live-exam-countdown" class="font-mono font-extrabold text-xs txt-brand tabular-nums">-- ngày</div>
+                <div class="flex items-center gap-1.5">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                  <span id="live-clock-time" class="font-mono font-extrabold text-xs txt-main tabular-nums">--:--:--</span>
+                  <span id="live-clock-date" class="text-[10px] txt-muted hidden sm:inline">--</span>
+                </div>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span id="live-exam-name" class="text-[10px] font-bold txt-sub truncate max-w-[110px]">Lịch thi</span>
+                  <span id="live-exam-countdown" class="font-mono font-extrabold text-[11px] txt-brand tabular-nums whitespace-nowrap">-- ngày</span>
+                </div>
               </div>
             </div>
           </div>
@@ -8210,6 +8215,22 @@ public class Student {
   </div>
 
   <!-- =====================================================================
+       v59.1 FLOATING REAL-TIME CLOCK & EXAM COUNTDOWN PILL
+       ===================================================================== -->
+  <div id="floating-realtime-clock" class="fixed bottom-20 lg:bottom-5 left-3 lg:left-5 z-40 uni-card px-3 py-1.5 flex items-center gap-2 shadow-lg transition-all"
+    style="border-color: var(--border);">
+    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0"></span>
+    <span id="float-clock-time" class="font-mono text-xs sm:text-sm font-black txt-main tabular-nums">--:--:--</span>
+    <span class="text-[10px] txt-muted hidden sm:inline">•</span>
+    <span id="float-clock-countdown" class="hidden sm:inline font-mono text-[11px] font-bold txt-brand tabular-nums whitespace-nowrap" title="Đếm ngược mốc thi gần nhất">--</span>
+    <button type="button" onclick="togglePomodoroMiniPill(true)" title="Mở đồng hồ Pomodoro (Alt+P)" class="btn-soft px-1.5 py-0.5 text-[11px] rounded-lg">🍅</button>
+    <button type="button" onclick="toggleFloatingRealtimeClock(false)" title="Thu gọn đồng hồ nổi" class="txt-muted hover:text-rose-400 text-[11px] font-bold px-0.5">✕</button>
+  </div>
+  <button type="button" id="floating-realtime-clock-restore" onclick="toggleFloatingRealtimeClock(true)" title="Hiện đồng hồ thời gian thực"
+    class="hidden fixed bottom-20 lg:bottom-5 left-3 lg:left-5 z-40 uni-card w-9 h-9 flex items-center justify-center text-sm shadow-lg"
+    style="border-color: var(--border);">🕒</button>
+
+  <!-- =====================================================================
        v56.0 FLOATING PILL: COMPACT POMODORO FOCUS TIMER (Alt+P)
        ===================================================================== -->
   <div id="pomodoro-floating-pill" class="hidden fixed bottom-20 lg:bottom-5 left-4 z-50 uni-card px-3.5 py-2 flex items-center gap-2.5 shadow-xl"
@@ -8316,6 +8337,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=59.0"></script>
+  <script src="/static/app.js?v=59.2"></script>
 </body>
 </html>

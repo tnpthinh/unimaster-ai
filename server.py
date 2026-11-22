@@ -4169,11 +4169,26 @@ def _merge_user_states(cur: dict, inc: dict) -> dict:
     for arr_key in ("bookmarks", "mistakes"):
         a = cur.get(arr_key) if isinstance(cur.get(arr_key), list) else []
         b = inc.get(arr_key) if isinstance(inc.get(arr_key), list) else []
-        seen = []
-        for x in (b + a if inc_is_newer else a + b):
-            if x not in seen:
-                seen.append(x)
-        merged[arr_key] = seen
+        dedup = {}
+        ordered = (a + b) if inc_is_newer else (b + a)
+        for x in ordered:
+            if x is None:
+                continue
+            if isinstance(x, dict):
+                k = f"id:{x['id']}" if "id" in x else f"json:{json.dumps(x, sort_keys=True, ensure_ascii=False)}"
+                prev = dedup.get(k)
+                if prev is None:
+                    dedup[k] = x
+                else:
+                    merged_item = {**prev, **x}
+                    if "fail_count" in prev or "fail_count" in x:
+                        merged_item["fail_count"] = max(_safe_int(prev.get("fail_count"), 0), _safe_int(x.get("fail_count"), 0))
+                    if "streak" in prev or "streak" in x:
+                        merged_item["streak"] = max(_safe_int(prev.get("streak"), 0), _safe_int(x.get("streak"), 0))
+                    dedup[k] = merged_item
+            else:
+                dedup[f"prim:{type(x).__name__}:{x}"] = x
+        merged[arr_key] = list(dedup.values())
 
     for dict_key in ("notes", "plannerDone", "exercisesCode", "exercisesLang"):
         da = cur.get(dict_key) if isinstance(cur.get(dict_key), dict) else {}
@@ -5177,7 +5192,7 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v59-0';
+    const CACHE_NAME = 'unimaster-pwa-v59-2';
     const CORE_ASSETS = [
       '/static/style.css?v=56.4',
       '/static/minimal.css?v=54.1',
