@@ -2272,6 +2272,14 @@ header .nav-tab {
   line-height: 1.25 !important;
 }
 
+@media (min-width: 1024px) and (max-width: 1320px) {
+  header .nav-tab {
+    --nav-tab-pad-y: 0.35rem;
+    --nav-tab-pad-x: 0.46rem;
+    --nav-tab-font-size: 0.72rem;
+  }
+}
+
 #header-active-subj-btn {
   flex: 0 0 auto !important;
   min-width: 0 !important;

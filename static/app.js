@@ -4039,15 +4039,21 @@ function updateNavIndicator() {
     nav.classList.remove('has-indicator');
     return;
   }
+  const relLeft = active.offsetParent === nav ? active.offsetLeft : (active.offsetLeft - nav.offsetLeft);
+  const relTop = active.offsetParent === nav ? active.offsetTop : (active.offsetTop - nav.offsetTop);
   ind.style.width = active.offsetWidth + 'px';
   ind.style.height = active.offsetHeight + 'px';
-  ind.style.transform = `translate(${active.offsetLeft}px, ${active.offsetTop}px)`;
+  ind.style.transform = `translate(${relLeft}px, ${relTop}px)`;
   nav.classList.add('has-indicator');
-  // Cuộn để tab active luôn nằm trong vùng nhìn thấy khi nav bị tràn
-  const left = active.offsetLeft - 8;
-  const right = active.offsetLeft + active.offsetWidth + 8;
-  if (left < nav.scrollLeft) nav.scrollTo({ left, behavior: 'smooth' });
-  else if (right > nav.scrollLeft + nav.clientWidth) nav.scrollTo({ left: right - nav.clientWidth, behavior: 'smooth' });
+  // Chỉ cuộn khi nav thực sự tràn ngang; nếu đủ chỗ thì giữ scrollLeft = 0 để không bao giờ cắt chữ tab đầu
+  if (nav.scrollWidth > nav.clientWidth + 4) {
+    const left = Math.max(0, relLeft - 8);
+    const right = relLeft + active.offsetWidth + 8;
+    if (left < nav.scrollLeft) nav.scrollTo({ left, behavior: 'smooth' });
+    else if (right > nav.scrollLeft + nav.clientWidth) nav.scrollTo({ left: right - nav.clientWidth, behavior: 'smooth' });
+  } else if (nav.scrollLeft !== 0) {
+    nav.scrollLeft = 0;
+  }
 }
 window.updateNavIndicator = updateNavIndicator;
 
@@ -4111,7 +4117,14 @@ function switchTab(tabName) {
     const isHomeOrTutor = (tabName === 'dashboard' || tabName === 'tutor') && !isExamViewActive;
     ftContainer.classList.toggle('hidden', isHomeOrTutor);
     if (floatingNextBtn) {
-      floatingNextBtn.classList.toggle('hidden', !isExamViewActive);
+      let canShowFloatingNext = isTimedModalOpen;
+      if (!canShowFloatingNext && tabName === 'exam' && STATE.exam?.active) {
+        const curQ = STATE.exam.questions?.[STATE.exam.currentIndex];
+        const isGraded = curQ && STATE.exam.graded?.[curQ.id] !== undefined;
+        const isRealAnswered = curQ && STATE.exam.mode === 'real' && STATE.exam.userAnswers?.[curQ.id] !== undefined;
+        canShowFloatingNext = STATE.exam.mode === 'study' || Boolean(isGraded || isRealAnswered);
+      }
+      floatingNextBtn.classList.toggle('hidden', !canShowFloatingNext);
     }
     if (floatingPrevBtn) {
       floatingPrevBtn.classList.toggle('hidden', !isExamViewActive);
@@ -4152,11 +4165,36 @@ function switchTab(tabName) {
       onExamSubjectChange();
     }
   }
-  if (tabName === 'exercises') loadExercisesView();
-  if (tabName === 'essay') loadEssayView();
-  if (tabName === 'flashcards') loadFlashcardsView();
+  if (tabName === 'exercises') {
+    const exSel = document.getElementById('exercise-subject-select');
+    if (exSel && [5, 22, 82].includes(Number(STATE.activeSubjectId))) {
+      exSel.value = String(STATE.activeSubjectId);
+    }
+    loadExercisesView();
+  }
+  if (tabName === 'essay') {
+    loadEssayView();
+    if (Number(STATE.activeSubjectId) === 21 && typeof filterEssayPromptList === 'function') {
+      filterEssayPromptList('toan_rr');
+    } else if (Number(STATE.activeSubjectId) === 82 && typeof filterEssayPromptList === 'function') {
+      filterEssayPromptList('ctdl_gt');
+    }
+  }
+  if (tabName === 'flashcards') {
+    const fcSel = document.getElementById('fc-subject-select');
+    if (fcSel && STATE.activeSubjectId && Array.from(fcSel.options).some((o) => String(o.value) === String(STATE.activeSubjectId))) {
+      fcSel.value = String(STATE.activeSubjectId);
+    }
+    loadFlashcardsView();
+  }
   if (tabName === 'mistakes') renderMistakeNotebook();
-  if (tabName === 'search') loadBankQuestions();
+  if (tabName === 'search') {
+    const bankSel = document.getElementById('bank-subject-select');
+    if (bankSel && STATE.activeSubjectId && Array.from(bankSel.options).some((o) => String(o.value) === String(STATE.activeSubjectId))) {
+      bankSel.value = String(STATE.activeSubjectId);
+    }
+    loadBankQuestions();
+  }
   if (tabName === 'tutor') {
     const tutorSel = document.getElementById('tutor-subject-select');
     if (tutorSel && STATE.activeSubjectId && Array.from(tutorSel.options).some((o) => String(o.value) === String(STATE.activeSubjectId))) {
@@ -7542,24 +7580,34 @@ async function explainCurrentExercise() {
 
 // Flashcards
 async function loadFlashcardsView() {
-  const sid = Number(document.getElementById('fc-subject-select')?.value || 5);
+  const sid = Number(document.getElementById('fc-subject-select')?.value || STATE.activeSubjectId || 5);
+  if (STATE.activeSubjectId !== sid) {
+    STATE.activeSubjectId = sid;
+    if (typeof updateActiveSubjectHeader === 'function') updateActiveSubjectHeader();
+  }
   const mode = document.getElementById('fc-mode-select')?.value || 'sm2';
   document.getElementById('fc-ai-explain-box')?.classList.add('hidden');
 
+  let loadedCards = [];
   if (mode === 'sm2') {
     const res = await apiFetch(`/api/subjects/${sid}/flashcards`);
-    STATE.flashcards.cards = (res.flashcards || []).map((c) => ({
+    loadedCards = (res.flashcards || []).map((c) => ({
       id: c.id,
       isSm2: true,
       front: c.front,
       back: c.back,
       hint: c.hint || '',
       image_url: c.image_url || '',
-      interval: c.interval_days || 1
+      interval: c.interval_days || 1,
+      interval_days: c.interval_days || 1,
+      ease_factor: Number(c.ease_factor || 2.5),
+      repetitions: Number(c.repetitions || 0),
+      next_review: c.next_review || ''
     }));
-  } else {
+  }
+  if (mode !== 'sm2' || !loadedCards.length) {
     const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
-    STATE.flashcards.cards = (res.questions || []).map((q) => {
+    loadedCards = (res.questions || []).map((q) => {
       const corr = normalizeCorrectLetter(q);
       const map = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
       return {
@@ -7568,10 +7616,15 @@ async function loadFlashcardsView() {
         front: q.question_text + (q.code_snippet ? `\n\`\`\`csharp\n${q.code_snippet}\n\`\`\`` : ''),
         back: `**Đáp án:** \`${map[corr] ? corr + ' — ' + map[corr] : corr}\`\n\n${q.explanation || ''}`,
         hint: '',
-        image_url: q.image_url || ''
+        image_url: q.image_url || '',
+        interval: 1,
+        interval_days: 1,
+        ease_factor: 2.5,
+        repetitions: 0
       };
     });
   }
+  STATE.flashcards.cards = loadedCards;
   STATE.flashcards.index = 0;
   STATE.flashcards.flipped = false;
   renderCurrentFlashcard();
@@ -7591,8 +7644,15 @@ function renderCurrentFlashcard() {
     return;
   }
   const c = cards[STATE.flashcards.index];
+  const ivDays = Number(c.interval_days ?? c.interval ?? 1);
+  const easeVal = Number(c.ease_factor || 2.5);
+  const repVal = Number(c.repetitions || 0);
   setText('fc-counter-text', `${STATE.flashcards.index + 1} / ${cards.length}`);
-  setText('fc-review-badge', c.isSm2 ? `SM-2: ${c.interval} ngày` : 'Ngân hàng đề');
+  setText('fc-review-badge', c.isSm2 ? `SM-2: ${ivDays} ngày` : 'Ngân hàng đề');
+  const statsEl = document.getElementById('fc-sm2-meta-stats');
+  if (statsEl) {
+    statsEl.innerHTML = `Ease: <strong class="txt-main">${easeVal.toFixed(2)}</strong> • Khoảng cách: <strong class="txt-main">${ivDays} ngày</strong> • Lặp lại: <strong class="txt-main">${repVal} lần</strong>${c.next_review ? ` • Kế tiếp: <span class="text-amber-400 font-bold">${escapeHtml(c.next_review)}</span>` : ''}`;
+  }
   const f = document.getElementById('fc-front-content');
   const b = document.getElementById('fc-back-content');
   if (f) {
@@ -10853,12 +10913,12 @@ const OSCE_STATIONS_BANK = [
     scenario: 'Bệnh nhân nam 38 tuổi đau quặn thận phải, tiểu máu vi thể. Soi cặn lắng nước tiểu thấy cấu trúc hình phong bì thư (bát diện) trong suốt.',
     question: 'Cấu trúc tinh thể đặc trưng trong tiêu bản này là gì?',
     options: [
+      'Tinh thể Acid Uric hình thoi màu vàng nâu',
       'Tinh thể Calcium Oxalate (Canxi Oxalat)',
-      'Tinh thể Acid Uric hình thoi',
       'Tinh thể Triple Phosphate (Photphat kép) hình nắp quan tài',
       'Tinh thể Cholesterol hình phiến kính khuyết góc'
     ],
-    correct: 0,
+    correct: 1,
     explanation: 'Tinh thể Calcium Oxalate đihidrat có hình phong bì thư (hai hình tháp đáy chung nhau) rất điển hình trong sỏi đường tiết niệu.'
   },
   {
@@ -10867,12 +10927,12 @@ const OSCE_STATIONS_BANK = [
     scenario: 'Bệnh nhân 19 tuổi tiểu máu đại thể, phù mặt, tăng huyết áp sau viêm họng liên cầu khuẩn 2 tuần.',
     question: 'Cấu trúc trụ niệu nào xuất hiện trên vi trường giúp khẳng định máu chảy từ cầu thận?',
     options: [
-      'Trụ hồng cầu (Red Blood Cell Cast)',
       'Trụ trong (Hyaline Cast) sinh lý',
       'Tinh thể Calcium Carbonate',
+      'Trụ hồng cầu (Red Blood Cell Cast)',
       'Tế bào biểu mô vảy niệu đạo'
     ],
-    correct: 0,
+    correct: 2,
     explanation: 'Trụ hồng cầu có màu vàng cam/đỏ nâu chứa các hồng cầu kết tụ trong khuôn protein Tamm–Horsfall, đặc hiệu cho tổn thương viêm cầu thận cấp.'
   },
   {
@@ -10895,26 +10955,26 @@ const OSCE_STATIONS_BANK = [
     scenario: 'Bệnh nhân nữ đái tháo đường lâu năm, tiểu buốt rát. Soi tươi cặn nước tiểu thấy các tế bào hình bầu dục có chồi nhỏ (nảy chồi).',
     question: 'Cấu trúc vi sinh vật nào đang hiện diện trong mẫu cặn nước tiểu này?',
     options: [
-      'Nấm men (Candida spp.) đang nảy chồi',
       'Hồng cầu biến dạng hình gai',
       'Trụ hạt thô (Coarse Granular Cast)',
-      'Tinh thể Bilirubin hình kim'
+      'Tinh thể Bilirubin hình kim',
+      'Nấm men (Candida spp.) đang nảy chồi'
     ],
-    correct: 0,
+    correct: 3,
     explanation: 'Tế bào nấm men (thường gặp nhất là Candida albicans ở bệnh nhân đái tháo đường) có hình bầu dục chiết quang và đặc điểm nảy chồi điển hình.'
   },
   {
-    title: 'Trạm 5: Tính Độ Thanh Thải Creatinin ($C_{\\text{Cr}}$)',
+    title: 'Trạm 5: Tính Độ Thanh Thải Creatinin (CCr)',
     image: '',
     scenario: 'Bệnh nhân có thể tích nước tiểu 24 giờ $V_{24\\text{h}} = 1440\\text{ mL}$ ($V = 1.0\\text{ mL/phút}$), nồng độ Creatinin niệu $U_{\\text{Cr}} = 9.0\\text{ mmol/L}$ ($9000\\text{ }\\mu\\text{mol/L}$), Creatinin huyết thanh $P_{\\text{Cr}} = 150\\text{ }\\mu\\text{mol/L}$.',
     question: 'Độ thanh thải Creatinin nội sinh $C_{\\text{Cr}} = \\frac{U \\times V}{P}$ của bệnh nhân là bao nhiêu?',
     options: [
-      '60 mL/phút',
       '90 mL/phút',
+      '60 mL/phút',
       '120 mL/phút',
       '15 mL/phút'
     ],
-    correct: 0,
+    correct: 1,
     explanation: 'Đổi cùng đơn vị $\\mu\\text{mol/L}$: $C_{\\text{Cr}} = \\frac{9000 \\times 1.0}{150} = 60\\text{ mL/phút}$.'
   },
   {
@@ -10923,12 +10983,12 @@ const OSCE_STATIONS_BANK = [
     scenario: 'Bệnh nhân suy thận mạn giai đoạn 3, tiểu protein (++). Soi cặn nước tiểu thấy cấu trúc hình trụ chứa nhiều hạt thô sẫm màu do thoái hóa tế bào biểu mô ống thận.',
     question: 'Tên gọi chính xác của cấu trúc trụ niệu trong tiêu bản này là:',
     options: [
-      'Trụ hạt thô (Coarse Granular Cast)',
       'Trụ sáp (Waxy Cast) trong suốt',
       'Tế bào biểu mô bể thận',
+      'Trụ hạt thô (Coarse Granular Cast)',
       'Tinh trùng trong nước tiểu'
     ],
-    correct: 0,
+    correct: 2,
     explanation: 'Trụ hạt thô hình thành từ sự thoái hóa của các trụ tế bào biểu mô ống thận hoặc bạch cầu, gợi ý bệnh lý nhu mô thận mạn tính.'
   }
 ];
@@ -11932,8 +11992,75 @@ function resetLiveArena() {
 
 
 // --- 2. VIRTUAL CLINICAL PATIENT SIMULATOR ---
+const DEFAULT_VP_CASES = [
+  {
+    id: 'case_nephrotic_01',
+    title: 'Ca 1: Hội chứng thận hư nguyên phát ở người trưởng thành',
+    patient: {
+      name: 'Nguyễn Văn H.',
+      age: 45,
+      gender: 'Nam',
+      chief_complaint: 'Phù hai mi mắt buổi sáng, lan xuống hai chân kèm tiểu nhiều bọt lâu tan 2 tuần nay',
+      history: 'Tăng 5 kg trong 2 tuần, không sốt, không tiểu máu đại thể, không dùng NSAIDs hay thảo dược.',
+      vital_signs: { bp: '135/85', hr: 78, temp: 37.0, spo2: 98 }
+    },
+    steps: [
+      {
+        step_title: 'Khai thác bệnh sử & Tiền căn',
+        prompt: 'Bệnh nhân vào viện vì phù toàn thân và tiểu nhiều bọt. Câu hỏi bệnh sử nào quan trọng nhất giúp định hướng nguyên nhân phù do thận?',
+        options: [
+          { text: 'Hỏi tính chất phù xuất hiện ở đâu trước, diễn tiến trong ngày và đặc điểm nước tiểu (bọt lâu tan, lượng nước tiểu 24h)', score: 20, feedback: 'Chính xác! Phù do cầu thận điển hình xuất hiện ở mi mắt buổi sáng, phù trắng mềm ấn lõm đối xứng kèm tiểu bọt lâu tan do đạm niệu cao.' },
+          { text: 'Chỉ hỏi tiền sử đau khớp gối khi leo cầu thang', score: 5, feedback: 'Chưa đúng trọng tâm: Đau khớp gối cơ học ít liên quan trực tiếp đến hội chứng phù toàn thân cấp tính.' },
+          { text: 'Chỉ hỏi thói quen đọc sách và thời gian ngủ buổi tối', score: 0, feedback: 'Không có giá trị định hướng chẩn đoán nguyên nhân phù toàn thân.' },
+          { text: 'Yêu cầu bệnh nhân nhịn uống nước hoàn toàn trước khi hỏi bệnh', score: 0, feedback: 'Sai nguyên tắc tiếp cận lâm sàng ban đầu.' }
+        ]
+      },
+      {
+        step_title: 'Thăm khám lâm sàng',
+        prompt: 'Khi thăm khám thực thể cho bệnh nhân nghi ngờ Hội chứng thận hư, thao tác nào cần ưu tiên thực hiện đầy đủ?',
+        options: [
+          { text: 'Chỉ bắt mạch quay và bỏ qua khám phù hay khám màng bụng', score: 5, feedback: 'Thiếu sót lớn: Bắt buộc đánh giá mức độ phù và dịch các màng.' },
+          { text: 'Ấn tìm dấu phù lõm mặt trước xương chày, cân nặng, đo huyết áp, gõ bụng tìm dịch cổ trướng và nghe phổi tìm tràn dịch màng phổi', score: 20, feedback: 'Xuất sắc! Hội chứng thận hư gây giảm áp lực keo máu dẫn đến phù trắng mềm ấn lõm và tràn dịch đa màng.' },
+          { text: 'Khám phản xạ gân xương bánh chè đơn thuần', score: 0, feedback: 'Không giúp đánh giá tình trạng ứ dịch hay biến chứng hội chứng thận hư.' },
+          { text: 'Nghiệm pháp Lasègue hai chân', score: 0, feedback: 'Lasègue dùng cho đau thần kinh tọa, không phải khám phù thận.' }
+        ]
+      },
+      {
+        step_title: 'Chỉ định Cận lâm sàng',
+        prompt: 'Bộ xét nghiệm cận lâm sàng nào là TIÊU CHUẨN BẮT BUỘC để xác lập chẩn đoán Hội chứng thận hư?',
+        options: [
+          { text: 'Chụp X-quang khớp cổ chân hai bên', score: 0, feedback: 'Phù chân trong bệnh thận là phù mô mềm do giảm áp lực keo, không phải tổn thương xương khớp.' },
+          { text: 'Đo điện tâm đồ 12 chuyển đạo đơn thuần', score: 5, feedback: 'ECG không thể chẩn đoán xác định hội chứng thận hư.' },
+          { text: 'Định lượng Protein niệu 24 giờ, Albumin & Protein máu toàn phần, Bộ mỡ máu (Lipid) và Tổng phân tích nước tiểu', score: 20, feedback: 'Hoàn hảo! Kết quả trả về: Protein niệu 24h = 5,8 g/24h (> 3,5 g/24h), Albumin máu = 21 g/L (< 30 g/L), Cholesterol = 9,8 mmol/L, cặn lắng có trụ mỡ.' },
+          { text: 'Nội soi dạ dày – tá tràng ống mềm', score: 0, feedback: 'Không có chỉ định trong bối cảnh phù thận tiểu đạm.' }
+        ]
+      },
+      {
+        step_title: 'Chẩn đoán xác định',
+        prompt: 'Dựa trên: Phù trắng mềm ấn lõm + Protein niệu 5,8 g/24h + Albumin máu 21 g/L + Cholesterol 9,8 mmol/L + Creatinin máu 88 µmol/L, chẩn đoán chính xác nhất là:',
+        options: [
+          { text: 'Viêm bàng quang cấp không biến chứng', score: 0, feedback: 'Viêm bàng quang không gây protein niệu ngưỡng thận hư (> 3,5 g/24h) và giảm albumin máu nặng.' },
+          { text: 'Hội chứng thận hư nguyên phát thể đơn thuần (đủ tiêu chuẩn Protein niệu > 3,5 g/24h và Albumin máu < 30 g/L)', score: 20, feedback: 'Chính xác! Hai tiêu chuẩn bắt buộc của Hội chứng thận hư là Protein niệu > 3,5 g/24h và Albumin máu < 30 g/L.' },
+          { text: 'Cơn đau quặn thận do sỏi niệu quản', score: 0, feedback: 'Bệnh nhân không đau hông lưng và không tiểu máu.' },
+          { text: 'Suy gan cấp do ngộ độc Paracetamol', score: 5, feedback: 'Suy gan có thể giảm albumin nhưng không gây tiểu đạm 5,8 g/24h và trụ mỡ niệu.' }
+        ]
+      },
+      {
+        step_title: 'Điều trị & Chăm sóc theo dõi',
+        prompt: 'Phác đồ điều trị và chăm sóc điều dưỡng chuẩn cho bệnh nhân Hội chứng thận hư giai đoạn phù nhiều là:',
+        options: [
+          { text: 'Truyền thật nhiều dung dịch NaCl 0,9% tốc độ nhanh và ăn mặn để bù muối', score: 0, feedback: 'Nguy hiểm! Ăn mặn và truyền NaCl làm tình trạng phù và ứ muối nước nặng thêm.' },
+          { text: 'Dùng kháng sinh liều cao kéo dài 6 tháng cho mọi bệnh nhân', score: 0, feedback: 'Hội chứng thận hư nguyên phát có cơ chế miễn dịch cầu thận, không điều trị đặc hiệu bằng kháng sinh.' },
+          { text: 'Ăn nhạt (< 2g Na/ngày), theo dõi cân nặng & nước xuất-nhập 24h, Corticosteroid (Prednisone 1 mg/kg/ngày) + Lợi tiểu quai + Ức chế men chuyển giảm đạm niệu + Statin', score: 20, feedback: 'Tuyệt vời! Phác đồ toàn diện gồm ức chế miễn dịch bằng Corticoid, hạn chế muối-nước, lợi tiểu kiểm soát phù, ACEi/ARB giảm đạm niệu và theo dõi cân nặng/nước tiểu hàng ngày.' },
+          { text: 'Chỉ chườm nóng hai cẳng chân và cho xuất viện ngay', score: 5, feedback: 'Không giải quyết được cơ chế mất protein qua màng lọc cầu thận.' }
+        ]
+      }
+    ]
+  }
+];
+
 const VP_STATE = {
-  cases: [],
+  cases: DEFAULT_VP_CASES,
   activeCase: null,
   currentStep: 0,
   score: 0,
@@ -11945,44 +12072,47 @@ async function initVirtualPatientView() {
     const res = await fetch('/api/virtual-patient/cases', { credentials: 'same-origin' });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const data = await res.json();
-    if (data.success && data.cases) {
+    if (data.success && Array.isArray(data.cases) && data.cases.length && Array.isArray(data.cases[0].steps)) {
       VP_STATE.cases = data.cases;
-      renderVirtualCaseList();
+    } else {
+      VP_STATE.cases = DEFAULT_VP_CASES;
     }
   } catch (e) {
-    console.warn('Lấy ca bệnh ảo từ backend thất bại, dùng dữ liệu mẫu nội bộ:', e);
+    VP_STATE.cases = DEFAULT_VP_CASES;
   }
+  renderVirtualCaseList();
 }
 
 function renderVirtualCaseList() {
   const sel = document.getElementById('vp-case-select');
   if (sel && VP_STATE.cases.length > 0) {
-    sel.innerHTML = VP_STATE.cases.map((c, i) => `<option value="${i}">${c.title}</option>`).join('');
+    sel.innerHTML = VP_STATE.cases.map((c, i) => `<option value="${i}">${escapeHtml(c.title)}</option>`).join('');
     onVirtualCaseSelect();
   }
 }
 
 function onVirtualCaseSelect() {
   const sel = document.getElementById('vp-case-select');
-  const idx = sel ? parseInt(sel.value) : 0;
-  VP_STATE.activeCase = VP_STATE.cases[idx] || null;
+  const idx = sel ? parseInt(sel.value, 10) || 0 : 0;
+  VP_STATE.activeCase = VP_STATE.cases[idx] || VP_STATE.cases[0] || null;
   VP_STATE.currentStep = 0;
   VP_STATE.score = 0;
   VP_STATE.userChoices = {};
 
   if (!VP_STATE.activeCase) return;
 
-  const p = VP_STATE.activeCase.patient;
+  const p = VP_STATE.activeCase.patient || {};
   const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
 
-  setEl('vp-p-name', p.name);
-  setEl('vp-p-age', `${p.age} tuổi • ${p.gender}`);
-  setEl('vp-p-cc', `Lý do vào viện: ${p.chief_complaint}`);
-  setEl('vp-p-history', p.history);
+  setEl('vp-p-name', p.name || 'Bệnh nhân thực hành');
+  setEl('vp-p-age', `${p.age || 45} tuổi • ${p.gender || 'Nam'}`);
+  setEl('vp-p-cc', `Lý do vào viện: ${p.chief_complaint || ''}`);
+  setEl('vp-p-history', p.history || '');
   setEl('vp-v-bp', p.vital_signs?.bp || '120/80');
   setEl('vp-v-hr', `${p.vital_signs?.hr || 80} l/p`);
   setEl('vp-v-temp', `${p.vital_signs?.temp || 37.0}°C`);
   setEl('vp-v-spo2', `${p.vital_signs?.spo2 || 98}%`);
+  setEl('vp-score-pill', 'Điểm phản xạ: 0/100');
 
   setVirtualStep(0);
 }
@@ -12011,17 +12141,27 @@ function setVirtualStep(stepIdx) {
   const savedChoice = VP_STATE.userChoices[stepIdx];
 
   bodyEl.innerHTML = `
-    <div class="text-xs sm:text-sm font-bold txt-main leading-relaxed">${cur.prompt}</div>
+    <div class="text-xs sm:text-sm font-bold txt-main leading-relaxed">${escapeHtml(cur.prompt)}</div>
     <div class="space-y-2.5 pt-2">
-      ${cur.options.map((opt, optIdx) => `
-        <button type="button" onclick="submitVirtualStepChoice(${stepIdx}, ${optIdx})" 
-          class="w-full text-left p-3.5 rounded-xl text-xs font-bold transition-all border flex items-start gap-2.5 ${savedChoice === optIdx ? 'border-cyan-500 bg-cyan-500/20' : 'border-zinc-800 bg-zinc-900/60 hover:border-zinc-600'}">
+      ${cur.options.map((opt, optIdx) => {
+        const isSelected = savedChoice === optIdx;
+        const isOptimal = opt.score > 15;
+        let stateCls = 'hover:border-indigo-500/60';
+        let stateStyle = 'background-color: var(--bg-surface); border-color: var(--border);';
+        if (isSelected) {
+          stateCls = isOptimal ? 'border-emerald-500 bg-emerald-500/15' : 'border-amber-500 bg-amber-500/15';
+          stateStyle = '';
+        }
+        return `
+        <button type="button" onclick="submitVirtualStepChoice(${stepIdx}, ${optIdx})"
+          class="w-full text-left p-3.5 rounded-xl text-xs font-bold transition-all border flex items-start gap-2.5 ${stateCls}"
+          ${stateStyle ? `style="${stateStyle}"` : ''}>
           <span class="w-5 h-5 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-[10px] font-black shrink-0">${['A','B','C','D'][optIdx] || optIdx + 1}</span>
-          <span class="txt-main">${opt.text}</span>
-        </button>
-      `).join('')}
+          <span class="txt-main">${escapeHtml(opt.text)}</span>
+        </button>`;
+      }).join('')}
     </div>
-    <div id="vp-step-feedback-${stepIdx}" class="${savedChoice !== undefined ? '' : 'hidden'} p-3.5 rounded-xl text-xs space-y-1.5 mt-3 border border-emerald-500/40 bg-emerald-500/10">
+    <div id="vp-step-feedback-${stepIdx}" class="${savedChoice !== undefined ? '' : 'hidden'} p-3.5 rounded-xl text-xs space-y-1.5 mt-3 ${savedChoice !== undefined && cur.options[savedChoice]?.score > 15 ? 'border border-emerald-500/40 bg-emerald-500/10' : 'border border-amber-500/40 bg-amber-500/10'}">
       ${savedChoice !== undefined ? renderStepFeedbackHtml(cur.options[savedChoice]) : ''}
     </div>
   `;
@@ -12031,14 +12171,7 @@ function submitVirtualStepChoice(stepIdx, optIdx) {
   if (!VP_STATE.activeCase) return;
   const cur = VP_STATE.activeCase.steps[stepIdx];
   VP_STATE.userChoices[stepIdx] = optIdx;
-
-  const opt = cur.options[optIdx];
-  const fbBox = document.getElementById(`vp-step-feedback-${stepIdx}`);
-  if (fbBox && opt) {
-    fbBox.className = `p-3.5 rounded-xl text-xs space-y-1.5 mt-3 ${opt.score > 15 ? 'border border-emerald-500/40 bg-emerald-500/10' : 'border border-amber-500/40 bg-amber-500/10'}`;
-    fbBox.innerHTML = renderStepFeedbackHtml(opt);
-    fbBox.classList.remove('hidden');
-  }
+  const opt = cur?.options?.[optIdx];
 
   // Recalculate total score
   let total = 0;
@@ -12051,7 +12184,8 @@ function submitVirtualStepChoice(stepIdx, optIdx) {
   const scorePill = document.getElementById('vp-score-pill');
   if (scorePill) scorePill.textContent = `Điểm phản xạ: ${total}/100`;
 
-  playSound(opt.score > 15 ? 'correct' : 'click');
+  setVirtualStep(stepIdx);
+  if (opt) playSound(opt.score > 15 ? 'correct' : 'click');
 }
 
 function renderStepFeedbackHtml(opt) {
@@ -12151,6 +12285,39 @@ const CLINICAL_DRUGS = [
     crcl_severe: "eGFR < 30 ml/phút: CHỐNG CHỈ ĐỊNH TUYỆT ĐỐI!",
     hd_dose: "Lọc máu: CHỐNG CHỈ ĐỊNH TUYỆT ĐỐI!",
     warning: "CHỐNG CHỈ ĐỊNH khi eGFR < 30 ml/phút do nguy cơ nhiễm toan acid lactic gây tử vong cao!"
+  },
+  {
+    id: "levofloxacin",
+    name: "Levofloxacin",
+    group: "Kháng sinh Fluoroquinolon hô hấp",
+    std_dose: "500 – 750 mg uống hoặc IV mỗi 24 giờ",
+    crcl_normal: "CrCl ≥ 50 ml/phút: 500 – 750 mg mỗi 24 giờ",
+    crcl_mod: "CrCl 20 – 49 ml/phút: Liều nạp 750 mg, sau đó 750 mg mỗi 48 giờ (hoặc nạp 500 mg, duy trì 250 mg mỗi 24 giờ)",
+    crcl_severe: "CrCl < 20 ml/phút: Liều nạp 750 mg, sau đó 500 mg mỗi 48 giờ (hoặc nạp 500 mg, duy trì 250 mg mỗi 48 giờ)",
+    hd_dose: "Lọc máu / CAPD: Liều như CrCl < 20 ml/phút, không cần bổ sung liều sau lọc máu",
+    warning: "Nguy cơ kéo dài khoảng QT, xoắn đỉnh, viêm gân gót Achilles và rối loạn đường huyết ở bệnh nhân đái tháo đường."
+  },
+  {
+    id: "ceftriaxone",
+    name: "Ceftriaxone",
+    group: "Kháng sinh Cephalosporin thế hệ 3",
+    std_dose: "1 – 2 g IV/IM mỗi 24 giờ (viêm màng não: 2 g mỗi 12 giờ)",
+    crcl_normal: "CrCl ≥ 50 ml/phút: 1 – 2 g mỗi 24 giờ (thải trừ kép qua mật và thận)",
+    crcl_mod: "CrCl 10 – 49 ml/phút: Không cần chỉnh liều chuẩn (tối đa 2 g/ngày nếu suy cả gan và thận)",
+    crcl_severe: "CrCl < 10 ml/phút: Không vượt quá 2 g/24 giờ",
+    hd_dose: "Lọc máu: Không thẩm phân qua màng lọc, không cần bổ sung liều sau HD",
+    warning: "TUYỆT ĐỐI KHÔNG pha chung hoặc truyền cùng đường truyền chứa Calcium (Ringer Lactate, Calcium gluconate) đặc biệt ở trẻ sơ sinh do kết tủa Ceftriaxone-Calci!"
+  },
+  {
+    id: "digoxin",
+    name: "Digoxin",
+    group: "Glycosid trợ tim",
+    std_dose: "0,125 – 0,25 mg/ngày uống 1 lần",
+    crcl_normal: "CrCl ≥ 50 ml/phút: 0,125 – 0,25 mg mỗi 24 giờ",
+    crcl_mod: "CrCl 10 – 49 ml/phút: 0,0625 – 0,125 mg mỗi 24 giờ (hoặc 0,125 mg cách ngày)",
+    crcl_severe: "CrCl < 10 ml/phút: 0,0625 mg mỗi 48 giờ; theo dõi nồng độ thuốc trong máu TDM (0,5 – 0,9 ng/mL)",
+    hd_dose: "Lọc máu: Không bị loại bỏ qua lọc máu, dùng 0,0625 mg mỗi 48 giờ",
+    warning: "Cửa sổ điều trị cực hẹp! Hạ Kali máu, hạ Magie máu hoặc tăng Calci máu làm tăng mạnh nguy cơ ngộ độc Digoxin."
   }
 ];
 
@@ -12283,9 +12450,14 @@ function copyVancouverCitation() {
 // --- 5. EXPORT ANKI & PRINTABLE WORD EXAM (.DOC) ---
 function initExportView() {
   const sel = document.getElementById('export-subject-select');
-  if (sel && (!sel.options || sel.options.length === 0)) {
-    const subs = STATE.subjects || [];
-    sel.innerHTML = subs.map(s => `<option value="${s.id}">${s.name} (${s.question_count || 0} câu)</option>`).join('');
+  if (sel) {
+    if (!sel.options || sel.options.length === 0) {
+      const subs = STATE.subjects || [];
+      sel.innerHTML = subs.map(s => `<option value="${s.id}">${s.name} (${s.question_count || 0} câu)</option>`).join('');
+    }
+    if (STATE.activeSubjectId && Array.from(sel.options).some(o => String(o.value) === String(STATE.activeSubjectId))) {
+      sel.value = String(STATE.activeSubjectId);
+    }
   }
 }
 
@@ -12989,31 +13161,31 @@ function renderExerciseDetail() {
     <div id="vscode-ide-root" class="vscode-ide-container w-full flex flex-col font-sans select-none" style="min-height: 850px; background: #1e1e1e; color: #cccccc;">
       
       <!-- 1. VS Code Title Bar -->
-      <div class="vscode-titlebar flex items-center justify-between px-3 py-1.5 bg-[#323233] border-b border-[#252526] text-xs text-[#cccccc]">
-        <div class="flex items-center gap-2">
+      <div class="vscode-titlebar flex items-center justify-between gap-2 px-3 py-1.5 bg-[#323233] border-b border-[#252526] text-xs text-[#cccccc]">
+        <div class="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
           <!-- macOS / VS Code window dots -->
-          <div class="flex items-center gap-1.5 mr-2">
+          <div class="flex items-center gap-1.5 mr-1 shrink-0">
             <span class="w-3 h-3 rounded-full bg-[#ff5f56] inline-block shadow-sm cursor-pointer" title="Xóa code đang viết (có xác nhận)" onclick="closeVscodeEditorWithConfirm()"></span>
             <span class="w-3 h-3 rounded-full bg-[#ffbd2e] inline-block shadow-sm cursor-pointer" title="Minimize" onclick="toggleVscodeSidebar()"></span>
             <span class="w-3 h-3 rounded-full bg-[#27c93f] inline-block shadow-sm cursor-pointer" title="Toggle Fullscreen" onclick="toggleVscodeFullscreen()"></span>
           </div>
-          <span class="text-slate-400 font-mono text-[11px] hidden sm:inline flex items-center gap-1.5">
-            <span class="text-blue-400 font-bold">UniMaster Studio</span>
-            <span class="text-slate-500">─</span>
-            <span class="text-slate-200">${fileName}</span>
-            <span class="text-slate-500">•</span>
-            <span class="text-slate-400">Bài #${STATE.exercises.selectedIndex + 1}: ${escapeHtml(ex.title)}</span>
+          <span class="text-slate-400 font-mono text-[11px] hidden sm:flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
+            <span class="text-blue-400 font-bold shrink-0">UniMaster Studio</span>
+            <span class="text-slate-500 shrink-0">─</span>
+            <span class="text-slate-200 shrink-0">${fileName}</span>
+            <span class="text-slate-500 shrink-0">•</span>
+            <span class="text-slate-400 truncate">Bài #${STATE.exercises.selectedIndex + 1}: ${escapeHtml(ex.title)}</span>
           </span>
         </div>
 
-        <div class="flex items-center gap-2">
-          <button type="button" onclick="resetExerciseCode()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-amber-300 hover:bg-[#484849] flex items-center gap-1 transition-colors" title="Khôi phục lại code khởi tạo ban đầu">
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" onclick="resetExerciseCode()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-amber-300 hover:bg-[#484849] flex items-center gap-1 transition-colors whitespace-nowrap shrink-0" title="Khôi phục lại code khởi tạo ban đầu">
             <span>↺</span> <span class="hidden sm:inline">Reset Code</span>
           </button>
-          <button type="button" onclick="toggleSampleCode()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-emerald-300 hover:bg-[#484849] flex items-center gap-1 transition-colors" title="Xem lời giải mẫu">
+          <button type="button" onclick="toggleSampleCode()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-emerald-300 hover:bg-[#484849] flex items-center gap-1 transition-colors whitespace-nowrap shrink-0" title="Xem lời giải mẫu">
             <span>${STATE.exercises.showCode ? '🙈' : '👁️'}</span> <span class="hidden sm:inline">${STATE.exercises.showCode ? 'Ẩn Lời Giải' : 'Code Mẫu'}</span>
           </button>
-          <button type="button" onclick="toggleVscodeFullscreen()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-cyan-300 hover:bg-[#484849] flex items-center gap-1 transition-colors" title="Phóng to / Thu nhỏ IDE">
+          <button type="button" onclick="toggleVscodeFullscreen()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-cyan-300 hover:bg-[#484849] flex items-center gap-1 transition-colors whitespace-nowrap shrink-0" title="Phóng to / Thu nhỏ IDE">
             <span>⛶</span> <span class="hidden sm:inline">Toàn Màn Hình</span>
           </button>
         </div>
@@ -15712,12 +15884,13 @@ async function rateFlashcardSM2(rating) {
 
     card.ease_factor = newEase;
     card.interval_days = newInterval;
+    card.interval = newInterval;
     card.repetitions = newReps;
     card.next_review = newNext;
 
     const statsEl = document.getElementById('fc-sm2-meta-stats');
     if (statsEl) {
-      statsEl.innerHTML = `Ease: <strong class="text-white">${newEase.toFixed(2)}</strong> • Khoảng cách: <strong class="text-white">${newInterval} ngày</strong> • Lặp lại: <strong class="text-white">${newReps} lần</strong>${newNext ? ` • Kế tiếp: <span class="text-amber-400 font-bold">${newNext}</span>` : ''}`;
+      statsEl.innerHTML = `Ease: <strong class="txt-main">${newEase.toFixed(2)}</strong> • Khoảng cách: <strong class="txt-main">${newInterval} ngày</strong> • Lặp lại: <strong class="txt-main">${newReps} lần</strong>${newNext ? ` • Kế tiếp: <span class="text-amber-400 font-bold">${newNext}</span>` : ''}`;
     }
 
     if (rating === 'again') {
@@ -15730,11 +15903,6 @@ async function rateFlashcardSM2(rating) {
 
     setTimeout(() => {
       nextFlashcard();
-      const nextIdx = Number(STATE.flashcards.index ?? STATE.flashcards.currentIndex ?? 0);
-      const nextCard = STATE.flashcards.cards?.[nextIdx];
-      if (nextCard && statsEl) {
-        statsEl.innerHTML = `Ease: <strong class="text-white">${(nextCard.ease_factor || 2.5).toFixed(2)}</strong> • Khoảng cách: <strong class="text-white">${nextCard.interval_days || 1} ngày</strong> • Lặp lại: <strong class="text-white">${nextCard.repetitions || 0} lần</strong>`;
-      }
     }, 380);
   } catch (err) {
     showToast('Lỗi cập nhật SM-2: ' + err.message, 'error');
@@ -23096,12 +23264,12 @@ function renderEnzymeKineticsLab() {
   if (readout) {
     readout.innerHTML = `
       <div class="grid grid-cols-2 gap-2 font-mono">
-        <div>• $V_{\\max}$ biểu kiến: <strong class="text-cyan-300">${vmaxApp.toFixed(1)}</strong> (Gốc: ${vmax})</div>
-        <div>• $K_m$ biểu kiến: <strong class="text-emerald-300">${kmApp.toFixed(2)} mM</strong> (Gốc: ${km.toFixed(1)})</div>
-        <div>• $v_0$ chuẩn tại $[S]=${sCur}$: <strong class="text-white">${v0Normal.toFixed(1)}</strong></div>
-        <div>• $v_0$ có chất ức chế: <strong class="text-rose-400">${v0Inhib.toFixed(1)}</strong></div>
+        <div>• V<sub>max</sub> biểu kiến: <strong class="text-cyan-400">${vmaxApp.toFixed(1)}</strong> (Gốc: ${vmax})</div>
+        <div>• K<sub>m</sub> biểu kiến: <strong class="text-emerald-400">${kmApp.toFixed(2)} mM</strong> (Gốc: ${km.toFixed(1)})</div>
+        <div>• v<sub>0</sub> chuẩn tại [S]=${sCur}: <strong class="txt-main">${v0Normal.toFixed(1)}</strong></div>
+        <div>• v<sub>0</sub> có chất ức chế: <strong class="text-rose-400">${v0Inhib.toFixed(1)}</strong></div>
       </div>
-      <div class="pt-1 text-amber-300 font-semibold">${escapeHtml(mechText)}</div>
+      <div class="pt-1 text-amber-400 font-semibold">${escapeHtml(mechText)}</div>
     `;
   }
 
@@ -29900,6 +30068,9 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
     if (!el) return;
     _pomo.visible = typeof forceVisible === 'boolean' ? forceVisible : !_pomo.visible;
     el.classList.toggle('hidden', !_pomo.visible);
+    if (_pomo.visible) {
+      document.getElementById('floating-zen-dock')?.classList.add('hidden');
+    }
     if (!_pomo.visible && _pomo.timerId) {
       clearInterval(_pomo.timerId);
       _pomo.timerId = null;

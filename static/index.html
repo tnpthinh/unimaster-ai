@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=57.0" />
+  <link rel="stylesheet" href="/static/style.css?v=58.1" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -97,7 +97,7 @@
     <!-- =====================================================================
        LUXURY MINIMALIST TOP HEADER & ACTIVE SUBJECT BAR
        ===================================================================== -->
-  <header class="uni-top-header sticky top-0 z-40 backdrop-blur-2xl transition-colors border-b w-full max-w-full overflow-hidden"
+  <header class="uni-top-header sticky top-0 z-40 transition-colors border-b w-full max-w-full overflow-hidden"
     style="border-color: var(--border);">
     <div class="max-w-[1440px] mx-auto px-3 sm:px-5 min-h-[3.5rem] sm:min-h-[4rem] py-1 flex items-center justify-between gap-2 sm:gap-3 overflow-hidden">
       <!-- Left: Brand + Active Subject Selector -->
@@ -122,7 +122,7 @@
       </div>
 
       <!-- Center: Clean 7-Tab Navigation Pills (Zero Clipping at 1200px, 1280px & 1440px) -->
-      <nav class="hidden lg:flex items-center gap-0.5 p-1 rounded-2xl shrink-0 border" style="background-color: var(--bg-subtle); border-color: var(--border);">
+      <nav class="relative hidden lg:flex items-center gap-0.5 p-1 rounded-2xl shrink-0 border" style="background-color: var(--bg-subtle); border-color: var(--border);">
         <span id="nav-indicator" class="nav-indicator" aria-hidden="true"></span>
         <button onclick="switchTab('dashboard')" id="tab-dashboard" class="nav-tab active-tab px-1.5 xl:px-2.5 py-1.5 text-[11px] xl:text-xs flex items-center gap-1 font-semibold whitespace-nowrap" title="Tổng quan (1)">
           <i data-lucide="home" class="w-3.5 h-3.5 shrink-0"></i> <span class="nav-tab-text">Tổng quan</span>
@@ -227,7 +227,7 @@
   <!-- =====================================================================
        MAIN CONTENT AREA
        ===================================================================== -->
-  <main class="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24 lg:py-6 space-y-6">
+  <main class="max-w-7xl mx-auto px-3 sm:px-6 pt-4 pb-24 lg:pt-6 lg:pb-24 space-y-6">
 
     <!-- ===================================================================
          VIEW 1: DASHBOARD (CLEAN, COLORFUL, ZERO CLUTTER)
@@ -1522,9 +1522,6 @@
             <option value="py_bfs">Python: Duyệt đồ thị BFS/DFS</option>
             <option value="py_dp">Python: Quy hoạch động</option>
           </select>
-          <button onclick="submitCodeTestCases()" class="btn-primary px-3 py-1.5 text-xs flex items-center gap-1 font-bold shadow-md">
-            <span>🧪</span> Chấm Test
-          </button>
           <button id="btn-toggle-ide-expand" type="button" onclick="toggleExerciseSidebarList()" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold" title="Ẩn / Hiện danh sách bài tập">
             <span id="ide-expand-btn-icon">📂</span> <span id="ide-expand-btn-text">Thu gọn DS</span>
           </button>
@@ -1552,7 +1549,7 @@
               <span>📁</span> <span>Danh sách bài tập</span>
             </span>
             <div class="flex items-center gap-1">
-              <span id="exercise-count-badge" class="badge-soft px-1.5 py-0.5 rounded text-[10px]">20 bài</span>
+              <span id="exercise-count-badge" class="badge-soft px-1.5 py-0.5 rounded text-[10px]">10 bài</span>
               <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-soft px-1.5 py-0.5 text-[10px] font-bold" title="Thu gọn danh sách">◀ Ẩn</button>
             </div>
           </div>
@@ -2561,52 +2558,51 @@
                  HANDWRITTEN AI GRADER, KNOWLEDGE GRAPH & CLINICAL CALCULATOR
          =================================================================== -->
     <section id="view-lab" class="hidden space-y-6 animate-fade-in">
-      <!-- Lab Hub Header & 5 Interactive Sub-Tabs -->
-      <div class="uni-card p-5 sm:p-6 space-y-4">
-        <div class="flex flex-wrap items-center justify-between gap-3">
+      <!-- Lab Hub Header & 11 Segmented Sub-Tabs -->
+      <div class="uni-card p-4 sm:p-5 space-y-3.5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
           <div>
-            
-            <h2 class="text-lg sm:text-xl font-extrabold txt-main flex items-center gap-2">
-              <span>🧪</span> Phòng Thí Nghiệm & Mô Phỏng
+            <h2 class="text-base sm:text-lg font-extrabold txt-main flex items-center gap-2">
+              <span>🧪</span> Phòng Thí Nghiệm &amp; Mô Phỏng Chuyên Ngành
             </h2>
-            <p class="text-xs txt-muted mt-0.5">Mô phỏng Quang phổ kế, thi chạy trạm OSCE & tính toán chuyên ngành</p>
+            <p class="text-xs txt-muted mt-0.5">Mô phỏng Quang phổ kế, thi chạy trạm OSCE, bệnh nhân ảo, dược lý &amp; đồ thị giải thuật</p>
           </div>
-          <div class="flex flex-wrap gap-1.5">
-            <button type="button" onclick="switchLabSubTab('spectro')" data-labtab="spectro" class="preset-pill active text-xs">
-              🔬 Máy Quang Phổ
-            </button>
-            <button type="button" onclick="switchLabSubTab('osce')" data-labtab="osce" class="preset-pill text-xs">
-              ⏱️ Chạy Trạm OSCE
-            </button>
-            <button type="button" onclick="switchLabSubTab('handwritten')" data-labtab="handwritten" class="preset-pill text-xs">
-              📸 Chấm Bài Viết Tay
-            </button>
-            <button type="button" onclick="switchLabSubTab('graph')" data-labtab="graph" class="preset-pill text-xs">
-              🕸️ Sơ Đồ Kiến Thức
-            </button>
-            <button type="button" onclick="switchLabSubTab('calc')" data-labtab="calc" class="preset-pill text-xs">
-              🧮 Máy Tính Lâm Sàng
-            </button>
-            <button type="button" onclick="switchLabSubTab('patient')" data-labtab="patient" class="preset-pill text-xs">
-              🩺 Bệnh Nhân Ảo
-            </button>
-            <button type="button" onclick="switchLabSubTab('dosing')" data-labtab="dosing" class="preset-pill text-xs">
-              💊 Chỉnh Liều Thuốc
-            </button>
-            <button type="button" onclick="switchLabSubTab('biostat')" data-labtab="biostat" class="preset-pill text-xs">
-              📊 Thống Kê Y Sinh
-            </button>
-            <button type="button" onclick="switchLabSubTab('export')" data-labtab="export" class="preset-pill text-xs">
-              📥 Xuất Anki &amp; In Đề A4
-            </button>
-            <button type="button" onclick="switchLabSubTab('kinetics')" data-labtab="kinetics" class="preset-pill text-xs font-extrabold">
-              🧬 Động Học Enzyme (Km/Vmax)
-            </button>
-            <button type="button" onclick="switchLabSubTab('graphtheory')" data-labtab="graphtheory" class="preset-pill text-xs font-extrabold">
-              🕸️ Đồ Thị &amp; Giải Thuật
-            </button>
-
-          </div>
+          <span class="badge-brand px-2.5 py-1 rounded-lg text-[11px] font-mono font-bold">11 Trạm Thực Hành</span>
+        </div>
+        <div class="flex flex-wrap gap-1.5 pt-2.5 border-t" style="border-color: var(--border);">
+          <button type="button" onclick="switchLabSubTab('spectro')" data-labtab="spectro" class="preset-pill active text-xs">
+            🔬 Máy Quang Phổ
+          </button>
+          <button type="button" onclick="switchLabSubTab('osce')" data-labtab="osce" class="preset-pill text-xs">
+            ⏱️ Chạy Trạm OSCE
+          </button>
+          <button type="button" onclick="switchLabSubTab('handwritten')" data-labtab="handwritten" class="preset-pill text-xs">
+            📸 Chấm Bài Viết Tay
+          </button>
+          <button type="button" onclick="switchLabSubTab('graph')" data-labtab="graph" class="preset-pill text-xs">
+            🕸️ Sơ Đồ Kiến Thức
+          </button>
+          <button type="button" onclick="switchLabSubTab('calc')" data-labtab="calc" class="preset-pill text-xs">
+            🧮 Máy Tính Lâm Sàng
+          </button>
+          <button type="button" onclick="switchLabSubTab('patient')" data-labtab="patient" class="preset-pill text-xs">
+            🩺 Bệnh Nhân Ảo
+          </button>
+          <button type="button" onclick="switchLabSubTab('dosing')" data-labtab="dosing" class="preset-pill text-xs">
+            💊 Chỉnh Liều Thuốc
+          </button>
+          <button type="button" onclick="switchLabSubTab('biostat')" data-labtab="biostat" class="preset-pill text-xs">
+            📊 Thống Kê Y Sinh
+          </button>
+          <button type="button" onclick="switchLabSubTab('export')" data-labtab="export" class="preset-pill text-xs">
+            📥 Xuất Anki &amp; In Đề A4
+          </button>
+          <button type="button" onclick="switchLabSubTab('kinetics')" data-labtab="kinetics" class="preset-pill text-xs font-extrabold">
+            🧬 Động Học Enzyme (Km/Vmax)
+          </button>
+          <button type="button" onclick="switchLabSubTab('graphtheory')" data-labtab="graphtheory" class="preset-pill text-xs font-extrabold">
+            🕸️ Đồ Thị &amp; Giải Thuật
+          </button>
         </div>
       </div>
 
@@ -2637,11 +2633,11 @@
                 </select>
               </div>
               <div>
-                <label class="text-[11px] font-extrabold uppercase txt-muted">Chỉnh bước sóng máy đo $\lambda$ (nm)</label>
+                <label class="text-[11px] font-extrabold uppercase txt-muted">Chỉnh bước sóng máy đo λ (nm)</label>
                 <div class="flex items-center gap-2 mt-1">
                   <input id="spectro-wavelength-input" type="number" value="500" min="340" max="700" step="2"
                     onchange="updateSpectroDisplay()" class="uni-input w-24 px-3 py-2 text-xs font-mono font-extrabold text-center" />
-                  <button type="button" onclick="autoSetOptimalWavelength()" class="btn-soft px-3 py-2 text-xs">🎯 Đặt chuẩn $\lambda_{\max}$</button>
+                  <button type="button" onclick="autoSetOptimalWavelength()" class="btn-soft px-3 py-2 text-xs">🎯 Đặt chuẩn λ<sub>max</sub></button>
                 </div>
               </div>
             </div>
@@ -3050,20 +3046,23 @@
                   <option value="ciprofloxacin">Ciprofloxacin (Kháng sinh Fluoroquinolon)</option>
                   <option value="meropenem">Meropenem (Kháng sinh Carbapenem)</option>
                   <option value="gentamicin">Gentamicin (Kháng sinh Aminoglycosid)</option>
+                  <option value="levofloxacin">Levofloxacin (Fluoroquinolon hô hấp)</option>
+                  <option value="ceftriaxone">Ceftriaxone (Cephalosporin thế hệ 3)</option>
                   <option value="allopurinol">Allopurinol (Ức chế Xanthine Oxidase)</option>
                   <option value="enalapril">Enalapril (Ức chế men chuyển ACEi)</option>
                   <option value="metformin">Metformin (Biguanid hạ đường huyết)</option>
+                  <option value="digoxin">Digoxin (Glycosid trợ tim)</option>
                 </select>
               </div>
 
               <div class="grid grid-cols-2 gap-3">
                 <div>
                   <label class="text-[11px] font-bold txt-sub">Tuổi bệnh nhân</label>
-                  <input id="dose-patient-age" type="number" value="62" min="18" max="110" oninput="runRenalDoseCalculation()" class="uni-input w-full px-3 py-2 text-xs font-mono font-bold mt-1" />
+                  <input id="dose-patient-age" type="number" value="62" min="18" max="110" oninput="runRenalDoseCalculation()" onchange="runRenalDoseCalculation()" class="uni-input w-full px-3 py-2 text-xs font-mono font-bold mt-1" />
                 </div>
                 <div>
                   <label class="text-[11px] font-bold txt-sub">Cân nặng (kg)</label>
-                  <input id="dose-patient-wt" type="number" value="60" min="30" max="200" oninput="runRenalDoseCalculation()" class="uni-input w-full px-3 py-2 text-xs font-mono font-bold mt-1" />
+                  <input id="dose-patient-wt" type="number" value="60" min="30" max="200" oninput="runRenalDoseCalculation()" onchange="runRenalDoseCalculation()" class="uni-input w-full px-3 py-2 text-xs font-mono font-bold mt-1" />
                 </div>
               </div>
 
@@ -3077,7 +3076,7 @@
                 </div>
                 <div>
                   <label class="text-[11px] font-bold txt-sub">Creatinin máu (mg/dL)</label>
-                  <input id="dose-patient-scr" type="number" step="0.1" value="2.1" min="0.3" max="25" oninput="runRenalDoseCalculation()" class="uni-input w-full px-3 py-2 text-xs font-mono font-bold mt-1" />
+                  <input id="dose-patient-scr" type="number" step="0.1" value="2.1" min="0.3" max="25" oninput="runRenalDoseCalculation()" onchange="runRenalDoseCalculation()" class="uni-input w-full px-3 py-2 text-xs font-mono font-bold mt-1" />
                 </div>
               </div>
             </div>
@@ -3117,7 +3116,7 @@
                 <span class="font-black text-emerald-400 uppercase tracking-wide">🎯 Khuyến cáo hiệu chỉnh liều cho ca này:</span>
                 <span id="dose-adj-crcl-badge" class="badge-amber px-2 py-0.5 rounded text-[10px] font-bold">CrCl = 26.3 ml/p</span>
               </div>
-              <div id="dose-adjusted-recommendation" class="text-sm font-extrabold text-white leading-relaxed">
+              <div id="dose-adjusted-recommendation" class="text-sm font-extrabold txt-main leading-relaxed">
                 CrCl 20 – 49 ml/phút: 15 mg/kg mỗi 24 – 48 giờ.
               </div>
             </div>
@@ -3327,7 +3326,7 @@
             <div class="space-y-3 pt-1">
               <div>
                 <div class="flex justify-between text-xs font-bold">
-                  <span>Tốc độ cực đại gốc $V_{\max}$ ($\mu\text{mol/phút}$):</span>
+                  <span>Tốc độ cực đại gốc V<sub>max</sub> (µmol/phút):</span>
                   <span id="enz-vmax-val" class="font-mono text-cyan-400">100</span>
                 </div>
                 <input id="enz-vmax-slider" type="range" min="40" max="160" step="5" value="100" oninput="renderEnzymeKineticsLab()" class="w-full accent-cyan-500" />
@@ -3335,7 +3334,7 @@
 
               <div>
                 <div class="flex justify-between text-xs font-bold">
-                  <span>Hằng số Michaelis gốc $K_m$ ($\text{mM}$):</span>
+                  <span>Hằng số Michaelis gốc K<sub>m</sub> (mM):</span>
                   <span id="enz-km-val" class="font-mono text-emerald-400">2.0 mM</span>
                 </div>
                 <input id="enz-km-slider" type="range" min="0.5" max="6.0" step="0.5" value="2.0" oninput="renderEnzymeKineticsLab()" class="w-full accent-emerald-500" />
@@ -3343,7 +3342,7 @@
 
               <div>
                 <div class="flex justify-between text-xs font-bold">
-                  <span>Hệ số ức chế $\alpha = 1 + [I]/K_i$:</span>
+                  <span>Hệ số ức chế α = 1 + [I]/K<sub>i</sub>:</span>
                   <span id="enz-alpha-val" class="font-mono text-rose-400">2.0x</span>
                 </div>
                 <input id="enz-alpha-slider" type="range" min="1.2" max="4.0" step="0.2" value="2.0" oninput="renderEnzymeKineticsLab()" class="w-full accent-rose-500" />
@@ -3351,7 +3350,7 @@
 
               <div>
                 <div class="flex justify-between text-xs font-bold">
-                  <span>Nồng độ cơ chất đang khảo sát $[S]$ ($\text{mM}$):</span>
+                  <span>Nồng độ cơ chất đang khảo sát [S] (mM):</span>
                   <span id="enz-s-val" class="font-mono text-amber-400">4.0 mM</span>
                 </div>
                 <input id="enz-s-slider" type="range" min="0.5" max="12.0" step="0.5" value="4.0" oninput="renderEnzymeKineticsLab()" class="w-full accent-amber-500" />
@@ -3366,7 +3365,7 @@
           <div class="lg:col-span-7 space-y-4">
             <div class="uni-card p-4 space-y-2">
               <div class="flex items-center justify-between">
-                <h4 class="text-xs sm:text-sm font-extrabold txt-main">📈 1. Đồ thị Hyperbol Michaelis-Menten ($v_0$ theo $[S]$)</h4>
+                <h4 class="text-xs sm:text-sm font-extrabold txt-main">📈 1. Đồ thị Hyperbol Michaelis-Menten (v<sub>0</sub> theo [S])</h4>
                 <span class="text-[11px] txt-muted font-mono">Đường nét đứt = Có mặt chất ức chế [I]</span>
               </div>
               <div id="enz-mm-svg-box" class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-2"></div>
@@ -3374,7 +3373,7 @@
 
             <div class="uni-card p-4 space-y-2">
               <div class="flex items-center justify-between">
-                <h4 class="text-xs sm:text-sm font-extrabold txt-main">📐 2. Đồ thị Nghịch Đảo Kép Lineweaver-Burk ($1/v_0$ theo $1/[S]$)</h4>
+                <h4 class="text-xs sm:text-sm font-extrabold txt-main">📐 2. Đồ thị Nghịch Đảo Kép Lineweaver-Burk (1/v<sub>0</sub> theo 1/[S])</h4>
                 <span class="text-[11px] text-amber-400 font-mono">Trục tung: 1/Vmax • Trục hoành: -1/Km</span>
               </div>
               <div id="enz-lb-svg-box" class="w-full overflow-x-auto rounded-xl bg-slate-950 border border-slate-800 p-2"></div>
@@ -3420,7 +3419,7 @@
 
             <!-- Add/Modify Edge -->
             <div class="p-3 rounded-xl border space-y-2 text-xs" style="background-color: var(--bg-subtle); border-color: var(--border);">
-              <div class="font-extrabold txt-main">➕ Thêm / Cập nhật cạnh có trọng số $(u, v, w)$:</div>
+              <div class="font-extrabold txt-main">➕ Thêm / Cập nhật cạnh có trọng số (u, v, w):</div>
               <div class="grid grid-cols-4 gap-2">
                 <input id="gt-edge-u" type="text" value="A" maxlength="2" placeholder="Đỉnh u" class="uni-input px-2 py-1 text-center font-mono font-bold uppercase" />
                 <input id="gt-edge-v" type="text" value="D" maxlength="2" placeholder="Đỉnh v" class="uni-input px-2 py-1 text-center font-mono font-bold uppercase" />
@@ -3450,7 +3449,7 @@
             </div>
 
             <div class="uni-card p-4 space-y-2">
-              <h4 class="text-xs font-extrabold txt-main">🔢 Biểu Diễn Ma Trận Kề (Adjacency Matrix) & Bậc Của Đỉnh $\deg(v)$</h4>
+              <h4 class="text-xs font-extrabold txt-main">🔢 Biểu Diễn Ma Trận Kề (Adjacency Matrix) &amp; Bậc Của Đỉnh deg(v)</h4>
               <div id="gt-matrix-box" class="overflow-x-auto text-[11px] font-mono"></div>
             </div>
           </div>
@@ -6590,8 +6589,8 @@ public class Student {
         <div class="flex items-center gap-2.5">
           <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white flex items-center justify-center text-lg shadow-md">📉</div>
           <div>
-            <h3 class="text-sm sm:text-base font-extrabold txt-main">Mô Phỏng Đường Cong Quên Lãng Ebbinghaus & Dự Báo Điểm Thi Cuối Kỳ</h3>
-            <p class="text-[11px] txt-muted">Mô hình toán học $R(t) = e^{-t/S}$ đối chiếu học vẹt 1 lần vs. Ôn tập ngắt quãng Spaced Repetition (SM-2)</p>
+            <h3 class="text-sm sm:text-base font-extrabold txt-main">Mô Phỏng Đường Cong Quên Lãng Ebbinghaus &amp; Dự Báo Điểm Thi Cuối Kỳ</h3>
+            <p class="text-[11px] txt-muted">Mô hình toán học <span class="font-mono font-bold">R(t) = e<sup>−t/S</sup></span> đối chiếu học vẹt 1 lần vs. Ôn tập ngắt quãng Spaced Repetition (SM-2)</p>
           </div>
         </div>
         <button onclick="closeModal('modal-ebbinghaus-predictor')" class="btn-soft px-2.5 py-1 text-xs font-bold">✕ Đóng</button>
@@ -8346,6 +8345,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=57.0"></script>
+  <script src="/static/app.js?v=58.1"></script>
 </body>
 </html>

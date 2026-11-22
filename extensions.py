@@ -145,78 +145,198 @@ DRUG_DATABASE = [
     }
 ]
 
-# 4 Clinical Case Scenarios for Virtual Patient Simulator
+# Clinical Case Scenarios for Virtual Patient Simulator (5-Step Clinical Decision Schema)
 VIRTUAL_CASES = [
     {
-        "id": "case_nephrotic",
-        "title": "Ca 1: Bệnh nhân nam 45 tuổi phù toàn thân, tiểu bọt",
-        "patient": "Nguyễn Văn H., 45 tuổi, thợ mộc",
-        "chief_complaint": "Phù mi mắt sáng thức dậy, sau đó lan xuống hai chân kèm tiểu nhiều bọt 2 tuần nay.",
-        "vitals": "Huyết áp: 135/85 mmHg | Mạch: 78 lần/phút | Thân nhiệt: 37.0°C | Cân nặng: 68 kg (tăng 5 kg trong 2 tuần)",
-        "history": [
-            {"label": "Tiền sử dùng thuốc", "content": "Không dùng thuốc giảm đau NSAIDs, không dùng thuốc nam thảo dược bắc."},
-            {"label": "Triệu chứng đi kèm", "content": "Không sốt, không đau hông lưng, không tiểu buốt dắt, nước tiểu màu vàng trong nhưng có nhiều bọt lâu tan."},
-            {"label": "Tiền sử gia đình", "content": "Chưa ghi nhận người thân mắc bệnh thận mạn."}
-        ],
-        "exam": [
-            {"label": "Khám phù", "content": "Phù trắng, mềm, ấn lõm rõ ở hai cẳng chân và mu bàn chân. Phù đều hai bên, không đau."},
-            {"label": "Khám tim mạch - hô hấp", "content": "Tim đều rõ, không âm thổi. Phổi rì rào phế nang êm dịu, không rale."},
-            {"label": "Khám bụng", "content": "Bụng mềm, gõ đục vùng thấp nhẹ (nghi ngờ có ít dịch màng bụng cổ trướng)."}
-        ],
-        "lab_options": [
-            {"id": "protein_24h", "name": "Định lượng Protein niệu 24 giờ", "result": "🔴 Protein nước tiểu 24h: 5.8 g/24 giờ (Rất cao, > 3.5 g/24h)"},
-            {"id": "albumin_blood", "name": "Định lượng Albumin & Protein máu", "result": "🔴 Albumin máu: 21.0 g/L (Giảm nặng, < 30 g/L) | Protein toàn phần: 44.5 g/L"},
-            {"id": "creatinine", "name": "Creatinin máu & eGFR", "result": "🟢 Creatinin máu: 88.0 µmol/L (1.0 mg/dL) | eGFR: 92 ml/phút/1.73m² (Bình thường)"},
-            {"id": "lipid_panel", "name": "Bộ mỡ máu (Lipid panel)", "result": "🔴 Cholesterol toàn phần: 9.8 mmol/L | Triglycerid: 3.8 mmol/L | LDL-C: 6.2 mmol/L"},
-            {"id": "urine_microscopy", "name": "Soi cặn lắng nước tiểu", "result": "Trụ mỡ (Fatty cast), thể mỡ lưỡng chiết quang (Maltese cross). Không thấy hồng cầu."}
-        ],
-        "diagnoses": [
-            {"id": "d1", "text": "Hội chứng thận hư nguyên phát (Protein niệu > 3.5g/24h, Albumin máu < 30g/L, Phù, Tăng lipid máu)", "is_correct": True},
-            {"id": "d2", "text": "Viêm cầu thận cấp sau nhiễm liên cầu khuẩn", "is_correct": False},
-            {"id": "d3", "text": "Xơ gan mất bù cổ trướng", "is_correct": False},
-            {"id": "d4", "text": "Suy tim ứ huyết sung huyết giai đoạn C", "is_correct": False}
-        ],
-        "treatment_steps": [
-            "1. Corticosteroid liều tấn công: Prednisone 1 mg/kg/ngày (uống buổi sáng sau ăn)",
-            "2. Kiểm soát phù: Thuốc lợi tiểu quai Furosemide phối hợp Spironolactone, chế độ ăn giảm muối (< 2g Natri/ngày)",
-            "3. Giảm đạm niệu và bảo vệ thận: Thuốc ức chế men chuyển (ACEi) hoặc ức chế thụ thể (ARB)",
-            "4. Kiểm soát rối loạn lipid máu: Statin (Atorvastatin 20mg/ngày)",
-            "5. Chỉ định sinh thiết thận qua da để xác định thể mô bệnh học (Sang thương tối thiểu, Xơ chai cầu thận khu trú từng vùng FSGS hay Bệnh màng)"
+        "id": "case_nephrotic_01",
+        "title": "Ca 1: Hội chứng thận hư nguyên phát ở người trưởng thành",
+        "patient": {
+            "name": "Nguyễn Văn H.",
+            "age": 45,
+            "gender": "Nam",
+            "chief_complaint": "Phù hai mi mắt buổi sáng, lan xuống hai chân kèm tiểu nhiều bọt lâu tan 2 tuần nay",
+            "history": "Tăng 5 kg trong 2 tuần, không sốt, không tiểu máu đại thể, không dùng thuốc giảm đau NSAIDs hay thảo dược.",
+            "vital_signs": {"bp": "135/85", "hr": 78, "temp": 37.0, "spo2": 98}
+        },
+        "steps": [
+            {
+                "step_title": "Khai thác bệnh sử & Tiền căn",
+                "prompt": "Bệnh nhân vào viện vì phù toàn thân và tiểu nhiều bọt. Câu hỏi bệnh sử nào quan trọng nhất giúp định hướng nguyên nhân phù do thận?",
+                "options": [
+                    {"text": "Hỏi tính chất phù xuất hiện ở đâu trước, diễn tiến theo thời gian trong ngày và đặc điểm nước tiểu (bọt lâu tan, lượng nước tiểu 24h)", "score": 20, "feedback": "Chính xác! Phù do cầu thận điển hình xuất hiện ở mi mắt buổi sáng, phù trắng mềm ấn lõm đối xứng kèm tiểu bọt lâu tan do đạm niệu cao."},
+                    {"text": "Chỉ hỏi tiền sử đau khớp gối khi leo cầu thang", "score": 5, "feedback": "Chưa đúng trọng tâm: Đau khớp gối cơ học ít liên quan trực tiếp đến hội chứng phù toàn thân cấp tính."},
+                    {"text": "Chỉ hỏi thói quen đọc sách và thời gian ngủ buổi tối", "score": 0, "feedback": "Không có giá trị định hướng chẩn đoán nguyên nhân phù toàn thân."},
+                    {"text": "Yêu cầu bệnh nhân nhịn uống nước hoàn toàn trước khi hỏi bệnh", "score": 0, "feedback": "Sai nguyên tắc tiếp cận lâm sàng ban đầu."}
+                ]
+            },
+            {
+                "step_title": "Thăm khám lâm sàng",
+                "prompt": "Khi thăm khám thực thể cho bệnh nhân nghi ngờ Hội chứng thận hư, thao tác nào cần ưu tiên thực hiện đầy đủ?",
+                "options": [
+                    {"text": "Chỉ bắt mạch quay và bỏ qua khám phù hay khám màng bụng", "score": 5, "feedback": "Thiếu sót lớn: Bắt buộc đánh giá mức độ phù và dịch các màng."},
+                    {"text": "Ấn tìm dấu phù lõm mặt trước xương chày, cân nặng, đo huyết áp, gõ bụng tìm dịch cổ trướng và nghe phổi tìm tràn dịch màng phổi", "score": 20, "feedback": "Xuất sắc! Hội chứng thận hư gây giảm áp lực keo máu dẫn đến phù trắng mềm ấn lõm và tràn dịch đa màng (màng bụng, màng phổi)."},
+                    {"text": "Khám phản xạ gân xương bánh chè đơn thuần", "score": 0, "feedback": "Không giúp đánh giá tình trạng ứ dịch hay biến chứng hội chứng thận hư."},
+                    {"text": "Nghiệm pháp Lasègue hai chân", "score": 0, "feedback": "Lasègue dùng cho đau thần kinh tọa, không phải khám phù thận."}
+                ]
+            },
+            {
+                "step_title": "Chỉ định Cận lâm sàng",
+                "prompt": "Bộ xét nghiệm cận lâm sàng nào là TIÊU CHUẨN BẮT BUỘC để xác lập chẩn đoán Hội chứng thận hư?",
+                "options": [
+                    {"text": "Chụp X-quang khớp cổ chân hai bên", "score": 0, "feedback": "Phù chân trong bệnh thận là phù mô mềm do giảm áp lực keo, không phải tổn thương xương khớp."},
+                    {"text": "Đo điện tâm đồ 12 chuyển đạo đơn thuần", "score": 5, "feedback": "ECG không thể chẩn đoán xác định hội chứng thận hư."},
+                    {"text": "Định lượng Protein niệu 24 giờ (hoặc tỷ lệ Protein/Creatinin niệu), Albumin & Protein máu toàn phần, Bộ mỡ máu (Lipid) và Tổng phân tích nước tiểu", "score": 20, "feedback": "Hoàn hảo! Kết quả trả về: Protein niệu 24h = 5,8 g/24h (> 3,5 g/24h), Albumin máu = 21 g/L (< 30 g/L), Cholesterol = 9,8 mmol/L, cặn lắng có trụ mỡ."},
+                    {"text": "Nội soi dạ dày – tá tràng ống mềm", "score": 0, "feedback": "Không có chỉ định trong bối cảnh phù thận tiểu đạm."}
+                ]
+            },
+            {
+                "step_title": "Chẩn đoán xác định",
+                "prompt": "Dựa trên: Phù trắng mềm ấn lõm + Protein niệu 5,8 g/24h + Albumin máu 21 g/L + Cholesterol 9,8 mmol/L + Creatinin máu 88 µmol/L, chẩn đoán chính xác nhất là:",
+                "options": [
+                    {"text": "Viêm bàng quang cấp không biến chứng", "score": 0, "feedback": "Viêm bàng quang không gây protein niệu ngưỡng thận hư (> 3,5 g/24h) và giảm albumin máu nặng."},
+                    {"text": "Hội chứng thận hư nguyên phát thể đơn thuần (đủ tiêu chuẩn Protein niệu > 3,5 g/24h và Albumin máu < 30 g/L)", "score": 20, "feedback": "Chính xác! Hai tiêu chuẩn bắt buộc của Hội chứng thận hư là Protein niệu > 3,5 g/24h/1,73m² và Albumin máu < 30 g/L (Protein máu < 60 g/L)."},
+                    {"text": "Cơn đau quặn thận do sỏi niệu quản", "score": 0, "feedback": "Bệnh nhân không đau hông lưng và không tiểu máu."},
+                    {"text": "Suy gan cấp do ngộ độc Paracetamol", "score": 5, "feedback": "Suy gan có thể giảm albumin nhưng không gây tiểu đạm 5,8 g/24h và trụ mỡ niệu."}
+                ]
+            },
+            {
+                "step_title": "Điều trị & Chăm sóc theo dõi",
+                "prompt": "Phác đồ điều trị và chăm sóc điều dưỡng chuẩn cho bệnh nhân Hội chứng thận hư giai đoạn phù nhiều là:",
+                "options": [
+                    {"text": "Truyền thật nhiều dung dịch NaCl 0,9% tốc độ nhanh và ăn mặn để bù muối", "score": 0, "feedback": "Nguy hiểm! Ăn mặn và truyền NaCl làm tình trạng phù và ứ muối nước nặng thêm."},
+                    {"text": "Dùng kháng sinh liều cao kéo dài 6 tháng cho mọi bệnh nhân", "score": 0, "feedback": "Hội chứng thận hư nguyên phát có cơ chế miễn dịch cầu thận, không điều trị đặc hiệu bằng kháng sinh."},
+                    {"text": "Ăn nhạt (< 2g Na/ngày), theo dõi cân nặng & lượng nước xuất-nhập 24h, Corticosteroid (Prednisone 1 mg/kg/ngày) + Lợi tiểu quai + Ức chế men chuyển giảm đạm niệu + Statin", "score": 20, "feedback": "Tuyệt vời! Phác đồ toàn diện gồm ức chế miễn dịch bằng Corticoid, hạn chế muối-nước, lợi tiểu kiểm soát phù, ACEi/ARB giảm đạm niệu và theo dõi cân nặng/nước tiểu hàng ngày."},
+                    {"text": "Chỉ chườm nóng hai cẳng chân và cho xuất viện ngay", "score": 5, "feedback": "Không giải quyết được cơ chế mất protein qua màng lọc cầu thận và nguy cơ huyết khối/nhiễm trùng."}
+                ]
+            }
         ]
     },
     {
-        "id": "case_acute_gout",
-        "title": "Ca 2: Bệnh nhân nam 52 tuổi sưng nóng đỏ đau dữ dội ngón chân cái",
-        "patient": "Trần Văn T., 52 tuổi, giám đốc kinh doanh",
-        "chief_complaint": "Thức giấc lúc nửa đêm vì đau buốt kinh hoàng ở khớp bàn ngón 1 chân phải sau bữa tiệc hải sản và uống rượu bia tối hôm trước.",
-        "vitals": "Huyết áp: 145/90 mmHg | Mạch: 92 lần/phút | Thân nhiệt: 37.8°C | BMI: 28.5 (Tiền béo phì)",
-        "history": [
-            {"label": "Chế độ ăn & rượu bia", "content": "Thường xuyên tiếp khách, ăn thịt bò, lòng lợn và uống 5–6 cốc bia mỗi tuần."},
-            {"label": "Tiền sử đau khớp", "content": "Cách đây 1 năm từng bị đau tương tự nhẹ hơn, tự mua thuốc giảm đau uống thì hết sau 3 ngày."},
-            {"label": "Bệnh kèm theo", "content": "Tăng huyết áp 3 năm, đang uống Amlodipine 5mg."}
-        ],
-        "exam": [
-            {"label": "Khám khớp bàn ngón 1 chân phải", "content": "Khớp sưng to, da căng bóng đỏ rực, nóng rát, đau dữ dội khi chạm nhẹ (thậm chí chạm vào ga giường cũng đau chói). Giới hạn vận động hoàn toàn."},
-            {"label": "Tìm hạt Tophi", "content": "Chưa thấy hạt tophi rõ ở vành tai hay gân gót."},
-            {"label": "Khám toàn thân", "content": "Hội chứng đáp ứng viêm toàn thân nhẹ, không phát ban ngoài da."}
-        ],
-        "lab_options": [
-            {"id": "uric_acid", "name": "Định lượng Acid Uric máu", "result": "🔴 Acid Uric máu: 585 µmol/L (9.8 mg/dL - Tăng rất cao)"},
-            {"id": "synovial_fluid", "name": "Chọc hút dịch khớp soi kính hiển vi phân cực", "result": "Tinh thể Monosodium Urat (MSU) hình kim nhọn lưỡng chiết quang âm tính mạnh nằm trong bạch cầu đa nhân."},
-            {"id": "crp_esr", "name": "Chỉ số viêm CRP và máu lắng", "result": "🔴 CRP: 48 mg/L (Tăng cao) | Tốc độ máu lắng ESR: 55 mm/giờ"},
-            {"id": "creatinine", "name": "Creatinin máu & chức năng thận", "result": "🟢 Creatinin máu: 92 µmol/L | eGFR: 82 ml/phút/1.73m²"}
-        ],
-        "diagnoses": [
-            {"id": "d1", "text": "Cơn Gout cấp tính (Acute Gouty Arthritis) khớp bàn ngón chân cái", "is_correct": True},
-            {"id": "d2", "text": "Viêm khớp nhiễm khuẩn cấp", "is_correct": False},
-            {"id": "d3", "text": "Thoái hóa khớp ngón chân cái biến dạng", "is_correct": False},
-            {"id": "d4", "text": "Viêm mô tế bào bàn chân do tụ cầu", "is_correct": False}
-        ],
-        "treatment_steps": [
-            "1. Cắt cơn viêm cấp tính ngay: Colchicine 1mg uống liều đầu, sau đó 0.5mg sau 1 giờ (phác đồ liều thấp chuẩn EULAR/ACR)",
-            "2. Phối hợp NSAID (Naproxen, Ibuprofen hoặc Celecoxib) nếu không có chống chỉ định loét dạ dày/suy thận",
-            "3. LƯU Ý SỐNG CÒN: KHÔNG ĐƯỢC khởi trị thuốc hạ acid uric (Allopurinol / Febuxostat) trong lúc cơn Gout đang bùng phát cấp tính! (Chỉ bắt đầu hạ acid uric sau khi cơn đau khớp đã lắng xuống hoàn toàn 2–4 tuần).",
-            "4. Bất động khớp, chườm lạnh tại chỗ, kiêng hoàn toàn rượu bia, phủ tạng động vật và hải sản."
+        "id": "case_gout_02",
+        "title": "Ca 2: Cơn Gout cấp tính trên nền tăng huyết áp",
+        "patient": {
+            "name": "Trần Văn T.",
+            "age": 52,
+            "gender": "Nam",
+            "chief_complaint": "Đau buốt, sưng nóng đỏ dữ dội khớp bàn ngón 1 chân phải khởi phát đột ngột lúc nửa đêm",
+            "history": "Khởi phát sau bữa tiệc hải sản và bia tối hôm trước. Tiền sử tăng huyết áp 3 năm đang dùng thuốc đều.",
+            "vital_signs": {"bp": "145/90", "hr": 92, "temp": 37.8, "spo2": 98}
+        },
+        "steps": [
+            {
+                "step_title": "Khai thác bệnh sử & Yếu tố khởi phát",
+                "prompt": "Đặc điểm lâm sàng nào kinh điển nhất khi khai thác bệnh sử cơn Gout cấp?",
+                "options": [
+                    {"text": "Đau âm ỉ hai khớp gối tăng dần suốt 5 năm không sưng đỏ", "score": 5, "feedback": "Đây là đặc điểm của thoái hóa khớp mạn tính, không phải cơn Gout cấp."},
+                    {"text": "Khởi phát đột ngột lúc nửa đêm về sáng tại khớp bàn ngón chân cái (Podagra) sau bữa ăn giàu purin/rượu bia, đau đạt đỉnh trong 12–24 giờ đầu", "score": 20, "feedback": "Chính xác! Cơn Gout cấp kinh điển khởi phát đột ngột ban đêm ở khớp bàn ngón 1 chân cái, đau dữ dội đến mức chạm nhẹ ga giường cũng đau."},
+                    {"text": "Cứng khớp bàn tay buổi sáng kéo dài trên 2 giờ đối xứng hai bên", "score": 5, "feedback": "Đây là triệu chứng điển hình của Viêm khớp dạng thấp (RA)."},
+                    {"text": "Đau lan từ thắt lưng xuống mặt sau đùi và cẳng chân", "score": 0, "feedback": "Đây là hội chứng chèn ép rễ thần kinh tọa."}
+                ]
+            },
+            {
+                "step_title": "Thăm khám thực thể",
+                "prompt": "Khi khám khớp và toàn thân cho bệnh nhân nghi ngờ Gout, cần chú ý tìm dấu hiệu đặc hiệu nào?",
+                "options": [
+                    {"text": "Khám khớp bàn ngón 1 sưng to, da căng bóng đỏ rực, nóng, tăng cảm đau; đồng thời tìm hạt Tophi ở vành tai, khuỷu tay, gân gót", "score": 20, "feedback": "Rất chuẩn! Khám tại khớp viêm cấp và tìm hạt Tophi dưới da giúp đánh giá giai đoạn bệnh Gout."},
+                    {"text": "Chỉ nghe tiếng nhu động ruột vùng hố chậu phải", "score": 0, "feedback": "Không liên quan đến viêm khớp bàn ngón chân cái."},
+                    {"text": "Bắt bệnh nhân chạy bộ tại chỗ 15 phút để xem mức độ đau", "score": 0, "feedback": "Sai hoàn toàn: Khớp đang viêm cấp cực đau cần được nghỉ ngơi bất động."},
+                    {"text": "Chỉ đo thị lực hai mắt", "score": 0, "feedback": "Không phải trọng tâm khám viêm khớp Gout cấp."}
+                ]
+            },
+            {
+                "step_title": "Chỉ định Cận lâm sàng & Tiêu chuẩn vàng",
+                "prompt": "Xét nghiệm nào là TIÊU CHUẨN VÀNG để chẩn đoán xác định Gout, kèm bộ xét nghiệm sinh hóa cần làm?",
+                "options": [
+                    {"text": "Định lượng Glucose máu bất kỳ đơn thuần", "score": 5, "feedback": "Không đủ để chẩn đoán Gout."},
+                    {"text": "Chụp CT sọ não không cản quang", "score": 0, "feedback": "Không có chỉ định trong viêm khớp bàn ngón chân."},
+                    {"text": "Soi dịch khớp dưới kính hiển vi phân cực tìm tinh thể Monosodium Urat (MSU) hình kim nằm trong bạch cầu đa nhân, kèm Acid Uric máu, CRP và Creatinin/eGFR", "score": 20, "feedback": "Hoàn hảo! Tinh thể MSU hình kim nhọn lưỡng chiết quang âm tính trong dịch khớp là tiêu chuẩn vàng; kết quả Acid Uric máu = 585 µmol/L, CRP = 48 mg/L, eGFR = 82 mL/phút."},
+                    {"text": "Siêu âm tuyến giáp", "score": 0, "feedback": "Không liên quan đến bệnh cảnh Gout cấp."}
+                ]
+            },
+            {
+                "step_title": "Chẩn đoán & Biện luận hóa sinh",
+                "prompt": "Cơ chế hóa sinh trực tiếp hình thành Acid Uric ở người và ngưỡng bão hòa kết tinh tinh thể Monosodium Urat trong huyết tương là:",
+                "options": [
+                    {"text": "Thoái hóa base Pyrimidin nhờ enzyme Amylase; ngưỡng > 100 µmol/L", "score": 0, "feedback": "Sai: Acid uric là sản phẩm thoái hóa của base Purin (Adenin, Guanin), không phải Pyrimidin."},
+                    {"text": "Thoái hóa base Purin qua trung gian Xanthine nhờ enzyme Xanthine Oxidase; kết tinh MSU khi Acid Uric máu vượt ngưỡng bão hòa > 420 µmol/L (7,0 mg/dL)", "score": 20, "feedback": "Chính xác tuyệt đối! Người thiếu enzyme Uricase nên Acid Uric là sản phẩm cuối cùng của thoái hóa Purin; khi nồng độ > 420 µmol/L (7 mg/dL) sẽ dễ kết tinh tinh thể MSU tại khớp."},
+                    {"text": "Tổng hợp từ Cholesterol tại gan nhờ HMG-CoA reductase", "score": 0, "feedback": "HMG-CoA reductase là enzyme tổng hợp Cholesterol, không phải Acid Uric."},
+                    {"text": "Thủy phân Glycogen tại cơ vân", "score": 0, "feedback": "Thủy phân glycogen tạo Glucose-1-phosphate."}
+                ]
+            },
+            {
+                "step_title": "Phác đồ điều trị & Nguyên tắc dùng Allopurinol",
+                "prompt": "Nguyên tắc điều trị ĐÚNG NHẤT cho bệnh nhân đang trong cơn Gout cấp bùng phát dữ dội là:",
+                "options": [
+                    {"text": "Khởi trị ngay Allopurinol liều cao 600 mg/ngày ngay trong ngày đầu cơn đau cấp mà không dùng thuốc kháng viêm", "score": 0, "feedback": "SAI LẦM NGUY HIỂM! Khởi trị mới Allopurinol trong cơn Gout cấp làm biến động nồng độ acid uric máu đột ngột, khiến tinh thể urat bong ra nhiều hơn và làm cơn đau kéo dài/nặng hơn!"},
+                    {"text": "Cắt cơn viêm cấp bằng Colchicine liều thấp (1 mg liều đầu, sau 1 giờ uống 0,5 mg) phối hợp NSAID, nghỉ ngơi chườm lạnh; CHỈ khởi trị Allopurinol sau khi cơn viêm cấp đã ổn định hoàn toàn", "score": 20, "feedback": "Xuất sắc! Quy tắc vàng: Cắt cơn viêm cấp trước (Colchicine/NSAID/Corticoid), tuyệt đối không khởi trị mới Allopurinol trong lúc đang bùng phát cơn Gout cấp."},
+                    {"text": "Chườm nước thật nóng lên khớp đang sưng đỏ và xoa bóp mạnh", "score": 0, "feedback": "Chườm nóng và xoa bóp làm giãn mạch tăng sung huyết khiến khớp sưng đau dữ dội hơn."},
+                    {"text": "Tiêm Penicillin tĩnh mạch liều cao", "score": 0, "feedback": "Gout cấp là viêm khớp tinh thể vô khuẩn, không điều trị bằng kháng sinh."}
+                ]
+            }
+        ]
+    },
+    {
+        "id": "case_anaphylaxis_03",
+        "title": "Ca 3: Xử trí & Chăm sóc Điều dưỡng Sốc phản vệ độ II–III sau tiêm kháng sinh",
+        "patient": {
+            "name": "Lê Thị M.",
+            "age": 31,
+            "gender": "Nữ",
+            "chief_complaint": "Khó thở, nổi mày đay toàn thân, choáng váng chỉ 5 phút sau khi bắt đầu truyền kháng sinh Ceftriaxone",
+            "history": "Vào viện vì viêm phổi cộng đồng. Đang truyền Ceftriaxone tĩnh mạch được 5 phút thì bồn chồn, ngứa ran, khàn tiếng, tụt huyết áp.",
+            "vital_signs": {"bp": "80/50", "hr": 124, "temp": 37.2, "spo2": 89}
+        },
+        "steps": [
+            {
+                "step_title": "Nhận định cấp cứu & Hành động đầu tiên tại giường",
+                "prompt": "Ngay khi phát hiện người bệnh nổi mày đay, khó thở rít, HA tụt 80/50 mmHg trong lúc đang truyền kháng sinh, hành động ĐẦU TIÊN của điều dưỡng là:",
+                "options": [
+                    {"text": "Tăng tốc độ truyền kháng sinh chảy thật nhanh để hết chai thuốc sớm", "score": 0, "feedback": "Nguy hiểm tính mạng! Tiếp tục đưa dị nguyên vào máu sẽ gây ngừng tuần hoàn ngay lập tức."},
+                    {"text": "Khóa ngay đường truyền kháng sinh (giữ nguyên kim luồn tĩnh mạch), cho người bệnh nằm đầu thấp chân cao, gọi hỗ trợ cấp cứu và lấy hộp thuốc chống sốc phản vệ", "score": 20, "feedback": "Chính xác! Bước đầu tiên sống còn là NGỪNG NGAY tiếp xúc với dị nguyên (khóa dây truyền thuốc nhưng giữ đường truyền tĩnh mạch để cấp cứu) và gọi cấp cứu tại chỗ."},
+                    {"text": "Rút bỏ kim luồn tĩnh mạch rồi cho bệnh nhân tự đi bộ sang phòng khám khác", "score": 0, "feedback": "Sai nghiêm trọng: Rút mất đường truyền tĩnh mạch khi đang tụt huyết áp sẽ rất khó lấy lại ven, và bệnh nhân sốc tuyệt đối không được đứng dậy đi lại."},
+                    {"text": "Chờ 30 phút xem triệu chứng có tự hết không rồi mới báo bác sĩ", "score": 0, "feedback": "Sốc phản vệ diễn tiến tính bằng phút, trì hoãn sẽ dẫn tới tử vong."}
+                ]
+            },
+            {
+                "step_title": "Thuốc cấp cứu đầu tay & Đường dùng chuẩn",
+                "prompt": "Theo phác đồ xử trí phản vệ của Bộ Y tế, thuốc SỐNG CÒN ĐẦU TAY, liều lượng và đường tiêm chuẩn ngay lập tức cho người lớn là:",
+                "options": [
+                    {"text": "Adrenalin 1 mg/1 mL: tiêm BẮP (IM) mặt trước ngoài đùi 1/2 – 1 ống (0,5 – 1 mg) ngay lập tức", "score": 20, "feedback": "Chuẩn xác 100%! Adrenalin tiêm bắp mặt trước ngoài đùi là thuốc duy nhất cứu sống người bệnh phản vệ từ độ II trở lên, có thể nhắc lại mỗi 3–5 phút nếu huyết áp chưa lên."},
+                    {"text": "Chỉ uống 1 viên Loratadin 10 mg và theo dõi", "score": 0, "feedback": "Kháng Histamin đường uống tác dụng quá chậm và không nâng được huyết áp hay chống co thắt phế quản cấp."},
+                    {"text": "Tiêm thẳng 1 ống Adrenalin nguyên chất 1 mg tĩnh mạch nhanh (bolus) không pha loãng", "score": 0, "feedback": "Nguy hiểm! Tiêm tĩnh mạch nhanh Adrenalin nguyên chất dễ gây rung thất và xuất huyết não; đường chuẩn ban đầu là TIÊM BẮP."},
+                    {"text": "Chỉ bôi kem dưỡng ẩm ngoài da vùng nổi mề đay", "score": 0, "feedback": "Không có tác dụng cấp cứu sốc phản vệ."}
+                ]
+            },
+            {
+                "step_title": "Hồi sức Hô hấp – Tuần hoàn phối hợp",
+                "prompt": "Song song với tiêm bắp Adrenalin, điều dưỡng thực hiện các y lệnh hồi sức hô hấp và tuần hoàn nào tiếp theo?",
+                "options": [
+                    {"text": "Cho bệnh nhân uống 2 lít nước lọc thật nhanh", "score": 0, "feedback": "Bệnh nhân đang khó thở, tụt huyết áp uống nước dễ sặc vào phổi."},
+                    {"text": "Thở Oxy qua mặt nạ 6–10 L/phút (giữ SpO2 ≥ 95%) và truyền nhanh NaCl 0,9% 1.000–2.000 mL qua đường truyền tĩnh mạch lớn để bù thể tích tuần hoàn", "score": 20, "feedback": "Chính xác! Trong sốc phản vệ có giãn mạch và thoát dịch lòng mạch mạnh nên bắt buộc thở oxy lưu lượng cao và bù dịch tinh thể NaCl 0,9% tốc độ nhanh."},
+                    {"text": "Truyền dung dịch ưu trương Glucose 30% duy nhất", "score": 5, "feedback": "Dịch hồi sức thể tích đầu tay trong sốc phản vệ là NaCl 0,9%, không phải Glucose ưu trương."},
+                    {"text": "Đặt bệnh nhân ngồi thõng hai chân xuống giường", "score": 0, "feedback": "Ngồi thõng chân làm giảm máu về tim khiến tụt huyết áp nặng hơn (trừ khi phù phổi cấp)."}
+                ]
+            },
+            {
+                "step_title": "Thuốc phối hợp giải phóng muộn (Pha 2)",
+                "prompt": "Sau khi huyết áp và hô hấp đã tạm ổn định nhờ Adrenalin và truyền dịch, nhóm thuốc hỗ trợ nào được dùng để ngăn ngừa phản vệ pha 2?",
+                "options": [
+                    {"text": "Methylprednisolone 1–2 mg/kg IV (Corticoid) phối hợp Diphenhydramin (Kháng Histamin H1) theo y lệnh", "score": 20, "feedback": "Đúng! Corticoid và kháng Histamin là thuốc hàng thứ hai giúp ổn định dưỡng bào và dự phòng phản ứng phản vệ pha 2 (tái phát sau 4–24 giờ)."},
+                    {"text": "Tiêm lại ngay kháng sinh Ceftriaxone vừa gây dị ứng để thử lại", "score": 0, "feedback": "Chống chỉ định tuyệt đối việc thử lại thuốc vừa gây sốc phản vệ!"},
+                    {"text": "Dùng thuốc hạ huyết áp Nifedipin ngậm dưới lưỡi", "score": 0, "feedback": "Bệnh nhân đang sốc tụt huyết áp, dùng thuốc hạ áp sẽ gây trụy mạch."},
+                    {"text": "Dùng Insulin tiêm dưới da", "score": 0, "feedback": "Không có chỉ định trong phác đồ chống sốc phản vệ."}
+                ]
+            },
+            {
+                "step_title": "Theo dõi sau cấp cứu & Dự phòng tái diễn",
+                "prompt": "Thời gian bắt buộc theo dõi bệnh nhân tại bệnh viện sau khi cắt cơn phản vệ và quy định ghi hồ sơ dị ứng là:",
+                "options": [
+                    {"text": "Cho xuất viện về nhà ngay sau 15 phút khi thấy hết nổi mề đay", "score": 0, "feedback": "Rất nguy hiểm vì nguy cơ phản vệ pha 2 (biphasic anaphylaxis) có thể xảy ra trong 24 giờ đầu!"},
+                    {"text": "Theo dõi sát mạch, HA, nhịp thở, SpO2 ít nhất 24 giờ tại viện để phòng phản vệ pha 2; ghi rõ dị ứng Ceftriaxone vào hồ sơ bệnh án và cấp thẻ theo dõi dị ứng cho người bệnh", "score": 20, "feedback": "Hoàn hảo! Phải theo dõi tối thiểu 24 giờ tại cơ sở y tế và cấp thẻ ghi nhận dị ứng thuốc suốt đời cho người bệnh."},
+                    {"text": "Không cần ghi vào hồ sơ bệnh án vì bệnh nhân đã khỏi", "score": 0, "feedback": "Bắt buộc phải ghi rõ tiền sử dị ứng và cấp thẻ dị ứng để tránh tái phơi nhiễm gây tử vong lần sau."},
+                    {"text": "Chỉ theo dõi nhiệt độ 1 lần rồi ngưng mọi theo dõi", "score": 5, "feedback": "Không đảm bảo an toàn người bệnh sau sốc phản vệ."}
+                ]
+            }
         ]
     }
 ]
@@ -356,11 +476,12 @@ async def export_printable_exam_handler(request):
 </body>
 </html>"""
 
+        safe_code = re.sub(r"[^A-Za-z0-9_-]", "_", str(sub.get("code") if sub else "UniMaster"))
         return web.Response(
             text=html_doc,
             content_type="application/msword",
             charset="utf-8",
-            headers={"Content-Disposition": f'attachment; filename="De_Thi_{sub_name.replace(" ", "_")}.doc"'}
+            headers={"Content-Disposition": f'attachment; filename="De_Thi_{safe_code}.doc"'}
         )
     except Exception as e:
         return web.json_response({"success": False, "error": str(e)}, status=500)
