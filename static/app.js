@@ -13467,9 +13467,6 @@ function renderExerciseDetail() {
 
               <!-- Fullscreen AI Console button -->
               <div class="flex items-center gap-2">
-                <button type="button" onclick="openAiFullscreenForCurrentTab()" class="px-2.5 py-1 rounded bg-[#333333] hover:bg-[#444444] text-cyan-300 hover:text-white flex items-center gap-1.5 text-[11px] font-mono transition-colors shadow-sm" title="Mở rộng toàn màn hình phần AI trả lời">
-                  <span>⛶</span> Toàn Màn Hình AI
-                </button>
                 <!-- Console Status Indicator -->
                 <div id="console-status-indicator" class="text-[11px] font-bold text-[#858585] font-mono">
                   ${testRes ? (testRes.all_passed ? '<span class="text-emerald-400">● 100% Passed</span>' : '<span class="text-amber-400">▲ Có lỗi test case</span>') : '● Ready'}
@@ -15593,9 +15590,28 @@ document.addEventListener('dblclick', (e) => {
 // =========================================================================
 // UNIMASTER v15.0: SURVIVAL PREDICTOR LOGIC & COUNTDOWNS
 // =========================================================================
+let _showPastExamsInSchedule = false;
+function toggleShowPastExams() {
+  _showPastExamsInSchedule = !_showPastExamsInSchedule;
+  renderSurvivalPredictor();
+}
+window.toggleShowPastExams = toggleShowPastExams;
+
 function renderSurvivalPredictor() {
   const now = new Date();
-  const exams = getActiveExamSchedule();
+  const allExams = getActiveExamSchedule();
+  const upcomingExams = allExams.filter((ex) => ex.date.getTime() >= now.getTime());
+  const pastCount = allExams.length - upcomingExams.length;
+  const exams = (_showPastExamsInSchedule || upcomingExams.length === 0) ? allExams : upcomingExams;
+  const togglePastBtn = document.getElementById('btn-toggle-past-exams');
+  if (togglePastBtn) {
+    if (pastCount > 0 && upcomingExams.length > 0) {
+      togglePastBtn.classList.remove('hidden');
+      togglePastBtn.textContent = _showPastExamsInSchedule ? 'Ẩn môn đã qua' : `+${pastCount} đã qua`;
+    } else {
+      togglePastBtn.classList.add('hidden');
+    }
+  }
   const gridEl = document.getElementById('custom-exam-countdown-grid');
 
   let nearestDays = 9999;
