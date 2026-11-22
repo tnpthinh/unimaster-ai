@@ -6262,3 +6262,217 @@ body.vscode-fs-active main {
     min-width: 0 !important;
   }
 }
+
+/* ==============================================================================
+   v69.0: REVOLUTIONARY UI OVERHAUL — OBSIDIAN GLASS & SPATIAL FLUIDITY
+   (Linear + macOS Sequoia + Arc aesthetic • Full Dark & Light Mode parity)
+   ============================================================================== */
+
+/* 1. Ambient Layered Canvas & Custom Scrollbar */
+html.dark body {
+  background-color: #07090f !important;
+  background-image:
+    radial-gradient(ellipse 80% 45% at 50% -12%, rgba(99, 102, 241, 0.16), transparent 65%),
+    radial-gradient(ellipse 50% 35% at 92% 10%, rgba(139, 92, 246, 0.09), transparent 60%) !important;
+  background-attachment: fixed !important;
+}
+
+html:not(.dark):not(.sepia) body {
+  background-color: #f4f6fb !important;
+  background-image:
+    radial-gradient(ellipse 75% 40% at 50% -10%, rgba(99, 102, 241, 0.09), transparent 65%),
+    radial-gradient(ellipse 45% 30% at 90% 8%, rgba(14, 165, 233, 0.06), transparent 60%) !important;
+  background-attachment: fixed !important;
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.32);
+  color: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.55);
+}
+
+/* 2. Frosted Precision Top Header */
+.uni-top-header {
+  backdrop-filter: blur(22px) saturate(170%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(170%) !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05), 0 10px 30px -15px rgba(0, 0, 0, 0.45) !important;
+}
+html.dark .uni-top-header {
+  background: rgba(9, 12, 20, 0.78) !important;
+}
+html:not(.dark):not(.sepia) .uni-top-header {
+  background: rgba(255, 255, 255, 0.82) !important;
+  box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06), 0 8px 24px -12px rgba(15, 23, 42, 0.08) !important;
+}
+
+/* 3. Elevated Luminous Bento Cards */
+html.dark .uni-card {
+  background: linear-gradient(180deg, rgba(20, 24, 37, 0.92) 0%, rgba(14, 17, 27, 0.96) 100%) !important;
+  border-color: rgba(255, 255, 255, 0.075) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.065),
+    0 12px 32px -16px rgba(0, 0, 0, 0.65) !important;
+  border-radius: 1.15rem !important;
+}
+html:not(.dark):not(.sepia) .uni-card {
+  background: rgba(255, 255, 255, 0.94) !important;
+  border-color: rgba(15, 23, 42, 0.08) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 8px 26px -12px rgba(15, 23, 42, 0.09) !important;
+  border-radius: 1.15rem !important;
+}
+
+/* 4. Hero Spotlight Card */
+html.dark .hero-dashboard-card {
+  background:
+    radial-gradient(ellipse 65% 110% at 0% 0%, rgba(99, 102, 241, 0.22), transparent 62%),
+    radial-gradient(ellipse 50% 90% at 100% 100%, rgba(139, 92, 246, 0.12), transparent 55%),
+    linear-gradient(180deg, rgba(21, 26, 42, 0.96) 0%, rgba(13, 16, 26, 0.98) 100%) !important;
+  border-color: rgba(99, 102, 241, 0.28) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.11),
+    0 20px 45px -20px rgba(79, 70, 229, 0.35) !important;
+}
+html:not(.dark):not(.sepia) .hero-dashboard-card {
+  background:
+    radial-gradient(ellipse 60% 100% at 0% 0%, rgba(99, 102, 241, 0.12), transparent 60%),
+    linear-gradient(135deg, #ffffff 0%, #f5f7ff 100%) !important;
+  border-color: rgba(99, 102, 241, 0.22) !important;
+  box-shadow:
+    inset 0 1px 0 #ffffff,
+    0 16px 36px -16px rgba(79, 70, 229, 0.16) !important;
+}
+
+/* 5. Tactile Buttons & Primary Luminous Aura */
+.btn-primary {
+  background: linear-gradient(135deg, var(--brand, #6366f1) 0%, var(--brand-2, #7c3aed) 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    0 6px 18px -6px rgba(99, 102, 241, 0.55) !important;
+  transition: transform 0.14s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.18s ease, filter 0.15s ease !important;
+}
+.btn-primary:hover {
+  filter: brightness(1.07);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    0 10px 24px -6px rgba(99, 102, 241, 0.68) !important;
+}
+.btn-primary:active {
+  transform: scale(0.97) !important;
+}
+
+.btn-soft {
+  transition: transform 0.14s ease, border-color 0.16s ease, background-color 0.16s ease !important;
+}
+.btn-soft:active {
+  transform: scale(0.975);
+}
+
+/* 6. Interactive Subject Cards, Countdown Cards & Tool Tiles */
+#subjects-grid > div,
+.countdown-card,
+.bento-tool-tile {
+  transition: transform 0.18s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.18s ease, box-shadow 0.2s ease !important;
+}
+@media (hover: hover) and (pointer: fine) {
+  #subjects-grid > div:hover,
+  .countdown-card:hover,
+  .bento-tool-tile:hover {
+    transform: translateY(-2px);
+    border-color: rgba(99, 102, 241, 0.45) !important;
+    box-shadow: 0 12px 26px -14px rgba(99, 102, 241, 0.35) !important;
+  }
+}
+
+.countdown-card {
+  position: relative;
+  overflow: hidden;
+}
+.countdown-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand, #6366f1), var(--brand-2, #8b5cf6));
+  opacity: 0.65;
+}
+
+/* 7. Exam Option Rows — Crisp Tactile Keycap Feel */
+.option-row {
+  position: relative;
+  border-radius: 0.95rem !important;
+}
+html.dark .option-row {
+  background: rgba(18, 22, 34, 0.72);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+@media (hover: hover) and (pointer: fine) {
+  html.dark .option-row:hover:not(.disabled) {
+    background: rgba(30, 36, 56, 0.9) !important;
+    border-color: rgba(99, 102, 241, 0.55) !important;
+    box-shadow: 0 6px 20px -10px rgba(99, 102, 241, 0.35);
+  }
+}
+
+/* 8. Liquid Glass Floating Clock & Frosted Modals with Spring Animation */
+#floating-realtime-clock,
+#floating-realtime-clock-restore {
+  backdrop-filter: blur(20px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(20px) saturate(180%) !important;
+  border-radius: 9999px !important;
+}
+html.dark #floating-realtime-clock,
+html.dark #floating-realtime-clock-restore {
+  background: rgba(13, 17, 28, 0.82) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 12px 30px -10px rgba(0, 0, 0, 0.75) !important;
+}
+
+.modal-backdrop {
+  backdrop-filter: blur(10px) saturate(130%) !important;
+  -webkit-backdrop-filter: blur(10px) saturate(130%) !important;
+}
+.modal-backdrop:not(.hidden) > .uni-card {
+  animation: v69ModalSpring 0.2s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@keyframes v69ModalSpring {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.975);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 9. Frosted Glass Mobile/Tablet Bottom Dock */
+.mobile-bottom-nav {
+  backdrop-filter: blur(22px) saturate(180%) !important;
+  -webkit-backdrop-filter: blur(22px) saturate(180%) !important;
+}
+html.dark .mobile-bottom-nav {
+  background: rgba(10, 13, 22, 0.86) !important;
+  border-top-color: rgba(255, 255, 255, 0.09) !important;
+}
+html:not(.dark):not(.sepia) .mobile-bottom-nav {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border-top-color: rgba(15, 23, 42, 0.08) !important;
+}
