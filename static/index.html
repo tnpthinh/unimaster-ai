@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=67.1" />
+  <link rel="stylesheet" href="/static/style.css?v=68.1" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -1476,88 +1476,68 @@
     <!-- ===================================================================
          VIEW 3: CHẤM THỰC HÀNH LẬP TRÌNH TỰ ĐỘNG (OOP & NNLT 1)
          =================================================================== -->
-    <section id="view-exercises" class="hidden space-y-5 animate-fade-in">
-      <!-- Top Bar: Subject Selector + Quick Actions -->
-      <div class="uni-card p-3 sm:p-4 flex flex-wrap items-center justify-between gap-2">
-        <div class="flex items-center gap-2">
-          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center text-white shadow-md">
-            <i data-lucide="code-2" class="w-4 h-4"></i>
-          </div>
-          <div>
-            <h2 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-1.5">
-              Thực Hành Code
-              <span id="exercise-total-tracks-badge" class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">30 bài</span>
-            </h2>
-          </div>
+    <section id="view-exercises" class="hidden space-y-3.5 animate-fade-in">
+      <!-- Clean Single-Line Code Header -->
+      <div class="uni-card px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex items-center gap-2.5 flex-wrap">
+          <h2 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
+            <i data-lucide="code-2" class="w-4 h-4 txt-brand"></i>
+            <span>Thực Hành Code</span>
+            <span id="exercise-total-tracks-badge" class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono">30 bài</span>
+          </h2>
+          <select id="exercise-subject-select" onchange="loadExercisesView()" class="uni-input px-2.5 py-1.5 text-xs font-bold">
+            <option value="5">💻 OOP (C#)</option>
+            <option value="82">⚡ Giải Thuật</option>
+            <option value="22">🐍 Python</option>
+          </select>
         </div>
         <div class="flex items-center gap-1.5 flex-wrap">
-          <select id="exercise-subject-select" onchange="loadExercisesView()" class="uni-input px-2.5 py-1.5 text-xs font-bold">
-            <option value="5">💻 OOP (C#) — 10 bài</option>
-            <option value="82">⚡ Giải Thuật &amp; CTDL — 10 bài</option>
-            <option value="22">🐍 NNLT 1 (Python) — 10 bài</option>
+          <select id="code-template-select" onchange="insertQuickCodeTemplate(this.value); this.value='';" class="uni-input px-2.5 py-1.5 text-xs font-bold" title="Chèn mẫu code nhanh">
+            <option value="">🧩 Mẫu code...</option>
+            <option value="oop_class">C#: Class</option>
+            <option value="oop_inherit">C#: Kế thừa</option>
+            <option value="py_binsearch">Py: Binary Search</option>
+            <option value="py_bfs">Py: BFS/DFS</option>
+            <option value="py_dp">Py: DP</option>
           </select>
-          <select id="code-template-select" onchange="insertQuickCodeTemplate(this.value); this.value='';" class="uni-input px-2.5 py-1.5 text-xs font-bold" title="Chèn nhanh mẫu thuật toán &amp; OOP">
-            <option value="">🧩 Mẫu code nhanh...</option>
-            <option value="oop_class">C#: Class &amp; Encapsulation</option>
-            <option value="oop_inherit">C#: Kế thừa &amp; Đa hình</option>
-            <option value="py_binsearch">Python: Tìm kiếm nhị phân</option>
-            <option value="py_bfs">Python: Duyệt đồ thị BFS/DFS</option>
-            <option value="py_dp">Python: Quy hoạch động</option>
-          </select>
-          <button id="btn-toggle-ide-expand" type="button" onclick="toggleExerciseSidebarList()" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold" title="Ẩn / Hiện danh sách bài tập">
-            <span id="ide-expand-btn-icon">📂</span> <span id="ide-expand-btn-text">Thu gọn DS</span>
+          <button id="btn-toggle-ide-expand" type="button" onclick="toggleExerciseSidebarList()" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold">
+            <span id="ide-expand-btn-icon">📂</span> <span id="ide-expand-btn-text">Danh sách</span>
           </button>
-          <button onclick="nextExercise()" class="btn-soft px-3 py-1.5 text-xs flex items-center gap-1 font-bold" title="Chuyển sang bài tiếp theo">
+          <button onclick="nextExercise()" class="btn-soft px-3 py-1.5 text-xs flex items-center gap-1 font-bold">
             <span>⏭️</span> <span class="hidden sm:inline">Bài tiếp</span>
-          </button>
-          <button onclick="analyzeCurrentCodeComplexity()" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold" title="Phân tích Big-O & OOP">
-            <span>⚡</span> <span class="hidden md:inline">Big-O</span>
-          </button>
-          <button onclick="openUmlMemoryModal()" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold" title="Sơ đồ lớp UML & Stack/Heap">
-            <span>🔬</span> <span class="hidden md:inline">UML &amp; Heap</span>
-          </button>
-          <button onclick="openPolyglotModal(true)" class="btn-soft px-2.5 py-1.5 text-xs flex items-center gap-1 font-bold" title="Đối chiếu C# ↔ Python">
-            <span>🔄</span> <span class="hidden lg:inline">C# ↔ Python</span>
           </button>
         </div>
       </div>
 
       <!-- Main Split Layout: IDE Workspace -->
-      <div id="exercise-workspace-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
-        <!-- Sidebar List (Ordered after Editor on Mobile or Collapsible cleanly) -->
+      <div id="exercise-workspace-grid" class="grid grid-cols-1 lg:grid-cols-12 gap-3.5 items-start">
+        <!-- Sidebar List -->
         <div id="exercise-sidebar-col" class="lg:col-span-3 uni-card p-3 space-y-2 h-fit transition-all duration-300">
           <div class="flex items-center justify-between text-xs font-bold pb-1 border-b" style="border-color: var(--border);">
-            <span class="txt-main flex items-center gap-1">
-              <span>📁</span> <span>Danh sách bài tập</span>
-            </span>
+            <span class="txt-main">Danh sách bài</span>
             <div class="flex items-center gap-1">
-              <span id="exercise-count-badge" class="badge-soft px-1.5 py-0.5 rounded text-[10px]">10 bài</span>
-              <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-soft px-1.5 py-0.5 text-[10px] font-bold" title="Thu gọn danh sách">◀ Ẩn</button>
+              <span id="exercise-count-badge" class="badge-soft px-1.5 py-0.5 rounded text-[10px]">10</span>
+              <button type="button" onclick="toggleExerciseSidebarList(true)" class="btn-soft px-1.5 py-0.5 text-[10px] font-bold">◀</button>
             </div>
           </div>
           <input id="exercise-search" type="text" oninput="renderExerciseList()"
             placeholder="🔍 Tìm bài..." class="uni-input w-full px-2.5 py-1.5 !text-xs" />
-          <div id="exercise-list" class="space-y-1 max-h-[260px] lg:max-h-[640px] overflow-y-auto pr-1"></div>
+          <div id="exercise-list" class="space-y-1 max-h-[260px] lg:max-h-[620px] overflow-y-auto pr-1"></div>
         </div>
 
-        <!-- Right: Problem Description & Interactive Code Editor & Test Runner -->
-        <div id="exercise-main-col" class="lg:col-span-9 space-y-3 transition-all duration-300">
-          <!-- Banner hỗ trợ mở lại danh sách nhanh chóng khi đang thu gọn -->
-          <div id="exercise-sidebar-reopen-banner" class="hidden flex items-center justify-between p-2 px-3 rounded-xl bg-[#252526] border border-[#3c3c3d] text-[10px]">
-            <span class="text-slate-300 font-mono flex items-center gap-1.5">
-              <span class="text-emerald-400">●</span> Focus Code (Không gian mở rộng tối đa)
-            </span>
-            <button type="button" onclick="toggleExerciseSidebarList(false)" class="btn-primary px-2.5 py-0.5 text-[10px] font-bold flex items-center gap-1">
-              <span>📂</span> Mở Lại Danh Sách
-            </button>
+        <!-- Right: Modern 2-Pane IDE -->
+        <div id="exercise-main-col" class="lg:col-span-9 space-y-2.5 transition-all duration-300">
+          <div id="exercise-sidebar-reopen-banner" class="hidden flex items-center justify-between px-3 py-1.5 rounded-xl border text-xs" style="background: var(--bg-subtle); border-color: var(--border);">
+            <span class="txt-muted font-semibold">Đang mở rộng không gian Code</span>
+            <button type="button" onclick="toggleExerciseSidebarList(false)" class="btn-soft px-2.5 py-1 text-[11px] font-bold">📂 Hiện danh sách</button>
           </div>
 
-          <!-- Rubber Duck Toxic AI Assistant Sticky Callout -->
-          <div id="rubber-duck-sidebar" class="hidden uni-card p-4 border border-amber-500/40 bg-gradient-to-r from-amber-950/40 to-slate-900/60 space-y-2 shadow-lg animate-fade-in">
+          <!-- Rubber Duck AI Callout -->
+          <div id="rubber-duck-sidebar" class="hidden uni-card p-3.5 border border-amber-500/40 space-y-2 animate-fade-in">
             <div id="rubber-duck-message-box"></div>
           </div>
 
-          <div id="exercise-detail-pane" class="p-0 overflow-hidden rounded-xl border border-slate-700/80 shadow-2xl bg-[#1e1e1e]">
+          <div id="exercise-detail-pane" class="p-0 overflow-hidden rounded-2xl border shadow-xl" style="border-color: var(--border); background: #0f1117;">
             <!-- Dynamically populated by renderExerciseDetail() -->
           </div>
         </div>
@@ -8637,6 +8617,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=67.0"></script>
+  <script src="/static/app.js?v=68.1"></script>
 </body>
 </html>

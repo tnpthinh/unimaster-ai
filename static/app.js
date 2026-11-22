@@ -13235,357 +13235,179 @@ function renderExerciseDetail() {
   const displayLang = langNameMap[currentLang] || currentLang.toUpperCase();
   const fileName = `solution.${fileExt}`;
 
-  pane.className = "p-0 overflow-hidden rounded-xl border border-slate-700/80 shadow-2xl bg-[#1e1e1e]";
+  pane.className = "p-0 overflow-hidden rounded-2xl border shadow-xl";
+  pane.style.borderColor = "var(--border)";
+  pane.style.background = "#0f1117";
 
   pane.innerHTML = `
-    <!-- Visual Studio / VS Code IDE Container -->
-    <div id="vscode-ide-root" class="vscode-ide-container w-full flex flex-col font-sans select-none" style="min-height: 850px; background: #1e1e1e; color: #cccccc;">
-      
-      <!-- 1. VS Code Title Bar -->
-      <div class="vscode-titlebar flex items-center justify-between gap-2 px-3 py-1.5 bg-[#323233] border-b border-[#252526] text-xs text-[#cccccc]">
-        <div class="flex items-center gap-2 min-w-0 flex-1 overflow-hidden">
-          <!-- macOS / VS Code window dots -->
-          <div class="flex items-center gap-1.5 mr-1 shrink-0">
-            <span class="w-3 h-3 rounded-full bg-[#ff5f56] inline-block shadow-sm cursor-pointer" title="Xóa code đang viết (có xác nhận)" onclick="closeVscodeEditorWithConfirm()"></span>
-            <span class="w-3 h-3 rounded-full bg-[#ffbd2e] inline-block shadow-sm cursor-pointer" title="Minimize" onclick="toggleVscodeSidebar()"></span>
-            <span class="w-3 h-3 rounded-full bg-[#27c93f] inline-block shadow-sm cursor-pointer" title="Toggle Fullscreen" onclick="toggleVscodeFullscreen()"></span>
-          </div>
-          <span class="text-slate-400 font-mono text-[11px] hidden sm:flex items-center gap-1.5 min-w-0 flex-1 overflow-hidden">
-            <span class="text-blue-400 font-bold shrink-0">UniMaster Studio</span>
-            <span class="text-slate-500 shrink-0">─</span>
-            <span class="text-slate-200 shrink-0">${fileName}</span>
-            <span class="text-slate-500 shrink-0">•</span>
-            <span class="text-slate-400 truncate">Bài #${STATE.exercises.selectedIndex + 1}: ${escapeHtml(ex.title)}</span>
-          </span>
+    <div id="vscode-ide-root" class="w-full flex flex-col font-sans select-none" style="min-height: 680px; background: #0f1117; color: #e2e8f0;">
+      <!-- 1. Single Clean IDE Action Bar -->
+      <div class="flex items-center justify-between flex-wrap gap-2 px-3 py-2 bg-[#161922] border-b border-white/10 text-xs">
+        <div class="flex items-center gap-2 min-w-0">
+          <button type="button" onclick="toggleVscodeSidebar()" class="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-300 text-[11px] font-bold flex items-center gap-1" title="Ẩn / Hiện đề bài">
+            <span>📋</span> <span class="hidden sm:inline">Đề bài</span>
+          </button>
+          <span class="px-2 py-0.5 rounded-md text-[11px] font-mono font-bold bg-indigo-500/20 text-indigo-300 shrink-0">#${STATE.exercises.selectedIndex + 1}</span>
+          <select id="code-lang-select" onchange="onVscodeLanguageChange(this.value)" class="bg-[#1e2330] text-slate-100 text-[11px] font-mono font-bold px-2 py-1 rounded-lg border border-white/10 outline-none cursor-pointer">
+            <option value="cpp" ${currentLang === 'cpp' ? 'selected' : ''}>C++17</option>
+            <option value="c" ${currentLang === 'c' ? 'selected' : ''}>C11</option>
+            <option value="python" ${currentLang === 'python' ? 'selected' : ''}>Python 3</option>
+            <option value="csharp" ${currentLang === 'csharp' ? 'selected' : ''}>C#</option>
+            <option value="java" ${currentLang === 'java' ? 'selected' : ''}>Java</option>
+          </select>
+          <span id="vscode-cursor-pos" class="hidden md:inline text-[11px] font-mono text-slate-500">Ln 1, Col 1</span>
         </div>
 
-        <div class="flex items-center gap-1.5 shrink-0">
-          <button type="button" onclick="resetExerciseCode()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-amber-300 hover:bg-[#484849] flex items-center gap-1 transition-colors whitespace-nowrap shrink-0" title="Khôi phục lại code khởi tạo ban đầu">
-            <span>↺</span> <span class="hidden sm:inline">Reset Code</span>
+        <div class="flex items-center gap-1.5 flex-wrap">
+          <button type="button" onclick="runCodeCustomInput()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white flex items-center gap-1 transition-colors">
+            <span>▶</span> Chạy
           </button>
-          <button type="button" onclick="toggleSampleCode()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-emerald-300 hover:bg-[#484849] flex items-center gap-1 transition-colors whitespace-nowrap shrink-0" title="Xem lời giải mẫu">
-            <span>${STATE.exercises.showCode ? '🙈' : '👁️'}</span> <span class="hidden sm:inline">${STATE.exercises.showCode ? 'Ẩn Lời Giải' : 'Code Mẫu'}</span>
+          <button type="button" onclick="submitCodeTestCases()" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 transition-colors">
+            <span>✓</span> Nộp bài
           </button>
-          <button type="button" onclick="toggleVscodeFullscreen()" class="px-2 py-1 rounded text-[11px] font-medium bg-[#3c3c3d] text-cyan-300 hover:bg-[#484849] flex items-center gap-1 transition-colors whitespace-nowrap shrink-0" title="Phóng to / Thu nhỏ IDE">
-            <span>⛶</span> <span class="hidden sm:inline">Toàn Màn Hình</span>
+          <button type="button" onclick="fixAndUpgradeCurrentCode()" class="vscode-ai-fix-btn px-2.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1 transition-colors" title="AI sửa lỗi & tối ưu code">
+            <span>🛠️</span> <span class="hidden sm:inline">AI Sửa</span>
           </button>
+          <button type="button" onclick="aiReviewCurrentCode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10 text-slate-200 flex items-center gap-1 transition-colors" title="AI chấm điểm & đánh giá">
+            <span>🤖</span> <span class="hidden md:inline">Review</span>
+          </button>
+          <button type="button" onclick="toggleSampleCode()" class="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10 text-emerald-300 flex items-center gap-1 transition-colors" title="Xem code mẫu">
+            <span>${STATE.exercises.showCode ? '🙈' : '👁️'}</span> <span class="hidden md:inline">${STATE.exercises.showCode ? 'Ẩn' : 'Mẫu'}</span>
+          </button>
+          <button type="button" onclick="resetExerciseCode()" class="px-2 py-1.5 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10 text-amber-300 transition-colors" title="Reset code">↺</button>
+          <button type="button" onclick="toggleVscodeFullscreen()" class="px-2 py-1.5 rounded-lg text-xs font-bold bg-white/5 hover:bg-white/10 text-cyan-300 transition-colors" title="Toàn màn hình">⛶</button>
         </div>
       </div>
 
-      <!-- 2. Main IDE Layout: Activity Bar + Sidebar + Editor Stage -->
-      <div class="flex flex-1 overflow-hidden" style="min-height: 750px;">
-        
-        <!-- Activity Bar (Far Left 48px) -->
-        <div class="w-12 bg-[#333333] flex flex-col items-center py-2 border-r border-[#252526] flex-shrink-0 text-[#858585] justify-between">
-          <div class="flex flex-col items-center gap-3 w-full">
-            <button type="button" onclick="toggleVscodeSidebar()" class="w-full py-2.5 flex items-center justify-center hover:text-white transition-colors border-l-2 border-[#007acc] text-white" title="Explorer (Đề bài & Ràng buộc)">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"></path></svg>
-            </button>
-            <button type="button" onclick="switchConsoleTab('console')" class="w-full py-2.5 flex items-center justify-center hover:text-white transition-colors border-l-2 border-transparent" title="Run & Terminal">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            </button>
-            <button type="button" onclick="switchConsoleTab('aireview')" class="w-full py-2.5 flex items-center justify-center hover:text-white transition-colors border-l-2 border-transparent" title="AI Review & Rò rỉ">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path></svg>
-            </button>
+      <!-- 2. Clean 2-Pane Split: Problem Spec (Left) + Code & Console (Right) -->
+      <div class="flex flex-col md:flex-row flex-1 overflow-hidden" style="min-height: 620px;">
+        <!-- Problem Pane -->
+        <div id="vscode-sidebar-pane" class="w-full md:w-72 lg:w-80 bg-[#13161f] border-b md:border-b-0 md:border-r border-white/10 flex flex-col flex-shrink-0 max-h-[260px] md:max-h-none overflow-y-auto p-4 space-y-3 text-xs text-slate-300 leading-relaxed custom-scrollbar">
+          <div class="flex items-center justify-between gap-2">
+            <h4 class="text-sm font-extrabold text-white leading-snug">${escapeHtml(ex.title)}</h4>
+            ${testRes && testRes.all_passed ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 shrink-0">Đạt ✓</span>' : ''}
           </div>
-          <div class="flex flex-col items-center gap-2 w-full pb-2">
-            <button type="button" onclick="askAiAboutSelectedCode()" class="w-full py-2 flex items-center justify-center hover:text-amber-400 text-amber-300 transition-colors" title="Gia sư AI 1-1">
-              <span>💡</span>
-            </button>
+          <div class="text-[12.5px] leading-relaxed text-slate-300">
+            ${formatRichText(ex.problem)}
           </div>
+          ${
+            specs.length
+              ? `<div class="space-y-1.5 pt-2 border-t border-white/10">
+                  <div class="text-[11px] font-bold text-slate-400">Yêu cầu:</div>
+                  <ul class="space-y-1 text-[11.5px] text-slate-300">
+                    ${specs.map((s) => `<li class="flex items-start gap-1.5"><span class="text-indigo-400">•</span><span>${formatRichText(s)}</span></li>`).join('')}
+                  </ul>
+                </div>`
+              : ''
+          }
+          ${
+            STATE.exercises.showCode && ex.solution_code
+              ? `<div class="p-2.5 rounded-xl bg-[#0b0e14] border border-emerald-500/30 space-y-2">
+                  <div class="flex items-center justify-between text-[11px] font-bold text-emerald-400">
+                    <span>💡 Code mẫu</span>
+                    <button onclick="copySolutionToEditor()" class="px-2 py-0.5 rounded-md bg-emerald-600/30 text-emerald-200 hover:bg-emerald-600/50 text-[10px] font-bold">📋 Dán</button>
+                  </div>
+                  <pre class="p-2 rounded bg-black/40 text-[11px] font-mono text-emerald-300 overflow-x-auto max-h-44"><code>${escapeHtml(ex.solution_code)}</code></pre>
+                </div>`
+              : ''
+          }
         </div>
 
-        <!-- Primary Sidebar (Explorer: Problem Spec) -->
-        <div id="vscode-sidebar-pane" class="w-72 sm:w-80 bg-[#252526] border-r border-[#1e1e1e] flex flex-col flex-shrink-0 transition-all duration-200">
-          <!-- Sidebar Header -->
-          <div class="px-3 py-2 bg-[#252526] border-b border-[#1e1e1e] flex items-center justify-between text-[11px] font-bold text-[#bbbbbb] tracking-wider uppercase">
-            <span class="flex items-center gap-1.5">
-              <span>EXPLORER: UNIMASTER</span>
-            </span>
-            <button type="button" onclick="toggleVscodeSidebar()" class="hover:text-white text-[#858585] text-xs" title="Thu gọn Sidebar">
-              ◀
-            </button>
-          </div>
-
-          <!-- Problem Spec Section -->
-          <div class="flex-1 overflow-y-auto p-3.5 space-y-3.5 text-xs text-[#cccccc] leading-relaxed custom-scrollbar">
-            <div>
-              <div class="flex items-center gap-2 mb-1.5">
-                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-[#007acc] text-white">Bài #${STATE.exercises.selectedIndex + 1}</span>
-                <span class="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-[#3c3c3d] text-cyan-300">${displayLang}</span>
-                ${testRes && testRes.all_passed ? '<span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white">Passed ✅</span>' : ''}
-              </div>
-              <h4 class="text-sm font-bold text-white mb-2">${escapeHtml(ex.title)}</h4>
-              <div class="p-2.5 rounded bg-[#1e1e1e] border border-[#333333] text-[12px] leading-relaxed text-[#d4d4d4]">
-                ${formatRichText(ex.problem)}
-              </div>
-            </div>
-
-            <!-- Specs & Constraints -->
-            ${
-              specs.length
-                ? `<div class="space-y-1.5 pt-1 border-t border-[#333333]">
-                    <div class="text-[11px] font-bold text-amber-400 uppercase tracking-wide">Yêu cầu & Ràng buộc:</div>
-                    <ul class="space-y-1 text-[11px] text-[#b0b0b0]">
-                      ${specs.map((s) => `<li class="flex items-start gap-1.5"><span class="text-[#007acc]">▸</span><span>${formatRichText(s)}</span></li>`).join('')}
-                    </ul>
-                  </div>`
-                : ''
-            }
-
-            <!-- Sample Code Accordion if open -->
-            ${
-              STATE.exercises.showCode && ex.solution_code
-                ? `<div class="p-3 rounded bg-[#1e1e1e] border border-emerald-500/40 space-y-2">
-                    <div class="flex items-center justify-between text-[11px] font-bold text-emerald-400">
-                      <span>💡 Lời giải mẫu chuẩn:</span>
-                      <button onclick="copySolutionToEditor()" class="px-2 py-0.5 rounded bg-emerald-600/30 text-emerald-300 hover:bg-emerald-600/50 text-[10px] font-bold">
-                        📋 Dán Vào Editor
-                      </button>
-                    </div>
-                    <pre class="p-2 rounded bg-[#0e0e0e] text-[11px] font-mono text-emerald-300 overflow-x-auto max-h-48 border border-emerald-950"><code>${escapeHtml(ex.solution_code)}</code></pre>
-                  </div>`
-                : ''
-            }
-          </div>
-        </div>
-
-        <!-- 3. Editor Stage (Tabs + Breadcrumbs + Toolbar + Viewport + Bottom Panel) -->
-        <div class="flex-1 flex flex-col min-w-0 bg-[#1e1e1e] overflow-hidden">
-          
-          <!-- VS Code Tabs Bar -->
-          <div class="vscode-tabs-bar flex items-center justify-between bg-[#252526] border-b border-[#1e1e1e] px-0 h-9">
-            <div class="flex items-center h-full overflow-x-auto">
-              <!-- Active Solution File Tab -->
-              <div class="vscode-tab active flex items-center gap-2 px-3 h-full bg-[#1e1e1e] border-t-2 border-[#007acc] text-white text-xs font-mono cursor-pointer border-r border-[#252526]">
-                <span class="text-cyan-400 font-bold">📄</span>
-                <span>${fileName}</span>
-                <span class="text-[10px] text-slate-400 hover:text-white ml-1">✕</span>
-              </div>
-              <!-- Problem Markdown Tab -->
-              <div onclick="toggleVscodeSidebar()" class="vscode-tab flex items-center gap-1.5 px-3 h-full bg-[#2d2d2d] hover:bg-[#1e1e1e] text-[#969696] hover:text-white text-xs font-mono cursor-pointer border-r border-[#252526] transition-colors">
-                <span>📋</span>
-                <span>problem.md</span>
-              </div>
-            </div>
-
-            <!-- Language Selector on Tabs Bar -->
-            <div class="flex items-center gap-2 pr-2">
-              <label class="text-[11px] text-[#858585] font-mono hidden md:inline">Language:</label>
-              <select id="code-lang-select" onchange="onVscodeLanguageChange(this.value)" class="bg-[#3c3c3c] text-white text-[11px] font-mono px-2 py-1 rounded border border-[#555555] outline-none cursor-pointer" title="Chọn ngôn ngữ sẽ dùng khi Chạy / Chấm bài">
-                <option value="cpp" ${currentLang === 'cpp' ? 'selected' : ''}>C++ (GCC C++17)</option>
-                <option value="c" ${currentLang === 'c' ? 'selected' : ''}>C (GCC C11)</option>
-                <option value="python" ${currentLang === 'python' ? 'selected' : ''}>Python 3</option>
-                <option value="csharp" ${currentLang === 'csharp' ? 'selected' : ''}>C# (.NET)</option>
-                <option value="java" ${currentLang === 'java' ? 'selected' : ''}>Java (OpenJDK)</option>
-              </select>
-            </div>
-          </div>
-
-          <!-- Breadcrumbs Bar -->
-          <div class="vscode-breadcrumbs flex items-center gap-1.5 px-3 py-1 bg-[#1e1e1e] text-[11px] font-mono text-[#858585] border-b border-[#252526]">
-            <span>unimaster-workspace</span>
-            <span>›</span>
-            <span>exercises</span>
-            <span>›</span>
-            <span>problem_${STATE.exercises.selectedIndex + 1}</span>
-            <span>›</span>
-            <span class="text-[#cccccc]">${fileName}</span>
-          </div>
-
-          <!-- Run & Test Toolbar (Visual Studio Top Action Bar) -->
-          <div class="vscode-run-toolbar flex items-center justify-between flex-wrap gap-2 px-3 py-1.5 bg-[#252526] border-b border-[#1e1e1e]">
-            <div class="flex items-center gap-2 flex-wrap">
-              <!-- Run Button (Green) -->
-              <button type="button" onclick="runCodeCustomInput()" class="px-3 py-1 rounded text-xs font-bold bg-[#0e639c] hover:bg-[#1177bb] text-white flex items-center gap-1.5 shadow-sm transition-all" title="Biên dịch & chạy thử với STDIN tùy chọn">
-                <span class="text-emerald-300">▶</span> Chạy Thử (Run)
-              </button>
-
-              <!-- Submit Button (Green / Blue) -->
-              <button type="button" onclick="submitCodeTestCases()" class="px-3.5 py-1 rounded text-xs font-bold bg-[#388a34] hover:bg-[#43a047] text-white flex items-center gap-1.5 shadow-sm transition-all" title="Chấm toàn bộ test case">
-                <span>🧪</span> Chấm Test Case
-              </button>
-
-              <!-- AI Review Button -->
-              <button type="button" onclick="aiReviewCurrentCode()" class="px-2.5 py-1 rounded text-xs font-bold bg-[#5b21b6] hover:bg-[#6d28d9] text-white flex items-center gap-1.5 shadow-sm transition-all" title="AI Tech Lead soi rò rỉ bộ nhớ & tối ưu kiến trúc">
-                <span>🤖</span> AI Review
-              </button>
-
-              <!-- AI Fix & Upgrade -->
-              <button type="button" onclick="fixAndUpgradeCurrentCode()" class="vscode-ai-fix-btn px-2.5 py-1 rounded text-xs font-bold flex items-center gap-1.5 transition-all" title="Tự động bắt lỗi, giải thích bài học chi tiết và nâng cấp code C# / Python lên chuẩn Senior">
-                <span>🛠️</span> Sửa & Nâng Cấp Code
-              </button>
-
-              <!-- C# OOP Template / Snippet -->
-              <button type="button" onclick="openCSharpOOPTemplateModal()" class="px-2.5 py-1 rounded text-xs font-bold bg-[#5b21b6] hover:bg-[#6d28d9] text-white border border-purple-500/30 flex items-center gap-1.5 transition-all" title="Chèn mẫu code C# OOP (Class, Interface, Inheritance, Polymorphism, Encapsulation)">
-                <span>📐</span> Mẫu Code C# OOP
-              </button>
-
-              <!-- Ask Tutor AI -->
-              <button type="button" onclick="askAiAboutSelectedCode()" class="px-2 py-1 rounded text-xs font-medium text-amber-300 hover:bg-[#333333] flex items-center gap-1 transition-all" title="Hỏi gia sư AI về đoạn code đang chọn">
-                <span>💬</span> Hỏi AI
-              </button>
-            </div>
-
-            <div class="text-[11px] text-[#858585] font-mono hidden lg:flex items-center gap-2">
-              <span>Phím Tab = 4 spaces</span>
-              <span>•</span>
-              <span class="text-emerald-400">● Tự động lưu</span>
-            </div>
-          </div>
-
-          <!-- Code Editor Viewport (Line Numbers Gutter + Textarea + Copilot Banner + Line Inspector) -->
-          <div class="flex-1 relative flex flex-col overflow-hidden bg-[#1e1e1e]" style="min-height: 320px;">
-            <!-- Line Inspector Action Bar (hiện khi click vào số dòng ở Gutter) -->
-            <div id="vscode-line-inspector" class="vscode-line-inspector-bar hidden flex items-center justify-between px-3 py-1.5 bg-[#252526] border-b border-[#007acc] text-[11px] font-mono animate-fadeIn z-10">
+        <!-- Editor + Console Stage -->
+        <div class="flex-1 flex flex-col min-w-0 bg-[#0d1017] overflow-hidden">
+          <!-- Editor Viewport -->
+          <div class="flex-1 relative flex flex-col overflow-hidden" style="min-height: 320px;">
+            <div id="vscode-line-inspector" class="vscode-line-inspector-bar hidden flex items-center justify-between px-3 py-1.5 bg-[#161922] border-b border-indigo-500/40 text-[11px] font-mono z-10">
               <div class="flex items-center gap-2 overflow-hidden">
-                <span class="text-cyan-400 font-bold whitespace-nowrap">📍 Dòng <span id="inspector-line-num">1</span>:</span>
-                <span id="inspector-line-preview" class="text-slate-300 truncate max-w-xs md:max-w-md italic"></span>
+                <span class="text-cyan-400 font-bold whitespace-nowrap">Dòng <span id="inspector-line-num">1</span>:</span>
+                <span id="inspector-line-preview" class="text-slate-300 truncate max-w-xs italic"></span>
               </div>
-              <div class="flex items-center gap-2 flex-shrink-0">
-                <button type="button" onclick="askAiAboutCurrentLine()" class="px-2 py-0.5 rounded bg-blue-600 hover:bg-blue-500 text-white flex items-center gap-1 transition-colors" title="Hỏi AI giải thích cặn kẽ dòng này">
-                  <span>💬</span> Hỏi AI dòng này
-                </button>
-                <button type="button" onclick="fixAiCurrentLine()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1 transition-colors" title="Nhờ AI chẩn đoán và tự sửa lỗi dòng này">
-                  <span>⚡</span> Sửa lỗi dòng này
-                </button>
-                <button type="button" onclick="document.getElementById('vscode-line-inspector')?.classList.add('hidden')" class="text-slate-400 hover:text-white px-1.5">✕</button>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <button type="button" onclick="askAiAboutCurrentLine()" class="px-2 py-0.5 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold">Hỏi AI</button>
+                <button type="button" onclick="fixAiCurrentLine()" class="px-2 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold">Sửa dòng</button>
+                <button type="button" onclick="document.getElementById('vscode-line-inspector')?.classList.add('hidden')" class="text-slate-400 hover:text-white px-1">✕</button>
               </div>
             </div>
 
-            <!-- Main Gutter + Textarea Area -->
             <div class="flex-1 relative flex overflow-hidden">
-              <!-- Line Numbers Gutter (Click để chọn dòng thanh tra) -->
-              <div id="vscode-gutter-lines" onclick="handleVscodeGutterClick(event)" class="vscode-gutter bg-[#1e1e1e] text-[#858585] font-mono select-none border-r border-[#252526] overflow-hidden flex-shrink-0 cursor-pointer" style="width: 42px; padding: 8px 6px 8px 0; font-size: 13px; line-height: 20px; font-family: Consolas, 'Cascadia Code', 'Courier New', monospace; box-sizing: border-box;" title="Click vào số dòng để Hỏi AI hoặc Sửa lỗi dòng đó">
-                <!-- Generated dynamically -->
-              </div>
-
-              <!-- Code Textarea -->
+              <div id="vscode-gutter-lines" onclick="handleVscodeGutterClick(event)" class="vscode-gutter bg-[#0d1017] text-slate-600 font-mono select-none border-r border-white/5 overflow-hidden flex-shrink-0 cursor-pointer" style="width: 40px; padding: 10px 6px 10px 0; font-size: 13px; line-height: 21px; font-family: 'JetBrains Mono', Consolas, monospace; box-sizing: border-box;" title="Bấm số dòng để hỏi AI"></div>
               <textarea id="code-editor-textarea" spellcheck="false" wrap="soft"
                 onkeydown="handleVscodeEditorKeydown(event)"
                 oninput="handleVscodeCodeInput()"
                 onscroll="syncVscodeGutterScroll()"
                 onclick="handleVscodeEditorClick(event)"
                 onkeyup="handleVscodeEditorKeyup(event)"
-                class="w-full flex-1 font-mono text-[#9cdcfe] bg-[#1e1e1e] outline-none border-none resize-none custom-scrollbar"
-                style="tab-size: 4; padding: 8px 12px 8px 10px; font-size: 13px; line-height: 20px; font-family: Consolas, 'Cascadia Code', 'Courier New', monospace; white-space: pre-wrap; overflow-wrap: break-word; overflow-x: hidden; box-sizing: border-box;"
-                placeholder="// Viết code giải thuật của bạn tại đây...&#10;// Mẹo: Gõ code hoặc nhấn Alt+\ để AI Copilot gợi ý dòng tiếp theo!">${escapeHtml(currentCode)}</textarea>
+                class="w-full flex-1 font-mono text-slate-100 bg-[#0d1017] outline-none border-none resize-none custom-scrollbar"
+                style="tab-size: 4; padding: 10px 14px; font-size: 13px; line-height: 21px; font-family: 'JetBrains Mono', Consolas, monospace; white-space: pre-wrap; overflow-wrap: break-word; overflow-x: hidden; box-sizing: border-box;"
+                placeholder="// Viết code tại đây...">${escapeHtml(currentCode)}</textarea>
             </div>
 
-            <!-- Copilot Floating Suggestion Banner -->
-            <div id="vscode-copilot-banner" class="hidden absolute bottom-3 right-4 max-w-md bg-[#252526] border border-[#007acc] rounded-lg shadow-2xl p-2.5 z-20 text-xs font-mono animate-slideUp">
-              <div class="flex items-center justify-between text-[11px] mb-1.5 border-b border-[#3c3c3c] pb-1">
-                <span class="text-cyan-400 font-bold flex items-center gap-1">
-                  <span>✨</span> AI Copilot Gợi ý dòng tiếp:
-                </span>
-                <div class="flex items-center gap-1">
-                  <span class="px-1.5 py-0.5 rounded bg-[#007acc] text-white text-[10px] font-bold">Phím Tab</span>
-                  <button type="button" onclick="dismissVscodeCopilotSuggestion()" class="text-slate-400 hover:text-white ml-1">✕</button>
-                </div>
+            <div id="vscode-copilot-banner" class="hidden absolute bottom-3 right-3 max-w-md bg-[#161922] border border-indigo-500/50 rounded-xl shadow-2xl p-2.5 z-20 text-xs font-mono">
+              <div class="flex items-center justify-between text-[11px] mb-1.5 pb-1 border-b border-white/10">
+                <span class="text-cyan-400 font-bold">✨ Gợi ý AI</span>
+                <button type="button" onclick="dismissVscodeCopilotSuggestion()" class="text-slate-400 hover:text-white">✕</button>
               </div>
-              <pre id="copilot-suggestion-text" class="text-emerald-300 font-mono text-[11px] bg-[#1e1e1e] p-2 rounded border border-[#333333] whitespace-pre-wrap overflow-x-auto max-h-24"></pre>
-              <div class="flex items-center justify-between mt-2 pt-1 text-[10px] text-slate-400">
-                <span>Bấm <strong>Tab</strong> để chèn</span>
-                <button type="button" onclick="acceptVscodeCopilotSuggestion()" class="px-2.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white font-bold">Chèn Code (Tab)</button>
+              <pre id="copilot-suggestion-text" class="text-emerald-300 text-[11px] bg-black/40 p-2 rounded whitespace-pre-wrap max-h-24 overflow-y-auto"></pre>
+              <div class="flex justify-end mt-1.5">
+                <button type="button" onclick="acceptVscodeCopilotSuggestion()" class="px-2.5 py-0.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold">Chèn (Tab)</button>
               </div>
             </div>
           </div>
 
-          <!-- Bottom Panel (Terminal / Test Runner / AI Output Tabs) -->
-          <div class="border-t border-[#252526] bg-[#181818] flex flex-col" style="min-height: 250px; max-height: 380px;">
-            <!-- Panel Header Tabs -->
-            <div class="flex items-center justify-between px-3 bg-[#252526] border-b border-[#181818] text-xs h-8">
-              <div class="flex items-center h-full gap-3 font-mono text-[11px] font-bold">
+          <!-- Clean Bottom Console Tabs -->
+          <div class="border-t border-white/10 bg-[#12151e] flex flex-col" style="min-height: 210px; max-height: 320px;">
+            <div class="flex items-center justify-between px-3 bg-[#161922] border-b border-white/10 text-xs h-9">
+              <div class="flex items-center h-full gap-4 text-[11px] font-bold">
                 <button type="button" id="vstab-testcases" onclick="switchConsoleTab('testcases')"
-                  class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'testcases' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
-                  <span>🧪 TEST CASES</span> ${testRes ? `<span class="px-1.5 py-0.2 rounded text-[10px] bg-[#007acc] text-white">${Number(testRes.passed_tests) || 0}/${Number(testRes.total_tests) || 0}</span>` : ''}
+                  class="h-full flex items-center gap-1.5 border-b-2 transition-colors ${activeTab === 'testcases' ? 'text-white border-indigo-500' : 'text-slate-400 border-transparent hover:text-white'}">
+                  <span>🧪 Test</span> ${testRes ? `<span class="px-1.5 rounded text-[10px] bg-indigo-500/30 text-indigo-200">${Number(testRes.passed_tests) || 0}/${Number(testRes.total_tests) || 0}</span>` : ''}
                 </button>
                 <button type="button" id="vstab-console" onclick="switchConsoleTab('console')"
-                  class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'console' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
-                  <span>💻 TERMINAL & STDIN</span>
+                  class="h-full flex items-center gap-1.5 border-b-2 transition-colors ${activeTab === 'console' ? 'text-white border-indigo-500' : 'text-slate-400 border-transparent hover:text-white'}">
+                  <span>💻 Console</span>
                 </button>
                 <button type="button" id="vstab-aireview" onclick="switchConsoleTab('aireview')"
-                  class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'aireview' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
-                  <span>🤖 AI REVIEW</span>
+                  class="h-full flex items-center gap-1.5 border-b-2 transition-colors ${activeTab === 'aireview' ? 'text-white border-indigo-500' : 'text-slate-400 border-transparent hover:text-white'}">
+                  <span>🤖 Review</span>
                 </button>
                 <button type="button" id="vstab-aifix" onclick="switchConsoleTab('aifix')"
-                  class="h-full flex items-center gap-1.5 transition-colors border-b-2 ${activeTab === 'aifix' ? 'text-white border-[#007acc]' : 'text-[#858585] border-transparent hover:text-white'}">
-                  <span>🛠️ SỬA LỖI & NÂNG CẤP</span> ${STATE.exercises.aiUpgrades && STATE.exercises.aiUpgrades[ex.id] ? '<span class="text-amber-400">✨</span>' : ''}
+                  class="h-full flex items-center gap-1.5 border-b-2 transition-colors ${activeTab === 'aifix' ? 'text-white border-indigo-500' : 'text-slate-400 border-transparent hover:text-white'}">
+                  <span>🛠️ AI Sửa</span> ${STATE.exercises.aiUpgrades && STATE.exercises.aiUpgrades[ex.id] ? '<span class="text-amber-400">✨</span>' : ''}
                 </button>
               </div>
-
-              <!-- Fullscreen AI Console button -->
-              <div class="flex items-center gap-2">
-                <!-- Console Status Indicator -->
-                <div id="console-status-indicator" class="text-[11px] font-bold text-[#858585] font-mono">
-                  ${testRes ? (testRes.all_passed ? '<span class="text-emerald-400">● 100% Passed</span>' : '<span class="text-amber-400">▲ Có lỗi test case</span>') : '● Ready'}
-                </div>
+              <div id="console-status-indicator" class="text-[11px] font-mono text-slate-400">
+                ${testRes ? (testRes.all_passed ? '<span class="text-emerald-400">● Đạt 100%</span>' : '<span class="text-amber-400">▲ Chưa đạt</span>') : '● Sẵn sàng'}
               </div>
             </div>
 
-            <!-- Panel Body Content -->
-            <div class="flex-1 overflow-y-auto p-3 text-xs custom-scrollbar bg-[#181818]">
-              <!-- Tab 1: Test Cases Results -->
-              <div id="console-pane-testcases" class="${activeTab === 'testcases' ? '' : 'hidden'} space-y-3">
+            <div class="flex-1 overflow-y-auto p-3 text-xs custom-scrollbar">
+              <div id="console-pane-testcases" class="${activeTab === 'testcases' ? '' : 'hidden'} space-y-2.5">
                 ${renderTestCasesPane(ex, testRes)}
               </div>
-
-              <!-- Tab 2: Custom Stdin Console (Visual Studio Terminal View) -->
-              <div id="console-pane-console" class="${activeTab === 'console' ? '' : 'hidden'} space-y-3">
+              <div id="console-pane-console" class="${activeTab === 'console' ? '' : 'hidden'}">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div class="space-y-1">
-                    <label class="text-[11px] font-mono font-bold text-[#858585] uppercase tracking-wider flex items-center justify-between">
-                      <span>INPUT (STDIN)</span>
-                      <span class="text-[10px] text-slate-500">Nhập tham số đầu vào test</span>
-                    </label>
-                    <textarea id="custom-stdin-input" placeholder="Ví dụ: 5
-1 2 3 4 5"
-                      class="w-full h-28 p-2.5 font-mono text-xs bg-[#1e1e1e] border border-[#333333] text-[#ce9178] rounded outline-none focus:border-[#007acc]"></textarea>
+                    <label class="text-[11px] font-bold text-slate-400">Input (STDIN)</label>
+                    <textarea id="custom-stdin-input" placeholder="Nhập dữ liệu test..."
+                      class="w-full h-24 p-2 font-mono text-xs bg-[#0d1017] border border-white/10 text-amber-200 rounded-lg outline-none focus:border-indigo-500"></textarea>
                   </div>
                   <div class="space-y-1">
-                    <label class="text-[11px] font-mono font-bold text-[#858585] uppercase tracking-wider flex items-center justify-between">
-                      <span>OUTPUT (STDOUT / STDERR)</span>
-                      <button type="button" onclick="document.getElementById('custom-stdout-output').textContent = ''" class="text-[10px] text-slate-400 hover:text-white">Clear</button>
-                    </label>
-                    <pre id="custom-stdout-output" class="p-2.5 rounded border border-[#333333] font-mono text-xs text-[#4ec9b0] h-28 overflow-y-auto bg-[#0d0d0d]">Sẵn sàng chạy code.</pre>
+                    <div class="flex items-center justify-between text-[11px] font-bold text-slate-400">
+                      <span>Output</span>
+                      <button type="button" onclick="document.getElementById('custom-stdout-output').textContent = ''" class="text-[10px] hover:text-white">Xóa</button>
+                    </div>
+                    <pre id="custom-stdout-output" class="p-2 rounded-lg border border-white/10 font-mono text-xs text-emerald-300 h-24 overflow-y-auto bg-[#090b10]">Sẵn sàng.</pre>
                   </div>
                 </div>
               </div>
-
-              <!-- Tab 3: AI Senior Review Pane -->
-              <div id="console-pane-aireview" class="${activeTab === 'aireview' ? '' : 'hidden'} space-y-3">
+              <div id="console-pane-aireview" class="${activeTab === 'aireview' ? '' : 'hidden'} space-y-2.5">
                 ${renderAiReviewPane(aiRev)}
               </div>
-
-              <!-- Tab 4: AI Fix & Upgrade Code Pane -->
-              <div id="console-pane-aifix" class="${activeTab === 'aifix' ? '' : 'hidden'} space-y-3">
+              <div id="console-pane-aifix" class="${activeTab === 'aifix' ? '' : 'hidden'} space-y-2.5">
                 ${renderAiFixPane(STATE.exercises.aiUpgrades ? STATE.exercises.aiUpgrades[ex.id] : null, ex)}
               </div>
             </div>
           </div>
-
-          <!-- 4. VS Code Status Bar (Bottom 24px - Xanh #007acc) -->
-          <div class="vscode-statusbar flex items-center justify-between px-3 text-[11px] font-mono text-white select-none flex-shrink-0" style="height: 24px; background: #007acc;">
-            <div class="flex items-center gap-3">
-              <span class="flex items-center gap-1 cursor-pointer hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors" title="Git branch">
-                <span>⑂</span> main*
-              </span>
-              <span class="flex items-center gap-1 cursor-pointer hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors" title="Problems">
-                <span>⨂</span> 0  <span>⚠</span> 0
-              </span>
-              <span class="hidden sm:inline-block text-white/80">
-                ${testRes && testRes.all_passed ? 'Passed (100%)' : (testRes ? 'Tests: Incomplete' : 'Ready')}
-              </span>
-            </div>
-
-            <div class="flex items-center gap-3">
-              <span id="vscode-cursor-pos" class="hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors">Ln 1, Col 1</span>
-              <span class="hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors hidden sm:inline">Spaces: 4</span>
-              <span class="hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors hidden sm:inline">UTF-8</span>
-              <span class="hover:bg-white/20 px-1.5 py-0.5 rounded transition-colors uppercase font-bold">${displayLang}</span>
-            </div>
-          </div>
-
         </div>
       </div>
     </div>
@@ -21946,6 +21768,7 @@ function toggleVscodeSidebar() {
   sidebar.classList.toggle('hidden');
 }
 
+let _vscodePortalAnchor = null;
 function toggleVscodeFullscreen() {
   const ide = document.getElementById('vscode-ide-root');
   if (!ide) return;
@@ -21953,6 +21776,11 @@ function toggleVscodeFullscreen() {
   const isNative = Boolean(document.fullscreenElement || document.webkitFullscreenElement);
 
   if (isPseudo || isNative) {
+    if (_vscodePortalAnchor && _vscodePortalAnchor.parentNode) {
+      _vscodePortalAnchor.parentNode.insertBefore(ide, _vscodePortalAnchor);
+      _vscodePortalAnchor.remove();
+      _vscodePortalAnchor = null;
+    }
     ide.classList.remove('vscode-pseudo-fullscreen');
     document.body.classList.remove('vscode-fs-active');
     document.body.style.overflow = '';
@@ -21965,31 +21793,17 @@ function toggleVscodeFullscreen() {
     return;
   }
 
-  // Try native fullscreen first; seamlessly fall back to universal CSS pseudo-fullscreen on Cốc Cốc Mobile / iOS Safari / Tablet
-  let fallbackTriggered = false;
-  const enablePseudo = () => {
-    if (fallbackTriggered) return;
-    fallbackTriggered = true;
-    document.body.classList.add('vscode-fs-active');
-    ide.classList.add('vscode-pseudo-fullscreen');
-    document.body.style.overflow = 'hidden';
-  };
-  try {
-    if (window.innerWidth < 1024) {
-      enablePseudo();
-      return;
-    }
-    const req = ide.requestFullscreen
-      ? ide.requestFullscreen()
-      : (ide.webkitRequestFullscreen ? ide.webkitRequestFullscreen() : null);
-    if (req && typeof req.catch === 'function') {
-      req.catch(() => enablePseudo());
-    } else if (!req) {
-      enablePseudo();
-    }
-  } catch (_) {
-    enablePseudo();
+  // Universal DOM-Portal Fullscreen (works 100% on Desktop, Cốc Cốc Mobile, iOS Safari, Android & Tablet)
+  if (ide.parentNode && ide.parentNode !== document.body) {
+    _vscodePortalAnchor = document.createElement('span');
+    _vscodePortalAnchor.id = 'vscode-portal-anchor';
+    _vscodePortalAnchor.className = 'hidden';
+    ide.parentNode.insertBefore(_vscodePortalAnchor, ide);
+    document.body.appendChild(ide);
   }
+  document.body.classList.add('vscode-fs-active');
+  ide.classList.add('vscode-pseudo-fullscreen');
+  document.body.style.overflow = 'hidden';
 }
 
 function toggleTutorFullscreen() {

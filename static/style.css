@@ -6253,3 +6253,12 @@ body.vscode-fs-active main {
   overflow-x: auto;
   border: 1px solid var(--border);
 }
+
+/* v68.1: Ensure Mobile Code Studio Problem Pane spans 100% width */
+@media (max-width: 767px) {
+  #vscode-sidebar-pane {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+  }
+}
