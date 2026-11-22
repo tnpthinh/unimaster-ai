@@ -4343,6 +4343,16 @@ function setSubjectCategoryFilter(cat) {
   renderDashboard();
 }
 
+function toggleDashboardStudioHub(forceOpen = null) {
+  const body = document.getElementById('studio-hub-body');
+  const chev = document.getElementById('studio-hub-chevron');
+  if (!body) return;
+  const shouldOpen = forceOpen === null ? body.classList.contains('hidden') : Boolean(forceOpen);
+  body.classList.toggle('hidden', !shouldOpen);
+  if (chev) chev.textContent = shouldOpen ? 'Thu gọn ▴' : 'Mở ▾';
+}
+window.toggleDashboardStudioHub = toggleDashboardStudioHub;
+
 function switchDashboardStudioTab(tabKey) {
   ['cntt', 'medical', 'study'].forEach((k) => {
     document.getElementById(`studio-panel-${k}`)?.classList.toggle('hidden', k !== tabKey);

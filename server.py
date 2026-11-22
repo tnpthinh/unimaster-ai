@@ -5192,7 +5192,7 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v59-2';
+    const CACHE_NAME = 'unimaster-pwa-v60-0';
     const CORE_ASSETS = [
       '/static/style.css?v=56.4',
       '/static/minimal.css?v=54.1',

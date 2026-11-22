@@ -6290,7 +6290,7 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
     <!-- ===================================================================
          VIEW 1: DASHBOARD (CLEAN, COLORFUL, ZERO CLUTTER)
          =================================================================== -->
-    <section id="view-dashboard" class="space-y-6 animate-fade-in">
+    <section id="view-dashboard" class="space-y-4 animate-fade-in">
       <!-- 1. Slim Minimalist Subject Hero -->
       <div class="uni-card hero-dashboard-card p-4 sm:p-5 relative overflow-hidden">
         <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
@@ -6324,24 +6324,6 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
                   title="Thử thách phản xạ nhanh 60 giây tích điểm Combo">
                   <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i> Blitz 60s
                 </button>
-              </div>
-              <!-- Secondary Quick-Pack Strip -->
-              <div class="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <button onclick="openExamForSubjectCode('DIEUDUONG_CB', 105)"
-                  class="btn-soft px-2.5 py-1 rounded-lg font-semibold text-[11px] sm:text-xs flex items-center gap-1 border border-emerald-500/30"
-                  title="Luyện 10 bài Điều Dưỡng Cơ Bản (60 câu/bài • 600 câu bám sát giáo trình)">
-                  <span>🩺</span> Điều Dưỡng
-                </button>
-                <button onclick="startTrrPdfPracticeExam('all')"
-                  class="btn-soft px-2.5 py-1 rounded-lg font-semibold text-[11px] sm:text-xs flex items-center gap-1 border border-indigo-500/30"
-                  title="Làm trực tiếp Bộ 4 Đề Mẫu &amp; Tương Tự Toán Rời Rạc có hướng dẫn từng bước">
-                  <span>📐</span> Toán RR
-                </button>
-                <a href="/static/luyen_de_toan_roi_rac.html" target="_blank"
-                  class="btn-soft px-2.5 py-1 rounded-lg font-semibold text-[11px] sm:text-xs flex items-center gap-1 border border-emerald-500/30"
-                  title="Mở Phòng tự luyện Bảng Chân Trị, Bảng Karnaugh, Mạch Logic, Euclid, Đồng Dư &amp; Affine">
-                  <span>✍️</span> Bảng &amp; Mạch
-                </a>
               </div>
             </div>
           </div>
@@ -6468,49 +6450,26 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
         </div>
       </div>
 
-      <!-- 3. 4 Minimalist Monochrome KPI Cards -->
-      <div id="dashboard-kpi-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div class="uni-card p-3.5 sm:p-4 flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border); color: var(--brand-text);">
-            <i data-lucide="book-open" class="w-4 h-4"></i>
-          </div>
-          <div class="min-w-0">
-            <div class="text-[11px] font-semibold txt-muted">Môn học</div>
-            <div id="stat-subjects" class="text-lg sm:text-xl font-extrabold txt-main tabular-nums">15</div>
-          </div>
+      <!-- 3. Compact Single-Row Stats Strip (Zero Bloated Boxes) -->
+      <div id="dashboard-kpi-grid" class="uni-card px-4 py-2.5 flex flex-wrap items-center justify-between gap-3 text-xs">
+        <div class="flex items-center gap-2">
+          <span class="txt-muted font-semibold">Môn học:</span>
+          <span id="stat-subjects" class="font-extrabold txt-main tabular-nums">15</span>
         </div>
-
-        <div class="uni-card p-3.5 sm:p-4 flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border); color: var(--brand-text);">
-            <i data-lucide="layers" class="w-4 h-4"></i>
-          </div>
-          <div class="min-w-0">
-            <div class="text-[11px] font-semibold txt-muted">Ngân hàng</div>
-            <div id="stat-questions" class="text-lg sm:text-xl font-extrabold txt-main tabular-nums">0</div>
-          </div>
+        <span class="hidden sm:inline opacity-20">|</span>
+        <div class="flex items-center gap-2">
+          <span class="txt-muted font-semibold">Ngân hàng:</span>
+          <span id="stat-questions" class="font-extrabold txt-main tabular-nums">0</span>
         </div>
-
-        <div class="uni-card p-3.5 sm:p-4 flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border); color: var(--brand-text);">
-            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
-          </div>
-          <div class="min-w-0">
-            <div class="text-[11px] font-semibold txt-muted">Đã nộp</div>
-            <div id="stat-exams" class="text-lg sm:text-xl font-extrabold txt-main tabular-nums">0</div>
-          </div>
+        <span class="hidden sm:inline opacity-20">|</span>
+        <div class="flex items-center gap-2">
+          <span class="txt-muted font-semibold">Đã nộp:</span>
+          <span id="stat-exams" class="font-extrabold txt-main tabular-nums">0</span>
         </div>
-
-        <div class="uni-card p-3.5 sm:p-4 flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border); color: var(--brand-text);">
-            <i data-lucide="trophy" class="w-4 h-4"></i>
-          </div>
-          <div class="min-w-0">
-            <div class="text-[11px] font-semibold txt-muted">Điểm TB</div>
-            <div class="flex items-baseline gap-1">
-              <span id="stat-avg-score" class="text-lg sm:text-xl font-extrabold txt-main tabular-nums">0.0</span>
-              <span class="text-[11px] font-semibold txt-muted">/10</span>
-            </div>
-          </div>
+        <span class="hidden sm:inline opacity-20">|</span>
+        <div class="flex items-center gap-2">
+          <span class="txt-muted font-semibold">Điểm TB:</span>
+          <span class="font-extrabold txt-main tabular-nums"><span id="stat-avg-score">0.0</span><span class="txt-muted font-semibold">/10</span></span>
         </div>
       </div>
 
@@ -6531,19 +6490,21 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
         <div id="subjects-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
       </div>
 
-      <!-- 4. Clean 3-Tab Studio Công Cụ Hub (No Cluttered 14-tile Neon Wall) -->
-      <div id="dashboard-v41-hub" class="uni-card p-4 sm:p-5 space-y-3.5">
-        <div class="flex flex-wrap items-center justify-between gap-2.5">
-          <h3 class="text-sm sm:text-base font-extrabold txt-main flex items-center gap-2">
-            <span>🧰</span> Công Cụ &amp; Mô Phỏng
-          </h3>
+      <!-- 4. Collapsible Studio Công Cụ Hub (Collapsed by default for ultra-clean Dashboard) -->
+      <div id="dashboard-v41-hub" class="uni-card px-4 py-3 space-y-3">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <button type="button" onclick="toggleDashboardStudioHub()" class="text-sm font-extrabold txt-main flex items-center gap-2 hover:opacity-85 transition-opacity">
+            <span>🧰</span> <span>Công Cụ &amp; Mô Phỏng</span>
+            <span id="studio-hub-chevron" class="text-[11px] font-semibold txt-muted px-2 py-0.5 rounded-md border" style="border-color: var(--border);">Mở ▾</span>
+          </button>
           <div class="flex flex-wrap items-center gap-1.5">
-            <button type="button" onclick="switchDashboardStudioTab('cntt')" data-studio-tab="cntt" class="studio-hub-tab btn-primary px-3 py-1.5 text-xs font-bold rounded-xl">💻 CNTT</button>
-            <button type="button" onclick="switchDashboardStudioTab('medical')" data-studio-tab="medical" class="studio-hub-tab btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">🩺 Y Dược</button>
-            <button type="button" onclick="switchDashboardStudioTab('study')" data-studio-tab="study" class="studio-hub-tab btn-soft px-3 py-1.5 text-xs font-bold rounded-xl">🧠 Ôn Tập</button>
+            <button type="button" onclick="toggleDashboardStudioHub(true); switchDashboardStudioTab('cntt')" data-studio-tab="cntt" class="studio-hub-tab btn-soft px-2.5 py-1 text-xs font-bold rounded-lg">💻 CNTT</button>
+            <button type="button" onclick="toggleDashboardStudioHub(true); switchDashboardStudioTab('medical')" data-studio-tab="medical" class="studio-hub-tab btn-soft px-2.5 py-1 text-xs font-bold rounded-lg">🩺 Y Dược</button>
+            <button type="button" onclick="toggleDashboardStudioHub(true); switchDashboardStudioTab('study')" data-studio-tab="study" class="studio-hub-tab btn-soft px-2.5 py-1 text-xs font-bold rounded-lg">🧠 Ôn Tập</button>
           </div>
         </div>
 
+        <div id="studio-hub-body" class="hidden space-y-2.5">
         <!-- Panel 1: CNTT & Giải Thuật -->
         <div id="studio-panel-cntt" class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
           <button onclick="openTreeHeapStudioModal()" class="bento-tool-tile px-3 py-2.5 rounded-xl border text-left transition-all flex items-center gap-2" style="background-color: var(--bg-subtle); border-color: var(--border);">
@@ -6630,6 +6591,7 @@ html:not(.dark) .blitz60-opt-btn.is-wrong {
             <span class="text-base shrink-0">🎧</span>
             <span class="font-bold text-xs txt-main truncate">Zen &amp; Pomodoro</span>
           </button>
+        </div>
         </div>
       </div>
 
@@ -18741,6 +18703,16 @@ function setSubjectCategoryFilter(cat) {
   });
   renderDashboard();
 }
+
+function toggleDashboardStudioHub(forceOpen = null) {
+  const body = document.getElementById('studio-hub-body');
+  const chev = document.getElementById('studio-hub-chevron');
+  if (!body) return;
+  const shouldOpen = forceOpen === null ? body.classList.contains('hidden') : Boolean(forceOpen);
+  body.classList.toggle('hidden', !shouldOpen);
+  if (chev) chev.textContent = shouldOpen ? 'Thu gọn ▴' : 'Mở ▾';
+}
+window.toggleDashboardStudioHub = toggleDashboardStudioHub;
 
 function switchDashboardStudioTab(tabKey) {
   ['cntt', 'medical', 'study'].forEach((k) => {
