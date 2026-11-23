@@ -3142,6 +3142,7 @@ async def ai_deep_analysis_handler(request):
     try:
         data = await safe_get_json(request)
         q_text = data.get("question_text", "")
+        options_text = data.get("options_text", "")
         correct_opt = data.get("correct_option", "")
         explanation = data.get("explanation", "")
         code = data.get("code_snippet", "")
@@ -3168,7 +3169,8 @@ async def ai_deep_analysis_handler(request):
                 logger.warning(f"Cache-aside lookup failed for question {q_id}: {e}")
 
         # 2. Gọi AI Deep Analysis với chế độ chỉ định
-        analysis = await ai.ai_deep_analysis(q_text, correct_opt, explanation, code, mode=mode)
+        full_q_text = f"{q_text}\n{options_text}".strip() if options_text else q_text
+        analysis = await ai.ai_deep_analysis(full_q_text, correct_opt, explanation, code, mode=mode)
 
         # 3. Tự động lưu bền vững vào SQLite kèm analysis_mode
         history_id = None
@@ -5222,7 +5224,7 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v69-1';
+    const CACHE_NAME = 'unimaster-pwa-v70-0';
     const CORE_ASSETS = [
       '/static/style.css?v=56.4',
       '/static/minimal.css?v=54.1',

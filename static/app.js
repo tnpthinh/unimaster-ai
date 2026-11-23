@@ -6489,34 +6489,52 @@ function renderQuestionFeedbackArea(q) {
 
   const deepBox = document.getElementById('q-ai-deep-box');
   if (deepBox) {
-    if (STATE.exam.deepAnalysis[q.id]) {
-      const meta = STATE.exam.deepAnalysisMeta?.[q.id] || {};
-      const modeLabels = {
-        standard: '🔬 Chuẩn giáo sư',
-        feynman: '👶 Feynman đời sống',
-        exam_trap: '🎯 Mổ xẻ bẫy thi',
-        socratic: '❓ Socrates phản biện',
-        stem_clinical: '🧬 STEM & Lâm sàng'
-      };
-      const modeText = modeLabels[meta.mode] || '🔬 Chuẩn giáo sư';
+    const savedMode = typeof getSavedDeepAnalysisMode === 'function' ? getSavedDeepAnalysisMode() : 'standard';
+    const modeSel = document.getElementById('deep-analysis-mode-select');
+    if (modeSel && modeSel.value !== savedMode) modeSel.value = savedMode;
+    const activeAnalysis = STATE.exam.deepAnalysis[`${q.id}_${savedMode}`] || STATE.exam.deepAnalysis[q.id];
+    if (activeAnalysis) {
+      const meta = STATE.exam.deepAnalysisMeta?.[`${q.id}_${savedMode}`] || STATE.exam.deepAnalysisMeta?.[q.id] || { mode: savedMode };
+      const curMode = meta.mode || savedMode;
+      const lensDefs = [
+        ['standard', '🔬 Chuẩn'],
+        ['feynman', '👶 Feynman'],
+        ['exam_trap', '🎯 Bẫy thi'],
+        ['socratic', '❓ Socrates'],
+        ['stem_clinical', '🧬 Lâm sàng']
+      ];
+      const lensPills = lensDefs.map(([k, lbl]) => {
+        const isAct = k === curMode;
+        return `<button type="button" onclick="triggerDeepAnalysis(false, '${k}')" class="px-2 py-0.5 rounded-full text-[10.5px] font-bold transition-all border ${isAct ? 'bg-indigo-600 text-white border-indigo-400 shadow-sm' : 'bg-white/5 text-slate-300 border-white/10 hover:border-indigo-400/60 hover:text-white'}">${lbl}</button>`;
+      }).join('');
       const cachedBadge = meta.cached
-        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">⚡ Đã nạp từ lịch sử (0.05ms)</span>`
-        : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">💾 Đã lưu vào kho lịch sử</span>`;
+        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">⚡ Kho lưu</span>`
+        : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">💾 Đã lưu</span>`;
 
       deepBox.innerHTML = `
-        <div class="p-3.5 rounded-2xl bg-indigo-950/30 border border-indigo-500/35 space-y-2.5">
+        <div class="p-3.5 sm:p-4 rounded-2xl border space-y-3" style="background: linear-gradient(180deg, rgba(30,27,75,0.35), rgba(15,23,42,0.55)); border-color: rgba(99,102,241,0.38);">
           <div class="flex items-center justify-between pb-2 border-b border-white/10 text-xs flex-wrap gap-2">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="font-bold text-indigo-300 flex items-center gap-1.5"><i data-lucide="microscope" class="w-4 h-4 text-indigo-400"></i> AI Phân Tích Chuyên Sâu</span>
-              <span class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30">${modeText}</span>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <span class="font-extrabold text-indigo-300 flex items-center gap-1.5"><i data-lucide="microscope" class="w-4 h-4 text-indigo-400"></i> Phân tích AI</span>
               ${cachedBadge}
             </div>
             <div class="flex items-center gap-1.5">
-              <button onclick="triggerDeepAnalysis(true)" class="px-2 py-0.5 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white transition-all" title="Yêu cầu AI sinh lại bài phân tích mới">🔄 Làm mới</button>
-              <button onclick="openDeepAnalysisHistoryModal()" class="px-2 py-0.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] text-emerald-300 flex items-center gap-1 transition-all" title="Mở kho lịch sử lưu trữ">📚 Kho Lịch Sử</button>
+              <button type="button" onclick="copyInlineDeepAnalysis(${q.id})" class="px-2 py-0.5 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white" title="Sao chép">📋</button>
+              <button type="button" onclick="triggerDeepAnalysis(true, '${curMode}')" class="px-2 py-0.5 rounded-lg border border-white/15 bg-white/5 hover:bg-white/10 text-[11px] text-slate-300 hover:text-white" title="Phân tích lại">🔄</button>
+              <button type="button" onclick="openDeepAnalysisHistoryModal()" class="px-2 py-0.5 rounded-lg border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 text-[11px] text-emerald-300 font-bold" title="Kho lịch sử AI">📚 Lịch sử</button>
             </div>
           </div>
-          <div class="markdown-body text-sm leading-relaxed text-slate-200">${renderMarkdown(STATE.exam.deepAnalysis[q.id])}</div>
+          <div class="flex items-center gap-1.5 flex-wrap">${lensPills}</div>
+          <div class="markdown-body text-sm leading-relaxed txt-main">${renderMarkdown(activeAnalysis)}</div>
+          <div class="pt-2 border-t border-white/10 space-y-2">
+            <div class="flex items-center gap-1.5">
+              <input id="inline-deep-followup-input" type="text" placeholder="Hỏi thêm AI về bài phân tích này..."
+                onkeydown="if(event.key==='Enter') sendInlineDeepFollowup(${q.id})"
+                class="uni-input flex-1 px-3 py-1.5 text-xs" />
+              <button type="button" onclick="sendInlineDeepFollowup(${q.id})" class="btn-primary px-3 py-1.5 text-xs font-bold shrink-0">Hỏi AI</button>
+            </div>
+            <div id="inline-deep-followup-reply" class="hidden p-3 rounded-xl border text-xs markdown-body" style="background: var(--bg-subtle); border-color: var(--brand-border);"></div>
+          </div>
         </div>
       `;
       deepBox.classList.remove('hidden');
@@ -6814,28 +6832,115 @@ async function distillQuestionObjectToFlashcard(q, sid) {
   }
 }
 
+const DEEP_ANALYSIS_MODE_KEY = 'unimaster_deep_analysis_mode';
+const VALID_DEEP_MODES = new Set(['standard', 'feynman', 'exam_trap', 'socratic', 'stem_clinical']);
+
+function getSavedDeepAnalysisMode() {
+  try {
+    const v = localStorage.getItem(DEEP_ANALYSIS_MODE_KEY) || '';
+    if (VALID_DEEP_MODES.has(v)) return v;
+  } catch (_) {}
+  return 'standard';
+}
+window.getSavedDeepAnalysisMode = getSavedDeepAnalysisMode;
+
+function setSavedDeepAnalysisMode(mode) {
+  const clean = VALID_DEEP_MODES.has(mode) ? mode : 'standard';
+  try { localStorage.setItem(DEEP_ANALYSIS_MODE_KEY, clean); } catch (_) {}
+  const sel = document.getElementById('deep-analysis-mode-select');
+  if (sel && sel.value !== clean) sel.value = clean;
+  if (typeof window.scheduleUniversalVaultPush === 'function') window.scheduleUniversalVaultPush(500);
+  return clean;
+}
+window.setSavedDeepAnalysisMode = setSavedDeepAnalysisMode;
+
+if (typeof document !== 'undefined') {
+  document.addEventListener('DOMContentLoaded', () => {
+    const sel = document.getElementById('deep-analysis-mode-select');
+    if (sel) sel.value = getSavedDeepAnalysisMode();
+  });
+}
+
+function copyInlineDeepAnalysis(qid) {
+  const mode = getSavedDeepAnalysisMode();
+  const txt = STATE.exam.deepAnalysis?.[`${qid}_${mode}`] || STATE.exam.deepAnalysis?.[qid] || '';
+  if (!txt) return;
+  navigator.clipboard?.writeText(txt).then(() => showToast('📋 Đã sao chép bài phân tích AI!', 'success')).catch(() => {});
+}
+window.copyInlineDeepAnalysis = copyInlineDeepAnalysis;
+
+async function sendInlineDeepFollowup(qid) {
+  const inp = document.getElementById('inline-deep-followup-input');
+  const out = document.getElementById('inline-deep-followup-reply');
+  const query = (inp?.value || '').trim();
+  const q = STATE.exam.questions?.[STATE.exam.currentIndex];
+  if (!query || !q || !out) return;
+  const mode = getSavedDeepAnalysisMode();
+  const ctx = STATE.exam.deepAnalysis?.[`${qid}_${mode}`] || STATE.exam.deepAnalysis?.[qid] || '';
+  out.classList.remove('hidden');
+  out.innerHTML = '<span class="txt-muted">⏳ AI đang trả lời...</span>';
+  try {
+    const res = await apiFetch('/api/ai/deep-analysis/followup', {
+      method: 'POST',
+      body: JSON.stringify({
+        question_text: q.question_text,
+        correct_option: q._effectiveCorrect || q.correct_option || '',
+        analysis_context: ctx,
+        student_query: query,
+        code_snippet: q.code_snippet || ''
+      })
+    });
+    out.innerHTML = renderMarkdown(res?.reply || res?.answer || 'Không có phản hồi.');
+    if (inp) inp.value = '';
+    if (typeof renderMathSafely === 'function') renderMathSafely(out);
+  } catch (err) {
+    out.innerHTML = `<span class="text-rose-400">Lỗi: ${escapeHtml(err.message || 'Không kết nối được AI')}</span>`;
+  }
+}
+window.sendInlineDeepFollowup = sendInlineDeepFollowup;
+
 async function triggerDeepAnalysis(forceRefresh = false, customMode = null) {
   const q = STATE.exam.questions[STATE.exam.currentIndex];
   const deepBox = document.getElementById('q-ai-deep-box');
   if (!q || !deepBox) return;
 
-  const mode = customMode || document.getElementById('deep-analysis-mode-select')?.value || 'standard';
+  const rawMode = customMode || document.getElementById('deep-analysis-mode-select')?.value || getSavedDeepAnalysisMode();
+  const mode = setSavedDeepAnalysisMode(rawMode);
+  const cacheKey = `${q.id}_${mode}`;
+
+  if (!forceRefresh && STATE.exam.deepAnalysis?.[cacheKey]) {
+    STATE.exam.deepAnalysis[q.id] = STATE.exam.deepAnalysis[cacheKey];
+    if (!STATE.exam.deepAnalysisMeta) STATE.exam.deepAnalysisMeta = {};
+    STATE.exam.deepAnalysisMeta[q.id] = STATE.exam.deepAnalysisMeta[cacheKey] || { cached: true, mode };
+    renderQuestionFeedbackArea(q);
+    return;
+  }
+
   deepBox.classList.remove('hidden');
   deepBox.innerHTML = `
     <div class="p-3 bg-indigo-950/30 rounded-xl border border-indigo-500/30 flex items-center gap-3">
       <div class="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
-      <span class="text-xs text-indigo-300 font-medium">${forceRefresh ? 'Đang gửi yêu cầu phân tích mới tới AI...' : 'Đang tra cứu kho lưu trữ & phân tích chuyên sâu...'}</span>
+      <span class="text-xs text-indigo-300 font-medium">${forceRefresh ? 'Đang tạo phân tích mới...' : 'Đang phân tích chuyên sâu...'}</span>
     </div>
   `;
   playSound('click');
   try {
+    const optsText = ['A', 'B', 'C', 'D']
+      .map((L) => {
+        const v = q[`option_${L.toLowerCase()}`];
+        return v ? `${L}. ${v}` : '';
+      })
+      .filter(Boolean)
+      .join('\n');
+
     const res = await apiFetch('/api/ai/deep-analysis', {
       method: 'POST',
       body: JSON.stringify({
         question_id: q.id,
         subject_id: STATE.exam.subjectId || q.subject_id,
         question_text: q.question_text,
-        correct_option: q._effectiveCorrect || '',
+        options_text: optsText,
+        correct_option: q._effectiveCorrect || q.correct_option || '',
         explanation: q.explanation || '',
         code_snippet: q.code_snippet || '',
         source_type: 'exam',
@@ -6843,19 +6948,23 @@ async function triggerDeepAnalysis(forceRefresh = false, customMode = null) {
         mode: mode
       })
     });
+    const finalMode = res.analysis_mode || mode;
     STATE.exam.deepAnalysis[q.id] = res.analysis || '';
+    STATE.exam.deepAnalysis[`${q.id}_${finalMode}`] = res.analysis || '';
     if (!STATE.exam.deepAnalysisMeta) STATE.exam.deepAnalysisMeta = {};
-    STATE.exam.deepAnalysisMeta[q.id] = {
+    const metaObj = {
       cached: !!res.cached,
       history_id: res.history_id,
       created_at: res.created_at,
-      mode: res.analysis_mode || mode
+      mode: finalMode
     };
+    STATE.exam.deepAnalysisMeta[q.id] = metaObj;
+    STATE.exam.deepAnalysisMeta[`${q.id}_${finalMode}`] = metaObj;
     renderQuestionFeedbackArea(q);
     if (res.cached) {
-      showToast('⚡ Phân tích được nạp tức thì từ kho lịch sử (0.05ms)', 'info');
+      showToast(`⚡ Nạp tức thì (${finalMode}) từ kho lưu`, 'info');
     } else {
-      showToast('💾 Đã lưu phân tích chuyên sâu vào kho dữ liệu bền vững', 'success');
+      showToast(`💾 Đã lưu phong cách ${finalMode} vào kho`, 'success');
     }
   } catch (err) {
     deepBox.innerHTML = `<div class="p-3 bg-red-950/40 rounded-xl border border-red-500/40 text-xs text-red-300">Không thể phân tích: ${err.message || 'Lỗi kết nối'}</div>`;
@@ -27807,6 +27916,7 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
         mode: typeof currentTutorMode !== 'undefined' ? currentTutorMode : 'explain',
         persona: typeof currentTutorPersona !== 'undefined' ? currentTutorPersona : 'professor',
         responseLength: typeof currentTutorResponseLength !== 'undefined' ? currentTutorResponseLength : 'concise',
+        deepAnalysisMode: typeof getSavedDeepAnalysisMode === 'function' ? getSavedDeepAnalysisMode() : 'standard',
         splitDock: localStorage.getItem('unimaster_tutor_split_dock') !== '0',
         customStyle: typeof tutorCustomStyle !== 'undefined' ? tutorCustomStyle : ''
       },
@@ -28203,6 +28313,11 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       }
       if (srvState.tutorPrefs && (srvIsNewer || !localStorage.getItem('unimaster_tutor_length'))) {
         const tp = srvState.tutorPrefs;
+        if (tp.deepAnalysisMode && typeof setSavedDeepAnalysisMode === 'function') {
+          try { localStorage.setItem('unimaster_deep_analysis_mode', tp.deepAnalysisMode); } catch (_) {}
+          const dSel = document.getElementById('deep-analysis-mode-select');
+          if (dSel) dSel.value = tp.deepAnalysisMode;
+        }
         if (tp.responseLength) {
           currentTutorResponseLength = tp.responseLength;
           localStorage.setItem('unimaster_tutor_length', tp.responseLength);
