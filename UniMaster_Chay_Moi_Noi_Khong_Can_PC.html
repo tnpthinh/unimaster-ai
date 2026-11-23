@@ -43356,6 +43356,38 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     }
 
     // 1B. Sync Exam Results & Dashboard KPI Stats from Server Snapshot
+    if (Array.isArray(snap.exam_results) && snap.exam_results.length) {
+      const curHist = safeJsonParse(localStorage.getItem('unimaster_local_exam_history_v1'), []);
+      const seenIds = new Set(curHist.map((x) => String(x?.id || `${x?.subjectId}_${x?.total}_${x?.correct}_${String(x?.timestamp || '').slice(0, 8)}`)));
+      let histAdded = false;
+      snap.exam_results.forEach((er) => {
+        if (!er) return;
+        const tsMs = er.created_at ? Date.parse(String(er.created_at).replace(' ', 'T')) || Date.now() : Date.now();
+        const item = {
+          id: `srv_${er.id || tsMs}`,
+          subjectId: Number(er.subject_id || 0),
+          subjectName: er.subject_name || 'Bài thi',
+          total: Number(er.total_questions || 0),
+          correct: Number(er.correct_count || 0),
+          score: Number(er.score || 0),
+          duration: Number(er.duration_seconds || 0),
+          mode: er.mode || 'practice',
+          timestamp: tsMs,
+          dateStr: er.created_at || new Date(tsMs).toLocaleString('vi-VN')
+        };
+        const hid = String(item.id);
+        if (!seenIds.has(hid)) {
+          seenIds.add(hid);
+          curHist.push(item);
+          histAdded = true;
+        }
+      });
+      if (histAdded) {
+        curHist.sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+        safeLocalStorageSet('unimaster_local_exam_history_v1', JSON.stringify(curHist.slice(0, 60)));
+      }
+    }
+
     if (snap.stats_summary && typeof snap.stats_summary === 'object') {
       const prevExams = Number(STATE.stats?.total_exams || 0);
       const nextExams = Number(snap.stats_summary.total_exams || 0);

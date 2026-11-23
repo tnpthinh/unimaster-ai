@@ -4830,6 +4830,9 @@ async def api_online_start_handler(request):
 async def _safe_bg_bridge_push(remote_url: str, payload: dict, bridge_pw: str, uid: int):
     try:
         res = await _push_or_pull_remote_bridge(remote_url, payload, bridge_pw)
+        if not res.get("synced") and any(code in str(res.get("error") or "") for code in ("500", "502", "503", "504", "timeout")):
+            await asyncio.sleep(3.0)
+            res = await _push_or_pull_remote_bridge(remote_url, payload, bridge_pw)
         if res.get("synced") and isinstance(res.get("remote"), dict):
             rem = res["remote"]
             if rem.get("drafts") or rem.get("user_state") or rem.get("exam_results"):
@@ -4838,6 +4841,33 @@ async def _safe_bg_bridge_push(remote_url: str, payload: dict, bridge_pw: str, u
                 _notify_realtime_sync_clients(uid, {"type": "vault_updated", "sender_cid": "cloud_bridge", **merged_snap})
     except Exception:
         pass
+
+
+async def _cloud_bridge_keeper_loop():
+    await asyncio.sleep(4.0)
+    while True:
+        try:
+            remote_url = await asyncio.to_thread(_get_effective_remote_bridge_url)
+            if remote_url:
+                bridge_pw = await asyncio.to_thread(db.get_setting, "remote_cloud_bridge_pw", "")
+                snap = await asyncio.to_thread(_build_server_vault_snapshot, 1)
+                await _safe_bg_bridge_push(remote_url, {**snap, "_from_bridge": True}, bridge_pw, 1)
+        except asyncio.CancelledError:
+            break
+        except Exception:
+            pass
+        await asyncio.sleep(180.0)
+
+
+async def _start_cloud_bridge_keeper(_app):
+    if not _is_running_on_cloud_instance():
+        _app["_cloud_bridge_keeper_task"] = asyncio.create_task(_cloud_bridge_keeper_loop())
+
+
+async def _stop_cloud_bridge_keeper(_app):
+    t = _app.get("_cloud_bridge_keeper_task")
+    if t:
+        t.cancel()
 
 
 async def sync_remote_bridge_handler(request):
@@ -5192,7 +5222,7 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v69-0';
+    const CACHE_NAME = 'unimaster-pwa-v69-1';
     const CORE_ASSETS = [
       '/static/style.css?v=56.4',
       '/static/minimal.css?v=54.1',
@@ -8604,6 +8634,10 @@ def create_app():
     if os.environ.get("TELEGRAM_BOT_TOKEN") and os.environ.get("TELEGRAM_BACKUP_CHAT_ID"):
         app.on_startup.append(lambda _app: _start_backup_task(_app))
         app.on_cleanup.append(lambda _app: _stop_backup_task(_app))
+
+    if not _is_running_on_cloud_instance():
+        app.on_startup.append(_start_cloud_bridge_keeper)
+        app.on_cleanup.append(_stop_cloud_bridge_keeper)
 
     return app
 
