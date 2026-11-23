@@ -6446,6 +6446,7 @@ html.dark #floating-realtime-clock-restore {
 }
 
 .modal-backdrop {
+  background: rgba(6, 9, 16, 0.76);
   backdrop-filter: blur(10px) saturate(130%) !important;
   -webkit-backdrop-filter: blur(10px) saturate(130%) !important;
 }

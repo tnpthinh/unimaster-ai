@@ -2156,15 +2156,17 @@ async def api_omnisearch_handler(request):
         like_pat = f"%{q}%"
         q_rows = conn.execute(
             """
-            SELECT q.id, q.subject_id, q.question_text, q.topic_tag, q.difficulty,
+            SELECT q.id, q.subject_id, q.question_text, q.option_a, q.option_b, q.option_c, q.option_d,
+                   q.correct_option, q.explanation, q.topic_tag, q.difficulty,
                    s.name AS subject_name, s.icon AS subject_icon
             FROM questions q
             JOIN subjects s ON s.id = q.subject_id
             WHERE q.question_text LIKE ? OR q.topic_tag LIKE ? OR q.explanation LIKE ?
-            ORDER BY CASE WHEN q.topic_tag LIKE ? THEN 0 ELSE 1 END, q.id DESC
+               OR q.option_a LIKE ? OR q.option_b LIKE ? OR q.option_c LIKE ? OR q.option_d LIKE ?
+            ORDER BY CASE WHEN q.topic_tag LIKE ? THEN 0 WHEN q.question_text LIKE ? THEN 1 ELSE 2 END, q.id DESC
             LIMIT ?
             """,
-            (like_pat, like_pat, like_pat, like_pat, limit),
+            (like_pat, like_pat, like_pat, like_pat, like_pat, like_pat, like_pat, like_pat, like_pat, limit),
         ).fetchall()
         fc_rows = conn.execute(
             """
@@ -4238,6 +4240,22 @@ def _merge_user_states(cur: dict, inc: dict) -> dict:
             reverse=True,
         )[:40]
 
+    # Merge Per-Question Mastery & Coverage Map (v71.0 Unseen-First Engine)
+    qm_a = cur.get("questionMastery") if isinstance(cur.get("questionMastery"), dict) else {}
+    qm_b = inc.get("questionMastery") if isinstance(inc.get("questionMastery"), dict) else {}
+    if qm_a or qm_b:
+        merged_qm = {}
+        for qk in set(qm_a.keys()) | set(qm_b.keys()):
+            va = qm_a.get(qk) if isinstance(qm_a.get(qk), dict) else {}
+            vb = qm_b.get(qk) if isinstance(qm_b.get(qk), dict) else {}
+            merged_qm[str(qk)] = {
+                "sid": _safe_int(vb.get("sid") or va.get("sid"), 0),
+                "r": max(_safe_int(va.get("r"), 0), _safe_int(vb.get("r"), 0)),
+                "w": max(_safe_int(va.get("w"), 0), _safe_int(vb.get("w"), 0)),
+                "t": max(_safe_int(va.get("t"), 0), _safe_int(vb.get("t"), 0)),
+            }
+        merged["questionMastery"] = merged_qm
+
     merged["updated_at_ms"] = max(cur_ts, inc_ts, int(time.time() * 1000))
     return merged
 
@@ -5224,7 +5242,7 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v70-0';
+    const CACHE_NAME = 'unimaster-pwa-v71-0';
     const CORE_ASSETS = [
       '/static/style.css?v=56.4',
       '/static/minimal.css?v=54.1',

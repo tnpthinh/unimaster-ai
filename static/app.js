@@ -4582,9 +4582,10 @@ function renderDashboard() {
                 <div class="w-10 h-10 rounded-xl flex items-center justify-center text-lg shrink-0" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
                   ${s.icon || '📘'}
                 </div>
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                   <h3 class="font-bold text-sm txt-main leading-snug truncate">${escapeHtml(s.name)}</h3>
                   <div class="text-[11px] txt-muted mt-0.5 truncate">${metaParts.join(' • ')}</div>
+                  ${typeof window.renderSubjectCardCoverageHtml === 'function' ? window.renderSubjectCardCoverageHtml(s.id, s.question_count) : ''}
                 </div>
               </div>
               <div class="flex items-center gap-1.5 shrink-0" onclick="event.stopPropagation()">
@@ -4639,6 +4640,9 @@ async function renderBloomCompetencyChart() {
   const sid = Number(document.getElementById('roadmap-subject-select')?.value || STATE.examConfig.subjectId || 5);
   try {
     const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
     const allQs = res.questions || [];
     const mistakeIds = new Set(STATE.mistakes.map((m) => (typeof m === 'object' ? m.id : m)));
     const avgScore = Number(STATE.stats?.avg_score || 0);
@@ -5001,6 +5005,9 @@ async function onExamSubjectChange() {
   }
 
   const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
   const allQs = res.questions || [];
   STATE.examConfig.subjectAllQuestions = allQs;
 
@@ -5309,6 +5316,9 @@ async function startSpecialDrill(kind, specificSid = null) {
   let pool = STATE.examConfig.subjectAllQuestions;
   if (!pool || !pool.length || String(STATE.examConfig.subjectId) !== String(sid)) {
     const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
     pool = res.questions || [];
     STATE.examConfig.subjectAllQuestions = pool;
     STATE.examConfig.subjectId = sid;
@@ -5412,6 +5422,9 @@ async function startCustomExam() {
   if (bloomDiff !== 'all') {
     list = list.filter((q) => getBloomInfo(q.difficulty, q.question_text).key === bloomDiff);
   }
+  if (typeof window.filterPoolByQuestionMastery === 'function') {
+    list = window.filterPoolByQuestionMastery(list, sid);
+  }
   if (!list.length) {
     showToast('Chưa có câu hỏi thuộc bộ lọc này! Hãy thử đổi cấp độ hoặc dùng AI Soạn Đề.', 'warning');
     return;
@@ -5443,6 +5456,9 @@ async function startAdaptiveSmartExam(customSid = null) {
   );
   try {
     const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
     const pool = (res && res.questions) || [];
     if (!pool.length) {
       showToast('Môn học này chưa có câu hỏi để tạo Đề Thông Minh!', 'warning');
@@ -6027,6 +6043,9 @@ function renderCurrentExamQuestion() {
     }
   }
 
+  if (typeof window.injectCurrentQuestionMasteryBadge === 'function') {
+    window.injectCurrentQuestionMasteryBadge(q);
+  }
   renderPaletteGrid();
   refreshIcons();
   renderAllMathOnPage(document.getElementById('exam-question-stage') || document.getElementById('view-exam'));
@@ -6295,6 +6314,9 @@ function updateExamAfterAnswer(q) {
   }
 
   // Only render palette if drawer is open; only run KaTeX on explanation/options if math ($) present
+  if (typeof window.injectCurrentQuestionMasteryBadge === 'function') {
+    window.injectCurrentQuestionMasteryBadge(q);
+  }
   renderPaletteGrid();
   const ansArea = document.getElementById('q-answer-area');
   const explBox = document.getElementById('q-official-expl-box');
@@ -6321,6 +6343,9 @@ function selectExamOption(letter, fromKeyboard = false) {
   // Instant Grading across all modes so the correct answer is ALWAYS revealed immediately after picking
   STATE.exam.graded[q.id] = true;
   const isCorrect = String(letter).toUpperCase() === corrLetter;
+  if (typeof window.recordQuestionMasteryHit === 'function') {
+    window.recordQuestionMasteryHit(q, isCorrect);
+  }
 
   if (isCorrect) {
     STATE.exam.streak++;
@@ -6367,6 +6392,9 @@ function onTextAnswerInput(val) {
   const q = STATE.exam.questions[STATE.exam.currentIndex];
   if (!q) return;
   STATE.exam.answers[q.id] = val;
+  if (typeof window.injectCurrentQuestionMasteryBadge === 'function') {
+    window.injectCurrentQuestionMasteryBadge(q);
+  }
   renderPaletteGrid();
 }
 
@@ -7797,6 +7825,9 @@ async function loadFlashcardsView() {
   }
   if (mode !== 'sm2' || !loadedCards.length) {
     const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
     loadedCards = (res.questions || []).map((q) => {
       const corr = normalizeCorrectLetter(q);
       const map = { A: q.option_a, B: q.option_b, C: q.option_c, D: q.option_d };
@@ -7971,6 +8002,9 @@ async function aiExpandFlashcardsNow() {
 async function loadBankQuestions() {
   const sid = Number(document.getElementById('bank-subject-select')?.value || 5);
   const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
   STATE.bank.all = res.questions || [];
   renderBankList(true);
 }
@@ -9653,6 +9687,9 @@ function renderKnowledgeHeatmapAndPredictor(allQs, sid) {
 
 async function startTopicHeatmapDrill(sid, topicName) {
   const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
   const allQs = res.questions || [];
   const matched = allQs.filter((q) => {
     const parsed = parseQuestionHeader(q.question_text);
@@ -9767,6 +9804,9 @@ async function openMistakeBankModal() {
   listEl.innerHTML = `<div class="skeleton-shimmer h-24 w-full"></div>`;
   const sid = STATE.examConfig.subjectId || 10;
   const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
   const qMap = Object.fromEntries((res.questions || []).map((q) => [q.id, q]));
 
   listEl.innerHTML = STATE.mistakes
@@ -16442,6 +16482,9 @@ async function startCustomRangeExam() {
   let pool = STATE.examConfig.subjectAllQuestions;
   if (!pool || !pool.length || sid !== STATE.examConfig.subjectId) {
     const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
     pool = res.questions || [];
     STATE.examConfig.subjectAllQuestions = pool;
     STATE.examConfig.subjectId = sid;
@@ -19444,6 +19487,9 @@ document.addEventListener('keydown', (e) => {
     if (needsFetch && sid) {
       try {
         const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
         if (Array.isArray(res?.questions) && res.questions.length) {
           pool = res.questions;
           STATE.examConfig.subjectAllQuestions = pool;
@@ -22523,6 +22569,9 @@ async function openOmnisearchQuestion(subjectId, questionId) {
   const sid = Number(subjectId || STATE.activeSubjectId || 5);
   if (typeof selectActiveSubject === 'function') selectActiveSubject(sid, false);
   const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
   const pool = (res && res.questions) || [];
   const target = pool.find((q) => Number(q.id) === Number(questionId));
   if (!target) {
@@ -22615,20 +22664,25 @@ async function fetchOmnisearchResults(rawQuery) {
       });
       (data.questions || []).forEach((row) => {
         const cleanTxt = String(row.question_text || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        const corr = String(row.correct_option || 'A').trim().toUpperCase();
+        const optMap = { A: row.option_a, B: row.option_b, C: row.option_c, D: row.option_d };
+        const ansClean = String(optMap[corr] || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        const ansSnippet = ansClean ? `✔ ${corr}: ${ansClean.length > 68 ? ansClean.slice(0, 68) + '…' : ansClean}` : `✔ Đáp án ${corr}`;
         dyn.push({
           icon: row.subject_icon || '🎯',
           title: cleanTxt.length > 92 ? cleanTxt.slice(0, 92) + '…' : cleanTxt,
-          sub: `${row.subject_name || 'Ngân hàng đề'}${row.topic_tag ? ' • ' + row.topic_tag : ''} • Bấm để làm ngay câu này`,
-          badge: '🎯 CÂU HỎI',
+          sub: `${ansSnippet} • ${row.subject_name || 'Ngân hàng đề'}`,
+          badge: `✔ ${corr}`,
           action: () => openOmnisearchQuestion(row.subject_id, row.id)
         });
       });
       (data.flashcards || []).forEach((fc) => {
         const cleanFront = String(fc.front || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+        const cleanBack = String(fc.back || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
         dyn.push({
           icon: fc.subject_icon || '🃏',
           title: `Thẻ nhớ: ${cleanFront.length > 80 ? cleanFront.slice(0, 80) + '…' : cleanFront}`,
-          sub: `${fc.subject_name || 'Flashcard SM-2'} • Bấm để mở thẻ lật 3D`,
+          sub: `${cleanBack ? '✔ ' + (cleanBack.length > 72 ? cleanBack.slice(0, 72) + '…' : cleanBack) + ' • ' : ''}${fc.subject_name || 'Flashcard'}`,
           badge: '🃏 THẺ NHỚ',
           action: () => openOmnisearchFlashcard(fc.subject_id, fc.id)
         });
@@ -22648,6 +22702,13 @@ function buildCommandPaletteCatalog(query) {
 
   // Core System & Pinnacle Actions
   const coreCommands = [
+    { icon: '🚀', title: 'Học Tự Động 3 Chặng (Autopilot Sprint)', sub: 'Thẻ nhớ → Diệt lỗ hổng & Phủ câu mới → Phản xạ bẫy thi 12s', badge: 'MỚI v71', action: () => openAutopilotSessionModal() },
+    { icon: '🆕', title: 'Cày Câu Hỏi Chưa Từng Làm (Phủ 100% Ngân Hàng)', sub: 'Lọc riêng câu chưa làm để không bị lặp lại câu cũ', badge: 'MỚI v71', action: () => startUnseenSubjectDrill() },
+    { icon: '💾', title: 'Xuất File Sao Lưu Toàn Bộ (.json)', sub: 'Tải toàn bộ bài thi, độ phủ đề, câu sai, chat AI & lịch thi về máy', badge: 'MỚI v71', action: () => exportFullVaultBackupJson() },
+    { icon: '🔥', title: 'Sinh Tồn Vô Tận (Endless Survival)', sub: 'Chuỗi Combo x2/x3 • 3 tim hoặc 1 tim Hardcore', badge: 'v65', action: () => openEndlessSurvivalModal() },
+    { icon: '🔊', title: 'Nghe Ôn Rảnh Tay (Audio Study Deck TTS)', sub: 'Tự đọc câu hỏi → dừng nhẩm đáp án → đọc đáp án đúng', badge: 'v65', action: () => openAudioPlaylistModal() },
+    { icon: '🧮', title: 'Tính GPA Hệ 4.0 & Điểm Cuối Kỳ Mục Tiêu', sub: 'Quy đổi điểm chữ A/B+/B & tính ngược điểm thi cuối kỳ cần đạt', badge: 'v66', action: () => openGpaCalculatorModal() },
+    { icon: '📋', title: 'Dán Văn Bản Thành Đề Thi Ngay', sub: 'Tách câu trắc nghiệm từ Word/PDF/Zalo và vào thi tức thì', badge: 'v66', action: () => openPasteToQuizModal() },
     { icon: '🧮', title: 'Phòng Lab Đại Số Boole, Bảng Chân Trị & Bìa Karnaugh (2–4 Biến)', sub: 'Rút gọn Quine-McCluskey, DNF/CNF & kiểm tra Hằng đúng / Mâu thuẫn', badge: 'MỚI v47', action: () => openLogicKmapModal() },
     { icon: '🌳', title: 'Phòng Mô Phỏng Cây Tự Cân Bằng AVL, BST & Đống Heap (SVG)', sub: 'Quan sát trực quan phép quay LL/RR/LR/RL, hệ số BF & 4 phép duyệt cây', badge: 'MỚI v47', action: () => openTreeHeapStudioModal() },
     { icon: '🩸', title: 'Giải Mã Khí Máu Động Mạch (ABG), Winter & Tỷ Số Delta-Delta', sub: 'Biện luận 5 bước ICU/Hóa Sinh, Anion Gap hiệu chỉnh Albumin & Giản đồ pH', badge: 'MỚI v47', action: () => openAbgAnalyzerModal() },
@@ -27906,6 +27967,7 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       plannerDone: safeJsonParse(localStorage.getItem('unimaster_planner_done'), {}),
       dailyQuota: safeJsonParse(localStorage.getItem('unimaster_daily_quota'), null),
       dailyGoalV56: safeJsonParse(localStorage.getItem('unimaster_daily_goal_v56'), null),
+      questionMastery: safeJsonParse(localStorage.getItem('unimaster_question_mastery_v71'), {}),
       localExamHistory: safeJsonParse(localStorage.getItem('unimaster_local_exam_history_v1'), []).slice(0, 40),
       activeSubjectId: STATE?.activeSubjectId || localStorage.getItem('unimaster_active_subject_id') || '',
       activeAccountId: localStorage.getItem('unimaster_active_account_id_v2') || '',
@@ -28034,6 +28096,9 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     let pool = [];
     try {
       const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
       if (Array.isArray(res?.questions)) pool = res.questions;
     } catch (_) {}
     const byId = new Map(pool.map((q) => [String(q.id), q]));
@@ -28332,6 +28397,22 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       if (srvIsNewer && srvTs) {
         lastSyncedTimeMs = srvTs;
         try { localStorage.setItem(VAULT_TS_KEY, String(srvTs)); } catch (_) {}
+      }
+      if (srvState.questionMastery && typeof srvState.questionMastery === 'object') {
+        const curQm = safeJsonParse(localStorage.getItem('unimaster_question_mastery_v71'), {});
+        const mergedQm = { ...curQm };
+        Object.entries(srvState.questionMastery).forEach(([qk, v]) => {
+          if (!v || typeof v !== 'object') return;
+          const prev = curQm[qk] || {};
+          mergedQm[qk] = {
+            sid: Number(v.sid || prev.sid || 0),
+            r: Math.max(Number(prev.r || 0), Number(v.r || 0)),
+            w: Math.max(Number(prev.w || 0), Number(v.w || 0)),
+            t: Math.max(Number(prev.t || 0), Number(v.t || 0))
+          };
+        });
+        safeLocalStorageSet('unimaster_question_mastery_v71', JSON.stringify(mergedQm));
+        if (typeof window.refreshHeroUnseenBadge === 'function') window.refreshHeroUnseenBadge();
       }
       if (srvState.dailyGoalV56 && typeof srvState.dailyGoalV56 === 'object') {
         const curDg = safeJsonParse(localStorage.getItem('unimaster_daily_goal_v56'), null);
@@ -29127,6 +29208,9 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
     );
     try {
       const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
       const pool = (res && res.questions) || [];
       if (!pool.length) {
         if (typeof showToast === 'function') showToast('Môn học này chưa có câu hỏi để luyện tập!', 'warning');
@@ -29454,6 +29538,9 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
     const sid = _resolveActiveSubjectId();
     const sub = (STATE?.subjects || []).find((s) => Number(s.id) === sid);
     const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+  if (typeof window.updateExamCoverageBarUI === 'function') {
+    window.updateExamCoverageBarUI(sid, res?.questions || []);
+  }
     const allQs = (res && res.questions) || [];
     if (!allQs.length) {
       if (typeof showToast === 'function') showToast('Môn học này chưa có câu hỏi để trộn đề!', 'warning');
@@ -31618,4 +31705,625 @@ window.startTrrPdfPracticeExam = startTrrPdfPracticeExam;
       pop.classList.add('hidden');
     }
   });
+})();
+
+// =========================================================================
+// v71.0 AUTONOMOUS MASTERY OS REVOLUTION:
+// 1. Unseen-First Mastery & Bank Coverage Engine (FSRS-Lite Question Tracker)
+// 2. 3-Stage Autonomous Study Autopilot ("🚀 Học Tự Động")
+// 3. Zero-Loss Portable Vault Backup (.json Export & Import)
+// 4. Spotlight Command Palette 2.0 Quick-Command Registration
+// =========================================================================
+(function initAutonomousMasteryOsV71() {
+  const QM_KEY = 'unimaster_question_mastery_v71';
+  let _qmCache = null;
+  let _activePoolFilter = 'all';
+
+  function _getQmMap() {
+    if (_qmCache && typeof _qmCache === 'object') return _qmCache;
+    try {
+      _qmCache = JSON.parse(localStorage.getItem(QM_KEY) || '{}') || {};
+    } catch (_) {
+      _qmCache = {};
+    }
+    // Seed initial wrong records from existing STATE.mistakes so existing users immediately see non-zero mastery data!
+    if (Array.isArray(STATE?.mistakes) && STATE.mistakes.length) {
+      let seeded = false;
+      STATE.mistakes.forEach((m) => {
+        if (!m || typeof m !== 'object' || !m.id) return;
+        const k = String(m.id);
+        if (!_qmCache[k]) {
+          _qmCache[k] = {
+            sid: Number(m.subject_id || 0),
+            r: Number(m.streak || 0),
+            w: Math.max(1, Number(m.fail_count || 1)),
+            t: Date.now()
+          };
+          seeded = true;
+        }
+      });
+      if (seeded) {
+        try { localStorage.setItem(QM_KEY, JSON.stringify(_qmCache)); } catch (_) {}
+      }
+    }
+    return _qmCache;
+  }
+
+  function _saveQmMap() {
+    if (!_qmCache) return;
+    try { localStorage.setItem(QM_KEY, JSON.stringify(_qmCache)); } catch (_) {}
+  }
+
+  function recordQuestionMasteryHit(q, isCorrect) {
+    if (!q || !q.id) return;
+    const map = _getQmMap();
+    const k = String(q.id);
+    const sid = Number(q.subject_id || STATE?.exam?.subjectId || STATE?.activeSubjectId || 0);
+    const prev = map[k] || { sid, r: 0, w: 0, t: 0 };
+    map[k] = {
+      sid: sid || prev.sid || 0,
+      r: Number(prev.r || 0) + (isCorrect ? 1 : 0),
+      w: Number(prev.w || 0) + (isCorrect ? 0 : 1),
+      t: Date.now()
+    };
+    _saveQmMap();
+    refreshHeroUnseenBadge();
+    if (typeof window.scheduleUniversalVaultPush === 'function') {
+      window.scheduleUniversalVaultPush(900);
+    }
+  }
+  window.recordQuestionMasteryHit = recordQuestionMasteryHit;
+
+  function getSubjectCoverageStats(subjectId, totalCountHint = 0, explicitPool = null) {
+    const sid = Number(subjectId || 0);
+    const map = _getQmMap();
+    let seen = 0, mastered = 0, weak = 0;
+    if (Array.isArray(explicitPool) && explicitPool.length) {
+      explicitPool.forEach((q) => {
+        const rec = map[String(q.id)];
+        if (rec && (rec.r > 0 || rec.w > 0)) {
+          seen++;
+          if (rec.r > rec.w) mastered++;
+          else weak++;
+        }
+      });
+      const total = explicitPool.length;
+      const unseen = Math.max(0, total - seen);
+      const pct = total ? Math.min(100, Math.round((seen / total) * 100)) : 0;
+      return { total, seen, unseen, mastered, weak, pct };
+    }
+    Object.values(map).forEach((rec) => {
+      if (rec && Number(rec.sid) === sid && (rec.r > 0 || rec.w > 0)) {
+        seen++;
+        if (rec.r > rec.w) mastered++;
+        else weak++;
+      }
+    });
+    const sub = (STATE?.subjects || []).find((s) => Number(s.id) === sid);
+    const total = Math.max(seen, Number(totalCountHint || sub?.question_count || 0));
+    const unseen = Math.max(0, total - seen);
+    const pct = total ? Math.min(100, Math.round((seen / total) * 100)) : 0;
+    return { total, seen, unseen, mastered, weak, pct };
+  }
+  window.getSubjectCoverageStats = getSubjectCoverageStats;
+
+  function renderSubjectCardCoverageHtml(sid, totalCount) {
+    const st = getSubjectCoverageStats(sid, totalCount);
+    if (!st.total) return '';
+    return `
+      <div class="mt-1.5 flex items-center gap-2">
+        <div class="flex-1 h-1 rounded-full overflow-hidden" style="background: rgba(148,163,184,0.16);">
+          <div class="h-full rounded-full transition-all duration-300" style="width:${st.pct}%; background: linear-gradient(90deg, var(--brand, #6366f1), #10b981);"></div>
+        </div>
+        <span class="text-[10px] font-mono font-bold txt-muted shrink-0">${st.pct}%</span>
+      </div>
+    `;
+  }
+  window.renderSubjectCardCoverageHtml = renderSubjectCardCoverageHtml;
+
+  function updateExamCoverageBarUI(sid, questionsPool = []) {
+    const st = getSubjectCoverageStats(sid, questionsPool.length, questionsPool);
+    const pctEl = document.getElementById('exam-cov-pct');
+    const detEl = document.getElementById('exam-cov-detail');
+    if (pctEl) pctEl.textContent = `${st.pct}% (${st.seen}/${st.total})`;
+    if (detEl) detEl.textContent = `🆕 Chưa làm: ${st.unseen} • 🟢 Đã vững: ${st.mastered} • 🔴 Hay sai: ${st.weak}`;
+    refreshHeroUnseenBadge();
+  }
+  window.updateExamCoverageBarUI = updateExamCoverageBarUI;
+
+  function refreshHeroUnseenBadge() {
+    _qmCache = null;
+    const sid = Number(STATE?.activeSubjectId || STATE?.examConfig?.subjectId || 0);
+    const badge = document.getElementById('hero-unseen-badge');
+    if (!badge || !sid) return;
+    const st = getSubjectCoverageStats(sid);
+    badge.textContent = st.total > 0 ? `(${st.unseen})` : '';
+  }
+  window.refreshHeroUnseenBadge = refreshHeroUnseenBadge;
+
+  function setExamQuestionPoolFilter(mode) {
+    _activePoolFilter = ['all', 'unseen', 'weak'].includes(mode) ? mode : 'all';
+    document.querySelectorAll('#exam-pool-filter-pills [data-qpool]').forEach((btn) => {
+      btn.classList.toggle('active', btn.getAttribute('data-qpool') === _activePoolFilter);
+    });
+  }
+  window.setExamQuestionPoolFilter = setExamQuestionPoolFilter;
+
+  function filterPoolByQuestionMastery(list, sid) {
+    if (!Array.isArray(list) || !list.length || _activePoolFilter === 'all') return list;
+    const map = _getQmMap();
+    if (_activePoolFilter === 'unseen') {
+      const unseen = list.filter((q) => {
+        const rec = map[String(q.id)];
+        return !rec || (Number(rec.r || 0) === 0 && Number(rec.w || 0) === 0);
+      });
+      if (unseen.length > 0) return unseen;
+      showToast('🎉 Bạn đã làm qua 100% câu hỏi môn này! Đang chuyển sang ôn các câu ít gặp nhất.', 'success');
+      return [...list].sort((a, b) => Number(map[String(a.id)]?.r || 0) - Number(map[String(b.id)]?.r || 0));
+    }
+    if (_activePoolFilter === 'weak') {
+      const mistakeIds = new Set((STATE?.mistakes || []).map((m) => String(typeof m === 'object' ? m.id : m)));
+      const weak = list.filter((q) => {
+        const rec = map[String(q.id)];
+        return mistakeIds.has(String(q.id)) || (rec && Number(rec.w || 0) >= Number(rec.r || 0) && Number(rec.w || 0) > 0);
+      });
+      if (weak.length > 0) return weak;
+      showToast('Chưa có câu hay sai trong bộ lọc này — đang lấy câu chưa làm.', 'info');
+      return list;
+    }
+    return list;
+  }
+  window.filterPoolByQuestionMastery = filterPoolByQuestionMastery;
+
+  function injectCurrentQuestionMasteryBadge(q) {
+    const wrap = document.getElementById('q-meta-badges');
+    if (!wrap || !q || !q.id) return;
+    wrap.querySelectorAll('.v71-q-mastery-pill').forEach((el) => el.remove());
+    const rec = _getQmMap()[String(q.id)];
+    const span = document.createElement('span');
+    if (!rec || (Number(rec.r || 0) === 0 && Number(rec.w || 0) === 0)) {
+      span.className = 'v71-q-mastery-pill badge-brand px-2 py-0.5 rounded-full text-[10px] font-extrabold';
+      span.textContent = '🆕 Câu mới';
+    } else if (Number(rec.r || 0) > Number(rec.w || 0)) {
+      span.className = 'v71-q-mastery-pill badge-emerald px-2 py-0.5 rounded-full text-[10px] font-extrabold';
+      span.textContent = `🟢 Đúng ${rec.r} lần`;
+    } else {
+      span.className = 'v71-q-mastery-pill badge-rose px-2 py-0.5 rounded-full text-[10px] font-extrabold';
+      span.textContent = `🔴 Sai ${rec.w} lần`;
+    }
+    wrap.prepend(span);
+  }
+  window.injectCurrentQuestionMasteryBadge = injectCurrentQuestionMasteryBadge;
+
+  async function startUnseenSubjectDrill(customSid = null) {
+    const fallbackSub = (STATE?.subjects || []).find((s) => s.code === 'HOASINH_CTUMP') || STATE?.subjects?.[0];
+    const sid = Number(customSid || STATE?.activeSubjectId || STATE?.examConfig?.subjectId || fallbackSub?.id || 10);
+    const res = await apiFetch(`/api/subjects/${sid}/questions?type=all`);
+    const all = Array.isArray(res) ? res : (res?.questions || []);
+    if (!all.length) {
+      showToast('Môn này chưa có câu hỏi.', 'warning');
+      return;
+    }
+    const map = _getQmMap();
+    let unseen = all.filter((q) => {
+      const rec = map[String(q.id)];
+      return !rec || (Number(rec.r || 0) === 0 && Number(rec.w || 0) === 0);
+    });
+    const isAllCovered = unseen.length === 0;
+    if (isAllCovered) {
+      unseen = [...all].sort((a, b) => Number(map[String(a.id)]?.r || 0) - Number(map[String(b.id)]?.r || 0));
+    } else {
+      unseen = unseen.sort(() => Math.random() - 0.5);
+    }
+    const picked = unseen.slice(0, 20);
+    const sub = (STATE?.subjects || []).find((s) => Number(s.id) === sid);
+    if (typeof switchTab === 'function') switchTab('exam');
+    STATE.examConfig.subjectId = sid;
+    STATE.examConfig.mode = 'practice';
+    if (typeof launchExamWithQuestions === 'function') {
+      launchExamWithQuestions(picked, `🆕 Câu Chưa Làm: ${sub ? sub.name : 'Môn học'}`, false);
+    }
+    showToast(
+      isAllCovered
+        ? '🏆 Bạn đã phủ 100% ngân hàng! Đang ôn lại 20 câu ít làm nhất.'
+        : `🆕 Đã chọn ${picked.length} câu mới tinh (còn ${unseen.length} câu chưa làm)!`,
+      'success'
+    );
+  }
+  window.startUnseenSubjectDrill = startUnseenSubjectDrill;
+
+  // --- 2. 3-Stage Autonomous Study Autopilot ("🚀 Học Tự Động") ---
+  const ap = {
+    active: false,
+    sid: 0,
+    subName: '',
+    stage: 1,
+    cards: [],
+    cardIdx: 0,
+    cardFlipped: false,
+    stage2Qs: [],
+    stage3Qs: [],
+    qIdx: 0,
+    locked: false,
+    secLeft: 12,
+    timerId: null,
+    rightCount: 0,
+    totalAnswered: 0,
+    newCovered: 0
+  };
+
+  function _updateApStepperUI() {
+    const pill = document.getElementById('ap-stage-pill');
+    if (pill) pill.textContent = ap.stage <= 3 ? `Chặng ${ap.stage}/3` : 'Hoàn thành 🏆';
+    [1, 2, 3].forEach((n) => {
+      const el = document.getElementById(`ap-step-${n}`);
+      if (!el) return;
+      if (ap.stage === n) {
+        el.className = 'py-1 rounded-lg txt-brand font-extrabold';
+        el.style.background = 'color-mix(in srgb, var(--brand) 16%, transparent)';
+      } else if (ap.stage > n) {
+        el.className = 'py-1 rounded-lg txt-emerald font-bold';
+        el.style.background = 'rgba(16,185,129,0.12)';
+      } else {
+        el.className = 'py-1 rounded-lg txt-muted';
+        el.style.background = 'transparent';
+      }
+    });
+  }
+
+  async function openAutopilotSessionModal(customSid = null) {
+    clearInterval(ap.timerId);
+    const fallbackSub = (STATE?.subjects || []).find((s) => s.code === 'HOASINH_CTUMP') || STATE?.subjects?.[0];
+    const sid = Number(customSid || STATE?.activeSubjectId || STATE?.examConfig?.subjectId || fallbackSub?.id || 10);
+    const sub = (STATE?.subjects || []).find((s) => Number(s.id) === sid);
+    ap.sid = sid;
+    ap.subName = sub ? sub.name : 'Môn học';
+    ap.active = true;
+    ap.stage = 1;
+    ap.cardIdx = 0;
+    ap.cardFlipped = false;
+    ap.qIdx = 0;
+    ap.rightCount = 0;
+    ap.totalAnswered = 0;
+    ap.newCovered = 0;
+
+    openModal('modal-autopilot-session');
+    const body = document.getElementById('ap-body');
+    if (body) body.innerHTML = `<div class="py-10 text-center txt-muted font-semibold">⚡ Đang thiết kế lộ trình 3 chặng cho <b>${escapeHtml(ap.subName)}</b>...</div>`;
+    _updateApStepperUI();
+
+    const [fcRes, qRes] = await Promise.all([
+      apiFetch(`/api/subjects/${sid}/flashcards`).catch(() => ({ flashcards: [] })),
+      apiFetch(`/api/subjects/${sid}/questions?type=all`).catch(() => ({ questions: [] }))
+    ]);
+    const allQ = Array.isArray(qRes) ? qRes : (qRes?.questions || []);
+    let cards = Array.isArray(fcRes) ? fcRes : (fcRes?.flashcards || []);
+    if (!cards.length && allQ.length) {
+      cards = allQ.slice(0, 8).map((q) => {
+        const c = typeof normalizeCorrectLetter === 'function' ? normalizeCorrectLetter(q) : String(q.correct_option || 'A').toUpperCase();
+        const ans = q[`option_${c.toLowerCase()}`] || '';
+        return { front: q.question_text, back: `${c}. ${ans}${q.explanation ? ' — ' + q.explanation : ''}` };
+      });
+    }
+    ap.cards = [...cards].sort(() => Math.random() - 0.5).slice(0, 4);
+
+    const map = _getQmMap();
+    const mistakeSet = new Set((STATE?.mistakes || []).map((m) => String(typeof m === 'object' ? m.id : m)));
+    const weakPool = allQ.filter((q) => mistakeSet.has(String(q.id))).sort(() => Math.random() - 0.5);
+    const unseenPool = allQ.filter((q) => !map[String(q.id)] && !mistakeSet.has(String(q.id))).sort(() => Math.random() - 0.5);
+    const restPool = allQ.filter((q) => !weakPool.includes(q) && !unseenPool.includes(q)).sort(() => Math.random() - 0.5);
+
+    ap.stage2Qs = [...weakPool.slice(0, 4), ...unseenPool.slice(0, 6), ...restPool].slice(0, 6);
+    const usedIds = new Set(ap.stage2Qs.map((q) => q.id));
+    const trapPool = allQ.filter((q) => !usedIds.has(q.id)).sort(() => Math.random() - 0.5);
+    ap.stage3Qs = trapPool.slice(0, 4);
+
+    if (ap.cards.length) {
+      _renderApStage1Card();
+    } else if (ap.stage2Qs.length) {
+      ap.stage = 2;
+      _updateApStepperUI();
+      _renderApQuestion();
+    } else {
+      if (body) body.innerHTML = `<div class="py-8 text-center txt-muted">Môn này chưa có dữ liệu câu hỏi.</div>`;
+    }
+  }
+  window.openAutopilotSessionModal = openAutopilotSessionModal;
+
+  function closeAutopilotSessionModal() {
+    ap.active = false;
+    clearInterval(ap.timerId);
+    closeModal('modal-autopilot-session');
+  }
+  window.closeAutopilotSessionModal = closeAutopilotSessionModal;
+
+  function _renderApStage1Card() {
+    const body = document.getElementById('ap-body');
+    if (!body || !ap.cards.length) return;
+    const c = ap.cards[ap.cardIdx];
+    body.innerHTML = `
+      <div class="flex items-center justify-between text-[11px] font-mono txt-muted">
+        <span>📚 ${escapeHtml(ap.subName)}</span>
+        <span>Thẻ ${ap.cardIdx + 1} / ${ap.cards.length}</span>
+      </div>
+      <div onclick="flipAutopilotCard()" class="p-6 rounded-2xl border cursor-pointer text-center space-y-3 transition-all hover:border-indigo-500/60 select-none"
+        style="background: var(--bg-subtle); border-color: ${ap.cardFlipped ? 'var(--brand)' : 'var(--border)'}; min-height: 170px; display:flex; flex-direction:column; justify-content:center;">
+        <div class="text-[10px] font-extrabold uppercase tracking-wider ${ap.cardFlipped ? 'txt-emerald' : 'txt-brand'}">
+          ${ap.cardFlipped ? '✅ ĐÁP ÁN CỐT LÕI' : '🃏 KHỞI ĐỘNG TRÍ NHỚ (CHẠM ĐỂ LẬT)'}
+        </div>
+        <div class="text-sm sm:text-base font-bold txt-main leading-relaxed">
+          ${formatRichText(ap.cardFlipped ? (c.back || '') : (c.front || ''))}
+        </div>
+      </div>
+      <div class="flex items-center justify-between gap-2">
+        <button type="button" onclick="flipAutopilotCard()" class="btn-soft px-4 py-2 font-bold">↻ Lật thẻ</button>
+        <button type="button" onclick="nextAutopilotCard()" class="btn-primary px-5 py-2 font-extrabold">
+          ${ap.cardIdx + 1 < ap.cards.length ? 'Thẻ tiếp →' : 'Sang Chặng 2 (Câu hỏi) →'}
+        </button>
+      </div>
+    `;
+    if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(body);
+  }
+
+  function flipAutopilotCard() {
+    ap.cardFlipped = !ap.cardFlipped;
+    _renderApStage1Card();
+  }
+  window.flipAutopilotCard = flipAutopilotCard;
+
+  function nextAutopilotCard() {
+    if (ap.cardIdx + 1 < ap.cards.length) {
+      ap.cardIdx += 1;
+      ap.cardFlipped = false;
+      _renderApStage1Card();
+    } else {
+      ap.stage = 2;
+      ap.qIdx = 0;
+      _updateApStepperUI();
+      _renderApQuestion();
+    }
+  }
+  window.nextAutopilotCard = nextAutopilotCard;
+
+  function _renderApQuestion() {
+    clearInterval(ap.timerId);
+    const body = document.getElementById('ap-body');
+    const pool = ap.stage === 2 ? ap.stage2Qs : ap.stage3Qs;
+    if (!body || !pool.length) {
+      _renderApSummary();
+      return;
+    }
+    const q = pool[ap.qIdx];
+    ap.locked = false;
+    ap.secLeft = 12;
+    const recBefore = _getQmMap()[String(q.id)];
+    const isUnseen = !recBefore || (Number(recBefore.r || 0) === 0 && Number(recBefore.w || 0) === 0);
+
+    const opts = ['A', 'B', 'C', 'D']
+      .map((L) => [L, q[`option_${L.toLowerCase()}`]])
+      .filter(([, v]) => v !== undefined && v !== null && String(v).trim() !== '');
+
+    body.innerHTML = `
+      <div class="flex items-center justify-between gap-2 text-[11px] font-mono">
+        <div class="flex items-center gap-1.5">
+          <span class="font-bold txt-muted">Câu ${ap.qIdx + 1}/${pool.length}</span>
+          <span class="${isUnseen ? 'badge-brand' : 'badge-rose'} px-2 py-0.5 rounded-full text-[10px] font-extrabold">${isUnseen ? '🆕 Câu mới' : '🎯 Ôn lỗ hổng'}</span>
+        </div>
+        ${ap.stage === 3 ? `<span id="ap-timer-pill" class="badge-amber px-2.5 py-0.5 rounded-full font-extrabold">⏱ 12s</span>` : `<span class="txt-emerald font-bold">Đúng: ${ap.rightCount}/${ap.totalAnswered}</span>`}
+      </div>
+      <div class="p-3.5 rounded-2xl border text-sm font-bold txt-main leading-relaxed" style="background: var(--bg-subtle); border-color: var(--border);">
+        ${formatRichText(q.question_text || q.question || '')}
+      </div>
+      <div id="ap-opts-grid" class="grid grid-cols-1 gap-2">
+        ${opts.map(([L, txt]) => `
+          <button type="button" data-ap-opt="${L}" onclick="answerAutopilotQuestion('${L}')"
+            class="uni-card p-3 text-left text-xs font-semibold txt-main hover:border-indigo-500 transition-all flex items-start gap-2.5">
+            <span class="w-6 h-6 rounded-lg font-mono font-extrabold text-[11px] flex items-center justify-center shrink-0" style="background: var(--bg-subtle); border: 1px solid var(--border);">${L}</span>
+            <span class="leading-relaxed">${formatRichText(String(txt))}</span>
+          </button>
+        `).join('')}
+      </div>
+      <div id="ap-q-feedback" class="hidden p-3 rounded-xl border text-xs leading-relaxed"></div>
+      <div id="ap-next-row" class="hidden flex justify-end">
+        <button type="button" onclick="stepAutopilotQuestion()" class="btn-primary px-5 py-2 font-extrabold">Tiếp theo →</button>
+      </div>
+    `;
+    if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(body);
+
+    if (ap.stage === 3) {
+      ap.timerId = setInterval(() => {
+        if (!ap.active || ap.locked) return;
+        ap.secLeft -= 1;
+        const tp = document.getElementById('ap-timer-pill');
+        if (tp) tp.textContent = `⏱ ${ap.secLeft}s`;
+        if (ap.secLeft <= 0) answerAutopilotQuestion('__TIMEOUT__');
+      }, 1000);
+    }
+  }
+
+  function answerAutopilotQuestion(letter) {
+    if (!ap.active || ap.locked) return;
+    ap.locked = true;
+    clearInterval(ap.timerId);
+
+    const pool = ap.stage === 2 ? ap.stage2Qs : ap.stage3Qs;
+    const q = pool[ap.qIdx];
+    const corr = typeof normalizeCorrectLetter === 'function' ? normalizeCorrectLetter(q) : String(q.correct_option || 'A').trim().toUpperCase();
+    const ok = letter === corr;
+    const hadBefore = Boolean(_getQmMap()[String(q.id)]);
+    if (!hadBefore) ap.newCovered += 1;
+
+    ap.totalAnswered += 1;
+    if (ok) ap.rightCount += 1;
+    recordQuestionMasteryHit(q, ok);
+    if (typeof incrementDailyGoalCount === 'function') incrementDailyGoalCount(ok);
+
+    document.querySelectorAll('#ap-opts-grid [data-ap-opt]').forEach((btn) => {
+      const l = btn.getAttribute('data-ap-opt');
+      if (l === corr) {
+        btn.style.borderColor = '#10b981';
+        btn.style.background = 'rgba(16,185,129,0.12)';
+      } else if (l === letter) {
+        btn.style.borderColor = '#f43f5e';
+        btn.style.background = 'rgba(244,63,94,0.12)';
+      }
+    });
+
+    const fb = document.getElementById('ap-q-feedback');
+    if (fb) {
+      fb.classList.remove('hidden');
+      fb.style.borderColor = ok ? 'rgba(16,185,129,0.4)' : 'rgba(244,63,94,0.4)';
+      fb.innerHTML = `<div class="font-extrabold ${ok ? 'txt-emerald' : 'text-rose-400'} mb-1">${ok ? '✅ Chính xác!' : (letter === '__TIMEOUT__' ? `⏰ Hết giờ! Đáp án: ${corr}` : `❌ Sai! Đáp án đúng: ${corr}`)}</div>` +
+        (q.explanation ? `<div class="txt-sub">${formatRichText(String(q.explanation).slice(0, 320))}</div>` : '');
+      if (typeof renderAllMathOnPage === 'function') renderAllMathOnPage(fb);
+    }
+    document.getElementById('ap-next-row')?.classList.remove('hidden');
+  }
+  window.answerAutopilotQuestion = answerAutopilotQuestion;
+
+  function stepAutopilotQuestion() {
+    const pool = ap.stage === 2 ? ap.stage2Qs : ap.stage3Qs;
+    if (ap.qIdx + 1 < pool.length) {
+      ap.qIdx += 1;
+      _renderApQuestion();
+    } else if (ap.stage === 2 && ap.stage3Qs.length) {
+      ap.stage = 3;
+      ap.qIdx = 0;
+      _updateApStepperUI();
+      _renderApQuestion();
+    } else {
+      ap.stage = 4;
+      _updateApStepperUI();
+      _renderApSummary();
+    }
+  }
+  window.stepAutopilotQuestion = stepAutopilotQuestion;
+
+  function _renderApSummary() {
+    clearInterval(ap.timerId);
+    const body = document.getElementById('ap-body');
+    if (!body) return;
+    const acc = ap.totalAnswered ? Math.round((ap.rightCount / ap.totalAnswered) * 100) : 100;
+    const bonusXp = ap.rightCount * 15 + 25;
+    if (typeof awardXp === 'function') awardXp(bonusXp);
+    const cov = getSubjectCoverageStats(ap.sid);
+
+    body.innerHTML = `
+      <div class="py-4 text-center space-y-4">
+        <div class="text-4xl">🏆</div>
+        <div>
+          <h4 class="text-base font-extrabold txt-main">Hoàn Thành Phiên Học Tự Động!</h4>
+          <p class="text-xs txt-muted mt-0.5">${escapeHtml(ap.subName)}</p>
+        </div>
+        <div class="grid grid-cols-3 gap-2.5">
+          <div class="p-3 rounded-xl border" style="background: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-[10px] txt-muted font-bold">Chính xác</div>
+            <div class="text-lg font-mono font-black txt-emerald">${acc}%</div>
+          </div>
+          <div class="p-3 rounded-xl border" style="background: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-[10px] txt-muted font-bold">Câu mới đã phủ</div>
+            <div class="text-lg font-mono font-black txt-brand">+${ap.newCovered}</div>
+          </div>
+          <div class="p-3 rounded-xl border" style="background: var(--bg-subtle); border-color: var(--border);">
+            <div class="text-[10px] txt-muted font-bold">Độ phủ môn</div>
+            <div class="text-lg font-mono font-black txt-main">${cov.pct}%</div>
+          </div>
+        </div>
+        <div class="flex flex-wrap justify-center gap-2 pt-1">
+          <button type="button" onclick="openAutopilotSessionModal(${ap.sid})" class="btn-primary px-5 py-2.5 font-extrabold">🚀 Chạy Vòng Tiếp</button>
+          <button type="button" onclick="closeAutopilotSessionModal(); startUnseenSubjectDrill(${ap.sid})" class="btn-soft px-4 py-2.5 font-bold">🆕 Cày tiếp 20 câu mới</button>
+        </div>
+      </div>
+    `;
+    if (STATE?.currentTab === 'dashboard' && typeof renderDashboard === 'function') renderDashboard();
+  }
+
+  // --- 3. Zero-Loss Portable Vault Backup (.json Export & Import) ---
+  async function exportFullVaultBackupJson() {
+    try {
+      let srvSnap = {};
+      if (!STATE?.isOfflineStandalone) {
+        srvSnap = await apiFetch('/api/sync/vault').catch(() => ({}));
+      }
+      const lsDump = {};
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith('unimaster_')) {
+          lsDump[k] = localStorage.getItem(k);
+        }
+      }
+      const bundle = {
+        format: 'unimaster_vault_v71',
+        exported_at: new Date().toISOString(),
+        local_storage: lsDump,
+        server_vault: srvSnap
+      };
+      const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `UniMaster_Backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+      showToast('💾 Đã tải file sao lưu toàn bộ (.json)!', 'success');
+    } catch (err) {
+      showToast('Lỗi xuất sao lưu: ' + (err.message || ''), 'error');
+    }
+  }
+  window.exportFullVaultBackupJson = exportFullVaultBackupJson;
+
+  async function importFullVaultBackupJson(files) {
+    const file = files && files[0];
+    if (!file) return;
+    try {
+      const txt = await file.text();
+      const bundle = JSON.parse(txt);
+      if (!bundle || typeof bundle !== 'object') throw new Error('File không hợp lệ');
+      if (bundle.local_storage && typeof bundle.local_storage === 'object') {
+        Object.entries(bundle.local_storage).forEach(([k, v]) => {
+          if (k.startsWith('unimaster_') && typeof v === 'string') {
+            try { localStorage.setItem(k, v); } catch (_) {}
+          }
+        });
+      }
+      _qmCache = null;
+      if (!STATE?.isOfflineStandalone && bundle.server_vault && typeof bundle.server_vault === 'object') {
+        await fetch('/api/sync/vault', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            user_state: bundle.server_vault.user_state || {},
+            drafts: bundle.server_vault.drafts || [],
+            exam_results: bundle.server_vault.exam_results || [],
+            tutor_sessions: bundle.server_vault.tutor_sessions || []
+          })
+        }).catch(() => {});
+      }
+      if (typeof window.pushUniversalVaultToServer === 'function') {
+        await window.pushUniversalVaultToServer().catch(() => {});
+      }
+      showToast('✅ Đã khôi phục dữ liệu thành công! Đang làm mới...', 'success');
+      setTimeout(() => window.location.reload(), 700);
+    } catch (err) {
+      showToast('Không thể đọc file sao lưu: ' + (err.message || ''), 'error');
+    }
+  }
+  window.importFullVaultBackupJson = importFullVaultBackupJson;
+
+  // Hydrate Hero unseen badge on load & whenever active subject changes
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => setTimeout(refreshHeroUnseenBadge, 350));
+  } else {
+    setTimeout(refreshHeroUnseenBadge, 350);
+  }
+  if (typeof window.selectActiveSubject === 'function') {
+    const _origSelSub = window.selectActiveSubject;
+    window.selectActiveSubject = function (...args) {
+      const r = _origSelSub.apply(this, args);
+      setTimeout(refreshHeroUnseenBadge, 60);
+      return r;
+    };
+  }
 })();

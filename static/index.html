@@ -76,7 +76,7 @@
   <script defer src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
   <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 
-  <link rel="stylesheet" href="/static/style.css?v=69.0" />
+  <link rel="stylesheet" href="/static/style.css?v=71.0" />
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
@@ -252,11 +252,22 @@
             </h1>
             <p id="hero-subject-desc" class="hidden"></p>
             <div class="space-y-2">
-              <!-- Primary Study Actions (4 core buttons — single crisp row on desktop) -->
+              <!-- Primary Study Actions (5 crisp high-impact actions) -->
               <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <button id="hero-btn-start-exam" onclick="startExamForActiveSubject()"
                   class="btn-primary px-3.5 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 whitespace-nowrap">
-                  <i data-lucide="play" class="w-3.5 h-3.5 shrink-0"></i> <span id="hero-start-exam-text" class="max-w-[160px] truncate">Vào thi</span>
+                  <i data-lucide="play" class="w-3.5 h-3.5 shrink-0"></i> <span id="hero-start-exam-text" class="max-w-[150px] truncate">Vào thi</span>
+                </button>
+                <button onclick="openAutopilotSessionModal()"
+                  class="btn-soft px-3 py-2 rounded-xl font-bold text-xs flex items-center gap-1.5 whitespace-nowrap border"
+                  style="border-color: var(--brand-border); color: var(--brand-text);"
+                  title="Phiên học tự động 3 chặng: Thẻ nhớ → Câu mới &amp; lỗ hổng → Phản xạ bẫy thi">
+                  <span>🚀</span> Học tự động
+                </button>
+                <button onclick="startUnseenSubjectDrill()"
+                  class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap"
+                  title="Chỉ lấy các câu chưa từng làm để phủ kín 100% ngân hàng đề">
+                  <span>🆕</span> Câu mới <span id="hero-unseen-badge" class="font-mono text-[10px] txt-emerald font-extrabold"></span>
                 </button>
                 <button onclick="startAdaptiveSmartExam()"
                   class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap"
@@ -267,11 +278,6 @@
                   class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap"
                   title="Ôn cấp tốc các câu từng làm sai">
                   <i data-lucide="target" class="w-3.5 h-3.5 text-rose-400 shrink-0"></i> Điểm yếu
-                </button>
-                <button onclick="openSpeedBlitz60Modal()"
-                  class="btn-soft px-3 py-2 rounded-xl font-semibold text-xs flex items-center gap-1.5 whitespace-nowrap"
-                  title="Thử thách phản xạ nhanh 60 giây tích điểm Combo">
-                  <i data-lucide="zap" class="w-3.5 h-3.5 text-amber-400 shrink-0"></i> Blitz 60s
                 </button>
               </div>
             </div>
@@ -878,6 +884,20 @@
 
         <!-- Quick Launch Controls (Zero-Scroll Exam Start) -->
         <div class="p-4 sm:p-5 rounded-2xl space-y-4" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+          <!-- v71.0 Bank Coverage & Unseen Pool Filter Strip -->
+          <div id="exam-coverage-bar" class="flex flex-wrap items-center justify-between gap-2.5 pb-3 border-b text-xs" style="border-color: var(--border);">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="font-extrabold txt-main">Độ phủ đề:</span>
+              <span id="exam-cov-pct" class="badge-brand px-2 py-0.5 rounded-full font-mono font-extrabold text-[11px]">0%</span>
+              <span id="exam-cov-detail" class="text-[11px] font-mono txt-muted">🆕 Chưa làm: -- • 🟢 Đã vững: 0</span>
+            </div>
+            <div class="flex items-center gap-1.5 flex-wrap" id="exam-pool-filter-pills">
+              <button type="button" onclick="setExamQuestionPoolFilter('all')" data-qpool="all" class="preset-pill active !py-1 !px-2.5 !text-xs">📚 Tất cả</button>
+              <button type="button" onclick="setExamQuestionPoolFilter('unseen')" data-qpool="unseen" class="preset-pill !py-1 !px-2.5 !text-xs">🆕 Chưa làm</button>
+              <button type="button" onclick="setExamQuestionPoolFilter('weak')" data-qpool="weak" class="preset-pill !py-1 !px-2.5 !text-xs">🔴 Hay sai / Chưa vững</button>
+            </div>
+          </div>
+
           <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-end">
             <div class="lg:col-span-6 space-y-1.5">
               <div class="flex items-center justify-between">
@@ -8010,6 +8030,19 @@ public class Student {
           </button>
         </div>
 
+        <!-- 2B. v71.0 Zero-Loss Portable Backup File (.json) -->
+        <div class="p-3 rounded-2xl border flex flex-wrap items-center justify-between gap-2" style="background-color: var(--bg-subtle); border-color: var(--border);">
+          <div class="min-w-0">
+            <div class="font-extrabold txt-main">💾 Sao lưu dự phòng toàn bộ (.json)</div>
+            <div class="text-[11px] txt-muted">Lưu &amp; khôi phục mọi bài thi, độ phủ đề, câu sai, ghi chú</div>
+          </div>
+          <div class="flex items-center gap-1.5 shrink-0">
+            <input type="file" id="vault-json-import-input" accept=".json,application/json" class="hidden" onchange="importFullVaultBackupJson(this.files)" />
+            <button type="button" onclick="exportFullVaultBackupJson()" class="btn-soft px-2.5 py-1.5 text-[11px] font-bold rounded-lg">⬇ Tải file</button>
+            <button type="button" onclick="document.getElementById('vault-json-import-input')?.click()" class="btn-soft px-2.5 py-1.5 text-[11px] font-bold rounded-lg txt-brand">📂 Khôi phục</button>
+          </div>
+        </div>
+
         <!-- 3. Active Drafts Ready to Resume Across Devices -->
         <div class="space-y-2">
           <div class="font-extrabold txt-main flex items-center justify-between">
@@ -8471,6 +8504,31 @@ public class Student {
   </div>
 
   <!-- =====================================================================
+       v71.0 AUTONOMOUS 3-STAGE STUDY AUTOPILOT MODAL
+       ===================================================================== -->
+  <div id="modal-autopilot-session" class="hidden fixed inset-0 z-[108] modal-backdrop flex items-center justify-center p-3 sm:p-4" onclick="if(event.target===this) closeAutopilotSessionModal()">
+    <div class="uni-card w-full max-w-2xl max-h-[92dvh] flex flex-col overflow-hidden shadow-2xl border" style="border-color: var(--brand-border);">
+      <div class="px-4 sm:px-5 py-3 border-b flex items-center justify-between gap-2 shrink-0" style="border-color: var(--border);">
+        <div class="flex items-center gap-2 min-w-0">
+          <span class="text-lg">🚀</span>
+          <h3 class="text-sm sm:text-base font-extrabold txt-main truncate">Học Tự Động 3 Chặng</h3>
+          <span id="ap-stage-pill" class="badge-brand text-[10px] px-2 py-0.5 rounded-full font-mono font-bold shrink-0">Chặng 1/3</span>
+        </div>
+        <button type="button" onclick="closeAutopilotSessionModal()" class="btn-soft w-8 h-8 p-0 text-xs font-bold flex items-center justify-center rounded-xl shrink-0">✕</button>
+      </div>
+
+      <!-- 3-Stage Stepper Bar -->
+      <div class="px-4 sm:px-5 py-2 border-b grid grid-cols-3 gap-2 text-[11px] font-bold text-center" style="background: var(--bg-subtle); border-color: var(--border);">
+        <div id="ap-step-1" class="py-1 rounded-lg txt-brand" style="background: color-mix(in srgb, var(--brand) 14%, transparent);">① Thẻ nhớ</div>
+        <div id="ap-step-2" class="py-1 rounded-lg txt-muted">② Phủ đề &amp; Lỗ hổng</div>
+        <div id="ap-step-3" class="py-1 rounded-lg txt-muted">③ Phản xạ 12s</div>
+      </div>
+
+      <div id="ap-body" class="p-4 sm:p-5 overflow-y-auto space-y-4 flex-1 text-xs"></div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
        v56.0 OVERLAY 3: PRIVACY BLUR / QUICK SCREEN LOCK (Alt+L)
        ===================================================================== -->
   <div id="privacy-lock-overlay" class="hidden fixed inset-0 z-[120] flex items-center justify-center p-4"
@@ -8617,6 +8675,6 @@ public class Student {
     </div>
   </div>
 
-  <script src="/static/app.js?v=70.0"></script>
+  <script src="/static/app.js?v=71.0"></script>
 </body>
 </html>
