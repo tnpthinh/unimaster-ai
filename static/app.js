@@ -20,9 +20,23 @@ const TUTOR_MODES_META = {
 };
 
 let windowTutorSizeExpanded = false;
-let currentTutorPersona = localStorage.getItem('unimaster_tutor_persona') || 'professor';
+let currentTutorPersona = localStorage.getItem('unimaster_tutor_persona') || 'feynman';
+if (!localStorage.getItem('unimaster_tutor_persona_v2_migrated') || currentTutorPersona === 'professor') {
+  currentTutorPersona = 'feynman';
+  try {
+    localStorage.setItem('unimaster_tutor_persona', 'feynman');
+    localStorage.setItem('unimaster_tutor_persona_v2_migrated', '1');
+  } catch (_) {}
+}
 let currentTutorMode = localStorage.getItem(TUTOR_MODE_KEY) || 'explain';
-let currentTutorResponseLength = localStorage.getItem('unimaster_tutor_length') || 'concise';
+let currentTutorResponseLength = localStorage.getItem('unimaster_tutor_length') || 'detailed';
+if (!localStorage.getItem('unimaster_tutor_length_v2_migrated')) {
+  currentTutorResponseLength = 'detailed';
+  try {
+    localStorage.setItem('unimaster_tutor_length', 'detailed');
+    localStorage.setItem('unimaster_tutor_length_v2_migrated', '1');
+  } catch (_) {}
+}
 let tutorCustomStyle = localStorage.getItem(TUTOR_STYLE_KEY) || '';
 let tutorSessionsCache = [];
 let currentTutorSessionId = '';
@@ -419,30 +433,69 @@ function triggerWelcomeCardAction(promptText) {
 }
 window.triggerWelcomeCardAction = triggerWelcomeCardAction;
 
-function toggleTutorResponseLength() {
-  currentTutorResponseLength = currentTutorResponseLength === 'concise' ? 'detailed' : 'concise';
-  try { localStorage.setItem('unimaster_tutor_length', currentTutorResponseLength); } catch (_) {}
+function setTutorResponseLength(targetLength) {
+  const nextLen = targetLength === 'concise' ? 'concise' : 'detailed';
+  currentTutorResponseLength = nextLen;
+  try {
+    localStorage.setItem('unimaster_tutor_length', currentTutorResponseLength);
+    localStorage.setItem('unimaster_tutor_length_v2_migrated', '1');
+  } catch (_) {}
   updateTutorLengthUI();
   if (typeof scheduleUniversalVaultPush === 'function') scheduleUniversalVaultPush(400);
   if (typeof showToast === 'function') {
     showToast(
-      currentTutorResponseLength === 'concise'
-        ? '⚡ Chế độ Ngắn gọn: AI trả lời súc tích, đọc lướt 5 giây nắm ý chính!'
-        : '📖 Chế độ Chi tiết: AI phân tích đầy đủ từng bước!',
+      currentTutorResponseLength === 'detailed'
+        ? '📖 Chế độ Chi tiết: AI giải thích cặn kẽ bản chất, cơ chế đúng/sai từng phương án!'
+        : '⚡ Chế độ Ngắn gọn: AI trả lời súc tích, đọc lướt 5 giây nắm ý chính!',
       'info'
     );
   }
 }
+window.setTutorResponseLength = setTutorResponseLength;
+
+function toggleTutorResponseLength() {
+  const nextLen = currentTutorResponseLength === 'detailed' ? 'concise' : 'detailed';
+  setTutorResponseLength(nextLen);
+}
 window.toggleTutorResponseLength = toggleTutorResponseLength;
 
 function updateTutorLengthUI() {
-  const isConcise = currentTutorResponseLength !== 'detailed';
+  const isDetailed = currentTutorResponseLength === 'detailed';
+  const isConcise = !isDetailed;
+
+  // Segmented control buttons in main tutor header
+  const btnMainConcise = document.getElementById('btn-tutor-length-concise');
+  const btnMainDetailed = document.getElementById('btn-tutor-length-detailed');
+  if (btnMainConcise && btnMainDetailed) {
+    if (isConcise) {
+      btnMainConcise.className = 'px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-black shadow-sm transition-all';
+      btnMainDetailed.className = 'px-2.5 py-1 rounded-lg text-slate-300 hover:text-white font-medium transition-all';
+    } else {
+      btnMainConcise.className = 'px-2.5 py-1 rounded-lg text-slate-300 hover:text-white font-medium transition-all';
+      btnMainDetailed.className = 'px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-black shadow-sm transition-all';
+    }
+  }
+
+  // Segmented control buttons in floating tutor header
+  const btnFtConcise = document.getElementById('btn-ft-length-concise');
+  const btnFtDetailed = document.getElementById('btn-ft-length-detailed');
+  if (btnFtConcise && btnFtDetailed) {
+    if (isConcise) {
+      btnFtConcise.className = 'px-2 py-0.5 rounded-lg bg-emerald-600 text-white font-black shadow-sm transition-all';
+      btnFtDetailed.className = 'px-2 py-0.5 rounded-lg text-slate-300 hover:text-white font-medium transition-all';
+    } else {
+      btnFtConcise.className = 'px-2 py-0.5 rounded-lg text-slate-300 hover:text-white font-medium transition-all';
+      btnFtDetailed.className = 'px-2 py-0.5 rounded-lg bg-indigo-600 text-white font-black shadow-sm transition-all';
+    }
+  }
+
+  // Legacy single-toggle buttons or labels
   const mainLbl = document.getElementById('tutor-length-label');
   const ftLbl = document.getElementById('ft-length-label');
   const mainBtn = document.getElementById('btn-tutor-length-toggle');
   const ftBtn = document.getElementById('btn-ft-length-toggle');
   if (mainLbl) mainLbl.textContent = isConcise ? '⚡ Ngắn gọn' : '📖 Chi tiết';
-  if (ftLbl) ftLbl.textContent = isConcise ? '⚡ Gọn' : '📖 Đầy đủ';
+  if (ftLbl) ftLbl.textContent = isConcise ? '⚡ Gọn' : '📖 Chi tiết';
   [mainBtn, ftBtn].forEach((b) => {
     if (!b) return;
     b.classList.toggle('border-emerald-500/40', isConcise);
@@ -980,11 +1033,12 @@ function setFloatingPersona(persona) {
   currentTutorPersona = persona;
   if (typeof STATE !== 'undefined') STATE.tutorPersona = persona;
   localStorage.setItem('unimaster_tutor_persona', persona);
+  localStorage.setItem('unimaster_tutor_persona_user_set', '1');
   updateTutorPersonaUI();
   if (typeof playSound === 'function') playSound('click');
   const personaNames = {
+    feynman: 'Richard Feynman (Dễ Hiểu - Mặc Định)',
     professor: 'Giáo Sư Chuẩn Mực',
-    feynman: 'Richard Feynman (Dễ Hiểu)',
     speed: 'Giải Nhanh 10 Giây',
     examiner: 'Giảng Viên Vấn Đáp'
   };
@@ -992,14 +1046,46 @@ function setFloatingPersona(persona) {
 }
 
 function updateTutorPersonaUI() {
-  ['professor', 'feynman', 'speed', 'examiner'].forEach((p) => {
+  const cur = currentTutorPersona || 'feynman';
+  ['feynman', 'professor', 'speed', 'examiner'].forEach((p) => {
     const el = document.getElementById(`ft-persona-${p}`);
     if (el) {
-      el.classList.toggle('active', p === currentTutorPersona);
+      const isAct = (p === cur);
+      el.classList.toggle('active', isAct);
+      if (isAct) {
+        el.className = 'px-2 py-0.5 rounded-full border border-indigo-400 bg-indigo-600 text-white font-black shadow-sm shrink-0 active';
+      } else {
+        el.className = 'px-2 py-0.5 rounded-full border border-white/10 text-slate-300 hover:text-white transition-colors shrink-0';
+      }
     }
   });
+
+  // Update outer header quick persona buttons
+  const headFeynman = document.getElementById('ft-head-persona-feynman');
+  const headProfessor = document.getElementById('ft-head-persona-professor');
+  if (headFeynman && headProfessor) {
+    if (cur === 'feynman') {
+      headFeynman.className = 'px-2 py-0.5 rounded-lg bg-amber-500/30 text-amber-300 font-black shadow-sm transition-all border border-amber-500/40';
+      headProfessor.className = 'px-2 py-0.5 rounded-lg text-slate-300 hover:text-white font-medium transition-all';
+    } else if (cur === 'professor') {
+      headFeynman.className = 'px-2 py-0.5 rounded-lg text-slate-300 hover:text-white font-medium transition-all';
+      headProfessor.className = 'px-2 py-0.5 rounded-lg bg-indigo-600 text-white font-black shadow-sm transition-all border border-indigo-400/50';
+    } else {
+      headFeynman.className = 'px-2 py-0.5 rounded-lg text-slate-300 hover:text-white font-medium transition-all';
+      headProfessor.className = 'px-2 py-0.5 rounded-lg text-slate-300 hover:text-white font-medium transition-all';
+    }
+  }
+
+  // Update floating dock button persona badge
+  const dockBadge = document.getElementById('floating-btn-persona-badge');
+  if (dockBadge) {
+    const pNames = { feynman: '🧒 Feynman', professor: '🎓 Giáo Sư', speed: '⚡ 10s', examiner: '🎤 Vấn đáp' };
+    dockBadge.textContent = pNames[cur] || cur;
+  }
+
   document.querySelectorAll('[data-persona]').forEach((btn) => {
-    btn.classList.toggle('active', btn.getAttribute('data-persona') === currentTutorPersona);
+    const isAct = btn.getAttribute('data-persona') === cur;
+    btn.classList.toggle('active', isAct);
   });
 }
 
@@ -1476,11 +1562,11 @@ async function sendTutorChatUnified(userMsg, opts = {}) {
     .slice(-10, -1)
     .map((m) => ({ role: m.role === 'user' ? 'user' : 'model', content: m.content }));
 
-  const reqLength = opts.responseLength || currentTutorResponseLength || 'concise';
+  const reqLength = opts.responseLength || currentTutorResponseLength || 'detailed';
   const payload = {
     message: cleanText,
     mode: modeToUse,
-    persona: currentTutorPersona || STATE?.tutorPersona || 'professor',
+    persona: currentTutorPersona || STATE?.tutorPersona || 'feynman',
     response_length: reqLength,
     tutor_style_prompt: getTutorStylePrompt(),
     subject_id: sub.id || 5,
@@ -1922,11 +2008,17 @@ function askAiAboutCurrentExamQuestion(autoExplain = false) {
   });
 
   if (autoExplain && isGraded && !tutorSendingLock) {
+    setTutorResponseLength('detailed');
     const corr = String(q._effectiveCorrect || '').trim();
     const prompt = (userAns && !isCorrect)
-      ? `Ở Câu ${idx}, mình đã chọn đáp án ${userAns} nhưng đáp án đúng là ${corr}. Hãy giải thích ngắn gọn, dễ hiểu vì sao ${corr} đúng, vì sao ${userAns} là bẫy sai, và cho mẹo nhớ 5 giây!`
-      : `Ở Câu ${idx} (đáp án đúng: ${corr}), hãy giải thích bản chất cốt lõi, loại trừ nhanh các phương án nhiễu còn lại và cho mẹo nhớ 5 giây!`;
-    sendTutorChatUnified(prompt, { mode: 'explain', source: 'exam_feedback' });
+      ? `Ở Câu ${idx}, mình đã chọn đáp án ${userAns} nhưng đáp án đúng là ${corr}. Hãy giải thích chi tiết, dễ hiểu theo phong cách Feynman vì sao ${corr} đúng, mổ xẻ vì sao ${userAns} là bẫy sai, và làm rõ vì sao các phương án khác chưa chính xác.`
+      : `Ở Câu ${idx} (đáp án đúng: ${corr}), hãy giải thích chi tiết bản chất theo phong cách Feynman, làm rõ cơ chế vì sao ${corr} đúng và phân tích vì sao các phương án khác sai / cạm bẫy trắc nghiệm ở đâu.`;
+    sendTutorChatUnified(prompt, {
+      mode: 'explain',
+      source: 'exam_feedback',
+      responseLength: 'detailed',
+      persona: currentTutorPersona || 'feynman'
+    });
   }
 }
 
@@ -6517,7 +6609,7 @@ function renderQuestionFeedbackArea(q) {
 
   const deepBox = document.getElementById('q-ai-deep-box');
   if (deepBox) {
-    const savedMode = typeof getSavedDeepAnalysisMode === 'function' ? getSavedDeepAnalysisMode() : 'standard';
+    const savedMode = typeof getSavedDeepAnalysisMode === 'function' ? getSavedDeepAnalysisMode() : 'feynman';
     const modeSel = document.getElementById('deep-analysis-mode-select');
     if (modeSel && modeSel.value !== savedMode) modeSel.value = savedMode;
     const activeAnalysis = STATE.exam.deepAnalysis[`${q.id}_${savedMode}`] || STATE.exam.deepAnalysis[q.id];
@@ -6862,18 +6954,19 @@ async function distillQuestionObjectToFlashcard(q, sid) {
 
 const DEEP_ANALYSIS_MODE_KEY = 'unimaster_deep_analysis_mode';
 const VALID_DEEP_MODES = new Set(['standard', 'feynman', 'exam_trap', 'socratic', 'stem_clinical']);
+const DEFAULT_DEEP_ANALYSIS_MODE = 'feynman';
 
 function getSavedDeepAnalysisMode() {
   try {
     const v = localStorage.getItem(DEEP_ANALYSIS_MODE_KEY) || '';
     if (VALID_DEEP_MODES.has(v)) return v;
   } catch (_) {}
-  return 'standard';
+  return DEFAULT_DEEP_ANALYSIS_MODE;
 }
 window.getSavedDeepAnalysisMode = getSavedDeepAnalysisMode;
 
 function setSavedDeepAnalysisMode(mode) {
-  const clean = VALID_DEEP_MODES.has(mode) ? mode : 'standard';
+  const clean = VALID_DEEP_MODES.has(mode) ? mode : DEFAULT_DEEP_ANALYSIS_MODE;
   try { localStorage.setItem(DEEP_ANALYSIS_MODE_KEY, clean); } catch (_) {}
   const sel = document.getElementById('deep-analysis-mode-select');
   if (sel && sel.value !== clean) sel.value = clean;
@@ -6932,19 +7025,32 @@ async function triggerDeepAnalysis(forceRefresh = false, customMode = null) {
   const deepBox = document.getElementById('q-ai-deep-box');
   if (!q || !deepBox) return;
 
-  const rawMode = customMode || document.getElementById('deep-analysis-mode-select')?.value || getSavedDeepAnalysisMode();
+  // Bấm là chạy luôn: luôn ưu tiên phong cách đã lưu (mặc định Feynman),
+  // chỉ override khi người dùng chủ động đổi dropdown hoặc bấm pill lăng kính.
+  const rawMode = customMode || getSavedDeepAnalysisMode();
   const mode = setSavedDeepAnalysisMode(rawMode);
   const cacheKey = `${q.id}_${mode}`;
+
+  // Mở sẵn khay công cụ AI để người dùng thấy kết quả ngay, không cần bấm thêm.
+  const extraWrap = document.getElementById('q-feedback-more-ai-wrap');
+  if (extraWrap && extraWrap.classList.contains('hidden') && typeof toggleFeedbackExtraAiTools === 'function') {
+    toggleFeedbackExtraAiTools();
+  }
+  const modeSel = document.getElementById('deep-analysis-mode-select');
+  if (modeSel && modeSel.value !== mode) modeSel.value = mode;
 
   if (!forceRefresh && STATE.exam.deepAnalysis?.[cacheKey]) {
     STATE.exam.deepAnalysis[q.id] = STATE.exam.deepAnalysis[cacheKey];
     if (!STATE.exam.deepAnalysisMeta) STATE.exam.deepAnalysisMeta = {};
     STATE.exam.deepAnalysisMeta[q.id] = STATE.exam.deepAnalysisMeta[cacheKey] || { cached: true, mode };
     renderQuestionFeedbackArea(q);
+    deepBox.classList.remove('hidden');
+    deepBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return;
   }
 
   deepBox.classList.remove('hidden');
+  deepBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   deepBox.innerHTML = `
     <div class="p-3 bg-indigo-950/30 rounded-xl border border-indigo-500/30 flex items-center gap-3">
       <div class="w-5 h-5 border-2 border-indigo-400 border-t-transparent rounded-full animate-spin"></div>
@@ -8331,13 +8437,14 @@ function setTutorPersona(persona) {
   STATE.tutorPersona = persona;
   currentTutorPersona = persona;
   localStorage.setItem('unimaster_tutor_persona', persona);
+  localStorage.setItem('unimaster_tutor_persona_user_set', '1');
   updateTutorPersonaUI();
   document.querySelectorAll('[data-persona]').forEach((btn) => {
     btn.classList.toggle('active', btn.getAttribute('data-persona') === persona);
   });
   const names = {
+    feynman: '🧒 Feynman Dễ Hiểu (Mặc Định - Ví dụ đời thường trực quan)',
     professor: '🎓 Giáo sư Đại học (Chuẩn mực & Hệ thống)',
-    feynman: '🧒 Feynman Dễ Hiểu (Ví dụ đời thường trực quan)',
     speed: '⚡ Giải Nhanh 10s (Công thức bấm máy & Loại trừ)',
     examiner: '🎤 Giám khảo Vấn đáp (Hỏi xoáy & Chấm điểm)'
   };
@@ -8702,8 +8809,98 @@ function switchSettingsTab(tab) {
     fetchNetworkQrInfo();
     if (typeof refreshSecurityAndPerfPanels === 'function') refreshSecurityAndPerfPanels();
   }
-  if (tab === 'ai') checkApiKeyStatus();
+  if (tab === 'ai') {
+    checkApiKeyStatus();
+    loadGlobalAiStyle();
+  }
   if (window.lucide) { try { lucide.createIcons(); } catch (_) {} }
+}
+
+// ===== Phong cách AI toàn hệ thống (GET/POST /api/ai/global-style) =====
+let GLOBAL_AI_STYLE = { presets: ['feynman'], custom_text: '', catalog: {} };
+
+async function loadGlobalAiStyle(force = false) {
+  if (!force && GLOBAL_AI_STYLE.catalog && Object.keys(GLOBAL_AI_STYLE.catalog).length) {
+    renderGlobalAiStyle();
+    return;
+  }
+  try {
+    const res = await apiFetch('/api/ai/global-style');
+    if (res && res.style) {
+      GLOBAL_AI_STYLE = res.style;
+      renderGlobalAiStyle();
+    }
+  } catch (_) {
+    renderGlobalAiStyle();
+  }
+}
+
+function renderGlobalAiStyle() {
+  const box = document.getElementById('global-style-presets');
+  const catalog = GLOBAL_AI_STYLE.catalog || {};
+  const active = Array.isArray(GLOBAL_AI_STYLE.presets) ? GLOBAL_AI_STYLE.presets : ['feynman'];
+  if (box) {
+    box.innerHTML = Object.keys(catalog).map((key) => {
+      const on = active.includes(key);
+      return `<button type="button" data-style-preset="${key}" onclick="toggleGlobalStylePreset('${key}')"
+        class="px-3 py-1.5 rounded-xl text-[11px] font-extrabold border transition-all ${on ? 'badge-brand' : 'btn-soft'}"
+        style="border-color: ${on ? 'var(--brand-border)' : 'var(--border)'};">${catalog[key].label || key}</button>`;
+    }).join('');
+  }
+  const ta = document.getElementById('global-style-custom');
+  if (ta && document.activeElement !== ta) ta.value = GLOBAL_AI_STYLE.custom_text || '';
+  const st = document.getElementById('global-style-status');
+  if (st) {
+    const labels = active.map((k) => (catalog[k]?.label || k)).join(' + ') || 'Feynman';
+    st.textContent = `Đang áp dụng: ${labels}`;
+  }
+}
+
+function toggleGlobalStylePreset(key) {
+  const list = Array.isArray(GLOBAL_AI_STYLE.presets) ? [...GLOBAL_AI_STYLE.presets] : [];
+  const i = list.indexOf(key);
+  if (i >= 0) list.splice(i, 1); else list.push(key);
+  GLOBAL_AI_STYLE.presets = list;
+  markGlobalStyleDirty();
+  renderGlobalAiStyle();
+}
+
+function markGlobalStyleDirty() {
+  const hint = document.getElementById('global-style-hint');
+  if (hint) hint.textContent = '⚠️ Có thay đổi chưa lưu';
+}
+
+async function saveGlobalAiStyle() {
+  const presets = Array.isArray(GLOBAL_AI_STYLE.presets) ? GLOBAL_AI_STYLE.presets : [];
+  const custom_text = String(document.getElementById('global-style-custom')?.value || '').trim();
+  const hint = document.getElementById('global-style-hint');
+  if (hint) hint.textContent = '⏳ Đang lưu...';
+  try {
+    const res = await apiFetch('/api/ai/global-style', {
+      method: 'POST',
+      body: JSON.stringify({ presets, custom_text }),
+    });
+    if (res && res.success && res.style) {
+      GLOBAL_AI_STYLE = res.style;
+      renderGlobalAiStyle();
+      if (hint) hint.textContent = '✅ Đã lưu — áp dụng cho toàn bộ AI';
+      showToast('🎭 Đã lưu phong cách AI toàn hệ thống!', 'success');
+    } else {
+      if (hint) hint.textContent = '❌ Lưu thất bại';
+      showToast('Lưu phong cách thất bại.', 'error');
+    }
+  } catch (e) {
+    if (hint) hint.textContent = '❌ Lỗi kết nối';
+    showToast('Lỗi kết nối khi lưu phong cách.', 'error');
+  }
+}
+
+async function resetGlobalAiStyle() {
+  GLOBAL_AI_STYLE.presets = ['feynman'];
+  GLOBAL_AI_STYLE.custom_text = '';
+  const ta = document.getElementById('global-style-custom');
+  if (ta) ta.value = '';
+  await saveGlobalAiStyle();
 }
 
 async function fetchNetworkQrInfo() {
@@ -27968,7 +28165,9 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       dailyQuota: safeJsonParse(localStorage.getItem('unimaster_daily_quota'), null),
       dailyGoalV56: safeJsonParse(localStorage.getItem('unimaster_daily_goal_v56'), null),
       questionMastery: safeJsonParse(localStorage.getItem('unimaster_question_mastery_v71'), {}),
-      localExamHistory: safeJsonParse(localStorage.getItem('unimaster_local_exam_history_v1'), []).slice(0, 40),
+      localExamHistory: safeJsonParse(localStorage.getItem(LOCAL_EXAM_HISTORY_KEY), []).slice(0, 40),
+      examArchive: safeJsonParse(localStorage.getItem(LOCAL_EXAM_ARCHIVE_KEY), []).slice(0, 60),
+      tutorArchive: safeJsonParse(localStorage.getItem(LOCAL_TUTOR_ARCHIVE_KEY), []).slice(0, 60),
       activeSubjectId: STATE?.activeSubjectId || localStorage.getItem('unimaster_active_subject_id') || '',
       activeAccountId: localStorage.getItem('unimaster_active_account_id_v2') || '',
       accountsList: safeJsonParse(localStorage.getItem('unimaster_accounts_v2'), null),
@@ -27976,9 +28175,9 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       exercisesLang: safeJsonParse(localStorage.getItem('unimaster_exercises_lang_v2'), {}),
       tutorPrefs: {
         mode: typeof currentTutorMode !== 'undefined' ? currentTutorMode : 'explain',
-        persona: typeof currentTutorPersona !== 'undefined' ? currentTutorPersona : 'professor',
-        responseLength: typeof currentTutorResponseLength !== 'undefined' ? currentTutorResponseLength : 'concise',
-        deepAnalysisMode: typeof getSavedDeepAnalysisMode === 'function' ? getSavedDeepAnalysisMode() : 'standard',
+        persona: typeof currentTutorPersona !== 'undefined' ? currentTutorPersona : 'feynman',
+        responseLength: typeof currentTutorResponseLength !== 'undefined' ? currentTutorResponseLength : 'detailed',
+        deepAnalysisMode: typeof getSavedDeepAnalysisMode === 'function' ? getSavedDeepAnalysisMode() : DEFAULT_DEEP_ANALYSIS_MODE,
         splitDock: localStorage.getItem('unimaster_tutor_split_dock') !== '0',
         customStyle: typeof tutorCustomStyle !== 'undefined' ? tutorCustomStyle : ''
       },
@@ -28383,6 +28582,11 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
           const dSel = document.getElementById('deep-analysis-mode-select');
           if (dSel) dSel.value = tp.deepAnalysisMode;
         }
+        if (tp.persona) {
+          currentTutorPersona = tp.persona;
+          localStorage.setItem('unimaster_tutor_persona', tp.persona);
+          if (typeof updateTutorPersonaUI === 'function') updateTutorPersonaUI();
+        }
         if (tp.responseLength) {
           currentTutorResponseLength = tp.responseLength;
           localStorage.setItem('unimaster_tutor_length', tp.responseLength);
@@ -28433,10 +28637,11 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
         if (typeof window.renderDailyGoalWidget === 'function') window.renderDailyGoalWidget();
       }
       if (Array.isArray(srvState.localExamHistory) && srvState.localExamHistory.length) {
-        const curHist = safeJsonParse(localStorage.getItem('unimaster_local_exam_history_v1'), []);
+        const curHist = safeJsonParse(localStorage.getItem(LOCAL_EXAM_HISTORY_KEY), []);
+        const legacyHist = safeJsonParse(localStorage.getItem('unimaster_local_exam_history_v1'), []);
         const seenIds = new Set();
         const combined = [];
-        [...srvState.localExamHistory, ...(Array.isArray(curHist) ? curHist : [])].forEach((item) => {
+        [...srvState.localExamHistory, ...(Array.isArray(curHist) ? curHist : []), ...(Array.isArray(legacyHist) ? legacyHist : [])].forEach((item) => {
           if (!item || typeof item !== 'object') return;
           const hid = String(item.id || `${item.subjectId}_${item.total}_${item.correct}_${String(item.timestamp || '').slice(0, 8)}`);
           if (!seenIds.has(hid)) {
@@ -28444,15 +28649,31 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
             combined.push(item);
           }
         });
-        combined.sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
-        try { localStorage.setItem('unimaster_local_exam_history_v1', JSON.stringify(combined.slice(0, 50))); } catch (_) {}
+        combined.sort((a, b) => (Number(b.timestamp || 0) || Date.parse(b.timestamp) || 0) - (Number(a.timestamp || 0) || Date.parse(a.timestamp) || 0));
+        try { localStorage.setItem(LOCAL_EXAM_HISTORY_KEY, JSON.stringify(combined.slice(0, 50))); } catch (_) {}
       }
+      ['examArchive', 'tutorArchive'].forEach((k) => {
+        const arr = srvState[k];
+        if (!Array.isArray(arr) || !arr.length) return;
+        const lsKey = k === 'examArchive' ? LOCAL_EXAM_ARCHIVE_KEY : LOCAL_TUTOR_ARCHIVE_KEY;
+        const cur = safeJsonParse(localStorage.getItem(lsKey), []);
+        const seen = new Set();
+        const merged = [];
+        [...arr, ...(Array.isArray(cur) ? cur : [])].forEach((item) => {
+          if (!item || typeof item !== 'object') return;
+          const hid = String(item.id || JSON.stringify(item));
+          if (seen.has(hid)) return;
+          seen.add(hid);
+          merged.push(item);
+        });
+        try { localStorage.setItem(lsKey, JSON.stringify(merged.slice(0, 100))); } catch (_) {}
+      });
       if (typeof updateXpUI === 'function') updateXpUI();
     }
 
     // 1B. Sync Exam Results & Dashboard KPI Stats from Server Snapshot
     if (Array.isArray(snap.exam_results) && snap.exam_results.length) {
-      const curHist = safeJsonParse(localStorage.getItem('unimaster_local_exam_history_v1'), []);
+      const curHist = safeJsonParse(localStorage.getItem(LOCAL_EXAM_HISTORY_KEY), []);
       const seenIds = new Set(curHist.map((x) => String(x?.id || `${x?.subjectId}_${x?.total}_${x?.correct}_${String(x?.timestamp || '').slice(0, 8)}`)));
       let histAdded = false;
       snap.exam_results.forEach((er) => {
@@ -28478,8 +28699,8 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
         }
       });
       if (histAdded) {
-        curHist.sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
-        safeLocalStorageSet('unimaster_local_exam_history_v1', JSON.stringify(curHist.slice(0, 60)));
+        curHist.sort((a, b) => (Number(b.timestamp || 0) || Date.parse(b.timestamp) || 0) - (Number(a.timestamp || 0) || Date.parse(a.timestamp) || 0));
+        safeLocalStorageSet(LOCAL_EXAM_HISTORY_KEY, JSON.stringify(curHist.slice(0, 60)));
       }
     }
 

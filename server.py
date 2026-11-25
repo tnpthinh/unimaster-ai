@@ -1027,12 +1027,25 @@ async def healthz(request):
 
 @web.middleware
 async def no_cache_static_middleware(request, handler):
+    style_token = None
+    if request.path.startswith("/api/ai/"):
+        b64_style = (request.headers.get("X-AI-Style-B64") or "").strip()
+        if b64_style:
+            try:
+                decoded_style = base64.b64decode(b64_style.encode("ascii")).decode("utf-8", errors="ignore").strip()
+                if decoded_style:
+                    style_token = ai.set_request_ai_style_override(decoded_style)
+            except Exception:
+                pass
     try:
         resp = await handler(request)
         raised = None
     except web.HTTPException as exc:
         resp = exc
         raised = exc
+    finally:
+        if style_token is not None:
+            ai.reset_request_ai_style_override(style_token)
 
     resp.headers.setdefault("X-Content-Type-Options", "nosniff")
     resp.headers.setdefault("X-Frame-Options", "SAMEORIGIN")
@@ -2933,7 +2946,7 @@ async def _handle_tutor_assist_common(request, default_mode: str = "explain"):
     subject_name = await _resolve_subject_name_async(data.get("subject_id"), data.get("subject_name", ""))
     message = str(data.get("message") or data.get("query") or "").strip()
     mode = str(data.get("mode") or default_mode).strip()
-    persona = str(data.get("persona") or "professor").strip()
+    persona = str(data.get("persona") or "feynman").strip()
     tutor_style_prompt = str(data.get("tutor_style_prompt") or "").strip()
     question_text = str(data.get("question_text") or "").strip()
     options = data.get("options")
@@ -3135,6 +3148,28 @@ async def ai_hint_handler(request):
         return json_resp({"success": False, "error": ai._sanitize_error_text(str(e))}, 500)
 
 
+async def ai_global_style_get_handler(request):
+    """GET /api/ai/global-style — lấy cấu hình phong cách AI toàn hệ thống (mặc định Feynman)."""
+    try:
+        cfg = await asyncio.to_thread(ai.get_global_ai_style_config)
+        return json_resp({"success": True, "style": cfg})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
+async def ai_global_style_set_handler(request):
+    """POST /api/ai/global-style — lưu phong cách AI áp dụng cho toàn bộ tính năng AI."""
+    try:
+        data = await safe_get_json(request)
+        presets = data.get("presets") if isinstance(data.get("presets"), list) else []
+        custom_text = str(data.get("custom_text") or "").strip()
+        compiled_prompt = str(data.get("compiled_prompt") or "").strip()
+        saved = await asyncio.to_thread(ai.set_global_ai_style_config, presets, custom_text, compiled_prompt)
+        return json_resp({"success": True, "style": saved})
+    except Exception as e:
+        return json_resp({"success": False, "error": str(e)}, 500)
+
+
 async def ai_deep_analysis_handler(request):
     """
     Phân tích câu hỏi chuyên sâu với Cache-Aside đa chế độ & Auto-Persistence.
@@ -3152,19 +3187,22 @@ async def ai_deep_analysis_handler(request):
         sub_id = data.get("subject_id")
         source_type = data.get("source_type", "exam")
         force_refresh = bool(data.get("force_refresh", False))
-        mode = data.get("mode") or data.get("analysis_mode") or "standard"
+        mode = data.get("mode") or data.get("analysis_mode") or "feynman"
+        active_style = ai.get_active_ai_style_instruction()
+        style_sig = hashlib.md5(active_style.encode("utf-8")).hexdigest()[:8] if active_style else ""
+        effective_mode = f"{mode}__{style_sig}" if style_sig else mode
 
-        # 1. Tối ưu Cache-Aside: Kiểm tra lịch sử đã có cho câu hỏi + chế độ này
+        # 1. Tối ưu Cache-Aside: Kiểm tra lịch sử đã có cho câu hỏi + chế độ + phong cách AI này
         if q_id and not force_refresh:
             try:
-                cached = db.get_ai_analysis_by_question(int(q_id), analysis_mode=mode)
+                cached = db.get_ai_analysis_by_question(int(q_id), analysis_mode=effective_mode)
                 if cached and cached.get("analysis"):
                     return json_resp({
                         "success": True,
                         "analysis": cached["analysis"],
                         "cached": True,
                         "history_id": cached["id"],
-                        "analysis_mode": cached.get("analysis_mode", mode),
+                        "analysis_mode": mode,
                         "created_at": cached.get("created_at")
                     })
             except Exception as e:
@@ -3174,7 +3212,7 @@ async def ai_deep_analysis_handler(request):
         full_q_text = f"{q_text}\n{options_text}".strip() if options_text else q_text
         analysis = await ai.ai_deep_analysis(full_q_text, correct_opt, explanation, code, mode=mode)
 
-        # 3. Tự động lưu bền vững vào SQLite kèm analysis_mode
+        # 3. Tự động lưu bền vững vào SQLite kèm effective_mode (lăng kính + phong cách AI)
         history_id = None
         try:
             history_id = db.save_ai_analysis(
@@ -3186,7 +3224,7 @@ async def ai_deep_analysis_handler(request):
                 explanation=explanation,
                 code_snippet=code,
                 source_type=source_type,
-                analysis_mode=mode
+                analysis_mode=effective_mode
             )
         except Exception as e:
             logger.warning(f"Auto-save deep analysis history failed: {e}")
@@ -4170,7 +4208,7 @@ def _merge_user_states(cur: dict, inc: dict) -> dict:
                 merged[k] = v
 
     # Smart union / max merge so neither device loses bookmarks, notes, XP, daily goal, exam history, or code drafts
-    for arr_key in ("bookmarks", "mistakes"):
+    for arr_key in ("bookmarks", "mistakes", "examArchive", "tutorArchive"):
         a = cur.get(arr_key) if isinstance(cur.get(arr_key), list) else []
         b = inc.get(arr_key) if isinstance(inc.get(arr_key), list) else []
         dedup = {}
@@ -4194,7 +4232,7 @@ def _merge_user_states(cur: dict, inc: dict) -> dict:
                 dedup[f"prim:{type(x).__name__}:{x}"] = x
         merged[arr_key] = list(dedup.values())
 
-    for dict_key in ("notes", "plannerDone", "exercisesCode", "exercisesLang"):
+    for dict_key in ("notes", "plannerDone", "exercisesCode", "exercisesLang", "tutorPrefs"):
         da = cur.get(dict_key) if isinstance(cur.get(dict_key), dict) else {}
         db_inc = inc.get(dict_key) if isinstance(inc.get(dict_key), dict) else {}
         merged[dict_key] = {**da, **db_inc} if inc_is_newer else {**db_inc, **da}
@@ -5242,7 +5280,7 @@ async def pwa_icon_svg(request):
 
 async def pwa_sw(request):
     sw_code = """
-    const CACHE_NAME = 'unimaster-pwa-v71-0';
+    const CACHE_NAME = 'unimaster-pwa-v72-0';
     const CORE_ASSETS = [
       '/static/style.css?v=56.4',
       '/static/minimal.css?v=54.1',
@@ -8519,6 +8557,8 @@ def create_app():
     app.router.add_post("/api/ai/explain", ai_explain_handler)
     app.router.add_post("/api/ai/tutor-assist", ai_tutor_assist_handler)
     app.router.add_post("/api/ai/concept-recall", ai_concept_recall_handler)
+    app.router.add_get("/api/ai/global-style", ai_global_style_get_handler)
+    app.router.add_post("/api/ai/global-style", ai_global_style_set_handler)
     app.router.add_post("/api/ai/deep-analysis", ai_deep_analysis_handler)
     app.router.add_post("/api/ai/deep-analysis/followup", ai_deep_analysis_followup_handler)
     app.router.add_post("/api/ai/deep-analysis/mindmap", ai_deep_analysis_mindmap_handler)

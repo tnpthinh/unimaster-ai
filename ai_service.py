@@ -13,6 +13,7 @@ import time
 import base64
 import hashlib
 import asyncio
+import contextvars
 import ipaddress
 import urllib.parse
 from datetime import datetime, timezone
@@ -49,6 +50,155 @@ STEM_FORMAT_GUIDE = (
     "- Mọi công thức phân tử, ion và phương trình Hóa học / Sinh hóa phải dùng cú pháp `$\\ce{...}$` (ví dụ `$\\ce{H2SO4}$`, `$\\ce{2H2 + O2 ->[t^\\circ] 2H2O}$`, `$\\ce{Fe^{3+}}$`).\n"
     "- Từ khóa lập trình dùng `inline code`, đoạn mã nhiều dòng dùng khối ```csharp hoặc ngôn ngữ tương ứng."
 )
+
+# ==============================================================================
+# v72.0 GLOBAL AI STYLE ENGINE (Mặc định: Feynman — Áp dụng cho TOÀN BỘ AI)
+# ==============================================================================
+DEFAULT_GLOBAL_AI_STYLE_INSTRUCTION = (
+    "Áp dụng Kỹ thuật Feynman: giải thích mọi khái niệm cực kỳ dễ hiểu, trong sáng như giảng cho người mới bắt đầu, "
+    "dùng ẩn dụ đời thường sinh động, bóc tách tận bản chất vấn đề thay vì đọc thuộc lòng định nghĩa hàn lâm khô khan."
+)
+
+# Catalog preset phong cách dùng chung cho TOÀN BỘ tính năng AI.
+# Thêm 1 entry ở đây là frontend tự có thêm nút chọn (GET /api/ai/global-style trả catalog này).
+GLOBAL_AI_STYLE_PRESETS: dict = {
+    "feynman": {
+        "label": "🧒 Feynman (mặc định)",
+        "prompt": (
+            "Áp dụng Kỹ thuật Feynman: giải thích mọi khái niệm cực kỳ dễ hiểu, trong sáng như giảng cho người mới bắt đầu, "
+            "dùng ẩn dụ đời thường sinh động, bóc tách tận bản chất vấn đề thay vì đọc thuộc lòng định nghĩa hàn lâm khô khan."
+        ),
+    },
+    "genz": {
+        "label": "🌈 Gen Z teencode dễ thương",
+        "prompt": (
+            "Giọng Gen Z thân thiện, dân dã, dễ hiểu: xưng 'mình' – gọi 'bạn', câu ngắn, có thể dùng teencode nhẹ "
+            "(ko, đc, vs, nx, ib, chill, slay, ét o ét) và emoji vừa phải. Tuyệt đối không dùng từ ngữ thô tục, "
+            "không chế giễu người học. Kiến thức vẫn phải chuẩn 100%, chỉ đổi cách nói cho gần gũi."
+        ),
+    },
+    "etymology": {
+        "label": "🔍 Bản chất · Gốc từ · Lịch sử",
+        "prompt": (
+            "Luôn bóc tới bản chất: nêu nguồn gốc và gốc từ (etymology — Latin/Hy Lạp/Hán Việt/Pali-Sanskrit nếu có), "
+            "lịch sử phát hiện hoặc hoàn cảnh ra đời của khái niệm/định luật/công thức, và vì sao nó tồn tại dưới dạng hiện nay. "
+            "Trình bày ngắn theo nhịp: **Bản chất** → **Gốc từ / Nguồn gốc** → **Liên hệ hiện đại**."
+        ),
+    },
+    "savage": {
+        "label": "🗡️ Xéo sắc · Mỉa mai",
+        "prompt": (
+            "Giọng xéo sắc, mỉa mai hài hước kiểu 'thầy giáo khó tính nhưng có tâm': chỉ thẳng lỗi sai tư duy, "
+            "gọi tên cái bẫy đề thi, dùng so sánh châm biếm để khắc sâu kiến thức. Được phép châm chọc CÁCH LÀM SAI, "
+            "nhưng không miệt thị, không phân biệt đối xử, không xúc phạm nhân phẩm người học."
+        ),
+    },
+    "profanity": {
+        "label": "🤬 Chửi bậy · Mặn mòi",
+        "prompt": (
+            "Được phép dùng từ ngữ mặn mòi, chửi thề nhẹ kiểu bạn thân nói chuyện ('nói thẳng nói thật'), "
+            "để nhấn mạnh cái bẫy đề thi và lỗi sai ngớ ngẩn. Giới hạn: không chửi vào người học, không lăng mạ, "
+            "không phân biệt đối xử, không nội dung tình dục/bạo lực. Kiến thức vẫn phải chính xác tuyệt đối."
+        ),
+    },
+}
+
+
+def compile_ai_style(presets: list, custom_text: str = "") -> str:
+    """Ghép các preset đã chọn + văn bản tự nhập thành 1 khối chỉ dẫn duy nhất."""
+    keys = [str(p).strip() for p in (presets or []) if str(p).strip() in GLOBAL_AI_STYLE_PRESETS]
+    custom = str(custom_text or "").strip()
+    if not keys and not custom:
+        keys = ["feynman"]
+    blocks = [GLOBAL_AI_STYLE_PRESETS[k]["prompt"] for k in keys]
+    if custom:
+        blocks.append(custom)
+    return "\n".join(blocks).strip()
+_REQUEST_AI_STYLE_VAR: contextvars.ContextVar = contextvars.ContextVar("request_ai_style", default=None)
+
+
+def set_request_ai_style_override(style_text: str | None):
+    return _REQUEST_AI_STYLE_VAR.set(style_text)
+
+
+def reset_request_ai_style_override(token) -> None:
+    try:
+        _REQUEST_AI_STYLE_VAR.reset(token)
+    except Exception:
+        pass
+
+
+def get_global_ai_style_config() -> dict:
+    raw = get_setting("global_ai_style_config", "")
+    if raw:
+        try:
+            parsed = json.loads(raw)
+            if isinstance(parsed, dict):
+                presets = parsed.get("presets")
+                if not isinstance(presets, list):
+                    presets = ["feynman"]
+                custom_text = str(parsed.get("custom_text") or "").strip()
+                compiled = str(parsed.get("compiled_prompt") or "").strip()
+                if not compiled and not custom_text and not presets:
+                    presets = ["feynman"]
+                    compiled = DEFAULT_GLOBAL_AI_STYLE_INSTRUCTION
+                return {
+                    "presets": presets,
+                    "custom_text": custom_text,
+                    "compiled_prompt": compiled or DEFAULT_GLOBAL_AI_STYLE_INSTRUCTION,
+                    "updated_at": parsed.get("updated_at", 0),
+                    "catalog": GLOBAL_AI_STYLE_PRESETS,
+                }
+        except Exception:
+            pass
+    stored_instr = (get_setting("global_ai_style_instruction", "") or "").strip()
+    return {
+        "presets": ["feynman"],
+        "custom_text": "",
+        "compiled_prompt": stored_instr or DEFAULT_GLOBAL_AI_STYLE_INSTRUCTION,
+        "updated_at": 0,
+        "catalog": GLOBAL_AI_STYLE_PRESETS,
+    }
+
+
+def set_global_ai_style_config(presets: list, custom_text: str = "", compiled_prompt: str = "") -> dict:
+    # compiled_prompt luôn dựng lại từ preset + custom (tham số giữ để tương thích client cũ).
+    clean_presets = [str(p).strip() for p in (presets or []) if str(p).strip() in GLOBAL_AI_STYLE_PRESETS]
+    clean_custom = str(custom_text or "").strip()[:1200]
+    clean_presets = clean_presets or ["feynman"]
+    clean_compiled = compile_ai_style(clean_presets, clean_custom)[:2400]
+    payload = {
+        "presets": clean_presets,
+        "custom_text": clean_custom,
+        "compiled_prompt": clean_compiled,
+        "updated_at": int(time.time() * 1000),
+    }
+    set_setting("global_ai_style_config", json.dumps(payload, ensure_ascii=False))
+    set_setting("global_ai_style_instruction", clean_compiled)
+    return payload
+
+
+def get_active_ai_style_instruction() -> str:
+    req_override = _REQUEST_AI_STYLE_VAR.get()
+    if isinstance(req_override, str) and req_override.strip():
+        return req_override.strip()[:2400]
+    stored = (get_setting("global_ai_style_instruction", "") or "").strip()
+    return stored or DEFAULT_GLOBAL_AI_STYLE_INSTRUCTION
+
+
+def _inject_global_ai_style(system_instruction: str) -> str:
+    active_style = get_active_ai_style_instruction()
+    if not active_style:
+        return system_instruction or ""
+    if "PHONG CÁCH TRẢ LỜI TOÀN HỆ THỐNG" in (system_instruction or ""):
+        return system_instruction
+    block = (
+        "\n\n=== PHONG CÁCH TRẢ LỜI TOÀN HỆ THỐNG CỦA NGƯỜI DÙNG (BẮT BUỘC ÁP DỤNG) ===\n"
+        f"{active_style}\n"
+        "(Quy tắc: Áp dụng đúng giọng điệu và cách giảng trên vào phần giải thích, lời giảng, nhận xét; "
+        "kiến thức học thuật vẫn phải chính xác 100%, giữ nguyên cấu trúc Markdown/KaTeX hoặc định dạng JSON nếu yêu cầu.)"
+    )
+    return (system_instruction or "").strip() + block
 
 # Runtime telemetry & failover state per API key and model
 KEY_TELEMETRY = {}
@@ -1858,6 +2008,7 @@ async def _run_llm_completion(
     use_cache: bool = True,
 ) -> dict | None:
     """Thực thi đa nhà cung cấp (Gemini Pool <-> 9Router/FOSTA/OpenAI) theo priority và trả metadata."""
+    system_instruction = _inject_global_ai_style(system_instruction)
     cfg = get_openai_settings()
     active_model = cfg.get("model", "")
     priority = cfg.get("priority", "gemini_first")
@@ -2397,7 +2548,7 @@ async def ai_tutor_assist(
     subject_name: str = "Đại học tổng hợp",
     message: str = "",
     mode: str = "explain",
-    persona: str = "professor",
+    persona: str = "feynman",
     tutor_style_prompt: str = "",
     question_text: str = "",
     options=None,
@@ -2421,8 +2572,8 @@ async def ai_tutor_assist(
     eff_length = "detailed" if wants_detail else "concise"
 
     persona_map = {
+        "feynman": "Giọng Feynman trực quan: giải thích như cho học sinh 10 tuổi, dùng 1 hình ảnh đời thường sinh động, làm rõ cơ chế vì sao đáp án đúng được chọn và mổ xẻ vì sao các phương án khác sai / cạm bẫy trắc nghiệm ở đâu.",
         "professor": "Giọng học thuật chuẩn xác, súc tích, đi thẳng vào bản chất & điều kiện áp dụng.",
-        "feynman": "Giọng Feynman trực quan: dùng 1 hình ảnh đời thường cực ngắn, đọc 10 giây hiểu ngay.",
         "speed": "Giọng Giải nhanh: chốt công thức & dấu hiệu khoanh đúng trong 5 giây.",
         "examiner": "Giọng Vấn đáp: cô đọng trọng tâm kèm 1 câu hỏi gợi mở ngắn.",
     }
@@ -2453,7 +2604,7 @@ async def ai_tutor_assist(
         ),
     }
 
-    style_desc = persona_map.get(persona, persona_map["professor"])
+    style_desc = persona_map.get(persona, persona_map["feynman"])
     mode_desc = mode_instructions[norm_mode]
     custom_style = str(tutor_style_prompt or "").strip()[:1200]
     custom_guidance = (
@@ -2620,7 +2771,7 @@ async def ai_tutor_assist(
 async def ai_chat_tutor(
     subject_name: str,
     user_message: str,
-    persona: str = "professor",
+    persona: str = "feynman",
     history: list = None,
     tutor_style_prompt: str = "",
 ) -> str:
@@ -2686,8 +2837,9 @@ async def ai_deep_analysis(
     if mode == "feynman":
         mode_instruction = f"""Áp dụng **Phương pháp Feynman (Feynman Technique)** để giải thích trực quan:
 1. **👶 Ẩn dụ đời sống (Giải thích dễ hiểu cho học sinh 10 tuổi):** Dùng một ví dụ thực tế cực kỳ sinh động để ai cũng hiểu được nguyên lý này.
-2. **🧩 Đơn giản hóa cơ chế:** Bóc tách bản chất vấn đề thành 2-3 bước tự nhiên nhất mà không lạm dụng biệt ngữ.
-3. **💡 Bài học cốt lõi:** Đúc kết 1 câu ngắn gọn dễ nhớ mãi."""
+2. **🧩 Đơn giản hóa cơ chế & Vì sao đáp án đúng:** Bóc tách bản chất vấn đề thành 2-3 bước tự nhiên nhất mà không lạm dụng biệt ngữ, giải thích rõ lý do đáp án đúng được chọn.
+3. **❌ Vì sao các đáp án khác sai (Bóc bẫy trắc nghiệm):** Mổ xẻ chi tiết từng phương án sai còn lại (A, B, C, D) — chỉ rõ lỗi sai bản chất và điểm cạm bẫy dễ khiến người học bị lừa.
+4. **💡 Bài học cốt lõi:** Đúc kết 1 câu ngắn gọn dễ nhớ mãi."""
     elif mode == "exam_trap":
         mode_instruction = f"""Đóng vai **Chuyên gia Giảo nghiệm Đề thi & Bẫy Tâm lý**:
 1. **🎯 Mổ xẻ ý đồ người ra đề:** Thầy cô đã cài cắm cạm bẫy ở chi tiết nào (đổi đơn vị, phủ định kép, ngoại lệ hiếm, điều kiện biên)?

@@ -1344,8 +1344,8 @@
                     <i data-lucide="microscope" class="w-3.5 h-3.5"></i> AI Phân tích
                   </button>
                   <select id="deep-analysis-mode-select" class="bg-transparent text-[11px] text-indigo-200 border-none outline-none pr-1.5 font-medium cursor-pointer hover:text-white" onchange="triggerDeepAnalysis(false, this.value)">
+                    <option value="feynman" class="bg-slate-900 text-white" selected>👶 Kỹ thuật Feynman (mặc định)</option>
                     <option value="standard" class="bg-slate-900 text-white">🔬 Chuyên sâu chuẩn</option>
-                    <option value="feynman" class="bg-slate-900 text-white">👶 Kỹ thuật Feynman</option>
                     <option value="exam_trap" class="bg-slate-900 text-white">🎯 Mổ xẻ bẫy đề thi</option>
                     <option value="socratic" class="bg-slate-900 text-white">❓ Phương pháp Socrates</option>
                     <option value="stem_clinical" class="bg-slate-900 text-white">🧬 Lâm sàng / Thuật toán</option>
@@ -1921,9 +1921,11 @@
             <span class="text-xs">📚</span>
             <select id="tutor-subject-select" onchange="onTutorSubjectChange()" class="bg-transparent text-xs font-bold txt-main outline-none cursor-pointer pr-1 max-w-[190px] sm:max-w-[320px] truncate"></select>
           </div>
-          <button type="button" id="btn-tutor-length-toggle" onclick="toggleTutorResponseLength()" class="btn-soft px-2.5 py-1.5 text-xs font-extrabold flex items-center gap-1 border border-emerald-500/40" title="Đổi độ dài câu trả lời: Ngắn gọn súc tích vs Giải chi tiết">
-            <span id="tutor-length-label">⚡ Ngắn gọn</span>
-          </button>
+          <div class="inline-flex items-center rounded-xl p-0.5 border" style="border-color: var(--border); background-color: var(--bg-surface);" title="Độ dài câu trả lời của AI">
+            <button type="button" id="btn-tutor-length-concise" onclick="setTutorResponseLength('concise')" class="px-2.5 py-1 text-xs font-medium rounded-lg text-slate-400 hover:text-white transition-all" title="Trả lời súc tích, tóm tắt ý chính">⚡ Ngắn gọn</button>
+            <button type="button" id="btn-tutor-length-detailed" onclick="setTutorResponseLength('detailed')" class="px-2.5 py-1 text-xs font-black rounded-lg bg-indigo-600 text-white shadow-sm transition-all" title="Giải thích chi tiết, đầy đủ từng bước">📖 Chi tiết</button>
+            <button type="button" id="btn-tutor-length-toggle" onclick="toggleTutorResponseLength()" class="hidden"><span id="tutor-length-label">📖 Chi tiết</span></button>
+          </div>
           <button type="button" onclick="toggleTutorAdvancedSettings()" class="btn-soft px-2.5 py-1.5 text-xs font-bold flex items-center gap-1" title="Chế độ sư phạm &amp; Giọng giảng">
             <span>⚙️</span> <span class="hidden md:inline">Chế độ</span>
           </button>
@@ -1958,8 +1960,8 @@
         <!-- Persona -->
         <div class="flex flex-wrap items-center gap-1.5 pt-2 border-t" style="border-color: var(--border);">
           <span class="text-[11px] font-bold txt-muted mr-1">Giọng giảng:</span>
-          <button type="button" onclick="setTutorPersona('professor')" data-persona="professor" class="preset-pill active !py-1 !px-2.5 !text-xs">🎓 Giáo sư</button>
-          <button type="button" onclick="setTutorPersona('feynman')" data-persona="feynman" class="preset-pill !py-1 !px-2.5 !text-xs">🧒 Feynman</button>
+          <button type="button" onclick="setTutorPersona('feynman')" data-persona="feynman" class="preset-pill active !py-1 !px-2.5 !text-xs">🧒 Feynman (Mặc định)</button>
+          <button type="button" onclick="setTutorPersona('professor')" data-persona="professor" class="preset-pill !py-1 !px-2.5 !text-xs">🎓 Giáo sư</button>
           <button type="button" onclick="setTutorPersona('speed')" data-persona="speed" class="preset-pill !py-1 !px-2.5 !text-xs">⚡ Giải nhanh 10s</button>
           <button type="button" onclick="setTutorPersona('examiner')" data-persona="examiner" class="preset-pill !py-1 !px-2.5 !text-xs">🎤 Hỏi xoáy Vấn đáp</button>
           <button type="button" onclick="startClinicalOrOralCaseSim()" class="ai-chip-btn !py-1 !px-2.5 !text-xs ml-auto">🩺 Mô phỏng Ca bệnh</button>
@@ -4324,7 +4326,30 @@
             </div>
           </div>
 
-          <!-- MỤC 3: CẤU HÌNH TÍNH CÁCH & ĐỘ DÀI GIA SƯ AI -->
+          <!-- MỤC 3: PHONG CÁCH TRẢ LỜI TOÀN HỆ THỐNG (Áp dụng cho TOÀN BỘ tính năng AI) -->
+          <div class="p-4 rounded-2xl space-y-3" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="text-xs font-extrabold uppercase tracking-wider txt-main flex items-center gap-1.5">
+                <span>🎭</span> Phong Cách Trả Lời Toàn Hệ Thống
+              </div>
+              <span id="global-style-status" class="text-[10px] font-bold txt-muted">Mặc định: Feynman</span>
+            </div>
+            <p class="text-[11px] txt-muted leading-relaxed">
+              Áp dụng cho <strong>mọi tính năng AI</strong> (Gia sư, phân tích sâu, flashcard, chấm bài, lộ trình...). Chọn nhiều phong cách để kết hợp.
+            </p>
+            <div id="global-style-presets" class="flex flex-wrap gap-2"></div>
+            <div class="space-y-1 pt-1">
+              <label for="global-style-custom" class="text-[11px] font-bold txt-sub">Bổ sung phong cách riêng (tùy chọn):</label>
+              <textarea id="global-style-custom" rows="2" oninput="markGlobalStyleDirty()" class="uni-input w-full p-2.5 text-xs" placeholder="Ví dụ: luôn kết thúc bằng 1 câu hỏi kiểm tra nhanh; dùng ví dụ y khoa lâm sàng..."></textarea>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 pt-1">
+              <button type="button" onclick="saveGlobalAiStyle()" class="btn-primary px-4 py-2 text-xs font-extrabold">💾 Lưu phong cách</button>
+              <button type="button" onclick="resetGlobalAiStyle()" class="btn-soft px-3 py-2 text-xs font-bold">↺ Về mặc định Feynman</button>
+              <span id="global-style-hint" class="text-[11px] txt-muted"></span>
+            </div>
+          </div>
+
+          <!-- MỤC 4: CẤU HÌNH TÍNH CÁCH & ĐỘ DÀI GIA SƯ AI -->
           <div class="p-4 rounded-2xl space-y-3" style="background-color: var(--bg-subtle); border: 1px solid var(--border);">
             <div class="text-xs font-extrabold uppercase tracking-wider txt-main flex items-center gap-1.5">
               <span>🧠</span> Cấu Hình Tính Cách &amp; Độ Dài Trả Lời Của Gia Sư AI
@@ -5282,6 +5307,7 @@
         title="Gia Sư AI (T)">
         <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
         <span class="text-base">🤖</span>
+        <span id="floating-btn-persona-badge" class="text-[11px] font-black text-amber-300">🧒 Feynman</span>
         <span id="floating-btn-subject-tag" class="sr-only">T</span>
         <span id="floating-btn-q-badge" class="hidden text-[11px] font-semibold txt-sub"></span>
       </button>
@@ -5307,9 +5333,17 @@
           </div>
         </div>
         <div class="flex items-center gap-1 shrink-0">
-          <button type="button" id="btn-ft-length-toggle" onclick="toggleTutorResponseLength()" class="btn-soft px-2 py-1 rounded-xl text-[10.5px] font-extrabold whitespace-nowrap border border-emerald-500/35" title="Đổi độ dài giải thích: Ngắn gọn vs Chi tiết">
-            <span id="ft-length-label">⚡ Gọn</span>
-          </button>
+          <!-- Persona Selector EXPOSED ON HEADER -->
+          <div class="inline-flex items-center rounded-xl p-0.5 border border-amber-500/30 bg-black/30 text-[10.5px] font-extrabold shrink-0" title="Phong cách giảng dạy Gia Sư AI">
+            <button type="button" onclick="setFloatingPersona('feynman')" id="ft-head-persona-feynman" class="px-2 py-0.5 rounded-lg bg-amber-500/30 text-amber-300 font-black shadow-sm transition-all" title="Phong cách Feynman (Dễ hiểu, bản chất)">🧒 Feynman</button>
+            <button type="button" onclick="setFloatingPersona('professor')" id="ft-head-persona-professor" class="px-2 py-0.5 rounded-lg text-slate-300 hover:text-white font-medium transition-all" title="Giáo sư đại học">🎓 Giáo Sư</button>
+          </div>
+          <!-- Length Selector EXPOSED ON HEADER (Chi tiết mặc định) -->
+          <div class="inline-flex items-center rounded-xl p-0.5 border border-indigo-500/30 bg-black/30 text-[10.5px] font-extrabold shrink-0" title="Độ dài giải thích của Gia Sư AI">
+            <button type="button" id="btn-ft-length-concise" onclick="setTutorResponseLength('concise')" class="px-2 py-0.5 rounded-lg text-slate-300 hover:text-white font-medium transition-all" title="Chế độ Ngắn gọn (5 giây nắm ý)">⚡ Gọn</button>
+            <button type="button" id="btn-ft-length-detailed" onclick="setTutorResponseLength('detailed')" class="px-2 py-0.5 rounded-lg bg-indigo-600 text-white font-black shadow-sm transition-all" title="Chế độ Chi tiết (đầy đủ từng bước)">📖 Chi tiết</button>
+            <button type="button" id="btn-ft-length-toggle" onclick="toggleTutorResponseLength()" class="hidden"><span id="ft-length-label">📖 Chi tiết</span></button>
+          </div>
           <button type="button" id="btn-ft-mode-toggle" onclick="toggleFloatingTutorSettings()" class="btn-soft px-2 py-1 rounded-xl text-[11px] font-bold flex items-center gap-1 whitespace-nowrap" title="Đổi chế độ sư phạm &amp; giọng giảng AI">
             <span id="ft-active-mode-label">🧠 Giải sâu</span>
             <span id="ft-settings-chevron" class="opacity-70">▾</span>
@@ -5344,8 +5378,8 @@
         <div class="px-2.5 py-1.5 border-b flex items-center justify-between gap-1 overflow-x-auto no-scrollbar text-[10px]" style="border-color: var(--border); background-color: var(--bg-surface);">
           <div class="flex items-center gap-1 shrink-0">
             <span class="text-[10px] txt-muted font-extrabold uppercase shrink-0 mr-1">Giọng:</span>
-            <button type="button" onclick="setFloatingPersona('professor')" id="ft-persona-professor" class="ft-persona-btn active px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">🎓 Giáo Sư</button>
-            <button type="button" onclick="setFloatingPersona('feynman')" id="ft-persona-feynman" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">🧒 Feynman</button>
+            <button type="button" onclick="setFloatingPersona('feynman')" id="ft-persona-feynman" class="ft-persona-btn active px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">🧒 Feynman</button>
+            <button type="button" onclick="setFloatingPersona('professor')" id="ft-persona-professor" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">🎓 Giáo Sư</button>
             <button type="button" onclick="setFloatingPersona('speed')" id="ft-persona-speed" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">⚡ Giải Nhanh</button>
             <button type="button" onclick="setFloatingPersona('examiner')" id="ft-persona-examiner" class="ft-persona-btn px-2 py-0.5 rounded-md font-bold shrink-0 transition-all">🎤 Vấn Đáp</button>
           </div>
