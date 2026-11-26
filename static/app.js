@@ -4207,8 +4207,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateTutorPersonaUI();
   renderSharedTutorHistory();
 
-  if (!STATE.isOfflineStandalone && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
   // Load subjects and stats IMMEDIATELY without waiting for slow user state

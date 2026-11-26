@@ -8,9 +8,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="UniMaster AI" />
   <meta name="theme-color" content="#090b10" />
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
-  <link rel="apple-touch-icon" href="/icon.svg" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="icon.svg" />
+  <link rel="apple-touch-icon" href="icon.svg" />
   <title>UniMaster AI Pro — Ôn Thi Đại Học Thông Minh</title>
 
   <!-- Instant Zero-FOUC Theme, Accent & Granular Typography Hydration -->
@@ -19633,8 +19633,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   updateTutorPersonaUI();
   renderSharedTutorHistory();
 
-  if (!STATE.isOfflineStandalone && 'serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
   }
 
   // Load subjects and stats IMMEDIATELY without waiting for slow user state

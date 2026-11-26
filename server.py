@@ -5263,7 +5263,7 @@ async def pwa_manifest(request):
         "background_color": "#000000",
         "theme_color": "#7c3aed",
         "icons": [
-            {"src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+            {"src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
         ]
     }
     return json_resp(manifest)
