@@ -274,17 +274,232 @@ function saveSharedTutorHistory() {
   } catch (_) {}
 }
 
+// ==============================================================================
+// TUTOR PEDAGOGY PRESETS & TWO-WAY REACTIVE STYLE ENGINE
+// ==============================================================================
+const TUTOR_STYLE_PRESETS = {
+  feynman_pure: 'Dùng kỹ thuật Feynman: giải thích bằng ngôn ngữ đời thường mộc mạc, ví von trực quan như giảng cho người mới bắt đầu. Bóc tách bản chất gốc rễ, chỉ rõ vì sao đáp án đúng là đúng và từng phương án sai bị loại ở điểm nào.',
+  gen_z: 'Phong cách Gen Z hài hước, dí dỏm, bắt trend, nói chuyện gần gũi nhưng chuẩn xác 100% về kiến thức học thuật. Dùng ví dụ vui nhộn, bóc phốt các bẫy lừa của đề bài để học không buồn ngủ.',
+  root_cause: 'Mổ xẻ từ gốc từ học (Etymology) và bản chất định lý nền tảng. Giải thích logic suy luận nguyên bản và ngữ cảnh khoa học/lịch sử hình thành khái niệm để hiểu sâu nhớ lâu.',
+  trap_buster: 'Tập trung triệt để vào cạm bẫy trắc nghiệm: chỉ rõ từ khóa độc hại (Qualifiers, trick words), dấu hiệu nhận biết bẫy trong 5 giây, vì sao dễ chọn nhầm và công thức chốt nhanh đáp án.',
+  socratic: 'Phương pháp Socrates: đặt 2-3 câu hỏi phản biện gợi mở tư duy logic trước khi kết luận, dẫn dắt học viên tự nhận ra mâu thuẫn trong đáp án sai và tự nghiệm ra chân lý.',
+  clinical_sim: 'Mô phỏng tình huống thực chiến / ca lâm sàng / bài toán đời sống cụ thể: đưa kiến thức vào ngữ cảnh giải quyết vấn đề thực tế, phân tích hậu quả tương ứng từng lựa chọn.'
+};
+window.TUTOR_STYLE_PRESETS = TUTOR_STYLE_PRESETS;
+
 function getTutorStylePrompt() {
-  return String(document.getElementById('tutor-style-prompt')?.value || tutorCustomStyle || '').trim();
+  const customEl = document.getElementById('exam-tutor-custom-style') ||
+                   document.getElementById('ft-custom-style-input') ||
+                   document.getElementById('tutor-style-prompt');
+  const val = (customEl && customEl.value !== undefined) ? customEl.value : tutorCustomStyle;
+  return String(val || tutorCustomStyle || '').trim();
 }
 
-function setTutorCustomStyle(value) {
+function setTutorCustomStyle(value, silent = false) {
   tutorCustomStyle = String(value || '').trim();
-  localStorage.setItem(TUTOR_STYLE_KEY, tutorCustomStyle);
-  const input = document.getElementById('tutor-style-prompt');
-  if (input && input.value !== tutorCustomStyle) input.value = tutorCustomStyle;
-  showToast(tutorCustomStyle ? 'Đã lưu phong cách gia sư tùy chỉnh.' : 'Đã xóa phong cách tùy chỉnh.', 'success');
+  try {
+    localStorage.setItem(TUTOR_STYLE_KEY, tutorCustomStyle);
+  } catch (_) {}
+
+  // Đồng bộ cả 3 ô nhập liệu: phòng thi, floating tutor drawer và tab Gia Sư chính
+  ['exam-tutor-custom-style', 'ft-custom-style-input', 'tutor-style-prompt'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && el.value !== tutorCustomStyle) {
+      el.value = tutorCustomStyle;
+    }
+  });
+
+  const saveStatus = document.getElementById('exam-tutor-save-status');
+  if (saveStatus) {
+    saveStatus.textContent = 'Đã lưu ✓';
+    saveStatus.className = 'text-[10px] text-emerald-400 font-bold';
+  }
+
+  syncExamTutorStyleUI();
+
+  if (!silent && typeof showToast === 'function') {
+    showToast(tutorCustomStyle ? 'Đã lưu phong cách gia sư tùy chỉnh!' : 'Đã xóa phong cách tùy chỉnh.', 'success');
+  }
 }
+window.setTutorCustomStyle = setTutorCustomStyle;
+window.getTutorStylePrompt = getTutorStylePrompt;
+
+let _examTutorStyleSaveTimer = null;
+function handleExamCustomStyleInput(val) {
+  tutorCustomStyle = String(val || '');
+  const saveStatus = document.getElementById('exam-tutor-save-status');
+  if (saveStatus) {
+    saveStatus.textContent = 'Đang lưu...';
+    saveStatus.className = 'text-[10px] text-amber-400 font-bold';
+  }
+
+  // Cập nhật ngay các ô khác để đồng bộ 2 chiều
+  ['ft-custom-style-input', 'tutor-style-prompt'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && el.value !== tutorCustomStyle) el.value = tutorCustomStyle;
+  });
+
+  clearTimeout(_examTutorStyleSaveTimer);
+  _examTutorStyleSaveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(TUTOR_STYLE_KEY, tutorCustomStyle);
+    } catch (_) {}
+    if (saveStatus) {
+      saveStatus.textContent = 'Đã lưu ✓';
+      saveStatus.className = 'text-[10px] text-emerald-400 font-bold';
+    }
+    syncExamTutorStyleUI();
+  }, 350);
+}
+window.handleExamCustomStyleInput = handleExamCustomStyleInput;
+
+function applyTutorPresetStyle(presetKey) {
+  const promptText = TUTOR_STYLE_PRESETS[presetKey];
+  if (!promptText) return;
+  setTutorCustomStyle(promptText, false);
+  const presetNames = {
+    feynman_pure: '🧒 Feynman Dễ Hiểu',
+    gen_z: '🌈 Gen Z Bắt Trend',
+    root_cause: '🔍 Gốc Từ & Bản Chất',
+    trap_buster: '🎯 Chốt Bẫy 5s',
+    socratic: '💡 Socratic Gợi Mở',
+    clinical_sim: '🩺 Thực Chiến / Lâm Sàng'
+  };
+  if (typeof playSound === 'function') playSound('click');
+  if (typeof showToast === 'function') {
+    showToast(`Đã áp dụng phong cách: ${presetNames[presetKey] || presetKey}`, 'info');
+  }
+}
+window.applyTutorPresetStyle = applyTutorPresetStyle;
+
+function toggleExamTutorStylePanel(forceOpen = null) {
+  const panel = document.getElementById('exam-tutor-style-panel');
+  const chevron = document.getElementById('exam-tutor-style-chevron');
+  if (!panel) return;
+  const isHidden = panel.classList.contains('hidden');
+  const willOpen = forceOpen !== null ? forceOpen : isHidden;
+  if (willOpen) {
+    panel.classList.remove('hidden');
+    if (chevron) chevron.textContent = '▴';
+    syncExamTutorStyleUI();
+    const txt = document.getElementById('exam-tutor-custom-style');
+    if (txt) setTimeout(() => txt.focus(), 60);
+  } else {
+    panel.classList.add('hidden');
+    if (chevron) chevron.textContent = '▾';
+  }
+}
+window.toggleExamTutorStylePanel = toggleExamTutorStylePanel;
+
+function setExamPersonaDirect(persona) {
+  setFloatingPersona(persona);
+  syncExamTutorStyleUI();
+}
+window.setExamPersonaDirect = setExamPersonaDirect;
+
+function setExamLengthDirect(len) {
+  setTutorResponseLength(len);
+  syncExamTutorStyleUI();
+}
+window.setExamLengthDirect = setExamLengthDirect;
+
+function resetExamTutorStyleToDefault() {
+  setTutorCustomStyle('', true);
+  setFloatingPersona('feynman');
+  setTutorResponseLength('detailed');
+  syncExamTutorStyleUI();
+  if (typeof showToast === 'function') {
+    showToast('Đã khôi phục phong cách Feynman & Chi tiết mặc định!', 'success');
+  }
+}
+window.resetExamTutorStyleToDefault = resetExamTutorStyleToDefault;
+
+function syncExamTutorStyleUI() {
+  const curPersona = currentTutorPersona || 'feynman';
+  const curLen = currentTutorResponseLength || 'detailed';
+  const curCustom = String(tutorCustomStyle || '').trim();
+
+  // 1. Đồng bộ Persona Buttons trong Panel phòng thi
+  document.querySelectorAll('#exam-tutor-style-panel [data-exam-persona]').forEach((btn) => {
+    const p = btn.getAttribute('data-exam-persona');
+    const isAct = p === curPersona;
+    btn.classList.toggle('active', isAct);
+    if (isAct) {
+      btn.className = 'exam-persona-btn active px-2.5 py-1 rounded-xl text-xs font-bold border transition-all bg-indigo-600 text-white border-indigo-400 shadow-sm';
+    } else {
+      btn.className = 'exam-persona-btn px-2.5 py-1 rounded-xl text-xs font-bold border transition-all bg-white/5 text-slate-300 border-white/10 hover:border-indigo-400/50 hover:text-white';
+    }
+  });
+
+  // 2. Đồng bộ Length Buttons trong Panel phòng thi
+  document.querySelectorAll('#exam-tutor-style-panel [data-exam-length]').forEach((btn) => {
+    const l = btn.getAttribute('data-exam-length');
+    const isAct = l === curLen;
+    btn.classList.toggle('active', isAct);
+    if (isAct) {
+      btn.className = 'exam-length-btn active px-2.5 py-1 rounded-xl text-xs font-bold border transition-all bg-indigo-600 text-white border-indigo-400 shadow-sm';
+    } else {
+      btn.className = 'exam-length-btn px-2.5 py-1 rounded-xl text-xs font-bold border transition-all bg-white/5 text-slate-300 border-white/10 hover:border-indigo-400/50 hover:text-white';
+    }
+  });
+
+  // 3. Đồng bộ Textarea giá trị nếu người dùng không đang gõ trực tiếp
+  const examInput = document.getElementById('exam-tutor-custom-style');
+  if (examInput && examInput.value !== tutorCustomStyle && document.activeElement !== examInput) {
+    examInput.value = tutorCustomStyle;
+  }
+  const ftInput = document.getElementById('ft-custom-style-input');
+  if (ftInput && ftInput.value !== tutorCustomStyle && document.activeElement !== ftInput) {
+    ftInput.value = tutorCustomStyle;
+  }
+
+  // 4. Tìm xem custom style có trùng khớp preset nào không để highlight chip
+  let matchedPreset = null;
+  for (const [key, prompt] of Object.entries(TUTOR_STYLE_PRESETS)) {
+    if (curCustom && (curCustom === prompt || curCustom.startsWith(prompt.slice(0, 30)))) {
+      matchedPreset = key;
+      break;
+    }
+  }
+
+  document.querySelectorAll('[data-exam-preset], [data-ft-preset]').forEach((chip) => {
+    const pKey = chip.getAttribute('data-exam-preset') || chip.getAttribute('data-ft-preset');
+    const isAct = pKey === matchedPreset;
+    chip.classList.toggle('active', isAct);
+    if (isAct) {
+      chip.classList.add('!bg-indigo-600', '!text-white', '!border-indigo-400', 'shadow-sm');
+    } else {
+      chip.classList.remove('!bg-indigo-600', '!text-white', '!border-indigo-400', 'shadow-sm');
+    }
+  });
+
+  // 5. Cập nhật Badge trên nút toggle Phong cách
+  const badge = document.getElementById('exam-tutor-active-style-badge');
+  if (badge) {
+    if (matchedPreset) {
+      const presetBadgeLabels = {
+        feynman_pure: '🧒 Feynman',
+        gen_z: '🌈 Gen Z',
+        root_cause: '🔍 Gốc từ',
+        trap_buster: '🎯 Chốt bẫy',
+        socratic: '💡 Socrates',
+        clinical_sim: '🩺 Lâm sàng'
+      };
+      badge.textContent = presetBadgeLabels[matchedPreset] || 'Tùy biến';
+    } else if (curCustom) {
+      badge.textContent = '✍️ Tùy biến';
+    } else {
+      const personaLabels = {
+        feynman: '🧒 Feynman',
+        professor: '🎓 Giáo Sư',
+        speed: '⚡ Giải Nhanh',
+        examiner: '🎤 Vấn Đáp'
+      };
+      badge.textContent = personaLabels[curPersona] || curPersona;
+    }
+  }
+}
+window.syncExamTutorStyleUI = syncExamTutorStyleUI;
 
 function highlightBiochemTermsSafe(html) {
   if (!html) return '';
@@ -501,6 +716,7 @@ function updateTutorLengthUI() {
     b.classList.toggle('border-emerald-500/40', isConcise);
     b.classList.toggle('border-indigo-500/40', !isConcise);
   });
+  if (typeof syncExamTutorStyleUI === 'function') syncExamTutorStyleUI();
 }
 window.updateTutorLengthUI = updateTutorLengthUI;
 
@@ -1087,6 +1303,7 @@ function updateTutorPersonaUI() {
     const isAct = btn.getAttribute('data-persona') === cur;
     btn.classList.toggle('active', isAct);
   });
+  if (typeof syncExamTutorStyleUI === 'function') syncExamTutorStyleUI();
 }
 
 function attachContextToTutor(ctxObj = {}, opts = {}) {
@@ -1990,7 +2207,7 @@ function stopFloatingVoiceInput() {
 function askAiAboutCurrentExamQuestion(autoExplain = false) {
   const q = STATE.exam.questions[STATE.exam.currentIndex];
   if (!q) {
-    toggleFloatingTutor();
+    openFloatingTutor();
     return;
   }
   const idx = STATE.exam.currentIndex + 1;
@@ -1999,6 +2216,15 @@ function askAiAboutCurrentExamQuestion(autoExplain = false) {
   const isCorrect = isGraded ? (String(userAns).toUpperCase() === String(q._effectiveCorrect).toUpperCase()) : undefined;
   const hideAnswer = !isGraded && STATE.exam.mode === 'real';
 
+  // 1. Kích hoạt chế độ Feynman nếu chưa có persona riêng, hoặc tôn trọng persona người dùng đã chọn
+  if (!currentTutorPersona) {
+    setFloatingPersona('feynman');
+  }
+
+  // 2. Mở cửa sổ Floating Tutor ngay lập tức để học viên thấy Gia Sư AI sẵn sàng
+  openFloatingTutor();
+
+  // 3. Ghim câu hỏi vào ngữ cảnh tương tác Gia Sư AI
   pinQuestionToTutor(q, {
     label: `Câu ${idx}`,
     user_answer: userAns,
@@ -2007,17 +2233,42 @@ function askAiAboutCurrentExamQuestion(autoExplain = false) {
     source: 'exam'
   });
 
-  if (autoExplain && isGraded && !tutorSendingLock) {
-    setTutorResponseLength('detailed');
+  // 4. Nếu autoExplain (bấm nút 'Gia Sư AI Giải Chi Tiết (Feynman)' hoặc Áp dụng cấu hình):
+  if (autoExplain) {
+    if (tutorSendingLock) {
+      if (typeof showToast === 'function') {
+        showToast('Gia Sư AI đang tạo câu trả lời, vui lòng chờ trong giây lát...', 'info');
+      }
+      return;
+    }
+
+    // Đảm bảo độ dài chi tiết nếu chưa cài đặt
+    if (!currentTutorResponseLength) {
+      setTutorResponseLength('detailed');
+    }
+
     const corr = String(q._effectiveCorrect || '').trim();
-    const prompt = (userAns && !isCorrect)
-      ? `Ở Câu ${idx}, mình đã chọn đáp án ${userAns} nhưng đáp án đúng là ${corr}. Hãy giải thích chi tiết, dễ hiểu theo phong cách Feynman vì sao ${corr} đúng, mổ xẻ vì sao ${userAns} là bẫy sai, và làm rõ vì sao các phương án khác chưa chính xác.`
-      : `Ở Câu ${idx} (đáp án đúng: ${corr}), hãy giải thích chi tiết bản chất theo phong cách Feynman, làm rõ cơ chế vì sao ${corr} đúng và phân tích vì sao các phương án khác sai / cạm bẫy trắc nghiệm ở đâu.`;
+    const curPersona = currentTutorPersona || 'feynman';
+    const personaTitle = curPersona === 'feynman'
+      ? 'kỹ thuật Feynman (bản chất, trực quan, dễ hiểu)'
+      : (curPersona === 'professor' ? 'phong cách Giáo Sư chuẩn mực học thuật' : (curPersona === 'speed' ? 'phong cách Giải Nhanh 10s chốt bẫy' : 'phong cách Giảng Viên Vấn Đáp phản biện'));
+
+    let prompt = '';
+    if (isGraded) {
+      if (userAns && !isCorrect) {
+        prompt = `Ở Câu ${idx}, mình đã chọn đáp án ${userAns} nhưng đáp án đúng là ${corr}. Hãy giải thích chi tiết theo ${personaTitle}: làm rõ bản chất vì sao ${corr} đúng, mổ xẻ vì sao phương án ${userAns} là bẫy sai khiến mình nhầm lẫn, và phân tích vì sao các phương án khác chưa chính xác.`;
+      } else {
+        prompt = `Ở Câu ${idx} (đáp án đúng: ${corr}), hãy giải thích chi tiết bản chất theo ${personaTitle}: làm rõ cơ chế / nguyên lý vì sao ${corr} đúng và phân tích cặn kẽ vì sao các phương án khác sai hoặc cạm bẫy của câu này là gì.`;
+      }
+    } else {
+      prompt = `Ở Câu ${idx}, hãy giải thích bản chất lý thuyết và phương pháp tư duy theo ${personaTitle} để tìm ra hướng đi đúng nhất cho bài toán này, lưu ý các bẫy thường gặp.`;
+    }
+
     sendTutorChatUnified(prompt, {
       mode: 'explain',
       source: 'exam_feedback',
-      responseLength: 'detailed',
-      persona: currentTutorPersona || 'feynman'
+      responseLength: currentTutorResponseLength || 'detailed',
+      persona: curPersona
     });
   }
 }
@@ -6676,6 +6927,7 @@ function renderQuestionFeedbackArea(q) {
   }
 
   loadQuestionDiscussions(q.id);
+  if (typeof syncExamTutorStyleUI === 'function') syncExamTutorStyleUI();
 }
 
 async function gradeCurrentEssayWithAi() {

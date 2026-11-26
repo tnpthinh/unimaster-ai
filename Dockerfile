@@ -1,19 +1,28 @@
-# UniMaster AI Pro v7.0 — Container image for Render / Railway / Fly.io / Hugging Face Spaces
+# UniMaster AI Pro v7.0 — Universal Container Image
+# Tương thích 100% với: Hugging Face Spaces, Koyeb, Render, Railway, Fly.io
 FROM python:3.12-slim
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
-    PORT=8080 \
+    PORT=7860 \
     DATA_DIR=/data
 
 WORKDIR /app
+
+# Cài đặt dependencies siêu tốc
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Sao chép toàn bộ mã nguồn
 COPY . .
-RUN mkdir -p /data
 
+# Tạo thư mục data và phân quyền ghi đầy đủ (cho phép chạy UID 1000 trên Hugging Face Spaces)
+RUN mkdir -p /data && chmod -R 777 /app /data
+
+# Mở cả 2 cổng phổ biến: 7860 (Hugging Face Spaces) và 8080 (Koyeb / Render / Railway)
+EXPOSE 7860
 EXPOSE 8080
-HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD python -c "import urllib.request,os;urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"8080\")}/healthz',timeout=4)"
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s CMD python -c "import urllib.request,os;urllib.request.urlopen(f'http://127.0.0.1:{os.environ.get(\"PORT\",\"7860\")}/healthz',timeout=4)"
 
 CMD ["python", "server.py"]
