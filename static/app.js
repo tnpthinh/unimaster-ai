@@ -4287,17 +4287,14 @@ function switchTab(tabName) {
     const isHomeOrTutor = (tabName === 'dashboard' || tabName === 'tutor') && !isExamViewActive;
     ftContainer.classList.toggle('hidden', isHomeOrTutor);
     if (floatingNextBtn) {
-      let canShowFloatingNext = isTimedModalOpen;
-      if (!canShowFloatingNext && tabName === 'exam' && STATE.exam?.active) {
-        const curQ = STATE.exam.questions?.[STATE.exam.currentIndex];
-        const isGraded = curQ && STATE.exam.graded?.[curQ.id] !== undefined;
-        const isRealAnswered = curQ && STATE.exam.mode === 'real' && STATE.exam.userAnswers?.[curQ.id] !== undefined;
-        canShowFloatingNext = STATE.exam.mode === 'study' || Boolean(isGraded || isRealAnswered);
-      }
+      // Phục hồi nút Câu Tiếp Theo nổi: Luôn luôn hiển thị khi đang trong phòng thi để học viên tiện điều hướng
+      const canShowFloatingNext = isExamViewActive;
       floatingNextBtn.classList.toggle('hidden', !canShowFloatingNext);
+      if (canShowFloatingNext) floatingNextBtn.style.display = 'inline-flex';
     }
     if (floatingPrevBtn) {
       floatingPrevBtn.classList.toggle('hidden', !isExamViewActive);
+      if (isExamViewActive) floatingPrevBtn.style.display = 'inline-flex';
     }
     if (isHomeOrTutor) {
       closeFloatingTutor();
@@ -6057,14 +6054,19 @@ function renderCurrentExamQuestion() {
   if (floatingPrevBtn) {
     floatingPrevBtn.disabled = isFirst;
     floatingPrevBtn.classList.remove('hidden');
+    floatingPrevBtn.style.display = 'inline-flex';
   }
 
   const ftContainer = document.getElementById('floating-tutor-container');
-  if (ftContainer) ftContainer.classList.remove('hidden');
+  if (ftContainer) {
+    ftContainer.classList.remove('hidden');
+    ftContainer.style.display = 'flex';
+  }
   if (floatingNextBtn) {
-    // Only show floating Next button after the current question is answered so it never covers options B/C/D!
-    floatingNextBtn.classList.toggle('hidden', !isCurGraded);
-    floatingNextBtn.classList.toggle('floating-next-ready', isCurGraded);
+    // Nút Câu Tiếp Theo nổi luôn luôn hiện diện trong phòng thi để học viên không bị mất dấu
+    floatingNextBtn.classList.remove('hidden');
+    floatingNextBtn.style.display = 'inline-flex';
+    floatingNextBtn.classList.toggle('floating-next-ready', Boolean(isCurGraded));
   }
   if (typeof syncExamTutorSplitLayout === 'function') syncExamTutorSplitLayout();
 
@@ -6612,10 +6614,11 @@ function renderQuestionFeedbackArea(q) {
     const savedMode = typeof getSavedDeepAnalysisMode === 'function' ? getSavedDeepAnalysisMode() : 'feynman';
     const modeSel = document.getElementById('deep-analysis-mode-select');
     if (modeSel && modeSel.value !== savedMode) modeSel.value = savedMode;
-    const activeAnalysis = STATE.exam.deepAnalysis[`${q.id}_${savedMode}`] || STATE.exam.deepAnalysis[q.id];
+    // Khóa chặt lăng kính: chỉ lấy bài phân tích đúng lăng kính đã chọn, không để phân tích cũ đè mode
+    const activeAnalysis = STATE.exam.deepAnalysis[`${q.id}_${savedMode}`] || (STATE.exam.deepAnalysisMeta?.[q.id]?.mode === savedMode ? STATE.exam.deepAnalysis[q.id] : null);
     if (activeAnalysis) {
       const meta = STATE.exam.deepAnalysisMeta?.[`${q.id}_${savedMode}`] || STATE.exam.deepAnalysisMeta?.[q.id] || { mode: savedMode };
-      const curMode = meta.mode || savedMode;
+      const curMode = savedMode;
       const lensDefs = [
         ['standard', '🔬 Chuẩn'],
         ['feynman', '👶 Feynman'],
@@ -6953,6 +6956,7 @@ async function distillQuestionObjectToFlashcard(q, sid) {
 }
 
 const DEEP_ANALYSIS_MODE_KEY = 'unimaster_deep_analysis_mode';
+const DEEP_ANALYSIS_USER_LOCKED_KEY = 'unimaster_deep_analysis_mode_user_locked';
 const VALID_DEEP_MODES = new Set(['standard', 'feynman', 'exam_trap', 'socratic', 'stem_clinical']);
 const DEFAULT_DEEP_ANALYSIS_MODE = 'feynman';
 
@@ -6967,10 +6971,13 @@ window.getSavedDeepAnalysisMode = getSavedDeepAnalysisMode;
 
 function setSavedDeepAnalysisMode(mode) {
   const clean = VALID_DEEP_MODES.has(mode) ? mode : DEFAULT_DEEP_ANALYSIS_MODE;
-  try { localStorage.setItem(DEEP_ANALYSIS_MODE_KEY, clean); } catch (_) {}
+  try {
+    localStorage.setItem(DEEP_ANALYSIS_MODE_KEY, clean);
+    localStorage.setItem(DEEP_ANALYSIS_USER_LOCKED_KEY, '1');
+  } catch (_) {}
   const sel = document.getElementById('deep-analysis-mode-select');
   if (sel && sel.value !== clean) sel.value = clean;
-  if (typeof window.scheduleUniversalVaultPush === 'function') window.scheduleUniversalVaultPush(500);
+  if (typeof window.scheduleUniversalVaultPush === 'function') window.scheduleUniversalVaultPush(300);
   return clean;
 }
 window.setSavedDeepAnalysisMode = setSavedDeepAnalysisMode;
@@ -7048,6 +7055,12 @@ async function triggerDeepAnalysis(forceRefresh = false, customMode = null) {
     deepBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return;
   }
+
+  // Khi người dùng bấm chuyển sang lăng kính mới (vd: Feynman) mà chưa có cache của lăng kính đó,
+  // lập tức xóa nội dung phân tích cũ của mode khác để tránh việc bị kéo giật ngược về mode cũ!
+  delete STATE.exam.deepAnalysis[q.id];
+  if (!STATE.exam.deepAnalysisMeta) STATE.exam.deepAnalysisMeta = {};
+  STATE.exam.deepAnalysisMeta[q.id] = { mode };
 
   deepBox.classList.remove('hidden');
   deepBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -28578,9 +28591,14 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       if (srvState.tutorPrefs && (srvIsNewer || !localStorage.getItem('unimaster_tutor_length'))) {
         const tp = srvState.tutorPrefs;
         if (tp.deepAnalysisMode && typeof setSavedDeepAnalysisMode === 'function') {
-          try { localStorage.setItem('unimaster_deep_analysis_mode', tp.deepAnalysisMode); } catch (_) {}
-          const dSel = document.getElementById('deep-analysis-mode-select');
-          if (dSel) dSel.value = tp.deepAnalysisMode;
+          const userLocked = localStorage.getItem('unimaster_deep_analysis_mode_user_locked') === '1';
+          const curLocalMode = getSavedDeepAnalysisMode();
+          // Chống đè ngược: nếu người dùng đã chủ động chọn Feynman/mode cụ thể, không để server sync cũ đè lại
+          if (!userLocked || curLocalMode === tp.deepAnalysisMode) {
+            try { localStorage.setItem('unimaster_deep_analysis_mode', tp.deepAnalysisMode); } catch (_) {}
+            const dSel = document.getElementById('deep-analysis-mode-select');
+            if (dSel) dSel.value = tp.deepAnalysisMode;
+          }
         }
         if (tp.persona) {
           currentTutorPersona = tp.persona;

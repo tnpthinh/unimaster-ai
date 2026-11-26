@@ -6557,6 +6557,76 @@ html:not(.dark):not(.sepia) .mobile-bottom-nav {
   border-top-color: rgba(15, 23, 42, 0.08) !important;
 }
 
+
+/* ==========================================================================
+   VIP FLOATING AI DOCK & ULTRA MODERN FLOATING BUTTONS
+   ========================================================================== */
+.floating-ai-vip-btn {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.92) 0%, rgba(67, 56, 202, 0.95) 50%, rgba(124, 58, 237, 0.98) 100%) !important;
+  border: 1.5px solid rgba(167, 139, 250, 0.65) !important;
+  backdrop-filter: blur(24px) saturate(190%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(190%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 32px -4px rgba(79, 70, 229, 0.6), 0 0 24px rgba(139, 92, 246, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
+  transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.floating-ai-vip-btn:hover {
+  transform: translateY(-3px) scale(1.05) !important;
+  border-color: rgba(216, 180, 254, 0.95) !important;
+  box-shadow: 0 16px 42px -4px rgba(79, 70, 229, 0.8), 0 0 35px rgba(168, 85, 247, 0.7), inset 0 1px 2px rgba(255, 255, 255, 0.6) !important;
+}
+.floating-ai-vip-btn:active {
+  transform: translateY(0) scale(0.97) !important;
+}
+.floating-persona-pill {
+  font-size: 11px !important;
+  font-weight: 900 !important;
+  letter-spacing: 0.02em;
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%) !important;
+  color: #1e1b4b !important;
+  padding: 2.5px 8.5px !important;
+  border-radius: 9999px !important;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.45), inset 0 1px 1px rgba(255, 255, 255, 0.4) !important;
+  text-shadow: 0 0.5px 1px rgba(255, 255, 255, 0.3);
+}
+
+.btn-floating-next {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(51, 65, 85, 0.98)) !important;
+  border: 1.5px solid rgba(148, 163, 184, 0.45) !important;
+  color: #f8fafc !important;
+  backdrop-filter: blur(20px) !important;
+  -webkit-backdrop-filter: blur(20px) !important;
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+.btn-floating-next:hover {
+  transform: translateY(-2px) scale(1.04) !important;
+  border-color: rgba(99, 102, 241, 0.85) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 30px -4px rgba(99, 102, 241, 0.45);
+}
+.btn-floating-next:active {
+  transform: translateY(0) scale(0.97) !important;
+}
+.btn-floating-next.floating-next-ready,
+#floating-next-q-btn.floating-next-ready {
+  background: linear-gradient(135deg, #059669 0%, #0d9488 50%, #0284c7 100%) !important;
+  border: 1.5px solid rgba(255, 255, 255, 0.75) !important;
+  color: #ffffff !important;
+  box-shadow: 0 12px 34px -4px rgba(13, 148, 136, 0.7), 0 0 28px rgba(6, 182, 212, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.6) !important;
+  animation: nextVipPulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite !important;
+}
+@keyframes nextVipPulse {
+  0%, 100% {
+    box-shadow: 0 12px 34px -4px rgba(13, 148, 136, 0.7), 0 0 22px rgba(6, 182, 212, 0.5);
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    box-shadow: 0 16px 42px -2px rgba(6, 182, 212, 0.9), 0 0 35px rgba(16, 185, 129, 0.8);
+    transform: translateY(-2px) scale(1.05);
+  }
+}
+
 </style>
   <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
@@ -7824,8 +7894,8 @@ html:not(.dark):not(.sepia) .mobile-bottom-nav {
                   <button onclick="triggerDeepAnalysis()" class="px-2.5 py-1 text-xs font-bold text-indigo-300 hover:text-white flex items-center gap-1.5 transition-colors" title="Kích hoạt phân tích AI theo lăng kính được chọn">
                     <i data-lucide="microscope" class="w-3.5 h-3.5"></i> AI Phân tích
                   </button>
-                  <select id="deep-analysis-mode-select" class="bg-transparent text-[11px] text-indigo-200 border-none outline-none pr-1.5 font-medium cursor-pointer hover:text-white" onchange="triggerDeepAnalysis(false, this.value)">
-                    <option value="feynman" class="bg-slate-900 text-white" selected>👶 Kỹ thuật Feynman (mặc định)</option>
+                  <select id="deep-analysis-mode-select" class="bg-transparent text-[11px] text-indigo-200 border-none outline-none pr-1.5 font-bold cursor-pointer hover:text-white" onchange="setSavedDeepAnalysisMode(this.value); triggerDeepAnalysis(false, this.value)">
+                    <option value="feynman" class="bg-slate-900 text-white font-bold text-amber-300" selected>👶 Kỹ thuật Feynman (mặc định)</option>
                     <option value="standard" class="bg-slate-900 text-white">🔬 Chuyên sâu chuẩn</option>
                     <option value="exam_trap" class="bg-slate-900 text-white">🎯 Mổ xẻ bẫy đề thi</option>
                     <option value="socratic" class="bg-slate-900 text-white">❓ Phương pháp Socrates</option>
@@ -11768,27 +11838,30 @@ html:not(.dark):not(.sepia) .mobile-bottom-nav {
   <div id="floating-tutor-backdrop" onclick="closeFloatingTutor()" class="hidden fixed inset-0 z-[9990] bg-black/60 backdrop-blur-sm transition-opacity"></div>
 
   <div id="floating-tutor-container" class="hidden fixed bottom-20 lg:bottom-6 right-3 sm:right-6 z-50 flex flex-col-reverse items-end gap-2.5">
-    <!-- Row chứa các nút Floating ở góc dưới cùng: Câu Trước + Câu Tiếp Theo + Nút AI -->
+    <!-- Row chứa các nút Floating ở góc dưới cùng: Câu Trước + Câu Tiếp Theo + Nút AI VIP -->
     <div class="flex items-center gap-2">
       <button id="floating-prev-q-btn" onclick="triggerFloatingPrevAction()"
-        class="hidden floating-dock-neutral px-3 py-2.5 rounded-xl flex items-center justify-center transition-all cursor-pointer font-bold text-xs disabled:opacity-35 disabled:pointer-events-none"
+        class="hidden floating-dock-neutral px-3.5 py-2.5 rounded-2xl flex items-center justify-center transition-all cursor-pointer font-extrabold text-sm shadow-lg disabled:opacity-35 disabled:pointer-events-none hover:scale-105 active:scale-95"
         title="Quay lại câu trước (←)">
         <span>←</span>
       </button>
 
       <button id="floating-next-q-btn" onclick="triggerFloatingNextAction()"
-        class="hidden btn-primary px-4 py-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer font-bold text-xs sm:text-sm"
+        class="hidden btn-floating-next px-4 sm:px-5 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer font-black text-xs sm:text-sm shadow-xl hover:scale-105 active:scale-95"
         title="Chuyển sang câu tiếp theo (→ / Enter)">
-        <span>➔</span>
-        <span id="floating-next-q-text" class="whitespace-nowrap">Câu tiếp</span>
+        <span class="text-base font-bold">➔</span>
+        <span id="floating-next-q-text" class="whitespace-nowrap font-black tracking-wide">Câu tiếp</span>
       </button>
 
       <button id="floating-tutor-btn" onclick="toggleFloatingTutor()"
-        class="floating-dock-neutral px-3 py-2.5 rounded-xl flex items-center gap-1.5 transition-all relative"
-        title="Gia Sư AI (T)">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span class="text-base">🤖</span>
-        <span id="floating-btn-persona-badge" class="text-[11px] font-black text-amber-300">🧒 Feynman</span>
+        class="floating-ai-vip-btn px-4 py-2.5 rounded-2xl flex items-center gap-2.5 transition-all relative cursor-pointer shadow-2xl hover:scale-105 active:scale-95"
+        title="Gia Sư AI Feynman (T)">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-sm"></span>
+        </span>
+        <span class="text-lg filter drop-shadow">🤖</span>
+        <span id="floating-btn-persona-badge" class="floating-persona-pill">🧒 Feynman</span>
         <span id="floating-btn-subject-tag" class="sr-only">T</span>
         <span id="floating-btn-q-badge" class="hidden text-[11px] font-semibold txt-sub"></span>
       </button>
@@ -19481,17 +19554,14 @@ function switchTab(tabName) {
     const isHomeOrTutor = (tabName === 'dashboard' || tabName === 'tutor') && !isExamViewActive;
     ftContainer.classList.toggle('hidden', isHomeOrTutor);
     if (floatingNextBtn) {
-      let canShowFloatingNext = isTimedModalOpen;
-      if (!canShowFloatingNext && tabName === 'exam' && STATE.exam?.active) {
-        const curQ = STATE.exam.questions?.[STATE.exam.currentIndex];
-        const isGraded = curQ && STATE.exam.graded?.[curQ.id] !== undefined;
-        const isRealAnswered = curQ && STATE.exam.mode === 'real' && STATE.exam.userAnswers?.[curQ.id] !== undefined;
-        canShowFloatingNext = STATE.exam.mode === 'study' || Boolean(isGraded || isRealAnswered);
-      }
+      // Phục hồi nút Câu Tiếp Theo nổi: Luôn luôn hiển thị khi đang trong phòng thi để học viên tiện điều hướng
+      const canShowFloatingNext = isExamViewActive;
       floatingNextBtn.classList.toggle('hidden', !canShowFloatingNext);
+      if (canShowFloatingNext) floatingNextBtn.style.display = 'inline-flex';
     }
     if (floatingPrevBtn) {
       floatingPrevBtn.classList.toggle('hidden', !isExamViewActive);
+      if (isExamViewActive) floatingPrevBtn.style.display = 'inline-flex';
     }
     if (isHomeOrTutor) {
       closeFloatingTutor();
@@ -21251,14 +21321,19 @@ function renderCurrentExamQuestion() {
   if (floatingPrevBtn) {
     floatingPrevBtn.disabled = isFirst;
     floatingPrevBtn.classList.remove('hidden');
+    floatingPrevBtn.style.display = 'inline-flex';
   }
 
   const ftContainer = document.getElementById('floating-tutor-container');
-  if (ftContainer) ftContainer.classList.remove('hidden');
+  if (ftContainer) {
+    ftContainer.classList.remove('hidden');
+    ftContainer.style.display = 'flex';
+  }
   if (floatingNextBtn) {
-    // Only show floating Next button after the current question is answered so it never covers options B/C/D!
-    floatingNextBtn.classList.toggle('hidden', !isCurGraded);
-    floatingNextBtn.classList.toggle('floating-next-ready', isCurGraded);
+    // Nút Câu Tiếp Theo nổi luôn luôn hiện diện trong phòng thi để học viên không bị mất dấu
+    floatingNextBtn.classList.remove('hidden');
+    floatingNextBtn.style.display = 'inline-flex';
+    floatingNextBtn.classList.toggle('floating-next-ready', Boolean(isCurGraded));
   }
   if (typeof syncExamTutorSplitLayout === 'function') syncExamTutorSplitLayout();
 
@@ -21806,10 +21881,11 @@ function renderQuestionFeedbackArea(q) {
     const savedMode = typeof getSavedDeepAnalysisMode === 'function' ? getSavedDeepAnalysisMode() : 'feynman';
     const modeSel = document.getElementById('deep-analysis-mode-select');
     if (modeSel && modeSel.value !== savedMode) modeSel.value = savedMode;
-    const activeAnalysis = STATE.exam.deepAnalysis[`${q.id}_${savedMode}`] || STATE.exam.deepAnalysis[q.id];
+    // Khóa chặt lăng kính: chỉ lấy bài phân tích đúng lăng kính đã chọn, không để phân tích cũ đè mode
+    const activeAnalysis = STATE.exam.deepAnalysis[`${q.id}_${savedMode}`] || (STATE.exam.deepAnalysisMeta?.[q.id]?.mode === savedMode ? STATE.exam.deepAnalysis[q.id] : null);
     if (activeAnalysis) {
       const meta = STATE.exam.deepAnalysisMeta?.[`${q.id}_${savedMode}`] || STATE.exam.deepAnalysisMeta?.[q.id] || { mode: savedMode };
-      const curMode = meta.mode || savedMode;
+      const curMode = savedMode;
       const lensDefs = [
         ['standard', '🔬 Chuẩn'],
         ['feynman', '👶 Feynman'],
@@ -22147,6 +22223,7 @@ async function distillQuestionObjectToFlashcard(q, sid) {
 }
 
 const DEEP_ANALYSIS_MODE_KEY = 'unimaster_deep_analysis_mode';
+const DEEP_ANALYSIS_USER_LOCKED_KEY = 'unimaster_deep_analysis_mode_user_locked';
 const VALID_DEEP_MODES = new Set(['standard', 'feynman', 'exam_trap', 'socratic', 'stem_clinical']);
 const DEFAULT_DEEP_ANALYSIS_MODE = 'feynman';
 
@@ -22161,10 +22238,13 @@ window.getSavedDeepAnalysisMode = getSavedDeepAnalysisMode;
 
 function setSavedDeepAnalysisMode(mode) {
   const clean = VALID_DEEP_MODES.has(mode) ? mode : DEFAULT_DEEP_ANALYSIS_MODE;
-  try { localStorage.setItem(DEEP_ANALYSIS_MODE_KEY, clean); } catch (_) {}
+  try {
+    localStorage.setItem(DEEP_ANALYSIS_MODE_KEY, clean);
+    localStorage.setItem(DEEP_ANALYSIS_USER_LOCKED_KEY, '1');
+  } catch (_) {}
   const sel = document.getElementById('deep-analysis-mode-select');
   if (sel && sel.value !== clean) sel.value = clean;
-  if (typeof window.scheduleUniversalVaultPush === 'function') window.scheduleUniversalVaultPush(500);
+  if (typeof window.scheduleUniversalVaultPush === 'function') window.scheduleUniversalVaultPush(300);
   return clean;
 }
 window.setSavedDeepAnalysisMode = setSavedDeepAnalysisMode;
@@ -22242,6 +22322,12 @@ async function triggerDeepAnalysis(forceRefresh = false, customMode = null) {
     deepBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return;
   }
+
+  // Khi người dùng bấm chuyển sang lăng kính mới (vd: Feynman) mà chưa có cache của lăng kính đó,
+  // lập tức xóa nội dung phân tích cũ của mode khác để tránh việc bị kéo giật ngược về mode cũ!
+  delete STATE.exam.deepAnalysis[q.id];
+  if (!STATE.exam.deepAnalysisMeta) STATE.exam.deepAnalysisMeta = {};
+  STATE.exam.deepAnalysisMeta[q.id] = { mode };
 
   deepBox.classList.remove('hidden');
   deepBox.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -43772,9 +43858,14 @@ window.downloadPrintableExamHtml = downloadPrintableExamHtml;
       if (srvState.tutorPrefs && (srvIsNewer || !localStorage.getItem('unimaster_tutor_length'))) {
         const tp = srvState.tutorPrefs;
         if (tp.deepAnalysisMode && typeof setSavedDeepAnalysisMode === 'function') {
-          try { localStorage.setItem('unimaster_deep_analysis_mode', tp.deepAnalysisMode); } catch (_) {}
-          const dSel = document.getElementById('deep-analysis-mode-select');
-          if (dSel) dSel.value = tp.deepAnalysisMode;
+          const userLocked = localStorage.getItem('unimaster_deep_analysis_mode_user_locked') === '1';
+          const curLocalMode = getSavedDeepAnalysisMode();
+          // Chống đè ngược: nếu người dùng đã chủ động chọn Feynman/mode cụ thể, không để server sync cũ đè lại
+          if (!userLocked || curLocalMode === tp.deepAnalysisMode) {
+            try { localStorage.setItem('unimaster_deep_analysis_mode', tp.deepAnalysisMode); } catch (_) {}
+            const dSel = document.getElementById('deep-analysis-mode-select');
+            if (dSel) dSel.value = tp.deepAnalysisMode;
+          }
         }
         if (tp.persona) {
           currentTutorPersona = tp.persona;

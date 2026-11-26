@@ -1343,8 +1343,8 @@
                   <button onclick="triggerDeepAnalysis()" class="px-2.5 py-1 text-xs font-bold text-indigo-300 hover:text-white flex items-center gap-1.5 transition-colors" title="Kích hoạt phân tích AI theo lăng kính được chọn">
                     <i data-lucide="microscope" class="w-3.5 h-3.5"></i> AI Phân tích
                   </button>
-                  <select id="deep-analysis-mode-select" class="bg-transparent text-[11px] text-indigo-200 border-none outline-none pr-1.5 font-medium cursor-pointer hover:text-white" onchange="triggerDeepAnalysis(false, this.value)">
-                    <option value="feynman" class="bg-slate-900 text-white" selected>👶 Kỹ thuật Feynman (mặc định)</option>
+                  <select id="deep-analysis-mode-select" class="bg-transparent text-[11px] text-indigo-200 border-none outline-none pr-1.5 font-bold cursor-pointer hover:text-white" onchange="setSavedDeepAnalysisMode(this.value); triggerDeepAnalysis(false, this.value)">
+                    <option value="feynman" class="bg-slate-900 text-white font-bold text-amber-300" selected>👶 Kỹ thuật Feynman (mặc định)</option>
                     <option value="standard" class="bg-slate-900 text-white">🔬 Chuyên sâu chuẩn</option>
                     <option value="exam_trap" class="bg-slate-900 text-white">🎯 Mổ xẻ bẫy đề thi</option>
                     <option value="socratic" class="bg-slate-900 text-white">❓ Phương pháp Socrates</option>
@@ -5287,27 +5287,30 @@
   <div id="floating-tutor-backdrop" onclick="closeFloatingTutor()" class="hidden fixed inset-0 z-[9990] bg-black/60 backdrop-blur-sm transition-opacity"></div>
 
   <div id="floating-tutor-container" class="hidden fixed bottom-20 lg:bottom-6 right-3 sm:right-6 z-50 flex flex-col-reverse items-end gap-2.5">
-    <!-- Row chứa các nút Floating ở góc dưới cùng: Câu Trước + Câu Tiếp Theo + Nút AI -->
+    <!-- Row chứa các nút Floating ở góc dưới cùng: Câu Trước + Câu Tiếp Theo + Nút AI VIP -->
     <div class="flex items-center gap-2">
       <button id="floating-prev-q-btn" onclick="triggerFloatingPrevAction()"
-        class="hidden floating-dock-neutral px-3 py-2.5 rounded-xl flex items-center justify-center transition-all cursor-pointer font-bold text-xs disabled:opacity-35 disabled:pointer-events-none"
+        class="hidden floating-dock-neutral px-3.5 py-2.5 rounded-2xl flex items-center justify-center transition-all cursor-pointer font-extrabold text-sm shadow-lg disabled:opacity-35 disabled:pointer-events-none hover:scale-105 active:scale-95"
         title="Quay lại câu trước (←)">
         <span>←</span>
       </button>
 
       <button id="floating-next-q-btn" onclick="triggerFloatingNextAction()"
-        class="hidden btn-primary px-4 py-2.5 rounded-xl flex items-center gap-1.5 cursor-pointer font-bold text-xs sm:text-sm"
+        class="hidden btn-floating-next px-4 sm:px-5 py-2.5 rounded-2xl flex items-center gap-2 cursor-pointer font-black text-xs sm:text-sm shadow-xl hover:scale-105 active:scale-95"
         title="Chuyển sang câu tiếp theo (→ / Enter)">
-        <span>➔</span>
-        <span id="floating-next-q-text" class="whitespace-nowrap">Câu tiếp</span>
+        <span class="text-base font-bold">➔</span>
+        <span id="floating-next-q-text" class="whitespace-nowrap font-black tracking-wide">Câu tiếp</span>
       </button>
 
       <button id="floating-tutor-btn" onclick="toggleFloatingTutor()"
-        class="floating-dock-neutral px-3 py-2.5 rounded-xl flex items-center gap-1.5 transition-all relative"
-        title="Gia Sư AI (T)">
-        <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-        <span class="text-base">🤖</span>
-        <span id="floating-btn-persona-badge" class="text-[11px] font-black text-amber-300">🧒 Feynman</span>
+        class="floating-ai-vip-btn px-4 py-2.5 rounded-2xl flex items-center gap-2.5 transition-all relative cursor-pointer shadow-2xl hover:scale-105 active:scale-95"
+        title="Gia Sư AI Feynman (T)">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+          <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500 shadow-sm"></span>
+        </span>
+        <span class="text-lg filter drop-shadow">🤖</span>
+        <span id="floating-btn-persona-badge" class="floating-persona-pill">🧒 Feynman</span>
         <span id="floating-btn-subject-tag" class="sr-only">T</span>
         <span id="floating-btn-q-badge" class="hidden text-[11px] font-semibold txt-sub"></span>
       </button>
