@@ -1,0 +1,902 @@
+[
+  {
+    "q": "Trọng tâm của phương pháp lập trình thủ tục đặt vào yếu tố nào?",
+    "corr": "D",
+    "exp": "Lập trình thủ tục (Procedural Programming) lấy hàm/thủ tục làm trung tâm, chia bài toán thành các hàm thực thi theo trình tự, trong khi lập trình hướng đối tượng (OOP) lấy đối tượng và dữ liệu làm trung tâm.",
+    "D": "Các hàm và thủ tục xử lý dữ liệu",
+    "A": "Khả năng mở rộng qua kế thừa",
+    "B": "Cấu trúc dữ liệu và đối tượng",
+    "C": "Các lớp trừu tượng và giao diện trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Tính chất nào của lập trình hướng đối tượng giúp che giấu dữ liệu nội bộ và ngăn chặn sự can thiệp trực tiếp từ bên ngoài?",
+    "corr": "D",
+    "exp": "Tính đóng gói (Encapsulation) che giấu trạng thái dữ liệu nội bộ của đối tượng bằng cách đặt trường dữ liệu ở chế độ private và chỉ cho phép tương tác qua các phương thức hoặc property công khai.",
+    "D": "Tính đóng gói",
+    "A": "Tính trừu tượng",
+    "B": "Tính đa hình",
+    "C": "Tính kế thừa"
+  },
+  {
+    "q": "Mối quan hệ giữa lớp và đối tượng được định nghĩa chuẩn xác như thế nào?",
+    "corr": "D",
+    "exp": "Lớp (Class) là khuôn mẫu hoặc bản thiết kế định nghĩa các thuộc tính và hành vi, còn đối tượng (Object) là một thể hiện cụ thể (instance) được sinh ra từ lớp đó trên bộ nhớ.",
+    "D": "Lớp là bản thiết kế còn đối tượng là một thực thể cụ thể",
+    "A": "Đối tượng là bản thiết kế để tạo ra các lớp thực thi",
+    "B": "Lớp và đối tượng là hai khái niệm hoàn toàn tương đương nhau",
+    "C": "Lớp là thể hiện cụ thể còn đối tượng là khái niệm trừu tượng"
+  },
+  {
+    "q": "Tính chất cho phép các đối tượng thuộc các lớp khác nhau phản ứng khác nhau với cùng một thông điệp là gì?",
+    "corr": "D",
+    "exp": "Tính đa hình (Polymorphism) cho phép cùng một tên phương thức nhưng khi gọi trên các đối tượng thuộc các lớp dẫn xuất khác nhau sẽ thực thi hành vi riêng biệt tương ứng.",
+    "D": "Tính đa hình",
+    "A": "Tính đóng gói",
+    "B": "Tính kế thừa",
+    "C": "Tính trừu tượng"
+  },
+  {
+    "q": "Từ khóa nào trong C# được dùng để cấp phát bộ nhớ khi khởi tạo một đối tượng mới?",
+    "corr": "A",
+    "exp": "Trong C#, toán tử new được sử dụng để cấp phát vùng nhớ trên Managed Heap cho đối tượng và kích hoạt hàm khởi tạo (Constructor) của lớp đó.",
+    "A": "new",
+    "B": "alloc",
+    "C": "create",
+    "D": "init"
+  },
+  {
+    "q": "Đặc điểm của phương thức khởi tạo mặc định là gì?",
+    "corr": "A",
+    "exp": "Phương thức khởi tạo mặc định (Default/Parameterless Constructor) là hàm khởi tạo không có tham số đầu vào, được dùng để khởi gán các giá trị mặc định cho đối tượng.",
+    "A": "Không chứa tham số đầu vào",
+    "B": "Phải trả về một giá trị kiểu số nguyên",
+    "C": "Luôn yêu cầu ít nhất một đối số truyền vào",
+    "D": "Luôn có kiểu dữ liệu trả về là void"
+  },
+  {
+    "q": "Từ khóa this trong định nghĩa lớp đại diện cho đối tượng nào?",
+    "corr": "A",
+    "exp": "Từ khóa this là một biến tham chiếu trỏ thẳng đến chính thể hiện hiện tại của lớp đang thực thi mã nguồn.",
+    "A": "Bản thân đối tượng hiện tại",
+    "B": "Hàm khởi tạo mặc định",
+    "C": "Lớp chứa phương thức Main",
+    "D": "Lớp cha kế thừa trực tiếp trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Thành phần được khai báo với từ khóa static thuộc về phạm vi nào?",
+    "corr": "A",
+    "exp": "Thành phần static (biến, phương thức) thuộc sở hữu của chính lớp đó, được nạp vào bộ nhớ một lần duy nhất và dùng chung cho tất cả các đối tượng mà không cần tạo instance.",
+    "A": "Toàn bộ lớp thay vì từng đối tượng riêng lẻ",
+    "B": "Các biến cục bộ trong thân của một hàm",
+    "C": "Các phương thức nạp chồng toán tử duy nhất trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Chỉ riêng từng thực thể đối tượng cụ thể"
+  },
+  {
+    "q": "Mức độ truy cập private giới hạn phạm vi sử dụng của thành phần ở đâu?",
+    "corr": "C",
+    "exp": "Mức truy cập private là mức giới hạn cao nhất, chỉ các thành phần bên trong cùng định nghĩa của lớp đó mới có quyền truy cập trực tiếp.",
+    "C": "Chỉ bên trong nội bộ lớp khai báo",
+    "A": "Trong toàn bộ các lớp con cùng namespace",
+    "B": "Trong tất cả các file mã nguồn của dự án",
+    "D": "Ở bất kỳ vị trí nào bên ngoài chương trình"
+  },
+  {
+    "q": "Khi một phương thức không trả về bất kỳ kết quả nào, phần khai báo kiểu trả về phải ghi từ khóa gì?",
+    "corr": "D",
+    "exp": "Từ khóa void chỉ định phương thức thực hiện một chuỗi thao tác mà không trả về bất kỳ giá trị dữ liệu nào cho lời gọi hàm.",
+    "D": "void",
+    "A": "null",
+    "B": "empty",
+    "C": "none"
+  },
+  {
+    "q": "Trong C#, biến thuộc kiểu tham chiếu (Reference Type) như một đối tượng của lớp được lưu trữ ở đâu?",
+    "corr": "D",
+    "exp": "Đối với kiểu tham chiếu (Class), thực thể đối tượng thực tế được cấp phát trên Managed Heap, còn biến chứa địa chỉ tham chiếu đến đối tượng đó thường được lưu trữ trên Stack.",
+    "D": "Đối tượng lưu trên Heap, biến tham chiếu lưu trên Stack",
+    "A": "Dữ liệu được lưu trong bộ nhớ chỉ đọc ROM của thiết bị trong toàn bộ cấu trúc hệ thống chương trình",
+    "B": "Giá trị lưu trên Stack, con trỏ lưu trên Heap",
+    "C": "Toàn bộ dữ liệu của đối tượng bắt buộc lưu trên Stack"
+  },
+  {
+    "q": "Phương thức Main đóng vai trò gì trong một chương trình ứng dụng C# Console?",
+    "corr": "C",
+    "exp": "Phương thức static void Main là điểm nhập (Entry Point) của mọi ứng dụng C# thực thi; hệ điều hành và CLR luôn bắt đầu chạy ứng dụng từ hàm này.",
+    "C": "Điểm khởi đầu thực thi toàn bộ chương trình",
+    "A": "Nơi giải phóng vùng nhớ cho các đối tượng con",
+    "B": "Nơi khai báo toàn bộ các thuộc tính của lớp cha",
+    "D": "Nơi duy nhất được phép nạp chồng các toán tử"
+  },
+  {
+    "q": "Một lớp trong C# có thể chứa bao nhiêu phương thức khởi tạo (Constructor)?",
+    "corr": "B",
+    "exp": "C# hỗ trợ nạp chồng Constructor (Constructor Overloading), cho phép một lớp có nhiều hàm khởi tạo miễn là chúng khác nhau về số lượng, thứ tự hoặc kiểu dữ liệu của tham số.",
+    "B": "Nhiều phương thức khởi tạo khác nhau về danh sách tham số",
+    "A": "Tối đa hai phương thức khởi tạo khác kiểu",
+    "C": "Chỉ duy nhất một phương thức khởi tạo",
+    "D": "Bắt buộc phải có đúng ba phương thức khởi tạo trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Nếu một lớp không khai báo bất kỳ Constructor nào, trình biên dịch C# sẽ xử lý ra sao?",
+    "corr": "A",
+    "exp": "Nếu lập trình viên không viết constructor nào, C# compiler sẽ tự động cung cấp một constructor mặc định công khai không tham số để khởi tạo các trường về giá trị mặc định.",
+    "A": "Tự động tạo một constructor mặc định không tham số",
+    "B": "Ngăn cấm hoàn toàn việc dùng toán tử new trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "Chuyển lớp đó thành một lớp trừu tượng",
+    "D": "Báo lỗi biên dịch ngay lập tức"
+  },
+  {
+    "q": "Điều gì xảy ra nếu bạn tự viết một Constructor có tham số nhưng không viết Constructor không tham số?",
+    "corr": "A",
+    "exp": "Khi bạn đã định nghĩa ít nhất một constructor có tham số, trình biên dịch sẽ KHÔNG tự động sinh constructor mặc định không tham số nữa. Nếu muốn dùng, bạn phải tự viết ra.",
+    "A": "Trình biên dịch thu hồi và không tự sinh constructor không tham số",
+    "B": "Trình biên dịch vẫn tự động sinh thêm constructor không tham số",
+    "C": "Chương trình sẽ tự động chuyển constructor có tham số thành static",
+    "D": "Tất cả các thuộc tính của lớp sẽ bị chuyển thành chế độ chỉ đọc"
+  },
+  {
+    "q": "Phương thức khởi tạo (Constructor) của một lớp có đặc điểm nhận dạng nào sau đây?",
+    "corr": "C",
+    "exp": "Constructor luôn có tên trùng khớp 100% với tên của lớp khai báo và tuyệt đối không khai báo kiểu trả về (kể cả void).",
+    "C": "Có tên trùng với tên lớp và không có kiểu trả về",
+    "A": "Phải luôn chứa từ khóa static và kiểu trả về void",
+    "B": "Luôn có kiểu trả về trùng với kiểu dữ liệu của thuộc tính đầu tiên",
+    "D": "Có tên bắt đầu bằng từ khóa new và trả về đối tượng"
+  },
+  {
+    "q": "Để một Constructor gọi lại một Constructor khác trong cùng một lớp, ta dùng cú pháp nào?",
+    "corr": "A",
+    "exp": "Kỹ thuật Constructor Chaining trong cùng một lớp sử dụng cú pháp dấu hai chấm kèm từ khóa this: ví dụ public Lop(string ten) : this(ten, 0).",
+    "A": ": this(...)",
+    "B": ": base(...)",
+    "C": ": self(...)",
+    "D": ": super(...)"
+  },
+  {
+    "q": "Phương thức hủy (Destructor hay Finalizer) trong C# có ký hiệu đặc trưng nào phía trước tên hàm?",
+    "corr": "B",
+    "exp": "Destructor trong C# được định nghĩa bằng dấu ngã ~ đặt ngay trước tên lớp (ví dụ: ~SinhVien()), không có tham số và không có kiểu trả về, được Garbage Collector gọi trước khi thu hồi vùng nhớ.",
+    "B": "Dấu ngã ~",
+    "A": "Dấu thăng #",
+    "C": "Dấu sao *",
+    "D": "Dấu chấm than !"
+  },
+  {
+    "q": "Kỹ thuật nạp chồng phương thức (Method Overloading) yêu cầu các phương thức cùng tên phải thỏa mãn điều kiện gì?",
+    "corr": "C",
+    "exp": "Overloading xảy ra khi các hàm cùng tên trong cùng một lớp khác nhau về số lượng, kiểu dữ liệu hoặc thứ tự tham số. Nếu chỉ khác kiểu trả về thì trình biên dịch sẽ báo lỗi.",
+    "C": "Khác nhau về danh sách tham số truyền vào",
+    "A": "Bắt buộc phải nằm ở hai lớp có quan hệ kế thừa",
+    "B": "Chỉ cần khác nhau duy nhất ở kiểu dữ liệu trả về",
+    "D": "Bắt buộc phải khai báo kèm từ khóa override"
+  },
+  {
+    "q": "Khi truyền tham số theo cơ chế tham trị thông thường (Value Parameter), sự thay đổi giá trị của biến bên trong hàm sẽ tác động thế nào ra bên ngoài?",
+    "corr": "B",
+    "exp": "Truyền tham trị tạo ra một bản sao giá trị của đối số vào biến cục bộ của hàm; mọi thao tác gán hoặc chỉnh sửa bên trong hàm chỉ tác động lên bản sao đó.",
+    "B": "Không ảnh hưởng đến giá trị của biến gốc bên ngoài",
+    "A": "Gây ra lỗi biên dịch chương trình ngay khi chạy hàm",
+    "C": "Tự động biến đổi biến gốc thành kiểu tham chiếu",
+    "D": "Làm thay đổi trực tiếp giá trị của biến gốc bên ngoài"
+  },
+  {
+    "q": "Từ khóa ref trong danh sách tham số của phương thức mang ý nghĩa gì?",
+    "corr": "C",
+    "exp": "Từ khóa ref truyền địa chỉ ô nhớ của biến vào hàm. Điểm thi quan trọng: Biến truyền qua ref BẮT BUỘC phải được khởi gán giá trị trước khi gọi hàm.",
+    "C": "Truyền tham chiếu, biến bên ngoài bắt buộc phải có giá trị trước",
+    "A": "Chỉ dùng để khai báo hằng số không thể sửa đổi trong thân hàm trong toàn bộ cấu trúc hệ thống chương trình",
+    "B": "Tạo ra một bản sao dữ liệu mới hoàn toàn trên vùng nhớ Heap",
+    "D": "Truyền tham trị nhưng cho phép trả về hai kết quả khác nhau"
+  },
+  {
+    "q": "Điểm khác biệt quan trọng nhất giữa từ khóa out và ref khi truyền tham số là gì?",
+    "corr": "D",
+    "exp": "Với out, biến bên ngoài chưa cần khởi tạo giá trị trước khi gọi hàm; tuy nhiên bên trong hàm, lập trình viên BẮT BUỘC phải gán giá trị cho tham số out trước khi hàm kết thúc hoặc return.",
+    "D": "Biến dùng out không bắt buộc gán trước khi gọi, nhưng bên trong hàm phải gán trước khi thoát",
+    "A": "Biến dùng out chỉ áp dụng cho kiểu chuỗi còn ref chỉ dùng cho số nguyên",
+    "B": "Biến dùng out bắt buộc phải khởi tạo giá trị trước khi truyền vào phương thức trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "Biến dùng ref chỉ có thể nhận dữ liệu đầu ra mà không truyền dữ liệu đầu vào"
+  },
+  {
+    "q": "Xét đoạn mã C#: void Variables(out int x, ref int y) { x = 3; y = 17; } Khi gọi: int ret; int val = 5; Variables(out ret, ref val); Sau khi thi hành xong, giá trị của ret và val lần lượt là:",
+    "corr": "D",
+    "exp": "Hàm gán x = 3 (làm ret nhận giá trị 3) và y = 17 (lệnh này ghi đè trực tiếp vào ô nhớ của val thành 17). Do đó ret = 3, val = 17.",
+    "D": "ret = 3, val = 17",
+    "A": "ret = 3, val = 22",
+    "B": "ret = 3, val = 5",
+    "C": "ret = 0, val = 17"
+  },
+  {
+    "q": "Từ khóa params trong C# cho phép phương thức nhận loại tham số nào?",
+    "corr": "A",
+    "exp": "Từ khóa params cho phép truyền số lượng đối số tùy ý (0, 1 hoặc nhiều giá trị rời rạc) hoặc truyền một mảng có sẵn; C# tự động gom chúng thành mảng một chiều bên trong phương thức.",
+    "A": "Số lượng đối số biến đổi linh hoạt gom thành một mảng cùng kiểu",
+    "B": "Một tập hợp các tham số bắt buộc phải là hằng số tĩnh",
+    "C": "Danh sách các tham số chỉ được phép truyền vào từ bàn phím",
+    "D": "Một tham số duy nhất có kiểu dữ liệu bất kỳ không giới hạn trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Quy tắc bắt buộc về vị trí của từ khóa params trong danh sách tham số là gì?",
+    "corr": "B",
+    "exp": "Một phương thức chỉ được phép có tối đa một tham số params và nó bắt buộc phải nằm ở vị trí cuối cùng trong danh sách khai báo tham số.",
+    "B": "Phải đứng ở vị trí cuối cùng trong danh sách tham số",
+    "A": "Phải đứng ở vị trí đầu tiên trong danh sách tham số",
+    "C": "Bắt buộc phải đi kèm với từ khóa out hoặc ref",
+    "D": "Có thể đặt ở bất kỳ vị trí nào mà lập trình viên muốn"
+  },
+  {
+    "q": "Điều gì xảy ra khi bạn gọi một hàm có tham số params int[] numbers mà không truyền bất kỳ đối số nào?",
+    "corr": "B",
+    "exp": "Khi không truyền đối số nào cho tham số params, C# sẽ tạo một mảng rỗng có kích thước 0 (Length = 0) chứ không phải là null, hàm vẫn chạy bình thường.",
+    "B": "Hàm tiếp nhận một mảng rỗng có thuộc tính Length bằng 0",
+    "A": "Mảng tự động nhận một phần tử mang giá trị 0",
+    "C": "Chương trình báo lỗi biên dịch vì thiếu tham số",
+    "D": "Chương trình ném ra ngoại lệ NullReferenceException trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Tham số tùy chọn (Optional Parameter) trong C# được định nghĩa như thế nào?",
+    "corr": "B",
+    "exp": "Tham số tùy chọn được tạo bằng cách gán giá trị mặc định trực tiếp ở định nghĩa hàm (ví dụ: void InThongTin(int n = 1)); người gọi có thể bỏ qua không truyền giá trị này.",
+    "B": "Gán sẵn giá trị mặc định ngay tại phần khai báo tham số",
+    "A": "Đặt toàn bộ tham số vào trong một khối lệnh try catch",
+    "C": "Khai báo kiểu dữ liệu của tham số bằng từ khóa var",
+    "D": "Khai báo kèm từ khóa optional ngay trước tên của biến trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Lợi ích chính của việc sử dụng Thuộc tính (Property) thay vì biến thành viên public là gì?",
+    "corr": "A",
+    "exp": "Property cho phép bảo vệ dữ liệu thông qua các khối get và set, giúp kiểm tra tính hợp lệ của dữ liệu trước khi ghi và ngăn chặn việc truy cập tùy tiện từ bên ngoài.",
+    "A": "Kiểm soát việc đọc và ghi dữ liệu an toàn theo nguyên lý đóng gói",
+    "B": "Cho phép lớp con kế thừa mà không cần tạo đối tượng cụ thể",
+    "C": "Giúp tăng tốc độ xử lý của vi xử lý lên nhiều lần khi truy xuất trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Bắt buộc chương trình phải chạy trên đa luồng đồng thời"
+  },
+  {
+    "q": "Một Property chỉ khai báo khối get mà không có khối set được gọi là gì?",
+    "corr": "C",
+    "exp": "Property chỉ có khối get được gọi là Read-only Property, bên ngoài chỉ có thể đọc giá trị mà không thể thực hiện phép gán thay đổi dữ liệu.",
+    "C": "Thuộc tính chỉ đọc (Read-only Property)",
+    "A": "Thuộc tính tự động (Auto Property)",
+    "B": "Thuộc tính chỉ ghi (Write-only Property)",
+    "D": "Thuộc tính trừu tượng (Abstract Property)"
+  },
+  {
+    "q": "Khối set trong một Property sử dụng từ khóa ngầm định nào để tiếp nhận giá trị mới được gán?",
+    "corr": "A",
+    "exp": "Từ khóa ngầm định value trong khối set đại diện cho giá trị mới mà phía gọi phương thức vừa gán vào thuộc tính (ví dụ: sp.Gia = 100 thì value mang giá trị 100).",
+    "A": "value",
+    "B": "data",
+    "C": "input",
+    "D": "param"
+  },
+  {
+    "q": "Cho đoạn mã C#: class SanPham { private double gia; public double Gia { get { return gia; } set { gia = value > 0 ? value : 0; } } } Nếu gán sp.Gia = -25; thì thuộc tính Gia trả về bao nhiêu?",
+    "corr": "C",
+    "exp": "Khối set kiểm tra điều kiện: vì value = -25 không thỏa mãn điều kiện value > 0, toán tử ba ngôi trả về 0 và gán cho biến gia. Do đó sp.Gia trả về 0.",
+    "C": "0",
+    "A": "25",
+    "B": "-25",
+    "D": "null"
+  },
+  {
+    "q": "Cú pháp Auto-Implemented Property public string Ten { get; set; } có đặc điểm nào?",
+    "corr": "A",
+    "exp": "Với Auto-Implemented Property, trình biên dịch C# tự động sinh ra một biến private ẩn (backing field) phía sau để lưu dữ liệu mà lập trình viên không cần viết mã thủ công.",
+    "A": "Trình biên dịch tự động tạo một trường ẩn (backing field) để lưu trữ",
+    "B": "Không cho phép bất kỳ đối tượng nào thay đổi giá trị của Ten",
+    "C": "Thuộc tính này chỉ có thể đọc dữ liệu chứ không thể gán giá trị trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Bắt buộc người dùng phải tự khai báo biến private string ten"
+  },
+  {
+    "q": "Ký hiệu nào trong C# được dùng để thể hiện quan hệ kế thừa giữa lớp con và lớp cha?",
+    "corr": "D",
+    "exp": "Trong C#, cú pháp kế thừa sử dụng dấu hai chấm : (ví dụ: class NhanVien : Nguoi), khác với Java dùng từ khóa extends.",
+    "D": "Dấu hai chấm :",
+    "A": "Từ khóa extends",
+    "B": "Từ khóa implements",
+    "C": "Dấu mũi tên ->"
+  },
+  {
+    "q": "Từ khóa base trong lớp con được dùng để làm gì?",
+    "corr": "B",
+    "exp": "Từ khóa base được sử dụng trong lớp dẫn xuất để truy xuất các thành phần (phương thức, thuộc tính) hoặc chỉ định gọi constructor tương ứng của lớp cơ sở.",
+    "B": "Truy xuất thành phần hoặc gọi constructor của lớp cha trực tiếp",
+    "A": "Ngăn chặn các lớp khác tiếp tục kế thừa từ lớp con hiện tại trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "Đổi tên phương thức của bản thân lớp con khi thực thi",
+    "D": "Tạo ra một thực thể mới độc lập hoàn toàn với lớp cha"
+  },
+  {
+    "q": "Thành phần khai báo với mức truy cập protected có phạm vi truy xuất ra sao?",
+    "corr": "D",
+    "exp": "Từ khóa protected cho phép thành phần được truy xuất bên trong chính lớp định nghĩa nó và trong tất cả các lớp con kế thừa từ lớp đó, nhưng ẩn hoàn toàn với bên ngoài.",
+    "D": "Chỉ trong nội bộ lớp đó và các lớp kế thừa từ nó",
+    "A": "Không cho phép bất kỳ ai truy cập kể cả các lớp dẫn xuất",
+    "B": "Chỉ duy nhất trong tập tin mã nguồn đang mở hiện tại",
+    "C": "Hoàn toàn công khai cho mọi đối tượng bên ngoài sử dụng"
+  },
+  {
+    "q": "Từ khóa sealed khi đặt trước định nghĩa một lớp có tác dụng gì?",
+    "corr": "D",
+    "exp": "Từ khóa sealed (niêm phong) ngăn chặn việc kế thừa; không một lớp nào khác có thể kế thừa từ một sealed class.",
+    "D": "Cấm các lớp khác kế thừa từ lớp đó",
+    "A": "Buộc lớp đó phải chứa các phương thức trừu tượng",
+    "B": "Cho phép tạo không giới hạn các lớp con dẫn xuất",
+    "C": "Chuyển đổi toàn bộ phương thức trong lớp thành hàm tĩnh"
+  },
+  {
+    "q": "Khi khởi tạo một đối tượng của lớp con, thứ tự thực thi của các phương thức khởi tạo diễn ra thế nào?",
+    "corr": "A",
+    "exp": "Quy tắc kế thừa: Constructor của lớp cha luôn luôn chạy trước để khởi tạo phần nền tảng, sau đó mới đến phần thân constructor của lớp con.",
+    "A": "Hàm khởi tạo lớp cha chạy trước rồi đến hàm khởi tạo lớp con",
+    "B": "Hai hàm khởi tạo luôn luôn thực thi song song cùng lúc",
+    "C": "Hàm khởi tạo lớp con chạy xong toàn bộ mới đến lớp cha trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Chỉ duy nhất hàm khởi tạo của lớp con được thực thi"
+  },
+  {
+    "q": "Nếu lớp Con kế thừa lớp Cha, trong constructor của lớp Con không ghi gì thêm thì C# ngầm định gọi gì?",
+    "corr": "C",
+    "exp": "Mặc định, constructor của lớp con sẽ tự động chèn lời gọi ngầm định : base() đến constructor không tham số của lớp cha.",
+    "C": "Gọi constructor không tham số của lớp cha : base()",
+    "A": "Gọi phương thức Main của chương trình chính",
+    "B": "Báo lỗi biên dịch ngay lập tức tại thời điểm gõ mã",
+    "D": "Không gọi bất kỳ constructor nào của lớp cha"
+  },
+  {
+    "q": "Nếu lớp Cha chỉ có constructor có tham số public Cha(string ten), lớp Con viết public Con() { } sẽ xảy ra hiện tượng gì?",
+    "corr": "B",
+    "exp": "Do lớp cha đã có constructor có tham số nên mất constructor mặc định; khi lớp con không chỉ định : base(ten) thì compiler sẽ báo lỗi đỏ vì không tìm thấy Cha().",
+    "B": "Lỗi biên dịch vì lớp Cha không có constructor không tham số để ngầm định gọi",
+    "A": "Lớp con tự động tạo thêm một trường dữ liệu mang tên ten",
+    "C": "Chương trình biên dịch bình thường và gán biến ten mang giá trị rỗng trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Chương trình chỉ báo cảnh báo vàng chứ không dừng biên dịch"
+  },
+  {
+    "q": "Quan hệ giữa lớp SinhVien và thuộc tính private List<TaiKhoan> dsTaiKhoan; là loại quan hệ nào?",
+    "corr": "A",
+    "exp": "Đây là quan hệ bao hàm / sở hữu (Has-a hay Composition/Aggregation): một đối tượng SinhVien chứa danh sách các đối tượng TaiKhoan, hoàn toàn không phải quan hệ kế thừa (Is-a).",
+    "A": "Một sinh viên có thể sở hữu một danh sách nhiều tài khoản (Has-a)",
+    "B": "Lớp TaiKhoan là lớp dẫn xuất kế thừa từ SinhVien (Is-a)",
+    "C": "Hai lớp này hoàn toàn độc lập và không có bất kỳ liên hệ nào trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Lớp SinhVien là một giao diện interface của TaiKhoan"
+  },
+  {
+    "q": "Toán tử is trong C# được sử dụng nhằm mục đích gì?",
+    "corr": "C",
+    "exp": "Toán tử is kiểm tra tính tương thích về kiểu của một đối tượng tại thời điểm chạy và trả về giá trị boolean (true hoặc false).",
+    "C": "Kiểm tra xem một đối tượng có tương thích với một kiểu dữ liệu cụ thể hay không",
+    "A": "Thực hiện phép gán giá trị giữa hai đối tượng có cùng cấu trúc trong toàn bộ cấu trúc hệ thống chương trình",
+    "B": "Ép kiểu đối tượng và ném lỗi nếu không thể chuyển đổi kiểu",
+    "D": "So sánh giá trị vùng nhớ Stack của hai biến tham chiếu"
+  },
+  {
+    "q": "Toán tử as trong C# dùng để ép kiểu tham chiếu có ưu điểm nổi bật nào so với cách ép kiểu tường minh (KieuDich)doiTuong?",
+    "corr": "C",
+    "exp": "Toán tử as là cách ép kiểu an toàn: nếu đối tượng không tương thích với kiểu đích, kết quả trả về là null mà không làm gián đoạn chương trình bằng ngoại lệ InvalidCastException.",
+    "C": "Nếu ép kiểu thất bại sẽ trả về null chứ không ném ngoại lệ InvalidCastException",
+    "A": "Tự động chuyển đổi kiểu dữ liệu số nguyên thành kiểu số thực",
+    "B": "Luôn luôn thành công trong mọi trường hợp chuyển đổi đối tượng trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Chỉ hoạt động được với các kiểu dữ liệu cấu trúc struct"
+  },
+  {
+    "q": "Điểm khác biệt lớn nhất giữa lớp trừu tượng (Abstract Class) và lớp thông thường là gì?",
+    "corr": "B",
+    "exp": "Lớp trừu tượng là lớp chưa hoàn chỉnh, đóng vai trò khuôn mẫu cơ sở và KHÔNG thể dùng toán tử new để tạo trực tiếp đối tượng từ nó.",
+    "B": "Lớp trừu tượng không thể khởi tạo đối tượng trực tiếp bằng toán tử new",
+    "A": "Lớp trừu tượng không được phép chứa bất kỳ trường dữ liệu nào",
+    "C": "Lớp trừu tượng bắt buộc mọi phương thức thành viên đều phải là hàm tĩnh",
+    "D": "Lớp trừu tượng ngăn cấm hoàn toàn việc tạo các lớp con dẫn xuất"
+  },
+  {
+    "q": "Phương thức trừu tượng (Abstract Method) có đặc điểm cú pháp nào sau đây?",
+    "corr": "D",
+    "exp": "Phương thức abstract chỉ khai báo chữ ký hàm (tên, kiểu trả về, tham số) và kết thúc bằng dấu chấm phẩy ;, không có cặp ngoặc nhọn thân hàm {}.",
+    "D": "Không có phần thân xử lý, kết thúc bằng dấu chấm phẩy ;",
+    "A": "Chứa thân hàm xử lý mặc định được bao bởi cặp dấu ngoặc nhọn",
+    "B": "Luôn luôn có kiểu dữ liệu trả về cố định là số nguyên",
+    "C": "Bắt buộc phải đi kèm với từ khóa static ở đầu khai báo"
+  },
+  {
+    "q": "Nếu một lớp con kế thừa từ một Abstract Class mà không cài đặt lại (override) hết các phương thức abstract thì sao?",
+    "corr": "A",
+    "exp": "Lớp con phải ghi đè (override) toàn bộ các phương thức abstract của lớp cha; nếu không ghi đè hết thì bản thân lớp con đó cũng phải được đánh dấu là abstract.",
+    "A": "Lớp con đó bắt buộc phải được khai báo là một abstract class",
+    "B": "Lớp con tự động được chuyển đổi thành một interface",
+    "C": "Trình biên dịch tự động bỏ qua các phương thức chưa cài đặt trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Chương trình tự động gán thân hàm mặc định rỗng cho lớp con"
+  },
+  {
+    "q": "Để cho phép lớp con ghi đè một phương thức thông thường, phương thức ở lớp cha phải được đánh dấu bằng từ khóa nào?",
+    "corr": "D",
+    "exp": "Từ khóa virtual ở lớp cha báo hiệu rằng phương thức này có thể được định nghĩa lại ở bất kỳ lớp dẫn xuất nào.",
+    "D": "virtual",
+    "A": "sealed trong toàn bộ cấu trúc hệ thống chương trình",
+    "B": "params",
+    "C": "static"
+  },
+  {
+    "q": "Từ khóa nào bắt buộc phải dùng ở lớp con khi muốn cài đặt lại phương thức virtual hoặc abstract của lớp cha?",
+    "corr": "D",
+    "exp": "Từ khóa override được dùng ở lớp con để cung cấp phần cài đặt mới thay thế cho phương thức virtual hoặc abstract từ lớp cha.",
+    "D": "override",
+    "A": "new",
+    "B": "replace",
+    "C": "overload"
+  },
+  {
+    "q": "Để tính đa hình tại thời điểm chạy (Runtime Polymorphism) hoạt động đúng, cần thỏa mãn điều kiện nào?",
+    "corr": "B",
+    "exp": "Đa hình runtime diễn ra khi một biến kiểu lớp cơ sở nắm giữ đối tượng của lớp dẫn xuất, và phương thức được gọi đã được khai báo virtual/abstract ở cha và override ở con.",
+    "B": "Biến tham chiếu kiểu lớp cha trỏ đến đối tượng lớp con và phương thức có virtual/override",
+    "A": "Chỉ áp dụng khi truyền tham số theo cơ chế tham chiếu ref và out",
+    "C": "Các phương thức cùng tên phải nằm trong cùng một lớp và khác kiểu trả về trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Tất cả các lớp tham gia phải được đánh dấu bằng từ khóa static"
+  },
+  {
+    "q": "Nếu ở lớp con, bạn dùng từ khóa new trước phương thức trùng tên với phương thức của lớp cha thì điều gì xảy ra?",
+    "corr": "B",
+    "exp": "Từ khóa new kích hoạt cơ chế Method Hiding (che giấu phương thức). Khi đó liên kết đa hình bị ngắt: nếu gọi qua biến cha thì hàm của cha chạy, nếu gọi qua biến con thì hàm của con chạy.",
+    "B": "Che giấu phương thức của lớp cha (Method Hiding) và ngắt liên kết đa hình",
+    "A": "Gây ra lỗi biên dịch vì trùng tên phương thức với lớp cơ sở",
+    "C": "Tự động gọi phương thức của lớp con ngay cả khi gọi qua biến cha",
+    "D": "Ghi đè hoàn toàn phương thức của lớp cha theo cơ chế đa hình runtime trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Cho lớp Cha có phương thức ảo virtual void Xuat() { Console.Write(\"Cha \"); } và lớp Con viết new void Xuat() { Console.Write(\"Con \"); }. Lệnh Cha obj = new Con(); obj.Xuat(); sẽ in ra kết quả gì?",
+    "corr": "C",
+    "exp": "Vì lớp con dùng new (Method Hiding) thay vì override, biến obj có kiểu tĩnh là Cha nên trình biên dịch liên kết trực tiếp với hàm Xuat() của lớp Cha, kết quả in ra 'Cha'.",
+    "C": "Cha",
+    "A": "Cha Con",
+    "B": "Báo lỗi thời gian chạy",
+    "D": "Con"
+  },
+  {
+    "q": "Nếu ở câu trên, lớp Con viết override void Xuat() { Console.Write(\"Con \"); } thì lệnh Cha obj = new Con(); obj.Xuat(); sẽ in ra gì?",
+    "corr": "A",
+    "exp": "Nhờ từ khóa override, bảng phương thức ảo (vtable) trỏ đến hàm của Con, do đó dù gọi qua biến kiểu Cha thì phương thức của Con vẫn được thực thi.",
+    "A": "Con",
+    "B": "Cha Con",
+    "C": "Cha",
+    "D": "Báo lỗi biên dịch"
+  },
+  {
+    "q": "Mục đích cốt lõi của kỹ thuật nạp chồng toán tử (Operator Overloading) là gì?",
+    "corr": "C",
+    "exp": "Operator Overloading giúp các đối tượng thuộc lớp tự định nghĩa (ví dụ: Phân số, Vector, Tiền tệ) có thể thực hiện các phép toán như các kiểu dữ liệu nguyên thủy.",
+    "C": "Cho phép các đối tượng do người dùng tự định nghĩa sử dụng các toán tử (+, -, ==) quen thuộc",
+    "A": "Tăng tốc độ truy xuất của toàn bộ hệ quản trị cơ sở dữ liệu lên nhiều lần",
+    "B": "Tạo ra các ký hiệu toán học hoàn toàn mới chưa từng tồn tại trên bàn phím",
+    "D": "Thay đổi hoàn toàn thứ tự ưu tiên của các phép toán số học trong ngôn ngữ C# trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Quy tắc bắt buộc về cú pháp khi khai báo phương thức nạp chồng toán tử trong C# là gì?",
+    "corr": "B",
+    "exp": "Mọi phương thức nạp chồng toán tử trong C# bắt buộc phải có từ khóa public static [KieuTraVe] operator [ToanTu](danh_sach_tham_so).",
+    "B": "Phải luôn khai báo ở chế độ public static kèm từ khóa operator",
+    "A": "Luôn luôn phải trả về kiểu dữ liệu chuỗi string",
+    "C": "Không được phép nhận bất kỳ tham số đầu vào nào",
+    "D": "Bắt buộc phải khai báo bằng từ khóa virtual hoặc abstract trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Khai báo nào sau đây là cú pháp nạp chồng toán tử cộng (+) cho lớp Vector đúng chuẩn C#?",
+    "corr": "B",
+    "exp": "Cú pháp chuẩn bắt buộc phải có cả public lẫn static, theo sau là kiểu dữ liệu trả về (Vector), từ khóa operator và ký hiệu toán tử (+).",
+    "B": "public static Vector operator +(Vector a, Vector b)",
+    "A": "public static void operator +(Vector a, Vector b)",
+    "C": "public Vector operator +(Vector a, Vector b)",
+    "D": "public override Vector operator +(Vector a, Vector b)"
+  },
+  {
+    "q": "Khi nạp chồng toán tử so sánh bằng (==) trong C#, quy tắc bắt buộc đi kèm là gì?",
+    "corr": "C",
+    "exp": "Trong C#, các toán tử so sánh đi theo cặp: khi nạp chồng == bắt buộc phải nạp chồng kèm !=; khi nạp chồng < bắt buộc phải nạp chồng kèm >.",
+    "C": "Bắt buộc phải nạp chồng kèm cặp toán tử khác nhau (!=)",
+    "A": "Bắt buộc phải nạp chồng thêm toán tử cộng (+)",
+    "B": "Không được phép so sánh các trường dữ liệu kiểu chuỗi",
+    "D": "Chỉ được phép thực hiện trên các kiểu dữ liệu số nguyên"
+  },
+  {
+    "q": "Một Giao diện (Interface) trong C# thuần túy chứa những thành phần nào?",
+    "corr": "C",
+    "exp": "Interface là một bản hợp đồng chứa khai báo các phương thức, thuộc tính, sự kiện mà không có phần thân xử lý hay trường dữ liệu instance.",
+    "C": "Khai báo các hành vi phương thức mà không có phần thân xử lý",
+    "A": "Các trường dữ liệu tĩnh và các phương thức hủy tài nguyên",
+    "B": "Các biến thành viên private phục vụ việc lưu trữ dữ liệu thực tế",
+    "D": "Đầy đủ các hàm khởi tạo có tham số để khởi tạo bộ nhớ"
+  },
+  {
+    "q": "Quy ước đặt tên thông dụng và chuẩn mực cho một Interface trong C# thường bắt đầu bằng chữ cái nào?",
+    "corr": "B",
+    "exp": "Theo quy ước chuẩn của Microsoft và .NET, tên giao diện luôn bắt đầu bằng tiền tố chữ 'I' in hoa (ví dụ: IComparable, IDisposable, IReader).",
+    "B": "Chữ I in hoa",
+    "A": "Chữ C in hoa",
+    "C": "Chữ A in hoa",
+    "D": "Chữ T in hoa"
+  },
+  {
+    "q": "Một lớp trong C# có thể thực thi (implement) tối đa bao nhiêu Interface?",
+    "corr": "A",
+    "exp": "C# là ngôn ngữ đơn kế thừa về lớp (chỉ kế thừa tối đa 1 lớp cha) nhưng hỗ trợ đa thực thi giao diện (có thể thực thi nhiều interface cùng lúc).",
+    "A": "Không giới hạn số lượng interface có thể thực thi",
+    "B": "Bắt buộc phải thực thi từ ba interface trở lên trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "Chỉ duy nhất một interface duy nhất",
+    "D": "Tối đa hai interface khác namespace"
+  },
+  {
+    "q": "Điểm khác biệt căn bản giữa Abstract Class và Interface trong C# là gì?",
+    "corr": "B",
+    "exp": "C# không hỗ trợ đa kế thừa lớp (chỉ 1 abstract class), nhưng hỗ trợ thực thi nhiều interface; ngoài ra Abstract Class có thể chứa trường dữ liệu và các hàm thông thường có thân mã.",
+    "B": "Lớp chỉ có thể kế thừa một Abstract Class nhưng có thể thực thi nhiều Interface",
+    "A": "Interface có thể được khởi tạo trực tiếp bằng toán tử new",
+    "C": "Abstract Class không được phép có phương thức nào có thân hàm xử lý",
+    "D": "Interface cho phép tạo trường dữ liệu biến thành viên private thông thường trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Cấu trúc danh sách List<T> trong namespace System.Collections.Generic thuộc loại cấu trúc dữ liệu nào?",
+    "corr": "B",
+    "exp": "List<T> là danh sách động (dynamic array) tự động mở rộng vùng nhớ khi thêm phần tử mới và thu hẹp khi cần thiết, không cần chỉ định kích thước cố định ban đầu.",
+    "B": "Danh sách động có thể tự động co giãn kích thước linh hoạt",
+    "A": "Cấu trúc chỉ cho phép đọc dữ liệu và không thể xóa phần tử",
+    "C": "Tập hợp chỉ cho phép lưu trữ duy nhất các số nguyên dương",
+    "D": "Mảng cố định số lượng phần tử không thể mở rộng sau khi tạo"
+  },
+  {
+    "q": "Phương thức nào của cấu trúc List<T> dùng để thêm một phần tử mới vào cuối danh sách?",
+    "corr": "A",
+    "exp": "Phương thức list.Add(item) thêm phần tử vào vị trí cuối cùng của List; trong khi list.Insert(index, item) chèn phần tử vào vị trí chỉ định.",
+    "A": "Add()",
+    "B": "Append()",
+    "C": "Push()",
+    "D": "Insert()"
+  },
+  {
+    "q": "Phương thức nào của cấu trúc List<T> dùng để chèn một phần tử vào vị trí chỉ mục (index) cụ thể?",
+    "corr": "A",
+    "exp": "Phương thức list.Insert(index, item) chèn phần tử vào vị trí index mong muốn và dời các phần tử phía sau sang phải một vị trí.",
+    "A": "Insert()",
+    "B": "Set()",
+    "C": "Put()",
+    "D": "Add() trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Để xóa phần tử tại một vị trí chỉ mục xác định trong List<T>, ta dùng phương thức nào?",
+    "corr": "B",
+    "exp": "Phương thức list.RemoveAt(index) xóa phần tử tại vị trí chỉ số index; còn list.Clear() sẽ xóa toàn bộ tất cả phần tử trong danh sách.",
+    "B": "RemoveAt()",
+    "A": "Clear()",
+    "C": "Delete() trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Drop()"
+  },
+  {
+    "q": "Phương thức nào của List<T> giúp xóa sạch tất cả các phần tử có trong danh sách?",
+    "corr": "C",
+    "exp": "Phương thức list.Clear() làm rỗng hoàn toàn danh sách, đưa số lượng phần tử Count về 0.",
+    "C": "Clear()",
+    "A": "Erase()",
+    "B": "Reset()",
+    "D": "RemoveAll()"
+  },
+  {
+    "q": "Cấu trúc tập hợp Dictionary<TKey, TValue> quản lý và lưu trữ các phần tử dựa trên nguyên tắc nào?",
+    "corr": "A",
+    "exp": "Dictionary<TKey, TValue> lưu trữ theo bảng băm dựa trên cặp Khóa (Key) duy nhất và Giá trị (Value) đi kèm, cho phép tìm kiếm dữ liệu cực nhanh thông qua Key.",
+    "A": "Cặp Khóa (Key) và Giá trị (Value) tương ứng",
+    "B": "Sắp xếp thứ tự ngẫu nhiên sau mỗi lần truy xuất",
+    "C": "Nguyên lý hàng đợi phần tử nào vào trước thì ra trước",
+    "D": "Chỉ số số nguyên tăng dần liên tục từ 0"
+  },
+  {
+    "q": "Trong Dictionary<TKey, TValue>, điều kiện bắt buộc đối với Khóa (Key) là gì?",
+    "corr": "C",
+    "exp": "Trong Dictionary, mỗi Key là định danh duy nhất; nếu cố tình thêm một Key đã tồn tại bằng phương thức Add(), chương trình sẽ ném ngoại lệ ArgumentException.",
+    "C": "Các khóa trong một từ điển phải là duy nhất và không được trùng lặp",
+    "A": "Khóa bắt buộc phải là một chuỗi ký tự không dấu",
+    "B": "Khóa có thể nhận giá trị null trong mọi trường hợp trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Khóa phải có giá trị số nguyên tăng dần đều đặn"
+  },
+  {
+    "q": "Trong cấu trúc xử lý ngoại lệ try - catch - finally, khối lệnh nào bắt buộc phải đứng trước khối catch?",
+    "corr": "D",
+    "exp": "Cú pháp xử lý ngoại lệ yêu cầu khối try (chứa đoạn mã có nguy cơ phát sinh lỗi) phải đứng đầu, theo sau là một hoặc nhiều khối catch và cuối cùng là finally.",
+    "D": "Khối lệnh try",
+    "A": "Khối lệnh using",
+    "B": "Khối lệnh finally",
+    "C": "Khối lệnh throw"
+  },
+  {
+    "q": "Khối lệnh finally trong cấu trúc try - catch có đặc tính thực thi như thế nào?",
+    "corr": "B",
+    "exp": "Khối finally luôn được chạy bất kể có ngoại lệ hay không, thường dùng để đóng kết nối, giải phóng tập tin hoặc tài nguyên hệ thống.",
+    "B": "Luôn luôn được thực thi dù có phát sinh lỗi ngoại lệ hay không",
+    "A": "Bị bỏ qua hoàn toàn nếu khối try chạy suôn sẻ không có lỗi trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "Chỉ thực thi khi người dùng bấm nút hủy chương trình",
+    "D": "Chỉ thực thi khi khối try phát sinh lỗi nghiêm trọng"
+  },
+  {
+    "q": "Trong bài toán thực hành quản lý phòng khách sạn, nếu VIPRoom kế thừa từ Phong và tính tiền bằng GiaCoBan * 1.5, phương thức TinhTien() ở lớp Phong nên khai báo thế nào?",
+    "corr": "D",
+    "exp": "Lớp cha Phong là lớp trừu tượng đại diện chung, do mỗi loại phòng (Standard, VIP) có công thức tính khác nhau nên TinhTien() cần được khai báo là phương thức abstract.",
+    "D": "public abstract double TinhTien();",
+    "A": "public double TinhTien() { return 0; }",
+    "B": "public static double TinhTien();",
+    "C": "public sealed double TinhTien();"
+  },
+  {
+    "q": "Khi duyệt danh sách List<Phong> dsPhong để tìm phòng có doanh thu cao nhất, thuật toán chuẩn mực theo bài học là gì?",
+    "corr": "C",
+    "exp": "Theo nội dung bài học và barem chấm điểm của môn học, thuật toán chuẩn là duyệt danh sách bằng vòng lặp foreach truyền thống kết hợp biến tạm max để tìm kiếm.",
+    "C": "Dùng vòng lặp foreach, khởi tạo max bằng phần tử đầu tiên và so sánh cập nhật",
+    "A": "Dùng đệ quy lồng nhau để hoán vị các vị trí trong mảng",
+    "B": "Bắt buộc phải gọi thư viện LINQ với cú pháp .OrderByDescending().First() trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Chuyển toàn bộ danh sách thành chuỗi rồi so sánh độ dài chuỗi"
+  },
+  {
+    "q": "Trong đề thi quản lý độc giả thư viện, nếu độc giả sinh viên (StudentReader) được giảm 20% phí thẻ, công thức tính phí của StudentReader nên viết thế nào?",
+    "corr": "B",
+    "exp": "StudentReader là lớp con kế thừa từ DocGia, cần sử dụng từ khóa override để ghi đè phương thức TinhPhi() của lớp cha, giảm 20% tương ứng nhân với 0.8.",
+    "B": "public override double TinhPhi() => PhiCoBan * 0.8;",
+    "A": "public static double TinhPhi() => PhiCoBan * 0.8; trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "public double TinhPhi() => PhiCoBan - 0.2;",
+    "D": "public new double TinhPhi() => PhiCoBan * 1.2;"
+  },
+  {
+    "q": "Trong đề thi quản lý khóa học, lớp BootcampCourse (Khóa học Chuyên sâu) được giảm 10% học phí khi đăng ký sớm. Phương thức tính học phí trong lớp con này cần từ khóa nào?",
+    "corr": "C",
+    "exp": "Để ghi đè phương thức tính học phí trừu tượng từ lớp cha KhoaHoc, lớp con BootcampCourse bắt buộc phải dùng từ khóa override.",
+    "C": "override",
+    "A": "abstract",
+    "B": "new",
+    "D": "virtual"
+  },
+  {
+    "q": "Trong đề thi quản lý tài khoản ngân hàng, lớp CheckingAccount (Tài khoản thanh toán) phát sinh thêm phí giao dịch hàng tháng. Cách gọi constructor của lớp cha TaiKhoan chuẩn xác là gì?",
+    "corr": "C",
+    "exp": "Để tái sử dụng logic khởi tạo số tài khoản và số dư của lớp cha, lớp con dùng cú pháp : base(stk, soDu) ngay sau phần khai báo tham số của constructor.",
+    "C": "public CheckingAccount(string stk, double soDu, double phi) : base(stk, soDu)",
+    "A": "public CheckingAccount(string stk, double soDu, double phi) : super(stk, soDu)",
+    "B": "public CheckingAccount(string stk, double soDu, double phi) : TaiKhoan(stk, soDu)",
+    "D": "public CheckingAccount(string stk, double soDu, double phi) : this(stk, soDu)"
+  },
+  {
+    "q": "Tại sao trong các bài tập C# Console Application mới tạo, Visual Studio thường sinh sẵn dòng lệnh using System.Linq; ở đầu file?",
+    "corr": "B",
+    "exp": "Dòng using System.Linq; là mẫu template mặc định do Visual Studio tạo sẵn; trong chương trình học căn bản, việc thao tác danh sách bằng vòng lặp foreach không đòi hỏi gọi LINQ.",
+    "B": "Đó là khuôn mẫu mã nguồn mặc định do Visual Studio tự chèn khi tạo tệp mới",
+    "A": "Để kích hoạt tính năng nạp chồng toán tử cộng và trừ của đối tượng",
+    "C": "Để cho phép lớp con kế thừa được các thành phần private của lớp cha",
+    "D": "Bắt buộc phải có thư viện này thì chương trình C# mới có thể biên dịch trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Mọi lớp trong C# nếu không khai báo kế thừa từ lớp nào thì mặc định đều kế thừa trực tiếp hoặc gián tiếp từ lớp nào?",
+    "corr": "A",
+    "exp": "System.Object (viết tắt là object) là lớp gốc cao nhất (root class) của toàn bộ hệ thống phân cấp kiểu dữ liệu trong nền tảng .NET.",
+    "A": "System.Object",
+    "B": "System.Type",
+    "C": "System.ValueType",
+    "D": "System.Console"
+  },
+  {
+    "q": "Phương thức ToString() kế thừa từ System.Object có chức năng mặc định là gì nếu chưa được ghi đè (override)?",
+    "corr": "C",
+    "exp": "Phương thức ToString() mặc định của System.Object trả về chuỗi tên kiểu (namespace.ClassName). Lập trình viên thường override lại phương thức này để hiển thị thông tin chi tiết của đối tượng.",
+    "C": "Trả về một chuỗi ký tự chứa tên đầy đủ của kiểu dữ liệu đối tượng",
+    "A": "Giải phóng toàn bộ các ô nhớ đang lưu trữ trên vùng nhớ Heap",
+    "B": "In trực tiếp toàn bộ dữ liệu của đối tượng ra màn hình dòng lệnh trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Ném ra ngoại lệ nếu đối tượng chưa được khởi gán giá trị cụ thể"
+  },
+  {
+    "q": "Cơ chế Boxing trong C# được định nghĩa là gì?",
+    "corr": "A",
+    "exp": "Boxing là cơ chế bọc một giá trị kiểu Value Type (như int, double) vào trong một thực thể đối tượng kiểu tham chiếu để lưu trữ trên Managed Heap.",
+    "A": "Quá trình chuyển đổi kiểu dữ liệu giá trị (Value Type) sang kiểu tham chiếu (Object)",
+    "B": "Đóng gói toàn bộ các lớp trong một namespace thành một file thư viện DLL trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "Quá trình ép một đối tượng trên vùng nhớ Heap về một biến số trên Stack",
+    "D": "Gán giá trị của một biến chuỗi ký tự thành một số nguyên không dấu"
+  },
+  {
+    "q": "Cơ chế Unboxing trong C# xảy ra khi nào?",
+    "corr": "D",
+    "exp": "Unboxing là quá trình trích xuất ngược lại kiểu giá trị từ một đối tượng đã được boxing; nếu ép kiểu sai kiểu dữ liệu gốc sẽ ném InvalidCastException.",
+    "D": "Khi trích xuất tường minh giá trị từ đối tượng tham chiếu về lại biến kiểu giá trị",
+    "A": "Khi một đối tượng mới được cấp phát bộ nhớ bằng toán tử new",
+    "B": "Khi chương trình tự động xóa bỏ một biến cục bộ ra khỏi Stack",
+    "C": "Khi người dùng đóng cửa sổ ứng dụng dòng lệnh Console đang chạy trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Điểm khác biệt cốt lõi giữa struct và class trong C# là gì?",
+    "corr": "D",
+    "exp": "struct là Value Type lưu trên Stack (khi là biến cục bộ), không hỗ trợ kế thừa từ struct khác; còn class là Reference Type lưu trên Heap và hỗ trợ kế thừa đầy đủ.",
+    "D": "struct thuộc kiểu giá trị (Value Type) còn class thuộc kiểu tham chiếu (Reference Type)",
+    "A": "struct chỉ được phép chứa các phương thức tĩnh không có biến",
+    "B": "struct hỗ trợ tính kế thừa đa cấp còn class thì không thể kế thừa trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "class không thể chứa các hàm khởi tạo có danh sách tham số"
+  },
+  {
+    "q": "Mức truy cập internal trong C# giới hạn phạm vi sử dụng của thành phần ở mức độ nào?",
+    "corr": "B",
+    "exp": "Từ khóa internal cho phép thành phần được truy cập bởi bất kỳ đoạn mã nào nằm trong cùng một Assembly (dự án biên dịch), nhưng ẩn với các Assembly bên ngoài.",
+    "B": "Chỉ có thể truy cập được bên trong cùng một tập hợp dự án (Assembly/Project)",
+    "A": "Có thể truy cập từ bất kỳ dự án nào liên kết với thư viện bên ngoài",
+    "C": "Không cho phép bất kỳ lớp nào cùng tệp tin được phép truy xuất tới",
+    "D": "Chỉ được phép truy cập trong phạm vi nội bộ của cùng một phương thức trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Mức truy cập protected internal có ý nghĩa là gì?",
+    "corr": "D",
+    "exp": "protected internal là phép kết hợp OR: có thể truy cập từ bất kỳ lớp nào trong cùng Assembly HOẶC từ các lớp con kế thừa dù nằm ở Assembly khác.",
+    "D": "Truy cập được trong cùng Assembly hoặc từ các lớp dẫn xuất ở bất kỳ đâu",
+    "A": "Cấm hoàn toàn việc truy cập từ các lớp con khác dự án biên dịch",
+    "B": "Chỉ có thể truy cập duy nhất trong nội bộ cùng một phương thức",
+    "C": "Bắt buộc phải truy cập thông qua một đối tượng giao diện interface trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Trong C#, một lớp con có thể kế thừa cùng lúc từ bao nhiêu lớp cha?",
+    "corr": "C",
+    "exp": "C# áp dụng mô hình đơn kế thừa (Single Inheritance) cho lớp để tránh nhập nhằng hình thoi (Diamond Problem); một lớp chỉ có duy nhất một lớp cha trực tiếp.",
+    "C": "Duy nhất 1 lớp cha (đơn kế thừa)",
+    "A": "Tùy thuộc vào số lượng interface khai báo",
+    "B": "Tối đa 2 lớp cha khác kiểu",
+    "D": "Không giới hạn số lượng lớp cha"
+  },
+  {
+    "q": "Trong C#, khối mã nguồn sau có ý nghĩa gì: public class Xe : PhuongTien, IDangKiem, IBaoHiem { }?",
+    "corr": "C",
+    "exp": "Cú pháp cho phép kế thừa 1 lớp cha (đứng đầu tiên: PhuongTien) và thực thi nhiều giao diện (phía sau dấu phẩy: IDangKiem, IBaoHiem).",
+    "C": "Lớp Xe kế thừa lớp PhuongTien và thực thi hai giao diện IDangKiem, IBaoHiem",
+    "A": "Lớp Xe kế thừa đồng thời cả ba lớp cơ sở khác nhau trong dự án",
+    "B": "Đoạn mã bị lỗi cú pháp do C# không cho phép dùng nhiều dấu phẩy trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Lớp Xe là một giao diện tổng hợp bao gồm ba thành phần con"
+  },
+  {
+    "q": "Kỹ thuật nạp chồng toán tử (Operator Overloading) KHÔNG thể áp dụng cho toán tử nào sau đây trong C#?",
+    "corr": "C",
+    "exp": "Trong C#, toán tử gán (=), toán tử truy cập thành viên (.), toán tử new không thể nạp chồng trực tiếp.",
+    "C": "Toán tử gán trực tiếp (=)",
+    "A": "Toán tử trừ (-)",
+    "B": "Toán tử cộng (+)",
+    "D": "Toán tử so sánh bằng (==)"
+  },
+  {
+    "q": "Để nạp chồng toán tử một ngôi tăng (++), khai báo phương thức có đặc điểm gì về tham số?",
+    "corr": "A",
+    "exp": "Toán tử một ngôi (++ hoặc --) khi nạp chồng bắt buộc phải nhận đúng một tham số có kiểu là lớp định nghĩa nó, ví dụ: public static ToaDo operator ++(ToaDo p).",
+    "A": "Nhận đúng một tham số có kiểu dữ liệu là chính lớp đó",
+    "B": "Bắt buộc phải nhận hai tham số kiểu số nguyên liên tiếp",
+    "C": "Nhận một tham số truyền theo cơ chế tham chiếu với từ khóa out",
+    "D": "Không được phép khai báo bất kỳ tham số đầu vào nào"
+  },
+  {
+    "q": "Phương thức nào sau đây được tự động kích hoạt khi thu gom rác (Garbage Collection) dọn dẹp đối tượng?",
+    "corr": "D",
+    "exp": "Finalizer (hàm hủy định nghĩa bằng ~TenLop()) được Garbage Collector gọi ngầm định khi đối tượng không còn tham chiếu nào và bị thu gom.",
+    "D": "Finalizer (Destructor)",
+    "A": "Phương thức Clone",
+    "B": "Constructor mặc định trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "Phương thức Main"
+  },
+  {
+    "q": "Để chủ động giải phóng tài nguyên không quản lý (như file, kết nối DB), lớp nên thực thi giao diện nào?",
+    "corr": "B",
+    "exp": "Giao diện IDisposable định nghĩa phương thức Dispose(), cho phép giải phóng tài nguyên unmanaged kịp thời mà không phải đợi Garbage Collector.",
+    "B": "IDisposable với phương thức Dispose()",
+    "A": "ICloneable với phương thức Clone()",
+    "C": "IEnumerable với phương thức GetEnumerator()",
+    "D": "IComparable với phương thức CompareTo()"
+  },
+  {
+    "q": "Khối lệnh using (Resource r = new Resource()) { } trong C# có tác dụng tương đương với cấu trúc nào?",
+    "corr": "D",
+    "exp": "Cấu trúc using statement đảm bảo phương thức Dispose() của đối tượng được gọi tự động trong khối finally, ngay cả khi phát sinh ngoại lệ.",
+    "D": "Khối try - finally tự động gọi r.Dispose() khi kết thúc khối lệnh",
+    "A": "Khối lặp while chạy vô tận cho đến khi hoàn thành xử lý trong toàn bộ cấu trúc hệ thống chương trình",
+    "B": "Khối lệnh gán r về giá trị null ngay trước khi bắt đầu",
+    "C": "Khối rẽ nhánh switch case kiểm tra từng giá trị của r"
+  },
+  {
+    "q": "Khi một phương thức ném ra một ngoại lệ một cách chủ động trong mã nguồn, từ khóa nào được sử dụng?",
+    "corr": "D",
+    "exp": "Trong C#, từ khóa throw được dùng để ném một đối tượng ngoại lệ (ví dụ: throw new ArgumentException(\"Dữ liệu sai\");).",
+    "D": "throw",
+    "A": "raise",
+    "B": "throws",
+    "C": "catch"
+  },
+  {
+    "q": "Từ khóa nào trong C# cho phép chia việc khai báo một lớp thành nhiều tập tin mã nguồn khác nhau?",
+    "corr": "D",
+    "exp": "Từ khóa partial cho phép một lớp, cấu trúc hoặc giao diện được định nghĩa trên nhiều tệp nguồn .cs khác nhau; khi biên dịch, C# sẽ tự động gộp chúng thành một thể thống nhất.",
+    "D": "partial",
+    "A": "abstract",
+    "B": "split",
+    "C": "virtual"
+  },
+  {
+    "q": "Trong một phương thức tĩnh (static method), điều nào sau đây là KHÔNG được phép?",
+    "corr": "A",
+    "exp": "Phương thức tĩnh thuộc về phạm vi lớp, không gắn với bất kỳ thể hiện đối tượng cụ thể nào, nên không thể dùng từ khóa this hay truy cập trực tiếp các biến instance không static.",
+    "A": "Sử dụng từ khóa this để gọi các biến thành viên không tĩnh (instance member)",
+    "B": "Gọi các phương thức tĩnh khác có trong cùng một lớp",
+    "C": "Khai báo các biến cục bộ bên trong thân phương thức trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Truyền tham số theo kiểu tham trị hoặc tham chiếu"
+  },
+  {
+    "q": "Đoạn mã sau có hợp lệ không: class Lop { static int dem; public void Tang() { dem++; } }?",
+    "corr": "D",
+    "exp": "Phương thức instance (thông thường) hoàn toàn có quyền truy cập và thao tác với các thành phần tĩnh của lớp.",
+    "D": "Hợp lệ, phương thức thông thường hoàn toàn có thể truy cập và thay đổi biến tĩnh",
+    "A": "Báo lỗi thời gian chạy vì biến tĩnh chưa được khởi tạo với new",
+    "B": "Không hợp lệ, biến tĩnh chỉ được phép sử dụng trong phương thức tĩnh trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "Không hợp lệ, biến tĩnh bắt buộc phải khai báo ở chế độ public"
+  },
+  {
+    "q": "Khi lớp con kế thừa lớp cha, thành phần nào sau đây của lớp cha KHÔNG được kế thừa sang lớp con?",
+    "corr": "A",
+    "exp": "Lớp con không kế thừa constructor của lớp cha; lớp con phải tự định nghĩa constructor của riêng mình và có thể gọi constructor của cha thông qua cú pháp : base(...).",
+    "A": "Các phương thức khởi tạo (Constructor) của lớp cha",
+    "B": "Các phương thức thông thường có mức truy cập protected",
+    "C": "Các trường dữ liệu có mức truy cập protected",
+    "D": "Các thuộc tính (Property) có mức truy cập public"
+  },
+  {
+    "q": "Tính năng đa hình cho phép lưu trữ các đối tượng con khác nhau vào cùng một tập hợp như thế nào?",
+    "corr": "C",
+    "exp": "Nhờ tính đa hình, một danh sách List<LopCha> có thể chứa tất cả các thể hiện của các lớp con kế thừa từ LopCha (ví dụ: List<Phong> chứa cả StandardRoom và VIPRoom).",
+    "C": "Tạo một danh sách List có kiểu phần tử là lớp cha chung của chúng",
+    "A": "Tạo từng danh sách riêng biệt cho từng lớp con cụ thể",
+    "B": "Chỉ có thể lưu trữ trong mảng số nguyên một chiều cố định",
+    "D": "Bắt buộc phải ép kiểu tất cả về chuỗi ký tự string trước khi lưu trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Khi duyệt List<TaiKhoan> dsTaiKhoan gồm CheckingAccount và SavingsAccount, lệnh tk.TinhLai() sẽ thực thi hàm nào?",
+    "corr": "A",
+    "exp": "Khi phương thức TinhLai() được override ở các lớp con, cơ chế Late Binding sẽ kiểm tra kiểu thực tế của đối tượng tại thời điểm chạy để kích hoạt hàm tương ứng của lớp con đó.",
+    "A": "Phương thức TinhLai() của đúng lớp thực tế mà đối tượng đó thuộc về",
+    "B": "Ngẫu nhiên thực thi một trong hai phương thức của lớp con",
+    "C": "Luôn luôn gọi phương thức TinhLai() của lớp cha TaiKhoan",
+    "D": "Chương trình sẽ báo lỗi thời gian chạy vì không biết đối tượng nào trong toàn bộ cấu trúc hệ thống chương trình"
+  },
+  {
+    "q": "Mục đích chính của việc sử dụng từ khóa new trong định nghĩa phương thức của lớp con là gì?",
+    "corr": "D",
+    "exp": "Từ khóa new trước tên hàm lớp con dùng để dập tắt cảnh báo (compiler warning) về việc che giấu hàm của lớp cha, xác nhận lập trình viên chủ ý thực hiện Method Hiding.",
+    "D": "Báo rõ ý định che giấu phương thức trùng tên của lớp cha để tránh cảnh báo biên dịch",
+    "A": "Ép buộc lớp con phải gọi phương thức của lớp cha trước khi chạy",
+    "B": "Kích hoạt tính năng đa hình động tại thời điểm chương trình thực thi trong toàn bộ cấu trúc hệ thống chương trình",
+    "C": "Tạo ra một phiên bản phương thức ảo mới cho các lớp cháu kế thừa"
+  },
+  {
+    "q": "Trong C#, nếu ta khai báo class ToaDo { public int X; public int Y; } và gán ToaDo a = new ToaDo { X = 5 }; ToaDo b = a; b.X = 10; thì a.X bằng bao nhiêu?",
+    "corr": "C",
+    "exp": "Vì ToaDo là một class (Reference Type), biến b và a cùng trỏ tới một ô nhớ đối tượng trên Heap; khi thay đổi b.X = 10 thì a.X cũng bị đổi thành 10.",
+    "C": "10",
+    "A": "5",
+    "B": "15",
+    "D": "0"
+  },
+  {
+    "q": "Nếu ở câu trên, ToaDo được khai báo là struct thay vì class thì sau các lệnh trên, a.X bằng bao nhiêu?",
+    "corr": "B",
+    "exp": "Vì struct là kiểu giá trị (Value Type), phép gán b = a sao chép toàn bộ giá trị sang một ô nhớ độc lập mới trên Stack; do đó việc sửa b.X = 10 hoàn toàn không ảnh hưởng đến a.X.",
+    "B": "5",
+    "A": "15",
+    "C": "10",
+    "D": "0"
+  },
+  {
+    "q": "Tập hợp IEnumerable<T> đóng vai trò gì trong việc duyệt các phần tử của một Collection?",
+    "corr": "B",
+    "exp": "Giao diện IEnumerable<T> định nghĩa phương thức GetEnumerator(), là điều kiện cần và đủ để một Collection có thể duyệt qua các phần tử bằng vòng lặp foreach.",
+    "B": "Cung cấp cơ chế cho phép duyệt qua các phần tử bằng vòng lặp foreach",
+    "A": "Ép kiểu toàn bộ danh sách thành một mảng số nguyên cố định",
+    "C": "Tự động sắp xếp các phần tử trong danh sách theo thứ tự giảm dần trong toàn bộ cấu trúc hệ thống chương trình",
+    "D": "Ngăn chặn việc sửa đổi hoặc xóa các phần tử có trong danh sách"
+  },
+  {
+    "q": "Trong đề thi thực hành OOP C# (75 phút), cấu trúc phân bổ điểm chuẩn cho 3 phần trong một bài toán là gì?",
+    "corr": "B",
+    "exp": "Theo cấu trúc đề thi chính thức được cung cấp: Câu 1 thiết kế lớp cha trừu tượng đạt 2.5 điểm, Câu 2 thiết kế 2 lớp con kế thừa đạt 3.0 điểm, Câu 3 viết hàm Main tạo danh sách và xử lý thuật toán đạt 4.5 điểm, tổng cộng tròn 10.0 điểm.",
+    "B": "Câu 1 Lớp cha (2.5đ), Câu 2 Các lớp con (3.0đ), Câu 3 Hàm Main và xử lý danh sách (4.5đ)",
+    "A": "Câu 1 Lớp cha (2.0đ), Câu 2 Các lớp con (4.0đ), Câu 3 Hàm Main và xử lý danh sách (4.0đ)",
+    "C": "Câu 1 Lớp cha (3.3đ), Câu 2 Các lớp con (3.3đ), Câu 3 Hàm Main và xử lý danh sách (3.4đ)",
+    "D": "Câu 1 Lớp cha (5.0đ), Câu 2 Các lớp con (3.0đ), Câu 3 Hàm Main và xử lý danh sách (2.0đ)"
+  }
+]
