@@ -11138,7 +11138,8 @@ async function callGeminiRawFromBrowser(promptText, imageBase64 = null, mimeType
   const keys = getBrowserGeminiKeyPool();
   if (!keys.length) return null;
 
-  const models = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
+  // Model cascade tối ưu tốc độ: Ưu tiên gemini-2.0-flash (siêu tốc ~400ms) rồi đến gemini-1.5-flash và 1.5-pro
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
   for (let kTry = 0; kTry < keys.length; kTry++) {
     const key = keys[(_browserKeyCursor + kTry) % keys.length];
     for (const model of models) {
@@ -11173,13 +11174,50 @@ async function callGeminiRawFromBrowser(promptText, imageBase64 = null, mimeType
   return null;
 }
 
+const _BROWSER_AI_RESPONSE_CACHE = new Map();
+
 async function callGeminiDirectFromBrowser(url, body = {}) {
-  const stemRule = 'Viết bằng Markdown sạch, bọc công thức Toán/Lý trong `$...$` và Hóa học trong `$\\ce{...}$`.';
+  const stemRule = 'Định dạng Markdown đẹp mắt (dùng gạch đầu dòng, in đậm thuật ngữ cốt lõi). Bọc công thức Toán/Lý trong `$...$` và Hóa học trong `$\\ce{...}$`.';
+  
+  // Kiểm tra bộ nhớ đệm client-side (tránh gọi trùng API gây tốn quota và chờ đợi)
+  const cacheKey = `${url}|${JSON.stringify(body)}`;
+  if (!body.force_refresh && _BROWSER_AI_RESPONSE_CACHE.has(cacheKey)) {
+    return _BROWSER_AI_RESPONSE_CACHE.get(cacheKey);
+  }
+
   if (url === '/api/ai/chat') {
-    const reply = await callGeminiRawFromBrowser(
-      `Đóng vai Giáo sư Đại học môn "${body.subject_name || 'Đại học'}". Giải đáp chi tiết, dễ hiểu câu hỏi của sinh viên: "${body.message || ''}"\n${stemRule}`
-    );
-    return reply ? { success: true, reply } : null;
+    const curPersona = String(body.persona || currentTutorPersona || 'feynman').toLowerCase();
+    const curCustom = String(body.tutor_style_prompt || body.custom_style || (typeof getTutorCustomStyle === 'function' ? getTutorCustomStyle() : '')).trim();
+    const curLen = String(body.response_length || body.responseLength || currentTutorResponseLength || 'detailed').toLowerCase();
+
+    let personaPrompt = '';
+    if (curPersona === 'feynman') {
+      personaPrompt = 'Đóng vai Gia Sư AI áp dụng Phương pháp Feynman (Feynman Technique) trực quan và dễ hiểu tuyệt đối như giảng cho học sinh 10 tuổi. Dùng 1 ẩn dụ đời sống sinh động, làm rõ cơ chế gốc rễ vì sao đáp án đúng được chọn và mổ xẻ vì sao từng phương án khác sai hoặc cạm bẫy trắc nghiệm ở đâu.';
+    } else if (curPersona === 'professor') {
+      personaPrompt = 'Đóng vai Giáo sư Đại học chuẩn mực, học thuật uyên bác: đi thẳng vào nguyên lý khoa học, cơ chế bản chất, thuật toán/công thức và điều kiện áp dụng.';
+    } else if (curPersona === 'speed') {
+      personaPrompt = 'Đóng vai Chuyên gia giải nhanh trắc nghiệm 5 giây: chỉ rõ mẹo loại suy siêu tốc, phát hiện từ khóa (keywords) để scan ra đáp án ngay lập tức.';
+    } else if (curPersona === 'examiner') {
+      personaPrompt = 'Đóng vai Giám khảo vấn đáp sắc sảo: phân tích vấn đề và đặt ra 1 câu hỏi phản biện mở để kích thích chiều sâu tư duy.';
+    } else {
+      personaPrompt = `Đóng vai Gia Sư AI chuyên nghiệp môn "${body.subject_name || 'Đại học'}". Giải đáp dễ hiểu, bản chất và truyền cảm hứng.`;
+    }
+
+    let lenPrompt = '';
+    if (curLen === 'brief') lenPrompt = 'Độ dài: Trả lời cô đọng trong 3-4 câu, đi thẳng vào chốt hạ vấn đề.';
+    else if (curLen === 'deep') lenPrompt = 'Độ dài: Phân tích chuyên sâu toàn diện, mổ xẻ đa chiều từ lý thuyết nền tảng đến biến thể đề thi nâng cao.';
+    else lenPrompt = 'Độ dài: Chi tiết, đầy đủ các bước giải thích và dẫn dắt sư phạm mạch lạc.';
+
+    const customPrompt = curCustom ? `\n[Yêu cầu phong cách đặc biệt do sinh viên chỉ định]: ${curCustom}` : '';
+    const fullPrompt = `${personaPrompt}\n${lenPrompt}${customPrompt}\n${stemRule}\n\nNội dung câu hỏi môn "${body.subject_name || 'Đại học'}":\n${body.message || ''}`;
+
+    const reply = await callGeminiRawFromBrowser(fullPrompt);
+    if (reply) {
+      const resObj = { success: true, reply };
+      _BROWSER_AI_RESPONSE_CACHE.set(cacheKey, resObj);
+      return resObj;
+    }
+    return null;
   }
   if (url === '/api/ai/hint') {
     const hint = await callGeminiRawFromBrowser(
@@ -11194,10 +11232,27 @@ async function callGeminiDirectFromBrowser(url, body = {}) {
     return concept ? { success: true, concept } : null;
   }
   if (url === '/api/ai/deep-analysis') {
-    const analysis = await callGeminiRawFromBrowser(
-      `Phân tích chuyên sâu câu hỏi: "${body.question_text || ''}". Đáp án đúng: "${body.correct_answer || ''}". Giải thích vì sao đúng và cách tránh bẫy.\n${stemRule}`
-    );
-    return analysis ? { success: true, analysis } : null;
+    const mode = String(body.mode || body.analysis_mode || 'feynman').toLowerCase();
+    let modePrompt = '';
+    if (mode === 'feynman') {
+      modePrompt = `Áp dụng Phương pháp Feynman (Feynman Technique) để giải thích câu hỏi: "${body.question_text || ''}". Đáp án đúng: "${body.correct_answer || ''}".
+Yêu cầu:
+1. 💡 Bản chất cốt lõi bằng ẩn dụ đời thường dễ nhớ.
+2. 🎯 Phân tích chi tiết vì sao đáp án đúng được chọn.
+3. ⚠️ Mổ xẻ từng phương án sai và bẫy trắc nghiệm.
+4. ⚡ Mẹo ghi nhớ 5 giây.`;
+    } else if (mode === 'exam_trap') {
+      modePrompt = `Mổ xẻ toàn bộ bẫy đề thi và cạm bẫy tâm lý trong câu hỏi: "${body.question_text || ''}". Đáp án đúng: "${body.correct_answer || ''}". Chỉ rõ dấu hiệu scan 2 giây nhận diện bẫy.`;
+    } else {
+      modePrompt = `Phân tích chuyên sâu câu hỏi: "${body.question_text || ''}". Đáp án đúng: "${body.correct_answer || ''}". Giải thích vì sao đúng, cơ chế khoa học và cách suy luận logic.`;
+    }
+    const analysis = await callGeminiRawFromBrowser(`${modePrompt}\n${stemRule}`);
+    if (analysis) {
+      const resObj = { success: true, analysis };
+      _BROWSER_AI_RESPONSE_CACHE.set(cacheKey, resObj);
+      return resObj;
+    }
+    return null;
   }
   if (url === '/api/ai/explain-mistake') {
     const diagnosis = await callGeminiRawFromBrowser(
@@ -11248,6 +11303,33 @@ Trả về DUY NHẤT JSON hợp lệ:
         const e = raw.lastIndexOf('}');
         if (s !== -1 && e !== -1) {
           return { success: true, grading: JSON.parse(raw.slice(s, e + 1)) };
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+  if (url === '/api/ai/feynman-evaluate') {
+    const concept = String(body.concept || '').trim();
+    const explanation = String(body.explanation || '').trim();
+    const prompt = `Đóng vai Hội đồng Sư phạm đánh giá Kỹ thuật Feynman cho khái niệm: "${concept}".
+Bài giải thích của học viên: "${explanation}".
+Trả về DUY NHẤT một chuỗi JSON hợp lệ không có markdown bọc ngoài:
+{
+  "score": 8.5,
+  "verdict": "Nhận xét khách quan, nêu bật điểm mạnh",
+  "clarity_rating": "Dễ hiểu",
+  "knowledge_gaps": ["Khía cạnh cần giải thích cụ thể hơn"],
+  "feynman_rewrite": "Bản giải thích mẫu chuẩn Feynman kết hợp ẩn dụ đời sống 5 giây",
+  "child_question": "1 câu hỏi tò mò đứa trẻ 10 tuổi sẽ hỏi lại"
+}`;
+    const raw = await callGeminiRawFromBrowser(prompt);
+    if (raw) {
+      try {
+        const s = raw.indexOf('{');
+        const e = raw.lastIndexOf('}');
+        if (s !== -1 && e !== -1) {
+          const parsed = JSON.parse(raw.slice(s, e + 1));
+          return { success: true, ...parsed };
         }
       } catch (_) {}
     }

@@ -5224,6 +5224,11 @@ def generate_standalone_html_string() -> str:
         html
     )
     html = re.sub(
+        r'<link\s+rel="stylesheet"\s+href="/static/minimal\.css[^"]*"\s*/?>',
+        "",
+        html
+    )
+    html = re.sub(
         r'<script\s+src="/static/app\.js[^"]*"></script>',
         lambda _: f"<script>window.__UNIMASTER_OFFLINE_DB__ = {snap_json};</script>\n<script>\n{js}\n</script>",
         html

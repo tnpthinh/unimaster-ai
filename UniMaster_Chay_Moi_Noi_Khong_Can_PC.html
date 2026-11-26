@@ -6627,8 +6627,47 @@ html:not(.dark):not(.sepia) .mobile-bottom-nav {
   }
 }
 
+
+/* ==========================================================================
+   Exam Room AI Tutor Feynman & Style Customizer Suite
+   ========================================================================== */
+#btn-exam-feynman-tutor {
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 14px -2px rgba(99, 102, 241, 0.45), 0 2px 6px -1px rgba(245, 158, 11, 0.35);
+}
+#btn-exam-feynman-tutor:hover {
+  box-shadow: 0 6px 20px -2px rgba(99, 102, 241, 0.65), 0 3px 8px -1px rgba(245, 158, 11, 0.45);
+}
+.exam-preset-chip {
+  background-color: color-mix(in srgb, var(--bg-surface) 75%, transparent);
+  border-color: color-mix(in srgb, var(--border) 80%, transparent);
+  color: var(--text-sub);
+  user-select: none;
+  cursor: pointer;
+}
+.exam-preset-chip:hover {
+  background-color: color-mix(in srgb, var(--brand) 15%, var(--bg-surface));
+  color: var(--text-main);
+  transform: translateY(-1px);
+}
+.exam-preset-chip.active {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%) !important;
+  color: #ffffff !important;
+  border-color: #818cf8 !important;
+  box-shadow: 0 4px 12px -2px rgba(99, 102, 241, 0.5) !important;
+}
+.exam-persona-btn, .exam-length-btn {
+  cursor: pointer;
+  user-select: none;
+}
+#exam-tutor-custom-style:focus {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
 </style>
-  <link rel="stylesheet" href="/static/minimal.css?v=54.1" />
+  
   <!-- Non-blocking Monaco Editor CDN (Loaded on demand for Code IDE) -->
   <link rel="stylesheet" data-name="vs/editor/editor.main" href="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/editor/editor.main.min.css" media="print" onload="this.media='all'">
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/monaco-editor/0.45.0/min/vs/loader.min.js"></script>
@@ -7870,8 +7909,13 @@ html:not(.dark):not(.sepia) .mobile-bottom-nav {
 
             <!-- 3 Calm Primary AI Pills + Expand Toggle -->
             <div class="flex flex-wrap items-center gap-2">
-              <button onclick="askAiAboutCurrentExamQuestion(true)" class="btn-primary !bg-gradient-to-r !from-indigo-600 !to-purple-600 px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm hover:scale-[1.02] active:scale-95 transition-all">
-                <span>🤖</span> <span>Gia Sư AI Giải Chi Tiết</span>
+              <button id="btn-exam-feynman-tutor" onclick="askAiAboutCurrentExamQuestion(true)" class="btn-primary !bg-gradient-to-r !from-amber-500 !via-indigo-600 !to-purple-600 px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 shadow-sm hover:scale-[1.02] active:scale-95 transition-all" title="Bấm là kích hoạt Feynman giảng giải bản chất sâu sắc ngay lập tức">
+                <span>🧒</span> <span>Gia Sư AI Giải Chi Tiết (Feynman)</span>
+              </button>
+              <button type="button" id="btn-toggle-tutor-style-config" onclick="toggleExamTutorStylePanel()" class="btn-soft px-2.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all border border-indigo-500/30 hover:border-indigo-400" title="Tùy chỉnh phong cách & giọng điệu giảng dạy">
+                <span>🎨</span> <span>Phong cách</span>
+                <span id="exam-tutor-active-style-badge" class="badge-brand px-1.5 py-0.5 rounded-md text-[10px] font-black truncate max-w-[120px]">Feynman</span>
+                <span id="exam-tutor-style-chevron" class="opacity-70">▾</span>
               </button>
               <button id="btn-explain-mistake" onclick="triggerExplainMyMistake()" class="ai-chip-btn">
                 <span>🩺</span> Sao tôi chọn nhầm?
@@ -7879,7 +7923,7 @@ html:not(.dark):not(.sepia) .mobile-bottom-nav {
               <button onclick="triggerAiMnemonic()" class="ai-chip-btn">
                 <span>⚡</span> Mẹo nhớ 5s
               </button>
-              <button type="button" onclick="openEditQuestionModal()" class="ai-chip-btn" title="Đáp án sai hoặc câu lỗi? Bấm để sửa ngay &amp; đẩy lên GitHub">
+              <button type="button" onclick="openEditQuestionModal()" class="ai-chip-btn" title="Đáp án sai hoặc câu lỗi? Bấm để sửa ngay & đẩy lên GitHub">
                 <span>✏️</span> Sửa đáp án / câu lỗi
               </button>
               <button type="button" id="btn-feedback-more-ai" onclick="toggleFeedbackExtraAiTools()" class="btn-soft px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1 ml-auto">
@@ -7887,7 +7931,105 @@ html:not(.dark):not(.sepia) .mobile-bottom-nav {
               </button>
             </div>
 
-            <!-- Collapsible Advanced AI Tools Drawer -->
+            <!-- Bảng Tùy Chỉnh Phong Cách & Sư Phạm Gia Sư AI Phòng Thi (Collapsible) -->
+            <div id="exam-tutor-style-panel" class="hidden p-3.5 rounded-2xl border space-y-3 animate-fade-in shadow-md" style="background: color-mix(in srgb, var(--bg-surface) 95%, transparent); border-color: color-mix(in srgb, var(--brand) 40%, var(--border));">
+              <!-- Header của Panel -->
+              <div class="flex items-center justify-between gap-2 border-b pb-2" style="border-color: var(--border);">
+                <div class="flex items-center gap-2">
+                  <span class="text-sm">🎨</span>
+                  <div>
+                    <span class="text-xs font-black txt-main">Tùy Chỉnh Phong Cách Giảng Dạy & Phương Pháp AI</span>
+                    <p class="text-[10px] txt-muted">Bấm nút trên là bật Feynman ngay, tự ghi phong cách riêng hoặc bấm chip tự điền mẫu bên dưới</p>
+                  </div>
+                </div>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="resetExamTutorStyleToDefault()" class="btn-soft px-2 py-0.5 text-[10.5px] font-semibold text-slate-400 hover:text-white" title="Trở về phong cách Feynman mặc định">↺ Mặc định</button>
+                  <button type="button" onclick="toggleExamTutorStylePanel(false)" class="btn-soft p-1 text-xs" title="Thu gọn bảng">✕</button>
+                </div>
+              </div>
+
+              <!-- Hàng 1: Giọng giảng (Persona) + Độ dài phản hồi -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                <!-- Giọng Giảng Persona -->
+                <div class="space-y-1">
+                  <span class="text-[10.5px] font-bold txt-muted flex items-center gap-1">
+                    <span>🎭</span> Giọng giảng (Persona):
+                  </span>
+                  <div class="flex items-center gap-1 flex-wrap">
+                    <button type="button" onclick="setExamPersonaDirect('feynman')" data-exam-persona="feynman" class="exam-persona-btn active px-2.5 py-1 rounded-xl text-xs font-bold border transition-all">🧒 Feynman</button>
+                    <button type="button" onclick="setExamPersonaDirect('professor')" data-exam-persona="professor" class="exam-persona-btn px-2.5 py-1 rounded-xl text-xs font-bold border transition-all">🎓 Giáo Sư</button>
+                    <button type="button" onclick="setExamPersonaDirect('speed')" data-exam-persona="speed" class="exam-persona-btn px-2.5 py-1 rounded-xl text-xs font-bold border transition-all">⚡ Giải Nhanh</button>
+                    <button type="button" onclick="setExamPersonaDirect('examiner')" data-exam-persona="examiner" class="exam-persona-btn px-2.5 py-1 rounded-xl text-xs font-bold border transition-all">🎤 Vấn Đáp</button>
+                  </div>
+                </div>
+
+                <!-- Độ Dài Phản Hồi -->
+                <div class="space-y-1">
+                  <span class="text-[10.5px] font-bold txt-muted flex items-center gap-1">
+                    <span>📏</span> Độ dài giải thích:
+                  </span>
+                  <div class="flex items-center gap-1 flex-wrap">
+                    <button type="button" onclick="setExamLengthDirect('detailed')" data-exam-length="detailed" class="exam-length-btn active px-2.5 py-1 rounded-xl text-xs font-bold border transition-all">📖 Chi tiết (Mặc định)</button>
+                    <button type="button" onclick="setExamLengthDirect('concise')" data-exam-length="concise" class="exam-length-btn px-2.5 py-1 rounded-xl text-xs font-bold border transition-all">⚡ Gọn (5s)</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Hàng 2: Tự Điền Nhanh Phong Cách (Preset Chips 1-Chạm) -->
+              <div class="space-y-1.5">
+                <span class="text-[10.5px] font-bold txt-muted flex items-center justify-between">
+                  <span class="flex items-center gap-1"><span>⚡</span> Tự điền phong cách mẫu (1-chạm):</span>
+                  <span class="text-[10px] text-indigo-400">Bấm chip để điền & lưu ngay</span>
+                </span>
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <button type="button" data-exam-preset="feynman_pure" onclick="applyTutorPresetStyle('feynman_pure')" class="exam-preset-chip px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1 hover:border-amber-400">
+                    🧒 Feynman Dễ Hiểu
+                  </button>
+                  <button type="button" data-exam-preset="gen_z" onclick="applyTutorPresetStyle('gen_z')" class="exam-preset-chip px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1 hover:border-purple-400">
+                    🌈 Gen Z Bắt Trend
+                  </button>
+                  <button type="button" data-exam-preset="root_cause" onclick="applyTutorPresetStyle('root_cause')" class="exam-preset-chip px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1 hover:border-cyan-400">
+                    🔍 Gốc Từ & Bản Chất
+                  </button>
+                  <button type="button" data-exam-preset="trap_buster" onclick="applyTutorPresetStyle('trap_buster')" class="exam-preset-chip px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1 hover:border-rose-400">
+                    🎯 Chốt Bẫy 5s
+                  </button>
+                  <button type="button" data-exam-preset="socratic" onclick="applyTutorPresetStyle('socratic')" class="exam-preset-chip px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1 hover:border-emerald-400">
+                    💡 Socratic Gợi Mở
+                  </button>
+                  <button type="button" data-exam-preset="clinical_sim" onclick="applyTutorPresetStyle('clinical_sim')" class="exam-preset-chip px-2.5 py-1 rounded-xl text-[11px] font-bold border transition-all flex items-center gap-1 hover:border-amber-400">
+                    🩺 Thực Chiến / Lâm Sàng
+                  </button>
+                </div>
+              </div>
+
+              <!-- Hàng 3: Ô Tự Ghi Phong Cách (Custom Style Textarea) -->
+              <div class="space-y-1.5">
+                <div class="flex items-center justify-between text-[10.5px]">
+                  <span class="font-bold txt-muted flex items-center gap-1">
+                    <span>✍️</span> Tự ghi phong cách của bạn (Prompt sư phạm riêng):
+                  </span>
+                  <span id="exam-tutor-save-status" class="text-[10px] text-emerald-400 font-bold">Đã lưu ✓</span>
+                </div>
+                <div class="flex gap-2">
+                  <textarea id="exam-tutor-custom-style" rows="2"
+                    oninput="handleExamCustomStyleInput(this.value)"
+                    placeholder="Tự ghi phong cách bất kỳ... VD: Dùng ví dụ đời thường cho người mất gốc, giọng Gen Z hài hước, phân tích vì sao phương án khác sai..."
+                    class="uni-input flex-1 px-3 py-2 text-xs leading-relaxed resize-none rounded-xl" style="background-color: var(--bg-subtle);"></textarea>
+                </div>
+              </div>
+
+              <!-- Hàng 4: Nút Kích Hoạt Nhanh với Cấu Hình Này -->
+              <div class="flex items-center justify-between gap-2 pt-1">
+                <div class="text-[10px] txt-muted">
+                  AI sẽ áp dụng phong cách này trong mọi giải thích chi tiết & hỏi đáp ngữ cảnh.
+                </div>
+                <button type="button" onclick="askAiAboutCurrentExamQuestion(true)" class="btn-primary px-3.5 py-1.5 text-xs font-black rounded-xl flex items-center gap-1.5 shadow-sm hover:scale-[1.02] active:scale-95 transition-all">
+                  <span>🚀</span> <span>Áp Dụng & Giải Thích Ngay</span>
+                </button>
+              </div>
+            </div>
+
             <div id="q-feedback-more-ai-wrap" class="hidden p-3 rounded-xl border space-y-2.5 animate-fade-in" style="background-color: var(--bg-subtle); border-color: var(--border);">
               <div class="flex flex-wrap items-center gap-2">
                 <div class="inline-flex items-center rounded-xl bg-slate-800/80 p-0.5 border border-indigo-500/30 shadow-sm">
@@ -11943,6 +12085,23 @@ html:not(.dark):not(.sepia) .mobile-bottom-nav {
             <button type="button" onclick="exportFloatingTutorNotes()" class="btn-soft px-2 py-0.5 text-[10px] font-bold shrink-0" title="Xuất hội thoại ra tệp">📄 Xuất file</button>
           </div>
         </div>
+        <!-- Hàng Custom Style & Preset Trong Floating Tutor Drawer -->
+        <div class="px-2.5 py-2 border-b space-y-1.5 text-[10px]" style="border-color: var(--border); background-color: var(--bg-subtle);">
+          <div class="flex items-center justify-between">
+            <span class="txt-muted font-extrabold uppercase flex items-center gap-1"><span>🎨</span> Phong cách riêng:</span>
+            <div class="flex items-center gap-1 flex-wrap">
+              <button type="button" onclick="applyTutorPresetStyle('feynman_pure')" class="badge-soft px-1.5 py-0.5 rounded text-[9.5px] hover:text-white">🧒 Feynman</button>
+              <button type="button" onclick="applyTutorPresetStyle('gen_z')" class="badge-soft px-1.5 py-0.5 rounded text-[9.5px] hover:text-white">🌈 Gen Z</button>
+              <button type="button" onclick="applyTutorPresetStyle('root_cause')" class="badge-soft px-1.5 py-0.5 rounded text-[9.5px] hover:text-white">🔍 Gốc từ</button>
+              <button type="button" onclick="applyTutorPresetStyle('trap_buster')" class="badge-soft px-1.5 py-0.5 rounded text-[9.5px] hover:text-white">🎯 Bẫy 5s</button>
+              <button type="button" onclick="resetExamTutorStyleToDefault()" class="text-slate-400 hover:text-rose-400 text-[9.5px]">Xóa</button>
+            </div>
+          </div>
+          <input id="ft-custom-style-input" type="text"
+            oninput="handleExamCustomStyleInput(this.value)"
+            placeholder="Tự ghi phong cách gia sư (VD: ví dụ đời thường, giọng Gen Z, mổ xẻ bẫy...)"
+            class="uni-input w-full px-2.5 py-1 text-[10.5px] rounded-lg" style="background-color: var(--bg-surface);" />
+        </div>
       </div>
 
       <!-- Compact Pinned Question / Code / Term Context Strip (Zero Duplicate Action Row) -->
@@ -15541,17 +15700,232 @@ function saveSharedTutorHistory() {
   } catch (_) {}
 }
 
+// ==============================================================================
+// TUTOR PEDAGOGY PRESETS & TWO-WAY REACTIVE STYLE ENGINE
+// ==============================================================================
+const TUTOR_STYLE_PRESETS = {
+  feynman_pure: 'Dùng kỹ thuật Feynman: giải thích bằng ngôn ngữ đời thường mộc mạc, ví von trực quan như giảng cho người mới bắt đầu. Bóc tách bản chất gốc rễ, chỉ rõ vì sao đáp án đúng là đúng và từng phương án sai bị loại ở điểm nào.',
+  gen_z: 'Phong cách Gen Z hài hước, dí dỏm, bắt trend, nói chuyện gần gũi nhưng chuẩn xác 100% về kiến thức học thuật. Dùng ví dụ vui nhộn, bóc phốt các bẫy lừa của đề bài để học không buồn ngủ.',
+  root_cause: 'Mổ xẻ từ gốc từ học (Etymology) và bản chất định lý nền tảng. Giải thích logic suy luận nguyên bản và ngữ cảnh khoa học/lịch sử hình thành khái niệm để hiểu sâu nhớ lâu.',
+  trap_buster: 'Tập trung triệt để vào cạm bẫy trắc nghiệm: chỉ rõ từ khóa độc hại (Qualifiers, trick words), dấu hiệu nhận biết bẫy trong 5 giây, vì sao dễ chọn nhầm và công thức chốt nhanh đáp án.',
+  socratic: 'Phương pháp Socrates: đặt 2-3 câu hỏi phản biện gợi mở tư duy logic trước khi kết luận, dẫn dắt học viên tự nhận ra mâu thuẫn trong đáp án sai và tự nghiệm ra chân lý.',
+  clinical_sim: 'Mô phỏng tình huống thực chiến / ca lâm sàng / bài toán đời sống cụ thể: đưa kiến thức vào ngữ cảnh giải quyết vấn đề thực tế, phân tích hậu quả tương ứng từng lựa chọn.'
+};
+window.TUTOR_STYLE_PRESETS = TUTOR_STYLE_PRESETS;
+
 function getTutorStylePrompt() {
-  return String(document.getElementById('tutor-style-prompt')?.value || tutorCustomStyle || '').trim();
+  const customEl = document.getElementById('exam-tutor-custom-style') ||
+                   document.getElementById('ft-custom-style-input') ||
+                   document.getElementById('tutor-style-prompt');
+  const val = (customEl && customEl.value !== undefined) ? customEl.value : tutorCustomStyle;
+  return String(val || tutorCustomStyle || '').trim();
 }
 
-function setTutorCustomStyle(value) {
+function setTutorCustomStyle(value, silent = false) {
   tutorCustomStyle = String(value || '').trim();
-  localStorage.setItem(TUTOR_STYLE_KEY, tutorCustomStyle);
-  const input = document.getElementById('tutor-style-prompt');
-  if (input && input.value !== tutorCustomStyle) input.value = tutorCustomStyle;
-  showToast(tutorCustomStyle ? 'Đã lưu phong cách gia sư tùy chỉnh.' : 'Đã xóa phong cách tùy chỉnh.', 'success');
+  try {
+    localStorage.setItem(TUTOR_STYLE_KEY, tutorCustomStyle);
+  } catch (_) {}
+
+  // Đồng bộ cả 3 ô nhập liệu: phòng thi, floating tutor drawer và tab Gia Sư chính
+  ['exam-tutor-custom-style', 'ft-custom-style-input', 'tutor-style-prompt'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && el.value !== tutorCustomStyle) {
+      el.value = tutorCustomStyle;
+    }
+  });
+
+  const saveStatus = document.getElementById('exam-tutor-save-status');
+  if (saveStatus) {
+    saveStatus.textContent = 'Đã lưu ✓';
+    saveStatus.className = 'text-[10px] text-emerald-400 font-bold';
+  }
+
+  syncExamTutorStyleUI();
+
+  if (!silent && typeof showToast === 'function') {
+    showToast(tutorCustomStyle ? 'Đã lưu phong cách gia sư tùy chỉnh!' : 'Đã xóa phong cách tùy chỉnh.', 'success');
+  }
 }
+window.setTutorCustomStyle = setTutorCustomStyle;
+window.getTutorStylePrompt = getTutorStylePrompt;
+
+let _examTutorStyleSaveTimer = null;
+function handleExamCustomStyleInput(val) {
+  tutorCustomStyle = String(val || '');
+  const saveStatus = document.getElementById('exam-tutor-save-status');
+  if (saveStatus) {
+    saveStatus.textContent = 'Đang lưu...';
+    saveStatus.className = 'text-[10px] text-amber-400 font-bold';
+  }
+
+  // Cập nhật ngay các ô khác để đồng bộ 2 chiều
+  ['ft-custom-style-input', 'tutor-style-prompt'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el && el.value !== tutorCustomStyle) el.value = tutorCustomStyle;
+  });
+
+  clearTimeout(_examTutorStyleSaveTimer);
+  _examTutorStyleSaveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(TUTOR_STYLE_KEY, tutorCustomStyle);
+    } catch (_) {}
+    if (saveStatus) {
+      saveStatus.textContent = 'Đã lưu ✓';
+      saveStatus.className = 'text-[10px] text-emerald-400 font-bold';
+    }
+    syncExamTutorStyleUI();
+  }, 350);
+}
+window.handleExamCustomStyleInput = handleExamCustomStyleInput;
+
+function applyTutorPresetStyle(presetKey) {
+  const promptText = TUTOR_STYLE_PRESETS[presetKey];
+  if (!promptText) return;
+  setTutorCustomStyle(promptText, false);
+  const presetNames = {
+    feynman_pure: '🧒 Feynman Dễ Hiểu',
+    gen_z: '🌈 Gen Z Bắt Trend',
+    root_cause: '🔍 Gốc Từ & Bản Chất',
+    trap_buster: '🎯 Chốt Bẫy 5s',
+    socratic: '💡 Socratic Gợi Mở',
+    clinical_sim: '🩺 Thực Chiến / Lâm Sàng'
+  };
+  if (typeof playSound === 'function') playSound('click');
+  if (typeof showToast === 'function') {
+    showToast(`Đã áp dụng phong cách: ${presetNames[presetKey] || presetKey}`, 'info');
+  }
+}
+window.applyTutorPresetStyle = applyTutorPresetStyle;
+
+function toggleExamTutorStylePanel(forceOpen = null) {
+  const panel = document.getElementById('exam-tutor-style-panel');
+  const chevron = document.getElementById('exam-tutor-style-chevron');
+  if (!panel) return;
+  const isHidden = panel.classList.contains('hidden');
+  const willOpen = forceOpen !== null ? forceOpen : isHidden;
+  if (willOpen) {
+    panel.classList.remove('hidden');
+    if (chevron) chevron.textContent = '▴';
+    syncExamTutorStyleUI();
+    const txt = document.getElementById('exam-tutor-custom-style');
+    if (txt) setTimeout(() => txt.focus(), 60);
+  } else {
+    panel.classList.add('hidden');
+    if (chevron) chevron.textContent = '▾';
+  }
+}
+window.toggleExamTutorStylePanel = toggleExamTutorStylePanel;
+
+function setExamPersonaDirect(persona) {
+  setFloatingPersona(persona);
+  syncExamTutorStyleUI();
+}
+window.setExamPersonaDirect = setExamPersonaDirect;
+
+function setExamLengthDirect(len) {
+  setTutorResponseLength(len);
+  syncExamTutorStyleUI();
+}
+window.setExamLengthDirect = setExamLengthDirect;
+
+function resetExamTutorStyleToDefault() {
+  setTutorCustomStyle('', true);
+  setFloatingPersona('feynman');
+  setTutorResponseLength('detailed');
+  syncExamTutorStyleUI();
+  if (typeof showToast === 'function') {
+    showToast('Đã khôi phục phong cách Feynman & Chi tiết mặc định!', 'success');
+  }
+}
+window.resetExamTutorStyleToDefault = resetExamTutorStyleToDefault;
+
+function syncExamTutorStyleUI() {
+  const curPersona = currentTutorPersona || 'feynman';
+  const curLen = currentTutorResponseLength || 'detailed';
+  const curCustom = String(tutorCustomStyle || '').trim();
+
+  // 1. Đồng bộ Persona Buttons trong Panel phòng thi
+  document.querySelectorAll('#exam-tutor-style-panel [data-exam-persona]').forEach((btn) => {
+    const p = btn.getAttribute('data-exam-persona');
+    const isAct = p === curPersona;
+    btn.classList.toggle('active', isAct);
+    if (isAct) {
+      btn.className = 'exam-persona-btn active px-2.5 py-1 rounded-xl text-xs font-bold border transition-all bg-indigo-600 text-white border-indigo-400 shadow-sm';
+    } else {
+      btn.className = 'exam-persona-btn px-2.5 py-1 rounded-xl text-xs font-bold border transition-all bg-white/5 text-slate-300 border-white/10 hover:border-indigo-400/50 hover:text-white';
+    }
+  });
+
+  // 2. Đồng bộ Length Buttons trong Panel phòng thi
+  document.querySelectorAll('#exam-tutor-style-panel [data-exam-length]').forEach((btn) => {
+    const l = btn.getAttribute('data-exam-length');
+    const isAct = l === curLen;
+    btn.classList.toggle('active', isAct);
+    if (isAct) {
+      btn.className = 'exam-length-btn active px-2.5 py-1 rounded-xl text-xs font-bold border transition-all bg-indigo-600 text-white border-indigo-400 shadow-sm';
+    } else {
+      btn.className = 'exam-length-btn px-2.5 py-1 rounded-xl text-xs font-bold border transition-all bg-white/5 text-slate-300 border-white/10 hover:border-indigo-400/50 hover:text-white';
+    }
+  });
+
+  // 3. Đồng bộ Textarea giá trị nếu người dùng không đang gõ trực tiếp
+  const examInput = document.getElementById('exam-tutor-custom-style');
+  if (examInput && examInput.value !== tutorCustomStyle && document.activeElement !== examInput) {
+    examInput.value = tutorCustomStyle;
+  }
+  const ftInput = document.getElementById('ft-custom-style-input');
+  if (ftInput && ftInput.value !== tutorCustomStyle && document.activeElement !== ftInput) {
+    ftInput.value = tutorCustomStyle;
+  }
+
+  // 4. Tìm xem custom style có trùng khớp preset nào không để highlight chip
+  let matchedPreset = null;
+  for (const [key, prompt] of Object.entries(TUTOR_STYLE_PRESETS)) {
+    if (curCustom && (curCustom === prompt || curCustom.startsWith(prompt.slice(0, 30)))) {
+      matchedPreset = key;
+      break;
+    }
+  }
+
+  document.querySelectorAll('[data-exam-preset], [data-ft-preset]').forEach((chip) => {
+    const pKey = chip.getAttribute('data-exam-preset') || chip.getAttribute('data-ft-preset');
+    const isAct = pKey === matchedPreset;
+    chip.classList.toggle('active', isAct);
+    if (isAct) {
+      chip.classList.add('!bg-indigo-600', '!text-white', '!border-indigo-400', 'shadow-sm');
+    } else {
+      chip.classList.remove('!bg-indigo-600', '!text-white', '!border-indigo-400', 'shadow-sm');
+    }
+  });
+
+  // 5. Cập nhật Badge trên nút toggle Phong cách
+  const badge = document.getElementById('exam-tutor-active-style-badge');
+  if (badge) {
+    if (matchedPreset) {
+      const presetBadgeLabels = {
+        feynman_pure: '🧒 Feynman',
+        gen_z: '🌈 Gen Z',
+        root_cause: '🔍 Gốc từ',
+        trap_buster: '🎯 Chốt bẫy',
+        socratic: '💡 Socrates',
+        clinical_sim: '🩺 Lâm sàng'
+      };
+      badge.textContent = presetBadgeLabels[matchedPreset] || 'Tùy biến';
+    } else if (curCustom) {
+      badge.textContent = '✍️ Tùy biến';
+    } else {
+      const personaLabels = {
+        feynman: '🧒 Feynman',
+        professor: '🎓 Giáo Sư',
+        speed: '⚡ Giải Nhanh',
+        examiner: '🎤 Vấn Đáp'
+      };
+      badge.textContent = personaLabels[curPersona] || curPersona;
+    }
+  }
+}
+window.syncExamTutorStyleUI = syncExamTutorStyleUI;
 
 function highlightBiochemTermsSafe(html) {
   if (!html) return '';
@@ -15768,6 +16142,7 @@ function updateTutorLengthUI() {
     b.classList.toggle('border-emerald-500/40', isConcise);
     b.classList.toggle('border-indigo-500/40', !isConcise);
   });
+  if (typeof syncExamTutorStyleUI === 'function') syncExamTutorStyleUI();
 }
 window.updateTutorLengthUI = updateTutorLengthUI;
 
@@ -16354,6 +16729,7 @@ function updateTutorPersonaUI() {
     const isAct = btn.getAttribute('data-persona') === cur;
     btn.classList.toggle('active', isAct);
   });
+  if (typeof syncExamTutorStyleUI === 'function') syncExamTutorStyleUI();
 }
 
 function attachContextToTutor(ctxObj = {}, opts = {}) {
@@ -17257,7 +17633,7 @@ function stopFloatingVoiceInput() {
 function askAiAboutCurrentExamQuestion(autoExplain = false) {
   const q = STATE.exam.questions[STATE.exam.currentIndex];
   if (!q) {
-    toggleFloatingTutor();
+    openFloatingTutor();
     return;
   }
   const idx = STATE.exam.currentIndex + 1;
@@ -17266,6 +17642,15 @@ function askAiAboutCurrentExamQuestion(autoExplain = false) {
   const isCorrect = isGraded ? (String(userAns).toUpperCase() === String(q._effectiveCorrect).toUpperCase()) : undefined;
   const hideAnswer = !isGraded && STATE.exam.mode === 'real';
 
+  // 1. Kích hoạt chế độ Feynman nếu chưa có persona riêng, hoặc tôn trọng persona người dùng đã chọn
+  if (!currentTutorPersona) {
+    setFloatingPersona('feynman');
+  }
+
+  // 2. Mở cửa sổ Floating Tutor ngay lập tức để học viên thấy Gia Sư AI sẵn sàng
+  openFloatingTutor();
+
+  // 3. Ghim câu hỏi vào ngữ cảnh tương tác Gia Sư AI
   pinQuestionToTutor(q, {
     label: `Câu ${idx}`,
     user_answer: userAns,
@@ -17274,17 +17659,42 @@ function askAiAboutCurrentExamQuestion(autoExplain = false) {
     source: 'exam'
   });
 
-  if (autoExplain && isGraded && !tutorSendingLock) {
-    setTutorResponseLength('detailed');
+  // 4. Nếu autoExplain (bấm nút 'Gia Sư AI Giải Chi Tiết (Feynman)' hoặc Áp dụng cấu hình):
+  if (autoExplain) {
+    if (tutorSendingLock) {
+      if (typeof showToast === 'function') {
+        showToast('Gia Sư AI đang tạo câu trả lời, vui lòng chờ trong giây lát...', 'info');
+      }
+      return;
+    }
+
+    // Đảm bảo độ dài chi tiết nếu chưa cài đặt
+    if (!currentTutorResponseLength) {
+      setTutorResponseLength('detailed');
+    }
+
     const corr = String(q._effectiveCorrect || '').trim();
-    const prompt = (userAns && !isCorrect)
-      ? `Ở Câu ${idx}, mình đã chọn đáp án ${userAns} nhưng đáp án đúng là ${corr}. Hãy giải thích chi tiết, dễ hiểu theo phong cách Feynman vì sao ${corr} đúng, mổ xẻ vì sao ${userAns} là bẫy sai, và làm rõ vì sao các phương án khác chưa chính xác.`
-      : `Ở Câu ${idx} (đáp án đúng: ${corr}), hãy giải thích chi tiết bản chất theo phong cách Feynman, làm rõ cơ chế vì sao ${corr} đúng và phân tích vì sao các phương án khác sai / cạm bẫy trắc nghiệm ở đâu.`;
+    const curPersona = currentTutorPersona || 'feynman';
+    const personaTitle = curPersona === 'feynman'
+      ? 'kỹ thuật Feynman (bản chất, trực quan, dễ hiểu)'
+      : (curPersona === 'professor' ? 'phong cách Giáo Sư chuẩn mực học thuật' : (curPersona === 'speed' ? 'phong cách Giải Nhanh 10s chốt bẫy' : 'phong cách Giảng Viên Vấn Đáp phản biện'));
+
+    let prompt = '';
+    if (isGraded) {
+      if (userAns && !isCorrect) {
+        prompt = `Ở Câu ${idx}, mình đã chọn đáp án ${userAns} nhưng đáp án đúng là ${corr}. Hãy giải thích chi tiết theo ${personaTitle}: làm rõ bản chất vì sao ${corr} đúng, mổ xẻ vì sao phương án ${userAns} là bẫy sai khiến mình nhầm lẫn, và phân tích vì sao các phương án khác chưa chính xác.`;
+      } else {
+        prompt = `Ở Câu ${idx} (đáp án đúng: ${corr}), hãy giải thích chi tiết bản chất theo ${personaTitle}: làm rõ cơ chế / nguyên lý vì sao ${corr} đúng và phân tích cặn kẽ vì sao các phương án khác sai hoặc cạm bẫy của câu này là gì.`;
+      }
+    } else {
+      prompt = `Ở Câu ${idx}, hãy giải thích bản chất lý thuyết và phương pháp tư duy theo ${personaTitle} để tìm ra hướng đi đúng nhất cho bài toán này, lưu ý các bẫy thường gặp.`;
+    }
+
     sendTutorChatUnified(prompt, {
       mode: 'explain',
       source: 'exam_feedback',
-      responseLength: 'detailed',
-      persona: currentTutorPersona || 'feynman'
+      responseLength: currentTutorResponseLength || 'detailed',
+      persona: curPersona
     });
   }
 }
@@ -21943,6 +22353,7 @@ function renderQuestionFeedbackArea(q) {
   }
 
   loadQuestionDiscussions(q.id);
+  if (typeof syncExamTutorStyleUI === 'function') syncExamTutorStyleUI();
 }
 
 async function gradeCurrentEssayWithAi() {
@@ -26153,7 +26564,8 @@ async function callGeminiRawFromBrowser(promptText, imageBase64 = null, mimeType
   const keys = getBrowserGeminiKeyPool();
   if (!keys.length) return null;
 
-  const models = ['gemini-2.5-pro', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-3.5-flash', 'gemini-3.5-flash-lite'];
+  // Model cascade tối ưu tốc độ: Ưu tiên gemini-2.0-flash (siêu tốc ~400ms) rồi đến gemini-1.5-flash và 1.5-pro
+  const models = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro'];
   for (let kTry = 0; kTry < keys.length; kTry++) {
     const key = keys[(_browserKeyCursor + kTry) % keys.length];
     for (const model of models) {
@@ -26188,13 +26600,50 @@ async function callGeminiRawFromBrowser(promptText, imageBase64 = null, mimeType
   return null;
 }
 
+const _BROWSER_AI_RESPONSE_CACHE = new Map();
+
 async function callGeminiDirectFromBrowser(url, body = {}) {
-  const stemRule = 'Viết bằng Markdown sạch, bọc công thức Toán/Lý trong `$...$` và Hóa học trong `$\\ce{...}$`.';
+  const stemRule = 'Định dạng Markdown đẹp mắt (dùng gạch đầu dòng, in đậm thuật ngữ cốt lõi). Bọc công thức Toán/Lý trong `$...$` và Hóa học trong `$\\ce{...}$`.';
+  
+  // Kiểm tra bộ nhớ đệm client-side (tránh gọi trùng API gây tốn quota và chờ đợi)
+  const cacheKey = `${url}|${JSON.stringify(body)}`;
+  if (!body.force_refresh && _BROWSER_AI_RESPONSE_CACHE.has(cacheKey)) {
+    return _BROWSER_AI_RESPONSE_CACHE.get(cacheKey);
+  }
+
   if (url === '/api/ai/chat') {
-    const reply = await callGeminiRawFromBrowser(
-      `Đóng vai Giáo sư Đại học môn "${body.subject_name || 'Đại học'}". Giải đáp chi tiết, dễ hiểu câu hỏi của sinh viên: "${body.message || ''}"\n${stemRule}`
-    );
-    return reply ? { success: true, reply } : null;
+    const curPersona = String(body.persona || currentTutorPersona || 'feynman').toLowerCase();
+    const curCustom = String(body.tutor_style_prompt || body.custom_style || (typeof getTutorCustomStyle === 'function' ? getTutorCustomStyle() : '')).trim();
+    const curLen = String(body.response_length || body.responseLength || currentTutorResponseLength || 'detailed').toLowerCase();
+
+    let personaPrompt = '';
+    if (curPersona === 'feynman') {
+      personaPrompt = 'Đóng vai Gia Sư AI áp dụng Phương pháp Feynman (Feynman Technique) trực quan và dễ hiểu tuyệt đối như giảng cho học sinh 10 tuổi. Dùng 1 ẩn dụ đời sống sinh động, làm rõ cơ chế gốc rễ vì sao đáp án đúng được chọn và mổ xẻ vì sao từng phương án khác sai hoặc cạm bẫy trắc nghiệm ở đâu.';
+    } else if (curPersona === 'professor') {
+      personaPrompt = 'Đóng vai Giáo sư Đại học chuẩn mực, học thuật uyên bác: đi thẳng vào nguyên lý khoa học, cơ chế bản chất, thuật toán/công thức và điều kiện áp dụng.';
+    } else if (curPersona === 'speed') {
+      personaPrompt = 'Đóng vai Chuyên gia giải nhanh trắc nghiệm 5 giây: chỉ rõ mẹo loại suy siêu tốc, phát hiện từ khóa (keywords) để scan ra đáp án ngay lập tức.';
+    } else if (curPersona === 'examiner') {
+      personaPrompt = 'Đóng vai Giám khảo vấn đáp sắc sảo: phân tích vấn đề và đặt ra 1 câu hỏi phản biện mở để kích thích chiều sâu tư duy.';
+    } else {
+      personaPrompt = `Đóng vai Gia Sư AI chuyên nghiệp môn "${body.subject_name || 'Đại học'}". Giải đáp dễ hiểu, bản chất và truyền cảm hứng.`;
+    }
+
+    let lenPrompt = '';
+    if (curLen === 'brief') lenPrompt = 'Độ dài: Trả lời cô đọng trong 3-4 câu, đi thẳng vào chốt hạ vấn đề.';
+    else if (curLen === 'deep') lenPrompt = 'Độ dài: Phân tích chuyên sâu toàn diện, mổ xẻ đa chiều từ lý thuyết nền tảng đến biến thể đề thi nâng cao.';
+    else lenPrompt = 'Độ dài: Chi tiết, đầy đủ các bước giải thích và dẫn dắt sư phạm mạch lạc.';
+
+    const customPrompt = curCustom ? `\n[Yêu cầu phong cách đặc biệt do sinh viên chỉ định]: ${curCustom}` : '';
+    const fullPrompt = `${personaPrompt}\n${lenPrompt}${customPrompt}\n${stemRule}\n\nNội dung câu hỏi môn "${body.subject_name || 'Đại học'}":\n${body.message || ''}`;
+
+    const reply = await callGeminiRawFromBrowser(fullPrompt);
+    if (reply) {
+      const resObj = { success: true, reply };
+      _BROWSER_AI_RESPONSE_CACHE.set(cacheKey, resObj);
+      return resObj;
+    }
+    return null;
   }
   if (url === '/api/ai/hint') {
     const hint = await callGeminiRawFromBrowser(
@@ -26209,10 +26658,27 @@ async function callGeminiDirectFromBrowser(url, body = {}) {
     return concept ? { success: true, concept } : null;
   }
   if (url === '/api/ai/deep-analysis') {
-    const analysis = await callGeminiRawFromBrowser(
-      `Phân tích chuyên sâu câu hỏi: "${body.question_text || ''}". Đáp án đúng: "${body.correct_answer || ''}". Giải thích vì sao đúng và cách tránh bẫy.\n${stemRule}`
-    );
-    return analysis ? { success: true, analysis } : null;
+    const mode = String(body.mode || body.analysis_mode || 'feynman').toLowerCase();
+    let modePrompt = '';
+    if (mode === 'feynman') {
+      modePrompt = `Áp dụng Phương pháp Feynman (Feynman Technique) để giải thích câu hỏi: "${body.question_text || ''}". Đáp án đúng: "${body.correct_answer || ''}".
+Yêu cầu:
+1. 💡 Bản chất cốt lõi bằng ẩn dụ đời thường dễ nhớ.
+2. 🎯 Phân tích chi tiết vì sao đáp án đúng được chọn.
+3. ⚠️ Mổ xẻ từng phương án sai và bẫy trắc nghiệm.
+4. ⚡ Mẹo ghi nhớ 5 giây.`;
+    } else if (mode === 'exam_trap') {
+      modePrompt = `Mổ xẻ toàn bộ bẫy đề thi và cạm bẫy tâm lý trong câu hỏi: "${body.question_text || ''}". Đáp án đúng: "${body.correct_answer || ''}". Chỉ rõ dấu hiệu scan 2 giây nhận diện bẫy.`;
+    } else {
+      modePrompt = `Phân tích chuyên sâu câu hỏi: "${body.question_text || ''}". Đáp án đúng: "${body.correct_answer || ''}". Giải thích vì sao đúng, cơ chế khoa học và cách suy luận logic.`;
+    }
+    const analysis = await callGeminiRawFromBrowser(`${modePrompt}\n${stemRule}`);
+    if (analysis) {
+      const resObj = { success: true, analysis };
+      _BROWSER_AI_RESPONSE_CACHE.set(cacheKey, resObj);
+      return resObj;
+    }
+    return null;
   }
   if (url === '/api/ai/explain-mistake') {
     const diagnosis = await callGeminiRawFromBrowser(
@@ -26263,6 +26729,33 @@ Trả về DUY NHẤT JSON hợp lệ:
         const e = raw.lastIndexOf('}');
         if (s !== -1 && e !== -1) {
           return { success: true, grading: JSON.parse(raw.slice(s, e + 1)) };
+        }
+      } catch (_) {}
+    }
+    return null;
+  }
+  if (url === '/api/ai/feynman-evaluate') {
+    const concept = String(body.concept || '').trim();
+    const explanation = String(body.explanation || '').trim();
+    const prompt = `Đóng vai Hội đồng Sư phạm đánh giá Kỹ thuật Feynman cho khái niệm: "${concept}".
+Bài giải thích của học viên: "${explanation}".
+Trả về DUY NHẤT một chuỗi JSON hợp lệ không có markdown bọc ngoài:
+{
+  "score": 8.5,
+  "verdict": "Nhận xét khách quan, nêu bật điểm mạnh",
+  "clarity_rating": "Dễ hiểu",
+  "knowledge_gaps": ["Khía cạnh cần giải thích cụ thể hơn"],
+  "feynman_rewrite": "Bản giải thích mẫu chuẩn Feynman kết hợp ẩn dụ đời sống 5 giây",
+  "child_question": "1 câu hỏi tò mò đứa trẻ 10 tuổi sẽ hỏi lại"
+}`;
+    const raw = await callGeminiRawFromBrowser(prompt);
+    if (raw) {
+      try {
+        const s = raw.indexOf('{');
+        const e = raw.lastIndexOf('}');
+        if (s !== -1 && e !== -1) {
+          const parsed = JSON.parse(raw.slice(s, e + 1));
+          return { success: true, ...parsed };
         }
       } catch (_) {}
     }
